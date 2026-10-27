@@ -173,6 +173,9 @@ fn configured_browser() -> PathBuf {
         );
         return browser;
     }
+    if std::env::var_os("CTML_CSS_PARITY_PREFER_DOWNLOADED").is_some() {
+        return download_chromium();
+    }
     if let Some(browser) = std::env::var_os("CHROME_BIN") {
         let browser = PathBuf::from(browser);
         if browser.exists() && chromium_is_available(&browser) {
