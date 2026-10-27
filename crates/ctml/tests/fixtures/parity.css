@@ -15,7 +15,7 @@ p.sample {
 }
 
 span.accent {
-    color: hsl(220 60% 50%);
+    color: hwb(220 20% 20%);
     font-weight: 700;
 }
 

@@ -23,19 +23,23 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
     let is_hsl = matches!(function.as_str(), "hsl" | "hsla");
-    if !is_hsl && !matches!(function.as_str(), "rgb" | "rgba") {
+    let is_hwb = function == "hwb";
+    if !is_hsl && !is_hwb && !matches!(function.as_str(), "rgb" | "rgba") {
         return None;
     }
 
     let color = parser
         .parse_nested_block(|input| {
-            let red_or_hue = if is_hsl {
+            let red_or_hue = if is_hsl || is_hwb {
                 parse_hue(input)?
             } else {
                 parse_rgb_component(input)?
             };
             let legacy_syntax = input.try_parse(|input| input.expect_comma()).is_ok();
-            let green_or_saturation = if is_hsl {
+            if is_hwb && legacy_syntax {
+                return Err(input.new_custom_error(()));
+            }
+            let green_or_saturation = if is_hsl || is_hwb {
                 parse_unit_component(input)?
             } else {
                 parse_component(input)?
@@ -43,7 +47,7 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
             if legacy_syntax {
                 input.expect_comma()?;
             }
-            let blue_or_lightness = if is_hsl {
+            let blue_or_lightness = if is_hsl || is_hwb {
                 parse_unit_component(input)?
             } else {
                 parse_component(input)?
@@ -66,7 +70,11 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
                 return Err(input.new_custom_error(()));
             }
 
-            let (red, green, blue) = if is_hsl {
+            let (red, green, blue) = if is_hwb {
+                let [red, green, blue] =
+                    hwb_to_rgb(red_or_hue, green_or_saturation, blue_or_lightness);
+                (red, green, blue)
+            } else if is_hsl {
                 let [red, green, blue] =
                     hsl_to_rgb(red_or_hue, green_or_saturation, blue_or_lightness);
                 (red, green, blue)
@@ -175,6 +183,19 @@ fn hsl_to_rgb(hue: f32, saturation: f32, lightness: f32) -> [u8; 3] {
     channels.map(|channel| ((channel + offset) * 255.0).round() as u8)
 }
 
+fn hwb_to_rgb(hue: f32, whiteness: f32, blackness: f32) -> [u8; 3] {
+    let whiteness = whiteness.clamp(0.0, 1.0);
+    let blackness = blackness.clamp(0.0, 1.0);
+    if whiteness + blackness >= 1.0 {
+        let gray = (whiteness / (whiteness + blackness) * 255.0).round() as u8;
+        return [gray; 3];
+    }
+
+    let pure_hue = hsl_to_rgb(hue, 1.0, 0.5);
+    let chroma = 1.0 - whiteness - blackness;
+    pure_hue.map(|channel| ((channel as f32 / 255.0 * chroma + whiteness) * 255.0).round() as u8)
+}
+
 #[cfg(test)]
 mod tests {
     use super::parse_color;
@@ -225,8 +246,18 @@ mod tests {
     }
 
     #[test]
+    fn parses_hwb_colors_with_alpha() {
+        assert_eq!(parse_color("hwb(0 0% 0%)"), Some([255, 0, 0, 255]));
+        assert_eq!(
+            parse_color("hwb(120 20% 10% / 50%)"),
+            Some([51, 230, 51, 128])
+        );
+        assert_eq!(parse_color("hwb(0 100% 100%)"), Some([128, 128, 128, 255]));
+    }
+
+    #[test]
     fn rejects_unsupported_or_malformed_color_syntax() {
-        assert_eq!(parse_color("hwb(120 20% 30%)"), None);
+        assert_eq!(parse_color("hwb(120, 20%, 30%)"), None);
         assert_eq!(parse_color("rgb(10, nope, 20)"), None);
         assert_eq!(parse_color("rgb(10, 20 30)"), None);
     }
