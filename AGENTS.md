@@ -18,11 +18,14 @@
 - Keep each commit atomic and limited to one logical change.
 - Use Conventional Commit subjects in this format: `<type>(<optional scope>): <imperative summary>`.
 - Use an appropriate type, such as `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, or `chore`.
-- For every agent-authored commit, include these lines in the commit body:
+- For agent-assisted commits, Murillo Deolino must be the primary commit author. Never make the agent the primary author.
+- Credit the agent as a co-author with a `Co-authored-by` trailer, using the agent's configured name and email.
+- For every agent-assisted commit, include these lines in the commit body:
 
   ```text
-  Agent-Authored: yes
+  Agent-Assisted: yes
   Agent: <agent name and model>
+  Co-authored-by: <agent name> <agent email>
   ```
 
 - Describe the change clearly in the subject and body. Do not combine unrelated work in one commit.
