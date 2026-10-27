@@ -49,6 +49,7 @@ pub(super) struct TextStyle {
     pub(super) family: String,
     pub(super) weight: Weight,
     pub(super) stretch: Stretch,
+    pub(super) kerning: Option<bool>,
     pub(super) font_style: Style,
     pub(super) font_variant_caps: FontVariantCaps,
     pub(super) cursor: CursorIcon,
@@ -90,6 +91,7 @@ impl Default for TextStyle {
             family: "sans-serif".to_owned(),
             weight: Weight::NORMAL,
             stretch: Stretch::Normal,
+            kerning: None,
             font_style: Style::Normal,
             font_variant_caps: FontVariantCaps::Normal,
             cursor: CursorIcon::Text,
@@ -129,6 +131,9 @@ impl TextStyle {
             .stretch(self.stretch)
             .style(self.font_style);
         let mut font_features = FontFeatures::new();
+        if let Some(kerning) = self.kerning {
+            font_features.set(FeatureTag::KERNING, u32::from(kerning));
+        }
         match self.font_variant_caps {
             FontVariantCaps::Normal => {}
             FontVariantCaps::SmallCaps => {

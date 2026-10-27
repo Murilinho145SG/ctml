@@ -114,7 +114,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 
 - [x] `color`, `font-family`, `font-size`, numeric `font-weight` values from 1 to 1000 and `normal`/`bold`, `font-style` (`normal`, `italic`, `oblique`), `font-stretch` keywords, `line-height`, and `letter-spacing`.
 - [x] `text-transform` and basic `text-decoration` line values.
-- [ ] Font shorthand, font stretch, optical sizing, kerning, feature settings, and variation settings.
+- [x] `font-kerning` (`auto`, `normal`, and `none`).
+- [ ] Font shorthand, optical sizing, feature settings, and variation settings.
 - [ ] Font loading (`@font-face`), fallback selection, and local font lookup policy.
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, and `all-small-caps` through OpenType features.
 - [x] Text alignment: left, right, center, justify, start, and end.

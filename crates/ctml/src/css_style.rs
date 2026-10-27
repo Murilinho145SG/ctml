@@ -222,6 +222,13 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.stretch,
             };
         }
+        "font-kerning" => {
+            style.kerning = match value.to_ascii_lowercase().as_str() {
+                "auto" | "normal" => Some(true),
+                "none" => Some(false),
+                _ => style.kerning,
+            };
+        }
         "font-variant" | "font-variant-caps" => {
             style.font_variant_caps = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantCaps::Normal,
@@ -414,6 +421,18 @@ mod tests {
         assert_eq!(style.weight, Weight(350));
         assert_eq!(style.font_style, Style::Oblique);
         assert_eq!(style.stretch, Stretch::Condensed);
+    }
+
+    #[test]
+    fn resolves_font_kerning_values() {
+        assert_eq!(
+            style_for_declarations(&[("font-kerning", "none")]).kerning,
+            Some(false)
+        );
+        assert_eq!(
+            style_for_declarations(&[("font-kerning", "normal")]).kerning,
+            Some(true)
+        );
     }
 
     #[test]

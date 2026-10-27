@@ -3,6 +3,7 @@ body {
     background-color: currentColor;
     font-family: sans-serif;
     font-size: 18px;
+    font-kerning: none;
     line-height: 24px;
 }
 
