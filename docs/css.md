@@ -46,7 +46,7 @@ main .title {
 - Selectors: type, class, ID, compound, descendant, comma-separated groups, and `*`.
 - Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px` or `em`, `font-weight` (`normal`, `bold`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords, `font-variant`/`font-variant-caps` (`normal`, `small-caps`, or `all-small-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-transform`, `text-decoration`, `text-decoration-color`, and `cursor`.
 - `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`.
-- Colors support standard named colors, `transparent`, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, legacy comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax. RGB channels accept numbers or percentages; HSL hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
+- Colors support standard named colors, `transparent`, `currentColor` for text and page backgrounds, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, legacy comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax. RGB channels accept numbers or percentages; HSL hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
 - Small-cap variants use the selected font's OpenType features. A font without the requested feature may render the text without a small-cap change.
 - Cursor values include `auto`, `default`, `pointer`, `text`, `crosshair`, `move`, `wait`, `progress`, `help`, `not-allowed`, `no-drop`, `copy`, `alias`, `cell`, `all-scroll`, `grab`, `grabbing`, zoom cursors, and common resize cursors. The OS draws the native cursor icon.
 - The cascade follows selector specificity and source order. Text properties inherit through child elements.
@@ -80,7 +80,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 
 - Per-element `background-color`; the supported background color applies to the page.
 - Background images, gradients, and the `opacity` property.
-- `currentColor`, modern space/slash color syntax, and functions such as `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()`.
+- Modern space/slash color syntax and functions such as `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()`.
 - Text shadows and decoration styles.
 
 ### Interaction and responsive rules

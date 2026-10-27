@@ -45,7 +45,18 @@ pub(super) fn apply_matching_styles(
         }
     }
     matches.sort_by_key(|(specificity, rule, declaration, _)| (*specificity, *rule, *declaration));
-    for (_, _, _, declaration) in matches {
+
+    let inherited_color = style.color;
+    for (_, _, _, declaration) in matches
+        .iter()
+        .filter(|(_, _, _, declaration)| declaration.property == "color")
+    {
+        apply_color_declaration(style, &declaration.value, inherited_color);
+    }
+    for (_, _, _, declaration) in matches
+        .iter()
+        .filter(|(_, _, _, declaration)| declaration.property != "color")
+    {
         apply_declaration(style, &declaration.property, &declaration.value);
     }
 }
@@ -134,16 +145,25 @@ fn selector_specificity(selector: &str) -> (usize, usize, usize) {
     (ids, classes, tags)
 }
 
+fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: [u8; 4]) {
+    let value = value.trim();
+    style.color = if value.eq_ignore_ascii_case("currentcolor") {
+        inherited_color
+    } else {
+        parse_color(value).unwrap_or(style.color)
+    };
+}
+
 fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     let value = value.trim();
     match property {
-        "color" => {
-            if let Some(color) = parse_color(value) {
-                style.color = color;
-            }
-        }
         "background-color" => {
-            if let Some(color) = parse_color(value) {
+            let color = if value.eq_ignore_ascii_case("currentcolor") {
+                Some(style.color)
+            } else {
+                parse_color(value)
+            };
+            if let Some(color) = color {
                 style.background = [
                     composite_over_white(color[0], color[3]),
                     composite_over_white(color[1], color[3]),
@@ -403,6 +423,44 @@ mod tests {
 
         assert_eq!(style.color, [0, 0, 0, 0]);
         assert_eq!(style.background, [255, 255, 255]);
+    }
+
+    #[test]
+    fn resolves_current_color_after_cascade() {
+        let style =
+            style_for_declarations(&[("background-color", "currentColor"), ("color", "#123456")]);
+
+        assert_eq!(style.color, [18, 52, 86, 255]);
+        assert_eq!(style.background, [18, 52, 86]);
+    }
+
+    #[test]
+    fn current_color_for_color_uses_the_inherited_color() {
+        let rule = StyleRule {
+            selectors: vec![".sample".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "currentColor".to_owned(),
+            }],
+        };
+        let inherited = TextStyle {
+            color: [12, 34, 56, 255],
+            ..TextStyle::default()
+        };
+        let body = ElementIdentity {
+            tag: "body".to_owned(),
+            class: None,
+            id: None,
+        };
+        let paragraph = ElementIdentity {
+            tag: "p".to_owned(),
+            class: Some("sample".to_owned()),
+            id: None,
+        };
+
+        let style = resolve_style(&inherited, &paragraph, &[body], &[rule]);
+
+        assert_eq!(style.color, [12, 34, 56, 255]);
     }
 
     #[test]
