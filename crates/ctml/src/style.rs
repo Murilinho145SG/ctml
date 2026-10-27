@@ -50,6 +50,9 @@ pub(super) struct TextStyle {
     pub(super) weight: Weight,
     pub(super) stretch: Stretch,
     pub(super) kerning: Option<bool>,
+    pub(super) common_ligatures: Option<bool>,
+    pub(super) discretionary_ligatures: Option<bool>,
+    pub(super) contextual_alternates: Option<bool>,
     pub(super) font_style: Style,
     pub(super) font_variant_caps: FontVariantCaps,
     pub(super) cursor: CursorIcon,
@@ -92,6 +95,9 @@ impl Default for TextStyle {
             weight: Weight::NORMAL,
             stretch: Stretch::Normal,
             kerning: None,
+            common_ligatures: None,
+            discretionary_ligatures: None,
+            contextual_alternates: None,
             font_style: Style::Normal,
             font_variant_caps: FontVariantCaps::Normal,
             cursor: CursorIcon::Text,
@@ -133,6 +139,16 @@ impl TextStyle {
         let mut font_features = FontFeatures::new();
         if let Some(kerning) = self.kerning {
             font_features.set(FeatureTag::KERNING, u32::from(kerning));
+        }
+        if let Some(enabled) = self.common_ligatures {
+            font_features.set(FeatureTag::STANDARD_LIGATURES, u32::from(enabled));
+            font_features.set(FeatureTag::CONTEXTUAL_LIGATURES, u32::from(enabled));
+        }
+        if let Some(enabled) = self.discretionary_ligatures {
+            font_features.set(FeatureTag::DISCRETIONARY_LIGATURES, u32::from(enabled));
+        }
+        if let Some(enabled) = self.contextual_alternates {
+            font_features.set(FeatureTag::CONTEXTUAL_ALTERNATES, u32::from(enabled));
         }
         match self.font_variant_caps {
             FontVariantCaps::Normal => {}

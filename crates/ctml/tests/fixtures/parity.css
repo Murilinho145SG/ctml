@@ -19,6 +19,7 @@ p.sample {
 span.accent {
     color: hwb(220 20% 20%);
     font-weight: 700;
+    font-variant-ligatures: none;
     text-decoration: underline double;
 }
 

@@ -229,6 +229,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.kerning,
             };
         }
+        "font-variant-ligatures" => apply_font_variant_ligatures(style, value),
         "font-variant" | "font-variant-caps" => {
             style.font_variant_caps = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantCaps::Normal,
@@ -299,6 +300,32 @@ fn apply_letter_spacing(style: &mut TextStyle, value: &str) {
     {
         style.letter_spacing = em;
         style.letter_spacing_px = false;
+    }
+}
+
+fn apply_font_variant_ligatures(style: &mut TextStyle, value: &str) {
+    if value.eq_ignore_ascii_case("normal") {
+        style.common_ligatures = None;
+        style.discretionary_ligatures = None;
+        style.contextual_alternates = None;
+        return;
+    }
+    if value.eq_ignore_ascii_case("none") {
+        style.common_ligatures = Some(false);
+        style.discretionary_ligatures = Some(false);
+        style.contextual_alternates = Some(false);
+        return;
+    }
+    for feature in value.split_ascii_whitespace() {
+        match feature.to_ascii_lowercase().as_str() {
+            "common-ligatures" => style.common_ligatures = Some(true),
+            "no-common-ligatures" => style.common_ligatures = Some(false),
+            "discretionary-ligatures" => style.discretionary_ligatures = Some(true),
+            "no-discretionary-ligatures" => style.discretionary_ligatures = Some(false),
+            "contextual" => style.contextual_alternates = Some(true),
+            "no-contextual" => style.contextual_alternates = Some(false),
+            _ => {}
+        }
     }
 }
 
@@ -433,6 +460,18 @@ mod tests {
             style_for_declarations(&[("font-kerning", "normal")]).kerning,
             Some(true)
         );
+    }
+
+    #[test]
+    fn resolves_font_variant_ligatures() {
+        let style = style_for_declarations(&[(
+            "font-variant-ligatures",
+            "no-common-ligatures discretionary-ligatures no-contextual",
+        )]);
+
+        assert_eq!(style.common_ligatures, Some(false));
+        assert_eq!(style.discretionary_ligatures, Some(true));
+        assert_eq!(style.contextual_alternates, Some(false));
     }
 
     #[test]
