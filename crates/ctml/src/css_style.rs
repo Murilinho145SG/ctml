@@ -209,18 +209,9 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             };
         }
         "font-stretch" => {
-            style.stretch = match value.to_ascii_lowercase().as_str() {
-                "ultra-condensed" => Stretch::UltraCondensed,
-                "extra-condensed" => Stretch::ExtraCondensed,
-                "condensed" => Stretch::Condensed,
-                "semi-condensed" => Stretch::SemiCondensed,
-                "normal" => Stretch::Normal,
-                "semi-expanded" => Stretch::SemiExpanded,
-                "expanded" => Stretch::Expanded,
-                "extra-expanded" => Stretch::ExtraExpanded,
-                "ultra-expanded" => Stretch::UltraExpanded,
-                _ => style.stretch,
-            };
+            if let Some(stretch) = parse_font_stretch(value) {
+                style.stretch = stretch;
+            }
         }
         "font-kerning" => {
             style.kerning = match value.to_ascii_lowercase().as_str() {
@@ -288,6 +279,47 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
 
 fn composite_over_white(channel: u8, alpha: u8) -> u8 {
     ((channel as u32 * alpha as u32 + 255 * (255 - alpha) as u32 + 127) / 255) as u8
+}
+
+fn parse_font_stretch(value: &str) -> Option<Stretch> {
+    let keyword = match value.to_ascii_lowercase().as_str() {
+        "ultra-condensed" => Some(Stretch::UltraCondensed),
+        "extra-condensed" => Some(Stretch::ExtraCondensed),
+        "condensed" => Some(Stretch::Condensed),
+        "semi-condensed" => Some(Stretch::SemiCondensed),
+        "normal" => Some(Stretch::Normal),
+        "semi-expanded" => Some(Stretch::SemiExpanded),
+        "expanded" => Some(Stretch::Expanded),
+        "extra-expanded" => Some(Stretch::ExtraExpanded),
+        "ultra-expanded" => Some(Stretch::UltraExpanded),
+        _ => None,
+    };
+    if keyword.is_some() {
+        return keyword;
+    }
+
+    let percentage = value.strip_suffix('%')?.trim().parse::<f32>().ok()?;
+    if !percentage.is_finite() || percentage < 0.0 {
+        return None;
+    }
+    [
+        (50.0, Stretch::UltraCondensed),
+        (62.5, Stretch::ExtraCondensed),
+        (75.0, Stretch::Condensed),
+        (87.5, Stretch::SemiCondensed),
+        (100.0, Stretch::Normal),
+        (112.5, Stretch::SemiExpanded),
+        (125.0, Stretch::Expanded),
+        (150.0, Stretch::ExtraExpanded),
+        (200.0, Stretch::UltraExpanded),
+    ]
+    .into_iter()
+    .min_by(|(left, _), (right, _)| {
+        (left - percentage)
+            .abs()
+            .total_cmp(&(right - percentage).abs())
+    })
+    .map(|(_, stretch)| stretch)
 }
 
 fn apply_letter_spacing(style: &mut TextStyle, value: &str) {
@@ -453,6 +485,18 @@ mod tests {
         assert_eq!(style.weight, Weight(350));
         assert_eq!(style.font_style, Style::Oblique);
         assert_eq!(style.stretch, Stretch::Condensed);
+    }
+
+    #[test]
+    fn maps_font_stretch_percentages_to_available_widths() {
+        assert_eq!(
+            style_for_declarations(&[("font-stretch", "75%")]).stretch,
+            Stretch::Condensed
+        );
+        assert_eq!(
+            style_for_declarations(&[("font-stretch", "100%")]).stretch,
+            Stretch::Normal
+        );
     }
 
     #[test]
