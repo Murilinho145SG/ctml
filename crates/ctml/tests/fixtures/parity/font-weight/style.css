@@ -1,0 +1,14 @@
+body {
+    color: #222222;
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+p.sample {
+    font-kerning: none;
+    font-stretch: 75%;
+    font-weight: bolder;
+    margin: 0;
+}

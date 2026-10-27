@@ -68,8 +68,8 @@ jobs:
         with:
           name: css-parity-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            target/css-parity/*.png
-            target/css-parity/browser-input-*/chromium.stdout.log
-            target/css-parity/browser-input-*/chromium.stderr.log
+            target/css-parity/**/*.png
+            target/css-parity/**/chromium.stdout.log
+            target/css-parity/**/chromium.stderr.log
           if-no-files-found: ignore
           retention-days: 7

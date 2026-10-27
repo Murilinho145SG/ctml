@@ -108,18 +108,18 @@ To open the visual demo, run:
 cargo run --offline -p ctml-native-demo
 ```
 
-The CTML/Chromium screenshot parity check runs as part of the `ctml` test suite. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. The check saves both screenshots and a red pixel-difference image under `target/css-parity/`. A pixel counts as different when any RGB channel differs by more than 16; the check fails when more than 8% of viewport pixels differ. To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
+The CTML/Chromium screenshot parity suite runs as separate tests for the cases under `crates/ctml/tests/fixtures/parity/`. Each case has its own CTML, HTML, and CSS files and compares its own screenshots. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. Screenshots and red pixel-difference images are saved under `target/css-parity/<case>/`. A pixel counts as different when any RGB channel differs by more than 16; every case fails if more than 0.5% of viewport pixels differ. To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
 
 Run the parity test by itself, with a single test thread, using:
 
 ```sh
-cargo test -p ctml native_ctml_rendering_matches_browser_html_css_pixels -- --test-threads=1 --nocapture
+cargo test -p ctml page::tests::parity -- --test-threads=1 --nocapture
 ```
 
 The repository's Cargo configuration runs tests serially and shows test output by default. The parity test prints its progress while it parses fixtures, renders CTML, finds or downloads Chromium, captures HTML, and compares pixels. To run only that test, use:
 
 ```sh
-cargo test -p ctml native_ctml_rendering_matches_browser_html_css_pixels
+cargo test -p ctml page::tests::parity
 ```
 
 The first run needs network access only if Chromium is not already installed or cached. The downloaded browser is reused by later runs. The parity test requires Chromium to start and capture a screenshot. If a Linux container's seccomp profile blocks a syscall Chromium needs at startup, run the test on the host or allow `shutdown()` in the container profile; the test reports this restriction and fails rather than skipping pixel comparison.

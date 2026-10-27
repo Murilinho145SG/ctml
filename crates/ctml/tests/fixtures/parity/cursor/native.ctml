@@ -1,0 +1,8 @@
+<headers>
+    <application name="Parity cursor" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body>
+    <p class="sample">OK</p>
+</body>

@@ -8,148 +8,24 @@ use std::{
 };
 
 use chromiumoxide_fetcher::{BrowserFetcher, BrowserFetcherOptions, BrowserKind};
-use ctml_compiler::{AttributeValue, Node, parse, parse_stylesheet};
+use ctml_compiler::{AttributeValue, Node};
 use url::Url;
-use winit::window::CursorIcon;
 
-use super::PageRasterizer;
-use crate::{StyleDeclaration, StyleRule, UiNode};
-use progress::{ProgressBar, colorize, log_notice, log_step, log_success};
+use crate::UiNode;
+use progress::{ProgressBar, log_notice, log_step, log_success};
 
 #[path = "page_tests/progress.rs"]
 mod progress;
 
-const WIDTH: u32 = 320;
-const HEIGHT: u32 = 120;
+const WIDTH: u32 = 640;
+const HEIGHT: u32 = 360;
 const CHANNEL_TOLERANCE: u8 = 16;
-const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.08;
+const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.005;
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
-#[test]
-fn native_ctml_rendering_matches_browser_html_css_pixels() {
-    log_step("[1/4] Parsing the shared CTML, HTML, and CSS fixtures");
-    let native_markup = include_str!("../tests/fixtures/parity.ctml");
-    let css = include_str!("../tests/fixtures/parity.css");
-    let browser_markup = include_str!("../tests/fixtures/parity.html");
-    let document = parse(native_markup).expect("CTML parity fixture should parse");
-    let stylesheet_link = document
-        .stylesheet()
-        .and_then(|element| element.attribute("href"))
-        .and_then(AttributeValue::as_str);
-    assert_eq!(stylesheet_link, Some("parity.css"));
-
-    let body = document.body.iter().map(ui_node).collect::<Vec<_>>();
-    let stylesheet = parse_stylesheet(css)
-        .expect("CSS parity fixture should parse")
-        .rules
-        .into_iter()
-        .map(|rule| StyleRule {
-            selectors: rule.selectors,
-            declarations: rule
-                .declarations
-                .into_iter()
-                .map(|declaration| StyleDeclaration {
-                    property: declaration.property,
-                    value: declaration.value,
-                })
-                .collect(),
-        })
-        .collect::<Vec<_>>();
-
-    log_step("[2/4] Rendering CTML pixels");
-    let mut rasterizer = PageRasterizer::new(&body, &stylesheet);
-    let native_pixels = rasterizer.snapshot_pixels(WIDTH, HEIGHT);
-    assert_eq!(
-        rasterizer.cursor_at(0.0, 0.0),
-        (CursorIcon::Default, false),
-        "cursor: none should hide the native cursor"
-    );
-    let mut native_fonts = rasterizer
-        .buffer
-        .layout_runs()
-        .flat_map(|run| run.glyphs.iter())
-        .filter_map(|glyph| {
-            rasterizer
-                .font_system
-                .db()
-                .face(glyph.font_id)
-                .map(|face| face.post_script_name.clone())
-        })
-        .collect::<Vec<_>>();
-    native_fonts.sort();
-    native_fonts.dedup();
-    log_step(&format!("CTML resolved fonts: {}", native_fonts.join(", ")));
-    let artifact_dir = parity_artifact_dir();
-    fs::create_dir_all(&artifact_dir).expect("create parity artifact directory");
-    let native_image = artifact_dir.join("ctml.png");
-    let browser_image = artifact_dir.join("browser.png");
-    let diff_image = artifact_dir.join("diff.png");
-    write_rgba_png(&native_image, WIDTH, HEIGHT, &native_pixels);
-    log_success(&format!(
-        "Saved native screenshot to {}",
-        native_image.display()
-    ));
-
-    log_step("[3/4] Finding or downloading Chromium");
-    let browser = configured_browser();
-
-    let browser_dir = artifact_dir.join(format!("browser-input-{}", std::process::id()));
-    fs::create_dir_all(&browser_dir).expect("create browser fixture directory");
-    fs::write(browser_dir.join("index.html"), browser_markup).expect("write HTML parity fixture");
-    fs::write(browser_dir.join("parity.css"), css).expect("write browser CSS fixture");
-    log_step("Capturing the HTML fixture in Chromium");
-    capture_browser(&browser, &browser_dir, &browser_image);
-    log_success(&format!(
-        "Saved Chromium screenshot to {}",
-        browser_image.display()
-    ));
-
-    let native = read_rgba_png(&native_image);
-    let browser = read_rgba_png(&browser_image);
-    assert_eq!(
-        native.dimensions,
-        (WIDTH, HEIGHT),
-        "native screenshot dimensions"
-    );
-    assert_eq!(
-        browser.dimensions,
-        (WIDTH, HEIGHT),
-        "browser screenshot dimensions"
-    );
-
-    log_step("[4/4] Comparing viewport pixels");
-    let (diff_pixels, diff_image_pixels, max_channel_delta) =
-        compare_pixels(&native.pixels, &browser.pixels);
-    write_rgba_png(&diff_image, WIDTH, HEIGHT, &diff_image_pixels);
-    let pixel_count = (WIDTH * HEIGHT) as usize;
-    let diff_ratio = diff_pixels as f32 / pixel_count as f32;
-    eprintln!(
-        "{}",
-        colorize(
-            &format!(
-                "CSS parity: {diff_pixels}/{pixel_count} pixels differ ({:.2}%), max channel delta {max_channel_delta}. Artifacts: {}",
-                diff_ratio * 100.0,
-                artifact_dir.display()
-            ),
-            "\x1b[36m"
-        )
-    );
-    if diff_ratio <= MAX_DIFFERING_PIXEL_RATIO {
-        log_success(&format!(
-            "Pixel comparison passed within the {:.2}% difference limit",
-            MAX_DIFFERING_PIXEL_RATIO * 100.0
-        ));
-    }
-    assert!(
-        diff_ratio <= MAX_DIFFERING_PIXEL_RATIO,
-        "native and browser renders differ in {:.2}% of pixels (limit {:.2}%); inspect {} and {}",
-        diff_ratio * 100.0,
-        MAX_DIFFERING_PIXEL_RATIO * 100.0,
-        native_image.display(),
-        browser_image.display()
-    );
-}
+#[path = "page_tests/parity.rs"]
+mod parity;
 
 fn ui_node(node: &Node) -> UiNode {
     match node {
