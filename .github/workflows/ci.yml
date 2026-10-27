@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - name: Install native Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libasound2-dev \
+            libudev-dev \
+            libwayland-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-shm0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            pkg-config \
+            fonts-liberation
+
+      - name: Cache Chromium parity browser
+        uses: actions/cache@v6
+        with:
+          path: target/css-parity/chromium-cache
+          key: ${{ runner.os }}-css-parity-chromium-${{ hashFiles('Cargo.lock') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run workspace tests
+        run: cargo test --workspace --locked
+
+      - name: Upload CSS parity screenshots and browser logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: css-parity-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/css-parity/*.png
+            target/css-parity/browser-input-*/chromium.stdout.log
+            target/css-parity/browser-input-*/chromium.stderr.log
+          if-no-files-found: ignore
+          retention-days: 7
