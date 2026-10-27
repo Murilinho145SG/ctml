@@ -251,6 +251,13 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             };
         }
         "text-decoration" | "text-decoration-line" => apply_text_decoration(style, value),
+        "text-decoration-style" => {
+            style.underline_style = match value.to_ascii_lowercase().as_str() {
+                "solid" => cosmic_text::UnderlineStyle::Single,
+                "double" => cosmic_text::UnderlineStyle::Double,
+                _ => style.underline_style,
+            };
+        }
         "text-decoration-color" => {
             style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
                 None
@@ -293,6 +300,7 @@ fn apply_text_decoration(style: &mut TextStyle, value: &str) {
         style.underline = false;
         style.overline = false;
         style.strikethrough = false;
+        style.underline_style = cosmic_text::UnderlineStyle::Single;
         return;
     }
     for decoration in value.split_ascii_whitespace() {
@@ -300,6 +308,8 @@ fn apply_text_decoration(style: &mut TextStyle, value: &str) {
             "underline" => style.underline = true,
             "overline" => style.overline = true,
             "line-through" => style.strikethrough = true,
+            "solid" => style.underline_style = cosmic_text::UnderlineStyle::Single,
+            "double" => style.underline_style = cosmic_text::UnderlineStyle::Double,
             _ => {}
         }
     }
@@ -482,6 +492,18 @@ mod tests {
         assert_eq!(
             style_for_declarations(&[("text-align", "justify")]).text_align,
             cosmic_text::Align::Justified
+        );
+    }
+
+    #[test]
+    fn resolves_solid_and_double_underline_styles() {
+        assert_eq!(
+            style_for_declarations(&[("text-decoration-style", "double")]).underline_style,
+            cosmic_text::UnderlineStyle::Double
+        );
+        assert_eq!(
+            style_for_declarations(&[("text-decoration", "underline solid")]).underline_style,
+            cosmic_text::UnderlineStyle::Single
         );
     }
 

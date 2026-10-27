@@ -57,6 +57,7 @@ pub(super) struct TextStyle {
     pub(super) text_transform: TextTransform,
     pub(super) text_align: Align,
     pub(super) underline: bool,
+    pub(super) underline_style: UnderlineStyle,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
     pub(super) text_decoration_color: Option<[u8; 4]>,
@@ -97,6 +98,7 @@ impl Default for TextStyle {
             text_transform: TextTransform::None,
             text_align: Align::Left,
             underline: false,
+            underline_style: UnderlineStyle::Single,
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
@@ -148,7 +150,7 @@ impl TextStyle {
             });
         }
         if self.underline {
-            attrs = attrs.underline(UnderlineStyle::Single);
+            attrs = attrs.underline(self.underline_style);
         }
         if let Some(color) = self.text_decoration_color {
             let color = Color::rgba(color[0], color[1], color[2], color[3]);
