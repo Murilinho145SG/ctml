@@ -17,7 +17,7 @@ p.sample {
     margin: 0;
 }
 
-span.accent {
+p.sample > span.accent {
     color: hwb(220 20% 20%);
     font-stretch: 75%;
     font-weight: 700;

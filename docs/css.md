@@ -43,7 +43,7 @@ main .title {
 
 ## Supported CSS subset
 
-- Selectors: type, class, ID, compound, descendant, comma-separated groups, and `*`.
+- Selectors: type, class, ID, compound, descendant, direct child (`>`), comma-separated groups, and `*`.
 - Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px` or `em`, `font-weight` (`normal`, `bold`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, and contextual controls), `font-variant`/`font-variant-caps` (`normal`, `small-caps`, or `all-small-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid` or `double` underline style, `text-decoration-color`, and `cursor`.
 - `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`.
 - Colors support standard named colors, `transparent`, `currentColor` for text and page backgrounds, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax, modern space-separated `rgb()`/`hsl()` syntax, and `hwb()` with optional slash alpha. RGB channels accept numbers or percentages; hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
@@ -63,7 +63,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 
 - Pseudo-classes and pseudo-elements, such as `:hover`, `:focus`, `:active`, and `::before`.
 - Attribute selectors, such as `[disabled]` and `[type="text"]`.
-- Child, adjacent-sibling, and general-sibling combinators: `>`, `+`, and `~`.
+- Adjacent-sibling and general-sibling combinators: `+` and `~`.
 - Selector namespaces and escaped identifiers.
 - `!important` priority and cascade layers.
 

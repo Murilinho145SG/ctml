@@ -19,10 +19,11 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 
 ## Selectors
 
-- [x] Type, class, ID, universal (`*`), compound, descendant, and comma-separated selectors.
+- [x] Type, class, ID, universal (`*`), compound, descendant, direct child (`>`), and comma-separated selectors.
 - [ ] Namespace selectors.
 - [ ] Attribute selectors: presence, exact match, token, language, prefix, suffix, substring, and case flags.
-- [ ] Child (`>`), adjacent sibling (`+`), and general sibling (`~`) combinators.
+- [x] Child (`>`) combinator.
+- [ ] Adjacent sibling (`+`) and general sibling (`~`) combinators.
 - [ ] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [ ] Stateful pseudo-classes: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [ ] Selector logic: `:is()`, `:where()`, `:not()`, and `:has()`.
