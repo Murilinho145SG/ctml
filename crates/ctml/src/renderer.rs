@@ -144,9 +144,13 @@ impl Renderer {
         Ok(())
     }
 
-    pub(super) fn pointer_moved(&mut self, position: PhysicalPosition<f64>) -> (CursorIcon, bool) {
+    pub(super) fn pointer_moved(
+        &mut self,
+        position: PhysicalPosition<f64>,
+    ) -> (CursorIcon, bool, bool) {
         let changed = self.page.extend_selection(position.x, position.y);
-        (self.page.cursor_at(position.x, position.y), changed)
+        let (cursor, visible) = self.page.cursor_at(position.x, position.y);
+        (cursor, visible, changed)
     }
 
     pub(super) fn select_word_at(&mut self, position: PhysicalPosition<f64>) -> bool {

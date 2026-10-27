@@ -10,6 +10,7 @@ use std::{
 use chromiumoxide_fetcher::{BrowserFetcher, BrowserFetcherOptions, BrowserKind};
 use ctml_compiler::{AttributeValue, Node, parse, parse_stylesheet};
 use url::Url;
+use winit::window::CursorIcon;
 
 use super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
@@ -59,6 +60,11 @@ fn native_ctml_rendering_matches_browser_html_css_pixels() {
     log_step("[2/4] Rendering CTML pixels");
     let mut rasterizer = PageRasterizer::new(&body, &stylesheet);
     let native_pixels = rasterizer.snapshot_pixels(WIDTH, HEIGHT);
+    assert_eq!(
+        rasterizer.cursor_at(0.0, 0.0),
+        (CursorIcon::Default, false),
+        "cursor: none should hide the native cursor"
+    );
     let mut native_fonts = rasterizer
         .buffer
         .layout_runs()

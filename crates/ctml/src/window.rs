@@ -184,14 +184,19 @@ impl ApplicationHandler for WindowApplication {
                 }
                 self.cursor_position = position;
                 if let Some(renderer) = self.renderer.as_mut() {
-                    let (cursor, selection_changed) = renderer.pointer_moved(position);
+                    let (cursor, cursor_visible, selection_changed) =
+                        renderer.pointer_moved(position);
                     window.set_cursor(cursor);
+                    window.set_cursor_visible(cursor_visible);
                     if selection_changed {
                         window.request_redraw();
                     }
                 }
             }
-            WindowEvent::CursorLeft { .. } => window.set_cursor(CursorIcon::Default),
+            WindowEvent::CursorLeft { .. } => {
+                window.set_cursor(CursorIcon::Default);
+                window.set_cursor_visible(true);
+            }
             WindowEvent::MouseInput { state, button, .. } => {
                 if button == winit::event::MouseButton::Left {
                     match state {

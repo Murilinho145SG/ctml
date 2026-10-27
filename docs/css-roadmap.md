@@ -151,6 +151,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 ## Interaction and user interface
 
 - [x] Native cursor mapping for supported `cursor` keywords.
+- [x] Hide the native cursor with `cursor: none`.
 - [x] Text selection by mouse drag and double-click word selection.
 - [ ] Complete cursor values, including context-menu, drag, column, and platform-specific cursors.
 - [ ] Custom cursor images and hotspot coordinates.

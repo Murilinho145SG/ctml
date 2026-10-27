@@ -1,6 +1,7 @@
 body {
     color: rgb(32 33 36 / 100%);
     background-color: currentColor;
+    cursor: none;
     font-family: sans-serif;
     font-size: 18px;
     font-kerning: none;

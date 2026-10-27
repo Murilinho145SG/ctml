@@ -105,17 +105,18 @@ impl PageRasterizer {
         self.upload_pixels(queue, texture, width, height);
     }
 
-    pub(crate) fn cursor_at(&self, x: f64, y: f64) -> CursorIcon {
+    pub(crate) fn cursor_at(&self, x: f64, y: f64) -> (CursorIcon, bool) {
         let fallback = if self.root_style.cursor == CursorIcon::Text {
             CursorIcon::Default
         } else {
             self.root_style.cursor
         };
+        let fallback_visible = !self.root_style.cursor_hidden;
         if x < PAGE_PADDING as f64 || y < PAGE_PADDING as f64 {
-            return fallback;
+            return (fallback, fallback_visible);
         }
         let Some(cursor) = self.hit(x, y) else {
-            return fallback;
+            return (fallback, fallback_visible);
         };
         self.cursor_spans
             .iter()
@@ -128,7 +129,9 @@ impl PageRasterizer {
                     .rev()
                     .find(|span| span.line == cursor.line && cursor.index == span.end)
             })
-            .map_or(fallback, |span| span.icon)
+            .map_or((fallback, fallback_visible), |span| {
+                (span.icon, !span.hidden)
+            })
     }
 
     pub(crate) fn begin_selection(&mut self, x: f64, y: f64) -> bool {
@@ -332,6 +335,7 @@ struct CursorSpan {
     start: usize,
     end: usize,
     icon: CursorIcon,
+    hidden: bool,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -351,6 +355,7 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 start: index,
                 end,
                 icon: run.style.cursor,
+                hidden: run.style.cursor_hidden,
             });
             index = end;
         }

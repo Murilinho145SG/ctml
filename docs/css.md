@@ -86,7 +86,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 ### Interaction and responsive rules
 
 - `:hover` and other interaction states, `pointer-events`, and `user-select`.
-- Hidden cursors (`cursor: none`) and custom cursor images (`cursor: url(...)`).
+- Custom cursor images (`cursor: url(...)`).
 - Media queries, container queries, and other at-rules.
 - CSS custom properties, `var()`, `calc()`, and other computed-value functions.
 

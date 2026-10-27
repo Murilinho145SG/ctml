@@ -274,8 +274,12 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             };
         }
         "cursor" => {
-            if let Some(cursor) = parse_cursor(value) {
+            if value.eq_ignore_ascii_case("none") {
+                style.cursor = CursorIcon::Default;
+                style.cursor_hidden = true;
+            } else if let Some(cursor) = parse_cursor(value) {
                 style.cursor = cursor;
+                style.cursor_hidden = false;
             }
         }
         _ => {}
@@ -406,6 +410,7 @@ fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
 #[cfg(test)]
 mod tests {
     use cosmic_text::{Stretch, Style, Weight};
+    use winit::window::CursorIcon;
 
     use super::{ElementIdentity, resolve_style};
     use crate::{
@@ -563,6 +568,14 @@ mod tests {
             style_for_declarations(&[("text-decoration", "underline solid")]).underline_style,
             cosmic_text::UnderlineStyle::Single
         );
+    }
+
+    #[test]
+    fn resolves_hidden_cursor_value() {
+        let style = style_for_declarations(&[("cursor", "none")]);
+
+        assert_eq!(style.cursor, CursorIcon::Default);
+        assert!(style.cursor_hidden);
     }
 
     #[test]
