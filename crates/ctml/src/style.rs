@@ -44,6 +44,7 @@ pub(super) fn compile_runs(
 pub(super) struct TextStyle {
     pub(super) font_size: f32,
     pub(super) line_height: f32,
+    pub(super) line_height_multiplier: Option<f32>,
     pub(super) color: [u8; 4],
     pub(super) background: [u8; 3],
     pub(super) family: String,
@@ -99,6 +100,7 @@ impl Default for TextStyle {
         Self {
             font_size: DEFAULT_FONT_SIZE,
             line_height: DEFAULT_LINE_HEIGHT,
+            line_height_multiplier: Some(DEFAULT_LINE_HEIGHT / DEFAULT_FONT_SIZE),
             color: [0, 0, 0, 255],
             background: [255, 255, 255],
             family: "sans-serif".to_owned(),

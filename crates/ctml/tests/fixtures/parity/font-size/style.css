@@ -1,0 +1,27 @@
+body {
+    color: #222222;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+p {
+    margin: 0;
+}
+
+.larger {
+    font-size: 125%;
+}
+
+.smaller {
+    font-size: 75%;
+}
+
+.parent {
+    font-size: 20px;
+}
+
+.relative {
+    font-size: 125%;
+}

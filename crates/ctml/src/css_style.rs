@@ -85,15 +85,19 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         "font-size" => {
             if let Some(size) = parse_length(value, style.font_size) {
-                style.line_height *= size / style.font_size;
                 style.font_size = size;
+                if let Some(multiplier) = style.line_height_multiplier {
+                    style.line_height = size * multiplier;
+                }
             }
         }
         "line-height" => {
             if let Ok(multiplier) = value.parse::<f32>() {
                 style.line_height = style.font_size * multiplier;
+                style.line_height_multiplier = Some(multiplier);
             } else if let Some(height) = parse_length(value, style.font_size) {
                 style.line_height = height;
+                style.line_height_multiplier = None;
             }
         }
         "font-family" => {
@@ -366,6 +370,14 @@ fn parse_cursor(value: &str) -> Option<CursorIcon> {
 
 fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim();
+    if let Some(percentage) = value.strip_suffix('%') {
+        return percentage
+            .trim()
+            .parse::<f32>()
+            .ok()
+            .map(|percentage| relative_to * percentage / 100.0)
+            .filter(|value| value.is_finite() && *value > 0.0);
+    }
     if let Some(px) = value.strip_suffix("px") {
         return px.trim().parse::<f32>().ok().filter(|value| *value > 0.0);
     }

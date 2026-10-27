@@ -1,0 +1,11 @@
+<headers>
+    <application name="Parity font size" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body>
+    <p>A</p>
+    <p class="larger">B</p>
+    <p class="smaller">C</p>
+    <p class="parent">D <span class="relative">E</span></p>
+</body>

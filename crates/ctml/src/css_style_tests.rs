@@ -95,6 +95,70 @@ fn maps_font_stretch_percentages_to_available_widths() {
 }
 
 #[test]
+fn resolves_font_size_percentages_against_the_inherited_size() {
+    let inherited = TextStyle {
+        font_size: 20.0,
+        line_height: 28.0,
+        line_height_multiplier: None,
+        ..TextStyle::default()
+    };
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        declarations: vec![StyleDeclaration {
+            property: "font-size".to_owned(),
+            value: "125%".to_owned(),
+        }],
+    };
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+
+    let style = resolve_style(&inherited, &paragraph, &[body], &[rule]);
+
+    assert_eq!(style.font_size, 25.0);
+    assert_eq!(style.line_height, 28.0);
+}
+
+#[test]
+fn scales_inherited_unitless_line_height_with_font_size() {
+    let inherited = TextStyle {
+        font_size: 20.0,
+        line_height: 30.0,
+        line_height_multiplier: Some(1.5),
+        ..TextStyle::default()
+    };
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        declarations: vec![StyleDeclaration {
+            property: "font-size".to_owned(),
+            value: "125%".to_owned(),
+        }],
+    };
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+
+    let style = resolve_style(&inherited, &paragraph, &[body], &[rule]);
+
+    assert_eq!(style.font_size, 25.0);
+    assert_eq!(style.line_height, 37.5);
+}
+
+#[test]
 fn resolves_font_kerning_values() {
     assert_eq!(
         style_for_declarations(&[("font-kerning", "none")]).kerning,
