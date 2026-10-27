@@ -4,7 +4,7 @@ use winit::window::CursorIcon;
 use super::{ElementIdentity, resolve_style, selector_matches, selector_specificity};
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{FontVariantCaps, TextStyle},
+    style::{FontVariantCaps, FontVariantPosition, TextStyle},
 };
 
 fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle {
@@ -78,6 +78,18 @@ fn resolves_font_variant_ligatures() {
     assert_eq!(style.common_ligatures, Some(false));
     assert_eq!(style.discretionary_ligatures, Some(true));
     assert_eq!(style.contextual_alternates, Some(false));
+}
+
+#[test]
+fn resolves_font_variant_position_values() {
+    assert_eq!(
+        style_for_declarations(&[("font-variant-position", "sub")]).font_variant_position,
+        FontVariantPosition::Sub
+    );
+    assert_eq!(
+        style_for_declarations(&[("font-variant-position", "super")]).font_variant_position,
+        FontVariantPosition::Super
+    );
 }
 
 #[test]

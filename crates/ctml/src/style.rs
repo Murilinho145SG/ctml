@@ -55,6 +55,7 @@ pub(super) struct TextStyle {
     pub(super) contextual_alternates: Option<bool>,
     pub(super) font_style: Style,
     pub(super) font_variant_caps: FontVariantCaps,
+    pub(super) font_variant_position: FontVariantPosition,
     pub(super) cursor: CursorIcon,
     pub(super) cursor_hidden: bool,
     pub(super) letter_spacing: f32,
@@ -74,6 +75,14 @@ pub(super) enum FontVariantCaps {
     Normal,
     SmallCaps,
     AllSmallCaps,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) enum FontVariantPosition {
+    #[default]
+    Normal,
+    Sub,
+    Super,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -101,6 +110,7 @@ impl Default for TextStyle {
             contextual_alternates: None,
             font_style: Style::Normal,
             font_variant_caps: FontVariantCaps::Normal,
+            font_variant_position: FontVariantPosition::Normal,
             cursor: CursorIcon::Text,
             cursor_hidden: false,
             letter_spacing: 0.0,
@@ -161,6 +171,15 @@ impl TextStyle {
                 font_features
                     .enable(FeatureTag::SMALL_CAPS)
                     .enable(FeatureTag::ALL_SMALL_CAPS);
+            }
+        }
+        match self.font_variant_position {
+            FontVariantPosition::Normal => {}
+            FontVariantPosition::Sub => {
+                font_features.enable(FeatureTag::new(b"subs"));
+            }
+            FontVariantPosition::Super => {
+                font_features.enable(FeatureTag::new(b"sups"));
             }
         }
         attrs = attrs.font_features(font_features);

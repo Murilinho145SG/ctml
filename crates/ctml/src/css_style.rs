@@ -6,7 +6,7 @@ use crate::{
     StyleRule,
     css_color::parse_color,
     css_selector::{selector_matches, selector_specificity},
-    style::{FontVariantCaps, TextStyle, TextTransform},
+    style::{FontVariantCaps, FontVariantPosition, TextStyle, TextTransform},
 };
 
 pub(super) fn resolve_style(
@@ -139,6 +139,14 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 "small-caps" => FontVariantCaps::SmallCaps,
                 "all-small-caps" => FontVariantCaps::AllSmallCaps,
                 _ => style.font_variant_caps,
+            };
+        }
+        "font-variant-position" => {
+            style.font_variant_position = match value.to_ascii_lowercase().as_str() {
+                "normal" => FontVariantPosition::Normal,
+                "sub" => FontVariantPosition::Sub,
+                "super" => FontVariantPosition::Super,
+                _ => style.font_variant_position,
             };
         }
         "letter-spacing" => apply_letter_spacing(style, value),

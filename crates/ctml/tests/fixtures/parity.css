@@ -17,6 +17,14 @@ p.sample {
     margin: 0;
 }
 
+.subscript {
+    font-variant-position: sub;
+}
+
+.superscript {
+    font-variant-position: super;
+}
+
 p.sample > span.accent {
     color: hwb(220 20% 20%);
     font-stretch: 75%;
