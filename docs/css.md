@@ -44,7 +44,7 @@ main .title {
 ## Supported CSS subset
 
 - Selectors: type, class, ID, compound, descendant, comma-separated groups, and `*`.
-- Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px` or `em`, `font-weight` (`normal`, `bold`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords, `font-variant`/`font-variant-caps` (`normal`, `small-caps`, or `all-small-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-transform`, `text-decoration`, `text-decoration-color`, and `cursor`.
+- Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px` or `em`, `font-weight` (`normal`, `bold`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords, `font-variant`/`font-variant-caps` (`normal`, `small-caps`, or `all-small-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration`, `text-decoration-color`, and `cursor`.
 - `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`.
 - Colors support standard named colors, `transparent`, `currentColor` for text and page backgrounds, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax, modern space-separated `rgb()`/`hsl()` syntax, and `hwb()` with optional slash alpha. RGB channels accept numbers or percentages; hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
 - Small-cap variants use the selected font's OpenType features. A font without the requested feature may render the text without a small-cap change.
@@ -74,7 +74,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 - Borders, outlines, border radius, and shadows.
 - Flexbox, Grid, floats, and positioning (`position`, `top`, `right`, `bottom`, and `left`).
 - Overflow, clipping, scrolling, and scrollbars.
-- Text alignment and white-space controls, including `text-align`, `white-space`, `word-break`, and `text-overflow`.
+- White-space controls, including `white-space`, `word-break`, and `text-overflow`.
 
 ### Painting and colors
 

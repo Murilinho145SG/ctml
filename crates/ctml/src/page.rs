@@ -85,8 +85,16 @@ impl PageRasterizer {
                 .map(|(run, attrs)| (run.text.as_str(), attrs.clone())),
             &self.root_style.to_attrs(),
             Shaping::Advanced,
-            None,
+            Some(self.root_style.text_align),
         );
+        for (line, align) in self
+            .buffer
+            .lines
+            .iter_mut()
+            .zip(line_alignments(&self.runs))
+        {
+            line.set_align(Some(align));
+        }
         self.buffer.shape_until_scroll(&mut self.font_system, false);
     }
 
@@ -300,6 +308,23 @@ impl PageRasterizer {
             }
         }
     }
+}
+
+fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
+    let mut alignments = vec![cosmic_text::Align::Left];
+    let mut line_has_text = false;
+    for run in runs {
+        for character in run.text.chars() {
+            if character == '\n' {
+                alignments.push(run.style.text_align);
+                line_has_text = false;
+            } else if !line_has_text {
+                *alignments.last_mut().expect("at least one text line") = run.style.text_align;
+                line_has_text = true;
+            }
+        }
+    }
+    alignments
 }
 
 struct CursorSpan {

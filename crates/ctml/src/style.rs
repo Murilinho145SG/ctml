@@ -1,5 +1,5 @@
 use cosmic_text::{
-    Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
+    Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
     UnderlineStyle, Weight,
 };
 use winit::window::CursorIcon;
@@ -55,6 +55,7 @@ pub(super) struct TextStyle {
     pub(super) letter_spacing: f32,
     pub(super) letter_spacing_px: bool,
     pub(super) text_transform: TextTransform,
+    pub(super) text_align: Align,
     pub(super) underline: bool,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
@@ -94,6 +95,7 @@ impl Default for TextStyle {
             letter_spacing: 0.0,
             letter_spacing_px: false,
             text_transform: TextTransform::None,
+            text_align: Align::Left,
             underline: false,
             overline: false,
             strikethrough: false,

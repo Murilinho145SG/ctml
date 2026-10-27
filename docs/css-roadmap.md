@@ -117,7 +117,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [ ] Font shorthand, font stretch, optical sizing, kerning, feature settings, and variation settings.
 - [ ] Font loading (`@font-face`), fallback selection, and local font lookup policy.
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, and `all-small-caps` through OpenType features.
-- [ ] Text alignment, alignment last line, indentation, and justification.
+- [x] Text alignment: left, right, center, justify, start, and end.
+- [ ] Alignment last line, indentation, and advanced justification controls.
 - [ ] White-space collapsing/wrapping controls, including `white-space`, `overflow-wrap`, and `word-break`.
 - [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.
 - [ ] Text overflow and line clamping.

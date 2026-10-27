@@ -240,6 +240,16 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.text_transform,
             };
         }
+        "text-align" => {
+            style.text_align = match value.to_ascii_lowercase().as_str() {
+                "left" | "start" => cosmic_text::Align::Left,
+                "right" => cosmic_text::Align::Right,
+                "end" => cosmic_text::Align::End,
+                "center" => cosmic_text::Align::Center,
+                "justify" => cosmic_text::Align::Justified,
+                _ => style.text_align,
+            };
+        }
         "text-decoration" | "text-decoration-line" => apply_text_decoration(style, value),
         "text-decoration-color" => {
             style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
@@ -461,6 +471,18 @@ mod tests {
         let style = resolve_style(&inherited, &paragraph, &[body], &[rule]);
 
         assert_eq!(style.color, [12, 34, 56, 255]);
+    }
+
+    #[test]
+    fn resolves_supported_text_alignment_values() {
+        assert_eq!(
+            style_for_declarations(&[("text-align", "center")]).text_align,
+            cosmic_text::Align::Center
+        );
+        assert_eq!(
+            style_for_declarations(&[("text-align", "justify")]).text_align,
+            cosmic_text::Align::Justified
+        );
     }
 
     #[test]
