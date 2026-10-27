@@ -63,7 +63,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 ## Colors and color effects
 
 - [x] Standard named CSS color set.
-- [ ] `transparent` and `currentColor` color keywords.
+- [x] `transparent` color keyword.
+- [ ] `currentColor` color keyword.
 - [x] Hex colors with alpha: `#RGBA` and `#RRGGBBAA`.
 - [x] Legacy comma-separated `rgb()`/`rgba()` with numeric or percentage channels and number or percentage alpha.
 - [x] Legacy comma-separated `hsl()`/`hsla()` with degree, gradian, radian, or turn hue and alpha.

@@ -395,6 +395,17 @@ mod tests {
     }
 
     #[test]
+    fn resolves_transparent_text_and_page_background() {
+        let style = style_for_declarations(&[
+            ("color", "transparent"),
+            ("background-color", "transparent"),
+        ]);
+
+        assert_eq!(style.color, [0, 0, 0, 0]);
+        assert_eq!(style.background, [255, 255, 255]);
+    }
+
+    #[test]
     fn ignores_invalid_numeric_font_weight() {
         let style = style_for_declarations(&[("font-weight", "1001")]);
 

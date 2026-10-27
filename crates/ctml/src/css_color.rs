@@ -2,6 +2,9 @@ use cssparser::{Parser, ParserInput, Token};
 
 pub(super) fn parse_color(value: &str) -> Option<[u8; 4]> {
     let value = value.trim();
+    if value.eq_ignore_ascii_case("transparent") {
+        return Some([0, 0, 0, 0]);
+    }
     if let Some(hex) = value.strip_prefix('#') {
         let (red, green, blue, alpha) = cssparser::color::parse_hash_color(hex.as_bytes()).ok()?;
         return Some([red, green, blue, (alpha * 255.0).round() as u8]);
@@ -171,6 +174,12 @@ mod tests {
     fn parses_short_and_long_hex_alpha_colors() {
         assert_eq!(parse_color("#f008"), Some([255, 0, 0, 136]));
         assert_eq!(parse_color("#33669980"), Some([51, 102, 153, 128]));
+    }
+
+    #[test]
+    fn parses_transparent_keyword() {
+        assert_eq!(parse_color("transparent"), Some([0, 0, 0, 0]));
+        assert_eq!(parse_color("TRANSPARENT"), Some([0, 0, 0, 0]));
     }
 
     #[test]
