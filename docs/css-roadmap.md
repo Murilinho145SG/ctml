@@ -113,7 +113,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 
 ## Text, fonts, and writing systems
 
-- [x] `color`, `font-family`, `font-size`, numeric `font-weight` values from 1 to 1000 and `normal`/`bold`, `font-style` (`normal`, `italic`, `oblique`), `font-stretch` keywords and percentages mapped to available widths, `line-height`, and `letter-spacing`.
+- [x] `color`, `font-family`, `font-size`, numeric `font-weight` values from 1 to 1000, `normal`/`bold`, and relative `bolder`/`lighter`, `font-style` (`normal`, `italic`, `oblique`), `font-stretch` keywords and percentages mapped to available widths, `line-height`, and `letter-spacing`.
 - [x] `text-transform` and basic `text-decoration` line values.
 - [x] `font-kerning` (`auto`, `normal`, and `none`).
 - [x] Common, discretionary, and contextual ligature controls through `font-variant-ligatures`.

@@ -45,6 +45,44 @@ fn resolves_numeric_weight_font_style_and_stretch() {
 }
 
 #[test]
+fn resolves_relative_font_weight_keywords() {
+    assert_eq!(
+        style_for_declarations(&[("font-weight", "bolder")]).weight,
+        Weight(700)
+    );
+    assert_eq!(
+        style_for_declarations(&[("font-weight", "lighter")]).weight,
+        Weight(100)
+    );
+
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        declarations: vec![StyleDeclaration {
+            property: "font-weight".to_owned(),
+            value: "lighter".to_owned(),
+        }],
+    };
+    let inherited = TextStyle {
+        weight: Weight(700),
+        ..TextStyle::default()
+    };
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    assert_eq!(
+        resolve_style(&inherited, &paragraph, &[body], &[rule]).weight,
+        Weight(400)
+    );
+}
+
+#[test]
 fn maps_font_stretch_percentages_to_available_widths() {
     assert_eq!(
         style_for_declarations(&[("font-stretch", "75%")]).stretch,

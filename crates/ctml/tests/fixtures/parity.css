@@ -23,6 +23,7 @@ p.sample {
 
 .superscript {
     font-variant-position: super;
+    font-weight: bolder;
 }
 
 p.sample > span.accent {

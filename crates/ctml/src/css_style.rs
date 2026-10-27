@@ -105,6 +105,8 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             style.weight = match value.to_ascii_lowercase().as_str() {
                 "normal" => Weight::NORMAL,
                 "bold" => Weight::BOLD,
+                "bolder" => relative_font_weight(style.weight, true),
+                "lighter" => relative_font_weight(style.weight, false),
                 _ => value
                     .parse::<u16>()
                     .ok()
@@ -199,6 +201,25 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
 
 fn composite_over_white(channel: u8, alpha: u8) -> u8 {
     ((channel as u32 * alpha as u32 + 255 * (255 - alpha) as u32 + 127) / 255) as u8
+}
+
+fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
+    let weight = inherited.0;
+    let resolved = match (bolder, weight) {
+        (true, weight) if weight < 100 => 400,
+        (true, 100..350) => 400,
+        (true, 350..550) => 700,
+        (true, 550..750) => 900,
+        (true, 750..900) => 900,
+        (true, _) => weight,
+        (false, weight) if weight < 100 => weight,
+        (false, 100..350) => 100,
+        (false, 350..550) => 100,
+        (false, 550..750) => 400,
+        (false, 750..900) => 700,
+        (false, _) => 700,
+    };
+    Weight(resolved)
 }
 
 fn parse_font_stretch(value: &str) -> Option<Stretch> {
