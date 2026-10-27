@@ -1,0 +1,39 @@
+body {
+    color: #222222;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 20px;
+}
+
+p {
+    margin: 0;
+}
+
+.px {
+    font-size: 16px;
+}
+
+.in {
+    font-size: 0.16666667in;
+}
+
+.cm {
+    font-size: 0.42333334cm;
+}
+
+.mm {
+    font-size: 4.233333mm;
+}
+
+.q {
+    font-size: 16.933334Q;
+}
+
+.pt {
+    font-size: 12pt;
+}
+
+.pc {
+    font-size: 1pc;
+}

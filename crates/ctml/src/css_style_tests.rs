@@ -127,6 +127,26 @@ fn resolves_font_size_percentages_against_the_inherited_size() {
 }
 
 #[test]
+fn resolves_absolute_css_font_size_units() {
+    for value in [
+        "16px",
+        "0.16666667in",
+        "0.42333334cm",
+        "4.233333mm",
+        "16.933334Q",
+        "12pt",
+        "1pc",
+    ] {
+        let style = style_for_declarations(&[("font-size", value)]);
+        assert!(
+            (style.font_size - 16.0).abs() < 0.001,
+            "{value} should resolve to 16 CSS pixels, got {}",
+            style.font_size
+        );
+    }
+}
+
+#[test]
 fn scales_inherited_unitless_line_height_with_font_size() {
     let inherited = TextStyle {
         font_size: 20.0,
