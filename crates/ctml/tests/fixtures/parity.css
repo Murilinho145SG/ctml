@@ -1,5 +1,5 @@
 body {
-    color: #202124;
+    color: rgb(32 33 36 / 100%);
     background-color: currentColor;
     font-family: sans-serif;
     font-size: 18px;
@@ -15,7 +15,7 @@ p.sample {
 }
 
 span.accent {
-    color: #3366cc;
+    color: hsl(220 60% 50%);
     font-weight: 700;
 }
 

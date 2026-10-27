@@ -34,23 +34,32 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
             } else {
                 parse_rgb_component(input)?
             };
-            input.expect_comma()?;
+            let legacy_syntax = input.try_parse(|input| input.expect_comma()).is_ok();
             let green_or_saturation = if is_hsl {
                 parse_unit_component(input)?
             } else {
                 parse_component(input)?
             };
-            input.expect_comma()?;
+            if legacy_syntax {
+                input.expect_comma()?;
+            }
             let blue_or_lightness = if is_hsl {
                 parse_unit_component(input)?
             } else {
                 parse_component(input)?
             };
 
-            let alpha = if input.is_exhausted() {
+            let alpha = if legacy_syntax {
+                if input.is_exhausted() {
+                    255
+                } else {
+                    input.expect_comma()?;
+                    parse_alpha(input)?
+                }
+            } else if input.is_exhausted() {
                 255
             } else {
-                input.expect_comma()?;
+                input.expect_delim('/')?;
                 parse_alpha(input)?
             };
             if !input.is_exhausted() {
@@ -204,8 +213,21 @@ mod tests {
     }
 
     #[test]
+    fn parses_modern_space_separated_rgb_and_hsl() {
+        assert_eq!(
+            parse_color("rgb(100% 0% 50% / 50%)"),
+            Some([255, 0, 128, 128])
+        );
+        assert_eq!(
+            parse_color("hsl(120 100% 25% / 50%)"),
+            Some([0, 128, 0, 128])
+        );
+    }
+
+    #[test]
     fn rejects_unsupported_or_malformed_color_syntax() {
         assert_eq!(parse_color("hwb(120 20% 30%)"), None);
         assert_eq!(parse_color("rgb(10, nope, 20)"), None);
+        assert_eq!(parse_color("rgb(10, 20 30)"), None);
     }
 }

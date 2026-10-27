@@ -68,7 +68,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [x] Hex colors with alpha: `#RGBA` and `#RRGGBBAA`.
 - [x] Legacy comma-separated `rgb()`/`rgba()` with numeric or percentage channels and number or percentage alpha.
 - [x] Legacy comma-separated `hsl()`/`hsla()` with degree, gradian, radian, or turn hue and alpha.
-- [ ] Modern space/slash color syntax, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()`.
+- [x] Modern space-separated `rgb()`/`hsl()` syntax and slash alpha.
+- [ ] `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` functions.
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
 - [ ] `color-mix()` and relative color syntax.
 - [ ] System colors and forced-color behavior where supported by the host OS.
