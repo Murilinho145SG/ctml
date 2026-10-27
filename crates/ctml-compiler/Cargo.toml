@@ -1,0 +1,9 @@
+[package]
+name = "ctml-compiler"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-only"
+
+[dependencies]
+cssparser.workspace = true
+thiserror.workspace = true

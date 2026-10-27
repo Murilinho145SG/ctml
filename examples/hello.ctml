@@ -1,0 +1,6 @@
+<headers>
+	<application name="ctml-workload-test" desktop />
+</headers>
+<body>
+	Hello, World
+</body>

@@ -1,0 +1,19 @@
+body {
+    background-color: white;
+    color: #202124;
+    font-family: sans-serif;
+    font-size: 18px;
+    line-height: 24px;
+}
+
+p.sample {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 24px;
+    margin: 0;
+}
+
+span.accent {
+    color: #3366cc;
+    font-weight: 700;
+}

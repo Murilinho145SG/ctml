@@ -1,0 +1,451 @@
+use std::{
+    fs::{self, File},
+    io::BufReader,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+    thread,
+    time::{Duration, Instant},
+};
+
+use chromiumoxide_fetcher::{BrowserFetcher, BrowserFetcherOptions, BrowserKind};
+use ctml_compiler::{AttributeValue, Node, parse, parse_stylesheet};
+use url::Url;
+
+use super::PageRasterizer;
+use crate::{StyleDeclaration, StyleRule, UiNode};
+use progress::{ProgressBar, colorize, log_notice, log_step, log_success};
+
+#[path = "page_tests/progress.rs"]
+mod progress;
+
+const WIDTH: u32 = 320;
+const HEIGHT: u32 = 120;
+const CHANNEL_TOLERANCE: u8 = 16;
+const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.08;
+const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
+const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
+
+#[test]
+fn native_ctml_rendering_matches_browser_html_css_pixels() {
+    log_step("[1/4] Parsing the shared CTML, HTML, and CSS fixtures");
+    let native_markup = include_str!("../tests/fixtures/parity.ctml");
+    let css = include_str!("../tests/fixtures/parity.css");
+    let browser_markup = include_str!("../tests/fixtures/parity.html");
+    let document = parse(native_markup).expect("CTML parity fixture should parse");
+    let stylesheet_link = document
+        .stylesheet()
+        .and_then(|element| element.attribute("href"))
+        .and_then(AttributeValue::as_str);
+    assert_eq!(stylesheet_link, Some("parity.css"));
+
+    let body = document.body.iter().map(ui_node).collect::<Vec<_>>();
+    let stylesheet = parse_stylesheet(css)
+        .expect("CSS parity fixture should parse")
+        .rules
+        .into_iter()
+        .map(|rule| StyleRule {
+            selectors: rule.selectors,
+            declarations: rule
+                .declarations
+                .into_iter()
+                .map(|declaration| StyleDeclaration {
+                    property: declaration.property,
+                    value: declaration.value,
+                })
+                .collect(),
+        })
+        .collect::<Vec<_>>();
+
+    log_step("[2/4] Rendering CTML pixels");
+    let mut rasterizer = PageRasterizer::new(&body, &stylesheet);
+    let native_pixels = rasterizer.snapshot_pixels(WIDTH, HEIGHT);
+    let mut native_fonts = rasterizer
+        .buffer
+        .layout_runs()
+        .flat_map(|run| run.glyphs.iter())
+        .filter_map(|glyph| {
+            rasterizer
+                .font_system
+                .db()
+                .face(glyph.font_id)
+                .map(|face| face.post_script_name.clone())
+        })
+        .collect::<Vec<_>>();
+    native_fonts.sort();
+    native_fonts.dedup();
+    log_step(&format!("CTML resolved fonts: {}", native_fonts.join(", ")));
+    let artifact_dir = parity_artifact_dir();
+    fs::create_dir_all(&artifact_dir).expect("create parity artifact directory");
+    let native_image = artifact_dir.join("ctml.png");
+    let browser_image = artifact_dir.join("browser.png");
+    let diff_image = artifact_dir.join("diff.png");
+    write_rgba_png(&native_image, WIDTH, HEIGHT, &native_pixels);
+    log_success(&format!(
+        "Saved native screenshot to {}",
+        native_image.display()
+    ));
+
+    log_step("[3/4] Finding or downloading Chromium");
+    let browser = configured_browser();
+
+    let browser_dir = artifact_dir.join(format!("browser-input-{}", std::process::id()));
+    fs::create_dir_all(&browser_dir).expect("create browser fixture directory");
+    fs::write(browser_dir.join("index.html"), browser_markup).expect("write HTML parity fixture");
+    fs::write(browser_dir.join("parity.css"), css).expect("write browser CSS fixture");
+    log_step("Capturing the HTML fixture in Chromium");
+    capture_browser(&browser, &browser_dir, &browser_image);
+    log_success(&format!(
+        "Saved Chromium screenshot to {}",
+        browser_image.display()
+    ));
+
+    let native = read_rgba_png(&native_image);
+    let browser = read_rgba_png(&browser_image);
+    assert_eq!(
+        native.dimensions,
+        (WIDTH, HEIGHT),
+        "native screenshot dimensions"
+    );
+    assert_eq!(
+        browser.dimensions,
+        (WIDTH, HEIGHT),
+        "browser screenshot dimensions"
+    );
+
+    log_step("[4/4] Comparing viewport pixels");
+    let (diff_pixels, diff_image_pixels, max_channel_delta) =
+        compare_pixels(&native.pixels, &browser.pixels);
+    write_rgba_png(&diff_image, WIDTH, HEIGHT, &diff_image_pixels);
+    let pixel_count = (WIDTH * HEIGHT) as usize;
+    let diff_ratio = diff_pixels as f32 / pixel_count as f32;
+    eprintln!(
+        "{}",
+        colorize(
+            &format!(
+                "CSS parity: {diff_pixels}/{pixel_count} pixels differ ({:.2}%), max channel delta {max_channel_delta}. Artifacts: {}",
+                diff_ratio * 100.0,
+                artifact_dir.display()
+            ),
+            "\x1b[36m"
+        )
+    );
+    if diff_ratio <= MAX_DIFFERING_PIXEL_RATIO {
+        log_success(&format!(
+            "Pixel comparison passed within the {:.2}% difference limit",
+            MAX_DIFFERING_PIXEL_RATIO * 100.0
+        ));
+    }
+    assert!(
+        diff_ratio <= MAX_DIFFERING_PIXEL_RATIO,
+        "native and browser renders differ in {:.2}% of pixels (limit {:.2}%); inspect {} and {}",
+        diff_ratio * 100.0,
+        MAX_DIFFERING_PIXEL_RATIO * 100.0,
+        native_image.display(),
+        browser_image.display()
+    );
+}
+
+fn ui_node(node: &Node) -> UiNode {
+    match node {
+        Node::Text(text) => UiNode::Text(text.clone()),
+        Node::Element(element) => UiNode::Element {
+            tag: element.name.clone(),
+            class: element
+                .attribute("class")
+                .and_then(AttributeValue::as_str)
+                .map(str::to_owned),
+            id: element
+                .attribute("id")
+                .and_then(AttributeValue::as_str)
+                .map(str::to_owned),
+            children: element.children.iter().map(ui_node).collect(),
+        },
+    }
+}
+
+fn configured_browser() -> PathBuf {
+    if let Some(browser) = std::env::var_os("CTML_CSS_PARITY_BROWSER") {
+        let browser = PathBuf::from(browser);
+        assert!(
+            browser.exists(),
+            "CTML_CSS_PARITY_BROWSER does not exist: {}",
+            browser.display()
+        );
+        return browser;
+    }
+    if let Some(browser) = std::env::var_os("CHROME_BIN") {
+        let browser = PathBuf::from(browser);
+        if browser.exists() && chromium_is_available(&browser) {
+            return browser;
+        }
+    }
+
+    let executable_suffix = std::env::consts::EXE_SUFFIX;
+    let browser_names = [
+        "chrome-headless-shell",
+        "chromium",
+        "chromium-browser",
+        "google-chrome",
+        "chrome",
+    ];
+    std::env::var_os("PATH")
+        .into_iter()
+        .flat_map(|path| std::env::split_paths(&path).collect::<Vec<_>>())
+        .flat_map(|directory| {
+            browser_names
+                .iter()
+                .map(move |name| directory.join(format!("{name}{executable_suffix}")))
+        })
+        .find(|browser| browser.exists() && chromium_is_available(browser))
+        .unwrap_or_else(download_chromium)
+}
+
+fn chromium_is_available(browser: &Path) -> bool {
+    Command::new(browser)
+        .arg("--version")
+        .output()
+        .is_ok_and(|output| output.status.success())
+}
+
+fn download_chromium() -> PathBuf {
+    log_notice("No system Chromium found; checking the test browser cache.");
+    let cache_path = parity_artifact_dir().join("chromium-cache");
+    fs::create_dir_all(&cache_path).expect("create Chromium browser cache directory");
+    if let Some(browser) = find_cached_chromium(&cache_path) {
+        log_success(&format!("Reusing cached Chromium at {}", browser.display()));
+        return browser;
+    }
+
+    log_step("No cached Chromium found; downloading it once");
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("create Tokio runtime for Chromium download");
+    let options = BrowserFetcherOptions::builder()
+        .with_path(cache_path)
+        .with_kind(BrowserKind::ChromeHeadlessShell)
+        .build()
+        .expect("configure Chromium test browser");
+    let progress = ProgressBar::start("Preparing Chromium Headless Shell (downloading if needed)");
+    let result = runtime.block_on(async {
+        tokio::time::timeout(
+            CHROMIUM_DOWNLOAD_TIMEOUT,
+            BrowserFetcher::new(options).fetch(),
+        )
+        .await
+    });
+    progress.finish();
+    let installation = result
+        .unwrap_or_else(|_| panic!("timed out downloading Chromium after 300 seconds"))
+        .unwrap_or_else(|error| {
+            panic!(
+                "could not download Chromium Headless Shell for CSS parity. Set CTML_CSS_PARITY_BROWSER to a Chromium executable; first-time downloads require network access: {error}"
+            )
+        });
+    log_success("Chromium is ready");
+    installation.executable_path
+}
+
+fn find_cached_chromium(cache_path: &Path) -> Option<PathBuf> {
+    let executable_names = ["chrome-headless-shell", "chrome-headless-shell.exe"];
+    let mut pending = vec![(cache_path.to_path_buf(), 0)];
+
+    while let Some((directory, depth)) = pending.pop() {
+        let Ok(entries) = fs::read_dir(directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| executable_names.contains(&name))
+                && chromium_is_available(&path)
+            {
+                return Some(path);
+            }
+            if depth < 5 && path.is_dir() {
+                pending.push((path, depth + 1));
+            }
+        }
+    }
+    None
+}
+
+fn capture_browser(browser: &Path, input_dir: &Path, output: &Path) {
+    if output.exists() {
+        fs::remove_file(output).expect("remove stale browser screenshot");
+    }
+    let profile = input_dir.join("profile");
+    fs::create_dir_all(&profile).expect("create temporary browser profile");
+    let url = Url::from_file_path(input_dir.join("index.html"))
+        .expect("convert HTML fixture path to a file URL")
+        .to_string();
+    let mut command = Command::new(browser);
+    command.args([
+        "--headless",
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+        "--no-sandbox",
+        "--no-zygote",
+        "--disable-crashpad-for-testing",
+        "--disable-lcd-text",
+        "--font-render-hinting=none",
+        "--hide-scrollbars",
+        "--force-color-profile=srgb",
+        "--force-device-scale-factor=1",
+        &format!("--window-size={WIDTH},{HEIGHT}"),
+        &format!("--screenshot={}", output.display()),
+        &format!("--user-data-dir={}", profile.display()),
+        &url,
+    ]);
+    let stdout_path = input_dir.join("chromium.stdout.log");
+    let stderr_path = input_dir.join("chromium.stderr.log");
+    command
+        .stdout(Stdio::from(
+            File::create(&stdout_path).expect("create Chromium stdout log"),
+        ))
+        .stderr(Stdio::from(
+            File::create(&stderr_path).expect("create Chromium stderr log"),
+        ));
+    let mut child = command.spawn().expect("launch browser for screenshot");
+    let progress = ProgressBar::start("Capturing browser screenshot");
+    let started = Instant::now();
+    let status = loop {
+        if let Some(status) = child.try_wait().expect("wait for Chromium process") {
+            progress.finish();
+            break status;
+        }
+        if started.elapsed() >= CHROMIUM_CAPTURE_TIMEOUT {
+            let _ = child.kill();
+            let _ = child.wait();
+            drop(progress);
+            panic!(
+                "Chromium screenshot timed out after 30 seconds. stderr:\n{}",
+                read_log(&stderr_path)
+            );
+        }
+        thread::sleep(Duration::from_millis(100));
+    };
+    if status.success() && output.exists() {
+        return;
+    }
+
+    let stdout = read_log(&stdout_path);
+    let stderr = read_log(&stderr_path);
+    let sandbox_hint = if stderr.contains("sandbox_host_linux.cc")
+        && stderr.contains("shutdown: Operation not permitted")
+    {
+        " This Linux environment blocks a syscall Chromium requires at startup. Run the test on the host or allow shutdown() for Chromium in the container seccomp profile."
+    } else {
+        ""
+    };
+
+    panic!(
+        "Chromium exited with {status} and did not produce a valid screenshot at {}. Browser: {}. Logs: {}.{sandbox_hint}\nstdout:\n{stdout}\nstderr:\n{stderr}",
+        output.display(),
+        browser.display(),
+        input_dir.display()
+    );
+}
+
+fn read_log(path: &Path) -> String {
+    let Ok(log) = fs::read_to_string(path) else {
+        return format!("could not read log at {}", path.display());
+    };
+    let lines = log.lines().collect::<Vec<_>>();
+    let preview = lines
+        .iter()
+        .take(40)
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n");
+    if lines.len() > 40 {
+        format!("{preview}\n... log truncated; full log: {}", path.display())
+    } else {
+        preview
+    }
+}
+
+struct RgbaImage {
+    dimensions: (u32, u32),
+    pixels: Vec<u8>,
+}
+
+fn read_rgba_png(path: &Path) -> RgbaImage {
+    let decoder = png::Decoder::new(BufReader::new(
+        File::open(path).expect("open PNG screenshot"),
+    ));
+    let mut reader = decoder.read_info().expect("read PNG metadata");
+    let mut encoded = vec![0; reader.output_buffer_size().expect("PNG output buffer size")];
+    let frame = reader
+        .next_frame(&mut encoded)
+        .expect("decode PNG screenshot");
+    let source = &encoded[..frame.buffer_size()];
+    let mut pixels = Vec::with_capacity((frame.width * frame.height * 4) as usize);
+    match frame.color_type {
+        png::ColorType::Rgba => pixels.extend_from_slice(source),
+        png::ColorType::Rgb => {
+            for pixel in source.chunks_exact(3) {
+                pixels.extend_from_slice(&[pixel[0], pixel[1], pixel[2], 255]);
+            }
+        }
+        png::ColorType::GrayscaleAlpha => {
+            for pixel in source.chunks_exact(2) {
+                pixels.extend_from_slice(&[pixel[0], pixel[0], pixel[0], pixel[1]]);
+            }
+        }
+        png::ColorType::Grayscale => {
+            for gray in source {
+                pixels.extend_from_slice(&[*gray, *gray, *gray, 255]);
+            }
+        }
+        png::ColorType::Indexed => panic!("indexed PNG should be expanded by the decoder"),
+    }
+    RgbaImage {
+        dimensions: (frame.width, frame.height),
+        pixels,
+    }
+}
+
+fn compare_pixels(first: &[u8], second: &[u8]) -> (usize, Vec<u8>, u8) {
+    assert_eq!(first.len(), second.len(), "screenshot byte lengths");
+    let mut differing_pixels = 0;
+    let mut diff_image = Vec::with_capacity(first.len());
+    let mut max_delta = 0;
+    for (first_pixel, second_pixel) in first.chunks_exact(4).zip(second.chunks_exact(4)) {
+        let delta = (0..3)
+            .map(|channel| first_pixel[channel].abs_diff(second_pixel[channel]))
+            .max()
+            .unwrap_or_default();
+        max_delta = max_delta.max(delta);
+        if delta > CHANNEL_TOLERANCE {
+            differing_pixels += 1;
+            diff_image.extend_from_slice(&[delta, 0, 0, 255]);
+        } else {
+            diff_image.extend_from_slice(&[0, 0, 0, 255]);
+        }
+    }
+    (differing_pixels, diff_image, max_delta)
+}
+
+fn write_rgba_png(path: &Path, width: u32, height: u32, pixels: &[u8]) {
+    let file = File::create(path).expect("create PNG screenshot");
+    let mut encoder = png::Encoder::new(file, width, height);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder
+        .write_header()
+        .expect("write PNG header")
+        .write_image_data(pixels)
+        .expect("write PNG image");
+}
+
+fn parity_artifact_dir() -> PathBuf {
+    std::env::var_os("CTML_CSS_PARITY_ARTIFACTS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/css-parity")
+        })
+}

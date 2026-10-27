@@ -1,0 +1,21 @@
+[package]
+name = "ctml"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-only"
+
+[dependencies]
+cosmic-text.workspace = true
+cssparser.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+
+[dev-dependencies]
+chromiumoxide_fetcher = "0.9.1"
+ctml-compiler = { path = "../ctml-compiler" }
+png.workspace = true
+tokio.workspace = true
+url.workspace = true

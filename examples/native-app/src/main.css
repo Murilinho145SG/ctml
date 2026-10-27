@@ -1,0 +1,26 @@
+body {
+    font-family: sans-serif;
+    color: #222222;
+    background-color: rgba(240, 240, 240, 50%);
+}
+
+h1 {
+    color: #111827cc;
+    font-size: 32px;
+    font-weight: 750;
+    font-stretch: condensed;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+p.message {
+    color: hsl(270, 50%, 40%);
+    cursor: text;
+    font-size: 16px;
+    font-style: oblique;
+    line-height: 1.5;
+    font-variant-caps: small-caps;
+    text-decoration: underline;
+    text-decoration-color: darkorange;
+}

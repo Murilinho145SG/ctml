@@ -1,0 +1,11 @@
+<headers>
+    <application name="CTML Native Demo" desktop width="960" height="640" />
+    <stylesheet href="main.css" />
+</headers>
+
+<body>
+    <main>
+        <h1>CTML Native Demo</h1>
+        <p class="message">This page is styled from a regular CSS file and rendered natively.</p>
+    </main>
+</body>

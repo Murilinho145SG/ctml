@@ -1,0 +1,8 @@
+<headers>
+    <application name="CSS Parity" desktop width="320" height="120" />
+    <stylesheet href="parity.css" />
+</headers>
+
+<body>
+    <p class="sample">Native <span class="accent">CSS</span> parity</p>
+</body>
