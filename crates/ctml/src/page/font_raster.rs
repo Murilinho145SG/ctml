@@ -132,6 +132,16 @@ fn load_typeface(
     font_manager: &FontMgr,
     font_id: fontdb::ID,
 ) -> Option<skia_safe::Typeface> {
+    let from_database = font_system
+        .db()
+        .with_face_data(font_id, |data, index| {
+            font_manager.new_from_bytes(data, Some(index))
+        })
+        .flatten();
+    if from_database.is_some() {
+        return from_database;
+    }
+
     let matched = font_system.db().face(font_id).and_then(|face| {
         let family = face.families.first()?.0.as_str();
         let width = match face.stretch {
@@ -153,12 +163,39 @@ fn load_typeface(
         let style = SkiaFontStyle::new(SkiaWeight::from(i32::from(face.weight.0)), width, slant);
         font_manager.match_family_style(family, style)
     });
-    matched.or_else(|| {
-        font_system
+    matched
+}
+
+#[cfg(test)]
+mod tests {
+    use cosmic_text::FontSystem;
+    use skia_safe::FontMgr;
+
+    use super::load_typeface;
+
+    #[test]
+    fn loaded_typeface_preserves_the_selected_font_face() {
+        let font_system = FontSystem::new();
+        let font_manager = FontMgr::new();
+        let (font_id, expected_post_script_name) = font_system
             .db()
-            .with_face_data(font_id, |data, index| {
-                font_manager.new_from_bytes(data, Some(index))
+            .faces()
+            .find(|face| {
+                !face.post_script_name.is_empty()
+                    && font_system
+                        .db()
+                        .with_face_data(face.id, |_, _| ())
+                        .is_some()
             })
-            .flatten()
-    })
+            .map(|face| (face.id, face.post_script_name.clone()))
+            .expect("system font database should contain a readable face");
+
+        let typeface = load_typeface(&font_system, &font_manager, font_id)
+            .expect("Skia should load the selected font face");
+
+        assert_eq!(
+            typeface.post_script_name().as_deref(),
+            Some(expected_post_script_name.as_str())
+        );
+    }
 }
