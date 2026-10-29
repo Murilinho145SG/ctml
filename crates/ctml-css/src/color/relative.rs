@@ -133,6 +133,7 @@ fn parse_color_component<'i, 't>(
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
+        Token::Ident(name) if name.eq_ignore_ascii_case("none") => Ok(0.0),
         Token::Ident(name) => names
             .iter()
             .position(|component| name.eq_ignore_ascii_case(component))
@@ -204,6 +205,7 @@ fn parse_relative_component<'i, 't>(
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
+        Token::Ident(value) if value.eq_ignore_ascii_case("none") => Ok(0.0),
         Token::Ident(value) if value.eq_ignore_ascii_case(name) => Ok(source_value),
         Token::Number { value, .. } if value.is_finite() => Ok(*value),
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => {
@@ -355,6 +357,7 @@ fn parse_hue_channel<'i, 't>(
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     let hue = match input.next()? {
+        Token::Ident(name) if name.eq_ignore_ascii_case("none") => 0.0,
         Token::Ident(name) if name.eq_ignore_ascii_case("h") => source_hue,
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Function(_) => {
@@ -381,6 +384,7 @@ fn parse_hsl_unit_channel<'i, 't>(
     name: &str,
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let value = match input.next()? {
+        Token::Ident(value) if value.eq_ignore_ascii_case("none") => 0.0,
         Token::Ident(value) if value.eq_ignore_ascii_case(name) => source_value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,
         _ => return Err(input.new_custom_error(())),
@@ -411,6 +415,7 @@ fn parse_channel<'i, 't>(
     let start = input.position();
     let value = match input.next()? {
         Token::Ident(name) => match name.to_ascii_lowercase().as_str() {
+            "none" => 0.0,
             "r" => source.0[0] as f32,
             "g" => source.0[1] as f32,
             "b" => source.0[2] as f32,
@@ -441,6 +446,7 @@ fn parse_alpha_channel<'i, 't>(
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     let alpha = match input.next()? {
+        Token::Ident(name) if name.eq_ignore_ascii_case("none") => 0.0,
         Token::Ident(name) if name.eq_ignore_ascii_case("alpha") => source.1,
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,

@@ -518,6 +518,32 @@ mod tests {
     }
 
     #[test]
+    fn maps_missing_relative_color_channels_to_zero() {
+        for value in [
+            "rgb(from red none none none)",
+            "lab(from red none none none)",
+            "lch(from red none none none)",
+            "oklab(from red none none none)",
+            "oklch(from red none none none)",
+            "color(from red xyz none none none)",
+        ] {
+            assert_eq!(parse_color(value), Some([0, 0, 0, 255]), "{value}");
+        }
+        assert_eq!(
+            parse_color("rgb(from red r g b / none)"),
+            Some([255, 0, 0, 0])
+        );
+        assert_eq!(
+            parse_color("hsl(from red h none l)"),
+            Some([128, 128, 128, 255])
+        );
+        assert_eq!(
+            parse_color("hwb(from red h none b)"),
+            Some([255, 0, 0, 255])
+        );
+    }
+
+    #[test]
     fn rejects_invalid_rgb_relative_color_components() {
         for value in [
             "rgb(from red r g)",
