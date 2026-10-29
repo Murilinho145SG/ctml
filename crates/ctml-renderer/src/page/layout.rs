@@ -12,6 +12,53 @@ use super::{
     sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width},
 };
 
+pub(super) fn apply_first_line_word_spacing(
+    buffer: &cosmic_text::Buffer,
+    runs: &mut [TextRun],
+    spans: &[CursorSpan],
+) -> bool {
+    let first_lines = first_formatted_line_ranges(buffer, spans);
+    let mut changed = false;
+    for span in spans {
+        if !span.character.is_whitespace() {
+            continue;
+        }
+        let Some(block) = span.first_line_block else {
+            continue;
+        };
+        let Some((line, end)) = first_lines.get(&block).copied() else {
+            continue;
+        };
+        if span.line != line || span.start >= end {
+            continue;
+        }
+        let Some(pseudo_style) = &span.first_line_font_style else {
+            continue;
+        };
+        let Some(run) = runs.get_mut(span.run_index) else {
+            continue;
+        };
+        let font_size = run.style.font_size.max(1.0);
+        let pseudo_spacing = pseudo_style.word_spacing_px
+            + pseudo_style.word_spacing_percent.unwrap_or_default() * font_size / 100.0;
+        let current_spacing = run.style.word_spacing_px
+            + run.style.word_spacing_percent.unwrap_or_default() * font_size / 100.0;
+        let delta = pseudo_spacing - current_spacing;
+        if delta == 0.0 {
+            continue;
+        }
+        if run.style.letter_spacing_px {
+            run.style.letter_spacing /= font_size;
+            run.style.letter_spacing_px = false;
+        }
+        run.style.letter_spacing += delta / font_size;
+        run.style.word_spacing_px = pseudo_style.word_spacing_px;
+        run.style.word_spacing_percent = pseudo_style.word_spacing_percent;
+        changed = true;
+    }
+    changed
+}
+
 pub(super) fn apply_first_line_line_height(
     buffer: &cosmic_text::Buffer,
     runs: &mut Vec<TextRun>,

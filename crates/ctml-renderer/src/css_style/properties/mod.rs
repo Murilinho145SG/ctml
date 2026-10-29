@@ -24,7 +24,7 @@ use size::{
     apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
     apply_min_width, apply_width, inherit_width,
 };
-use spacing::apply_letter_spacing;
+use spacing::{apply_letter_spacing, apply_word_spacing};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_property, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -119,6 +119,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-emphasis-position"
             | "line-height"
             | "letter-spacing"
+            | "word-spacing"
             | "text-transform"
             | "text-align"
             | "text-decoration-skip-ink"
@@ -210,6 +211,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.letter_spacing = inherited.letter_spacing;
             style.letter_spacing_px = inherited.letter_spacing_px;
         }
+        "word-spacing" => {
+            style.word_spacing_px = inherited.word_spacing_px;
+            style.word_spacing_percent = inherited.word_spacing_percent;
+        }
         "text-transform" => style.text_transform = inherited.text_transform,
         "text-align" => style.text_align = inherited.text_align,
         "text-decoration" => {
@@ -292,6 +297,10 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "letter-spacing" => {
             style.letter_spacing = 0.0;
             style.letter_spacing_px = false;
+        }
+        "word-spacing" => {
+            style.word_spacing_px = 0.0;
+            style.word_spacing_percent = None;
         }
         "text-transform" => style.text_transform = TextTransform::None,
         "text-align" => style.text_align = cosmic_text::Align::Left,
@@ -431,6 +440,7 @@ fn apply_declaration(
             };
         }
         "letter-spacing" => apply_letter_spacing(style, value),
+        "word-spacing" => apply_word_spacing(style, value),
         "text-transform" => {
             style.text_transform = match value.to_ascii_lowercase().as_str() {
                 "uppercase" => TextTransform::Uppercase,

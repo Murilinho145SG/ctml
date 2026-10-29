@@ -55,6 +55,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Apply inherited and overridden `text-transform` to the `::first-letter` source character, including case expansion.
 - [x] Apply `text-transform` to `::first-line` text during line formation and reshape the resulting lines.
 - [x] Apply `line-height` from `::first-line` to the first line box.
+- [x] Apply inherited and overridden `word-spacing` to `::first-line` spaces during wrapping.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
@@ -182,7 +183,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] White-space collapsing/wrapping controls, including `white-space`, `overflow-wrap`, and `word-break`.
 - [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.
 - [ ] Text overflow and line clamping.
-- [ ] Word spacing, text rendering, and text orientation.
+- [x] Word spacing, including inherited values, lengths and percentages.
+- [ ] Text rendering and text orientation.
 - [x] `text-decoration-color` for underline, overline, and line-through.
 - [x] Solid, double, dotted, dashed, and wavy text decoration styles.
 - [x] `text-decoration-skip-ink` values `auto`, `none`, and `all`.

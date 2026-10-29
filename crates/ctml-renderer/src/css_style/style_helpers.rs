@@ -34,6 +34,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "font-feature-settings",
     "line-height",
     "letter-spacing",
+    "word-spacing",
     "text-transform",
     "text-align",
     "text-decoration",

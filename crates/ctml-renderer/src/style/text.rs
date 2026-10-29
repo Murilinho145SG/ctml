@@ -11,7 +11,7 @@ pub fn append_text(
     for character in text.chars() {
         if character.is_whitespace() {
             if !*last_was_space {
-                push_character(' ', style, element_path, output);
+                push_space(style, element_path, output);
             }
             *last_was_space = true;
             *capitalize_next = true;
@@ -38,6 +38,22 @@ pub fn append_text(
             *capitalize_next = !character.is_alphanumeric();
         }
     }
+}
+
+fn push_space(style: &TextStyle, element_path: &[usize], output: &mut Vec<TextRun>) {
+    let mut space_style = style.clone();
+    space_style.word_spacing_space = true;
+    let word_spacing = style.word_spacing_px
+        + style.word_spacing_percent.unwrap_or_default() * style.font_size / 100.0;
+    if word_spacing != 0.0 {
+        space_style.letter_spacing = if style.letter_spacing_px {
+            style.letter_spacing / style.font_size.max(1.0)
+        } else {
+            style.letter_spacing
+        } + word_spacing / style.font_size.max(1.0);
+        space_style.letter_spacing_px = false;
+    }
+    push_character(' ', &space_style, element_path, output);
 }
 
 fn push_variant_character(

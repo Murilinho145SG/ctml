@@ -116,3 +116,55 @@ fn first_line_line_height_changes_only_the_first_line_box() {
     assert!(line_heights[0] >= 40.0);
     assert!(line_heights[1] < line_heights[0]);
 }
+
+#[test]
+fn first_line_word_spacing_changes_wrapping_without_spacing_later_lines() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(
+            "alpha beta gamma delta epsilon zeta".to_owned(),
+        )],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "width".to_owned(),
+                    value: "130px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "word-spacing".to_owned(),
+                    value: "10%".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "word-spacing".to_owned(),
+                value: "20%".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(240, 180);
+    let spaced_spaces = page
+        .runs
+        .iter()
+        .filter(|run| run.text == " " && run.style.word_spacing_percent == Some(20.0))
+        .count();
+    let normal_spaces = page
+        .runs
+        .iter()
+        .filter(|run| run.text == " " && run.style.word_spacing_percent == Some(10.0))
+        .count();
+
+    assert!(spaced_spaces > 0);
+    assert!(normal_spaces > 0);
+}
