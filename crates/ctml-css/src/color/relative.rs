@@ -7,11 +7,12 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
     let is_hsl = function == "hsl";
+    let is_hwb = function == "hwb";
     let is_lab = function == "lab";
     let is_lch = function == "lch";
     let is_oklab = function == "oklab";
     let is_oklch = function == "oklch";
-    if function != "rgb" && !is_hsl && !is_lab && !is_lch && !is_oklab && !is_oklch {
+    if function != "rgb" && !is_hsl && !is_hwb && !is_lab && !is_lch && !is_oklab && !is_oklch {
         return None;
     }
 
@@ -25,6 +26,12 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
                 let saturation = parse_hsl_unit_channel(input, source_hsl.1, "s")?;
                 let lightness = parse_hsl_unit_channel(input, source_hsl.2, "l")?;
                 super::hsl_to_rgb(hue, saturation, lightness)
+            } else if is_hwb {
+                let source_hwb = super::rgb_to_hwb(source_color.0);
+                let hue = parse_hue_channel(input, source_hwb.0)?;
+                let whiteness = parse_hsl_unit_channel(input, source_hwb.1, "w")?;
+                let blackness = parse_hsl_unit_channel(input, source_hwb.2, "b")?;
+                super::hwb_to_rgb(hue, whiteness, blackness)
             } else if is_lab {
                 let source_lab = super::color4::srgb_to_lab(source_color.0);
                 let lightness = parse_relative_component(input, source_lab.0, "l", 100.0)?;

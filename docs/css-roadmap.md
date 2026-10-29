@@ -124,7 +124,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
 - [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
 - [ ] Other `color-mix()` interpolation spaces.
-- [x] Basic `rgb(from ...)`, `hsl(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, and `oklch(from ...)` relative colors with channel references, alpha preservation, and supported numeric, percentage, and angle overrides.
+- [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, and `oklch(from ...)` relative colors with channel references, alpha preservation, and supported numeric, percentage, and angle overrides.
 - [ ] Other relative color functions, calculations, and missing-component behavior.
 - [ ] System colors and forced-color behavior where supported by the host OS.
 - [x] Alpha colors for text and page background, including page-background compositing over white.

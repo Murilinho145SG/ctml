@@ -531,6 +531,19 @@ mod tests {
     }
 
     #[test]
+    fn parses_hwb_relative_colors_with_alpha_and_channel_references() {
+        assert_eq!(parse_color("hwb(from red h w b)"), Some([255, 0, 0, 255]));
+        assert_eq!(
+            parse_color("hwb(from red 120deg w b)"),
+            Some([0, 255, 0, 255])
+        );
+        assert_eq!(
+            parse_color("hwb(from hwb(240 0% 0% / 25%) h w b / alpha)"),
+            Some([0, 0, 255, 64])
+        );
+    }
+
+    #[test]
     fn parses_oklab_relative_colors_and_channel_references() {
         assert_eq!(parse_color("oklab(from red l a b)"), Some([255, 0, 0, 255]));
         assert_eq!(
