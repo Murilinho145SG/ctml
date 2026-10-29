@@ -406,17 +406,24 @@ impl TextStyle {
                 _ => cosmic_text::UnderlineStyle::Single,
             });
         }
-        if let Some(color) = self.text_decoration_color {
-            let color = Color::rgba(color[0], color[1], color[2], color[3]);
-            if self.underline {
-                attrs = attrs.underline_color(color);
-            }
-            if self.strikethrough {
-                attrs = attrs.strikethrough_color(color);
-            }
-            if self.overline {
-                attrs = attrs.overline_color(color);
-            }
+        let mut decoration_color = self.text_decoration_color.unwrap_or(self.color);
+        decoration_color[3] = (f32::from(decoration_color[3]) * self.opacity)
+            .round()
+            .clamp(0.0, 255.0) as u8;
+        let decoration_color = Color::rgba(
+            decoration_color[0],
+            decoration_color[1],
+            decoration_color[2],
+            decoration_color[3],
+        );
+        if self.underline {
+            attrs = attrs.underline_color(decoration_color);
+        }
+        if self.strikethrough {
+            attrs = attrs.strikethrough_color(decoration_color);
+        }
+        if self.overline {
+            attrs = attrs.overline_color(decoration_color);
         }
         if self.strikethrough {
             attrs = attrs.strikethrough();

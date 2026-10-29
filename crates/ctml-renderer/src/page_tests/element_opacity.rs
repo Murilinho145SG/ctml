@@ -85,3 +85,32 @@ fn nested_element_opacities_multiply_for_descendant_paints() {
             && (pixel[2] == 191 || pixel[2] == 192)
     }));
 }
+
+#[test]
+fn element_opacity_scales_text_decorations() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Underline".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![
+            declaration("color", "transparent"),
+            declaration("text-decoration-line", "underline"),
+            declaration("text-decoration-color", "red"),
+            declaration("opacity", "0.5"),
+        ],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(160, 70);
+
+    assert!(pixels.chunks_exact(4).any(|pixel| {
+        pixel[0] == 255
+            && (pixel[1] == 127 || pixel[1] == 128)
+            && (pixel[2] == 127 || pixel[2] == 128)
+    }));
+}

@@ -216,6 +216,7 @@ fn resolve_pseudo_style(
     } else {
         1.0
     };
+    let effective_pseudo_opacity = pseudo_opacity * inherited.opacity;
     let decoration = (has_decoration_declaration
         && (resolved.underline || resolved.overline || resolved.strikethrough))
         .then_some(PseudoDecoration {
@@ -224,7 +225,7 @@ fn resolve_pseudo_style(
             line_through: resolved.strikethrough,
             color: scale_alpha(
                 resolved.text_decoration_color.unwrap_or(resolved.color),
-                pseudo_opacity,
+                effective_pseudo_opacity,
             ),
             thickness: resolved.decoration_thickness.unwrap_or(1.0),
             style: resolved.decoration_style,

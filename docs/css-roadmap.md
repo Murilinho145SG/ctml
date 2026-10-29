@@ -129,8 +129,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Propagate missing components through other color spaces, nested mixes, and powerless components.
 - [ ] System colors and forced-color behavior where supported by the host OS.
 - [x] Alpha colors for text and page background, including page-background compositing over white.
-- [x] Element `opacity` scales text glyphs, shadows and emphasis marks, fragment backgrounds, selection highlights, pseudo-element text, and nested descendant paints; ancestor opacity multiplies with descendant opacity.
-- [ ] Scale text decorations and isolate overlapping element paints through group compositing.
+- [x] Element `opacity` scales text glyphs, decorations, shadows and emphasis marks, fragment backgrounds, selection highlights, pseudo-element paints, and nested descendant paints; ancestor opacity multiplies with descendant opacity.
+- [ ] Isolate overlapping element paints through group compositing.
 - [ ] `accent-color`, `color-scheme`, and color adjustment properties.
 - [ ] Blend modes and isolation.
 
