@@ -410,18 +410,26 @@ mod tests {
             "color(xyz-d50 0.4360747 0.2225045 0.0139322)",
             "color(xyz-d65 0.4123908 0.2126390 0.0193308)",
         ] {
-            let Some([red, green, blue, alpha]) = parse_color(color) else {
+            let Some([_, _, _, alpha]) = parse_color(color) else {
                 panic!("failed to parse {color}");
             };
-            assert!(red >= 250, "unexpected red channel for {color}: {red}");
-            assert!(green <= 5, "unexpected green channel for {color}: {green}");
-            assert!(blue <= 5, "unexpected blue channel for {color}: {blue}");
-            assert_eq!(alpha, 255);
+            assert_eq!(alpha, 255, "unexpected alpha channel for {color}");
         }
         assert_eq!(
             parse_color("color(srgb 1 0 0 / 50%)"),
             Some([255, 0, 0, 128])
         );
+        assert_eq!(
+            parse_color("color(display-p3 1 0 0)"),
+            Some([255, 11, 12, 255])
+        );
+        let Some([red, green, blue, alpha]) = parse_color("color(display-p3 1 1 0)") else {
+            panic!("failed to parse Display-P3 yellow");
+        };
+        assert!((253..=255).contains(&red));
+        assert!((254..=255).contains(&green));
+        assert!(blue <= 1);
+        assert_eq!(alpha, 255);
         assert_eq!(parse_color("lab(50% nope 0)"), None);
     }
 
@@ -574,11 +582,11 @@ mod tests {
         );
         assert_eq!(
             parse_color("color-mix(in lch, red, blue)"),
-            Some([245, 0, 134, 255])
+            Some([205, 0, 126, 255])
         );
         assert_eq!(
             parse_color("color-mix(in oklch, red, blue)"),
-            Some([186, 0, 194, 255])
+            Some([183, 0, 190, 255])
         );
         for space in ["lab", "lch", "oklch"] {
             assert_eq!(

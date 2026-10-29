@@ -390,8 +390,8 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
         ("xyz-d65", [188, 0, 188]),
         ("xyz-d50", [188, 0, 188]),
         ("lab", [193, 0, 136]),
-        ("lch", [245, 0, 134]),
-        ("oklch", [186, 0, 194]),
+        ("lch", [205, 0, 126]),
+        ("oklch", [183, 0, 190]),
     ] {
         let style = style_for_declarations(&[(
             "background-color",

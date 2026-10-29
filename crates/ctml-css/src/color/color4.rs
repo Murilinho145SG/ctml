@@ -187,15 +187,9 @@ fn lab_inverse(value: f32) -> f32 {
 }
 
 pub(super) fn oklab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {
-    let l = (lightness + 0.39633778 * a + 0.21580376 * b).powi(3);
-    let m = (lightness - 0.10556135 * a - 0.06385417 * b).powi(3);
-    let s = (lightness - 0.08948418 * a - 1.29148555 * b).powi(3);
-    [
-        4.07674166 * l - 3.30771159 * m + 0.23096993 * s,
-        -1.268438 * l + 2.6097574 * m - 0.3413194 * s,
-        -0.00419609 * l - 0.70341861 * m + 1.7076147 * s,
-    ]
-    .map(encode_srgb)
+    linear_srgb_to_bytes(gamut_map_linear_srgb(oklab_to_linear_srgb([
+        lightness, a, b,
+    ])))
 }
 
 pub(super) fn srgb_to_oklab([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
@@ -222,12 +216,106 @@ pub(super) fn xyz_d50_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
 }
 
 pub(super) fn xyz_d65_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
-    [
+    let linear = [
         3.2409699 * x - 1.5373832 * y - 0.4986108 * z,
         -0.9692436 * x + 1.8759675 * y + 0.0415551 * z,
         0.0556301 * x - 0.203977 * y + 1.0569715 * z,
+    ];
+    linear_srgb_to_bytes(gamut_map_linear_srgb(linear))
+}
+
+fn linear_srgb_to_bytes(linear: [f32; 3]) -> [u8; 3] {
+    linear.map(encode_srgb)
+}
+
+fn oklab_to_linear_srgb([lightness, a, b]: [f32; 3]) -> [f32; 3] {
+    let l = (lightness + 0.39633778 * a + 0.21580376 * b).powi(3);
+    let m = (lightness - 0.10556135 * a - 0.06385417 * b).powi(3);
+    let s = (lightness - 0.08948418 * a - 1.29148555 * b).powi(3);
+    [
+        4.07674166 * l - 3.30771159 * m + 0.23096993 * s,
+        -1.268438 * l + 2.6097574 * m - 0.3413194 * s,
+        -0.00419609 * l - 0.70341861 * m + 1.7076147 * s,
     ]
-    .map(encode_srgb)
+}
+
+fn linear_srgb_to_oklab([red, green, blue]: [f32; 3]) -> [f32; 3] {
+    let l = (0.4122214708 * red + 0.5363325363 * green + 0.0514459929 * blue).cbrt();
+    let m = (0.2119034982 * red + 0.6806995451 * green + 0.1073969566 * blue).cbrt();
+    let s = (0.0883024619 * red + 0.2817188376 * green + 0.6299787005 * blue).cbrt();
+    [
+        0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+        1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+        0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+    ]
+}
+
+fn gamut_map_linear_srgb(rgb: [f32; 3]) -> [f32; 3] {
+    if in_srgb_gamut(rgb) {
+        return rgb;
+    }
+
+    let origin = linear_srgb_to_oklab(rgb);
+    if origin[0] <= 0.0 {
+        return [0.0; 3];
+    }
+    if origin[0] >= 1.0 {
+        return [1.0; 3];
+    }
+
+    let chroma = origin[1].hypot(origin[2]);
+    let hue = origin[2].atan2(origin[1]);
+    let mut current = origin;
+    let mut clipped = clip_srgb(oklab_to_linear_srgb(current));
+    const JND: f32 = 0.02;
+    const EPSILON: f32 = 0.0001;
+    if delta_e_ok(linear_srgb_to_oklab(clipped), current) < JND {
+        return clipped;
+    }
+
+    let (mut min, mut max) = (0.0, chroma);
+    let mut min_in_gamut = true;
+    while max - min > EPSILON {
+        let current_chroma = (min + max) / 2.0;
+        current = [
+            origin[0],
+            current_chroma * hue.cos(),
+            current_chroma * hue.sin(),
+        ];
+        let candidate = oklab_to_linear_srgb(current);
+        if min_in_gamut && in_srgb_gamut(candidate) {
+            min = current_chroma;
+            continue;
+        }
+        clipped = clip_srgb(candidate);
+        let difference = delta_e_ok(linear_srgb_to_oklab(clipped), current);
+        if difference < JND {
+            if JND - difference < EPSILON {
+                return clipped;
+            }
+            min_in_gamut = false;
+            min = current_chroma;
+        } else {
+            max = current_chroma;
+        }
+    }
+    clipped
+}
+
+fn in_srgb_gamut(rgb: [f32; 3]) -> bool {
+    rgb.into_iter()
+        .all(|channel| (0.0..=1.0).contains(&channel))
+}
+
+fn clip_srgb(rgb: [f32; 3]) -> [f32; 3] {
+    rgb.map(|channel| channel.clamp(0.0, 1.0))
+}
+
+fn delta_e_ok(first: [f32; 3], second: [f32; 3]) -> f32 {
+    ((first[0] - second[0]).powi(2)
+        + (first[1] - second[1]).powi(2)
+        + (first[2] - second[2]).powi(2))
+    .sqrt()
 }
 
 pub(super) fn srgb_to_xyz_d65([red, green, blue]: [u8; 3]) -> [f32; 3] {
