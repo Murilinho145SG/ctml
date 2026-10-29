@@ -39,9 +39,12 @@ impl PageRasterizer {
                 } else {
                     span.end
                 };
-                let background = span
+                let mut background = span
                     .selection_background
                     .unwrap_or(self.selection_background_color);
+                background[3] = (f32::from(background[3]) * span.opacity)
+                    .round()
+                    .clamp(0.0, 255.0) as u8;
                 if let Some((_, group_end, group_background)) = groups.last_mut()
                     && *group_end == span_start
                     && *group_background == background
@@ -80,9 +83,12 @@ impl PageRasterizer {
                 let Some(block) = span.first_line_block else {
                     continue;
                 };
-                let Some(background) = span.first_line_background else {
+                let Some(mut background) = span.first_line_background else {
                     continue;
                 };
+                background[3] = (f32::from(background[3]) * span.opacity)
+                    .round()
+                    .clamp(0.0, 255.0) as u8;
                 let Some((line, end)) = first_lines.get(&block).copied() else {
                     continue;
                 };
@@ -129,9 +135,12 @@ impl PageRasterizer {
                 let Some(block) = span.first_letter_block else {
                     continue;
                 };
-                let Some(background) = span.first_letter_background else {
+                let Some(mut background) = span.first_letter_background else {
                     continue;
                 };
+                background[3] = (f32::from(background[3]) * span.opacity)
+                    .round()
+                    .clamp(0.0, 255.0) as u8;
                 if first_letters.get(&block) != Some(&(span.line, span.start, span.end)) {
                     continue;
                 }

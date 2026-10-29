@@ -50,6 +50,10 @@ pub(super) fn draw(
                 .fold(f32::NEG_INFINITY, f32::max);
             for color in &style.background_layers[layer_start..] {
                 if color[3] > 0 && right > left {
+                    let mut color = *color;
+                    color[3] = (f32::from(color[3]) * style.opacity)
+                        .round()
+                        .clamp(0.0, 255.0) as u8;
                     fill_rect_alpha(
                         pixels,
                         width,
@@ -58,7 +62,7 @@ pub(super) fn draw(
                         line.line_top,
                         right - left,
                         line.line_height,
-                        *color,
+                        color,
                     );
                 }
             }

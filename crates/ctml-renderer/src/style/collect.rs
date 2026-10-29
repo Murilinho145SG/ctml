@@ -130,6 +130,7 @@ pub(super) fn collect_runs(
                     stylesheet,
                     local_font_units,
                 );
+                style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;
                     continue;

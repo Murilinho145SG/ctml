@@ -57,7 +57,6 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
         );
         first_letter.source_first_non_whitespace = Some(source_character);
         if let Some(pseudo_style) = &run.first_letter_font_style {
-            first_letter.style.opacity = pseudo_style.opacity;
             first_letter.style.family.clone_from(&pseudo_style.family);
             first_letter.style.font_size = pseudo_style.font_size;
             first_letter.style.font_scale = pseudo_style.font_scale;
@@ -194,7 +193,7 @@ pub(super) fn resolve_generated_content(
     let (_, declaration) = winning_content?;
     let (value, _) = declaration_value(&declaration.value);
     let text = parse_generated_content(value, attributes)?;
-    let style = css_style::resolve_style_with_selector_tree_context(
+    let mut style = css_style::resolve_style_with_selector_tree_context(
         inherited,
         current,
         ancestors,
@@ -208,6 +207,7 @@ pub(super) fn resolve_generated_content(
         None,
         &pseudo_rules,
     );
+    style.opacity *= inherited.opacity;
     Some(GeneratedContent { text, style })
 }
 

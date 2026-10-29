@@ -34,6 +34,8 @@ const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 mod backgrounds;
 #[path = "page_tests/css_math.rs"]
 mod css_math;
+#[path = "page_tests/element_opacity.rs"]
+mod element_opacity;
 #[path = "page_tests/first_letter_transform.rs"]
 mod first_letter_transform;
 #[path = "page_tests/first_line_transform.rs"]

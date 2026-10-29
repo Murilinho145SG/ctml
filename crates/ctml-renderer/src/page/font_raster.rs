@@ -84,7 +84,9 @@ pub(super) fn draw(
                 &first_letters,
                 run.line_i,
                 first.start,
-            );
+            ) * style_index
+                .and_then(|index| runs.get(index))
+                .map_or(1.0, |run| run.style.opacity);
             let mut end = start + 1;
             while end < run.glyphs.len() {
                 let glyph = &run.glyphs[end];
