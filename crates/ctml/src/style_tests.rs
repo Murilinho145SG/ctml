@@ -1,7 +1,7 @@
-use super::{FontVariantCaps, TextRun, TextStyle, append_text};
+use super::{FontVariantCaps, TextRun, TextStyle, append_text, synthesize_font_variant_caps};
 
 #[test]
-fn synthesizes_small_caps_without_changing_element_line_height() {
+fn preserves_small_caps_for_font_feature_shaping() {
     let style = TextStyle {
         font_size: 12.0,
         line_height: 20.0,
@@ -19,17 +19,16 @@ fn synthesizes_small_caps_without_changing_element_line_height() {
         &mut capitalize_next,
     );
 
-    assert_eq!(runs.len(), 2);
-    assert_eq!(runs[0].text, "A");
-    assert_eq!(runs[0].style.font_scale, 0.8);
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].text, "aB");
+    assert_eq!(runs[0].style.font_scale, 1.0);
     assert_eq!(runs[0].style.font_size, 12.0);
     assert_eq!(runs[0].style.line_height, 20.0);
-    assert_eq!(runs[1].text, "B");
-    assert_eq!(runs[1].style.font_scale, 1.0);
+    assert_eq!(runs[0].style.font_variant_caps, FontVariantCaps::SmallCaps);
 }
 
 #[test]
-fn synthesizes_all_small_caps_for_lowercase_and_uppercase_letters() {
+fn preserves_all_small_caps_for_font_feature_shaping() {
     let style = TextStyle {
         font_variant_caps: FontVariantCaps::AllSmallCaps,
         ..TextStyle::default()
@@ -46,6 +45,32 @@ fn synthesizes_all_small_caps_for_lowercase_and_uppercase_letters() {
     );
 
     assert_eq!(runs.len(), 1);
-    assert_eq!(runs[0].text, "AB");
-    assert_eq!(runs[0].style.font_scale, 0.8);
+    assert_eq!(runs[0].text, "aB");
+    assert_eq!(runs[0].style.font_scale, 1.0);
+    assert_eq!(
+        runs[0].style.font_variant_caps,
+        FontVariantCaps::AllSmallCaps
+    );
+}
+
+#[test]
+fn synthesizes_small_caps_when_the_font_has_no_feature() {
+    let style = TextStyle {
+        font_size: 12.0,
+        line_height: 20.0,
+        font_variant_caps: FontVariantCaps::SmallCaps,
+        ..TextStyle::default()
+    };
+    let runs = synthesize_font_variant_caps(TextRun {
+        text: "aB".to_owned(),
+        style,
+    });
+
+    assert_eq!(runs.len(), 2);
+    assert_eq!(runs[0].text, "A");
+    assert_eq!(runs[0].style.font_scale, 2.0 / 3.0);
+    assert_eq!(runs[0].style.font_variant_caps, FontVariantCaps::Normal);
+    assert_eq!(runs[0].style.line_height, 20.0);
+    assert_eq!(runs[1].text, "B");
+    assert_eq!(runs[1].style.font_scale, 1.0);
 }

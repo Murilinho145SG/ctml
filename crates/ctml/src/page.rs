@@ -7,10 +7,11 @@ use crate::{
     font_family::resolve_family_list,
     font_metrics::normal_line_height,
     page::pixel::{PixelRenderer, fill_rect},
-    style::{TextRun, TextStyle, compile_runs},
+    style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
 };
 
 mod decorations;
+mod font_features;
 mod font_raster;
 mod pixel;
 
@@ -31,8 +32,7 @@ pub(crate) struct PageRasterizer {
 
 impl PageRasterizer {
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
-        let (runs, root_style) = compile_runs(nodes, stylesheet);
-        let cursor_spans = cursor_spans(&runs);
+        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
@@ -46,6 +46,18 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
+        let runs = compiled_runs
+            .into_iter()
+            .flat_map(|run| {
+                let family = resolve_family_list(&run.style.family, &font_system);
+                if font_features::supports_caps_features(&font_system, &family, &run.style) {
+                    vec![run]
+                } else {
+                    synthesize_font_variant_caps(run)
+                }
+            })
+            .collect::<Vec<_>>();
+        let cursor_spans = cursor_spans(&runs);
         let buffer = Buffer::new(
             &mut font_system,
             Metrics::new(root_style.font_size, root_style.line_height),

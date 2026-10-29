@@ -11,7 +11,6 @@ use crate::{
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
 const DEFAULT_LINE_HEIGHT: f32 = 20.0;
-const SYNTHETIC_SMALL_CAP_SCALE: f32 = 2.0 / 3.0;
 
 pub(super) fn compile_runs(
     nodes: &[UiNode],
@@ -394,31 +393,31 @@ fn append_text(
 }
 
 fn push_variant_character(character: char, style: &TextStyle, output: &mut Vec<TextRun>) {
-    let scale = match style.font_variant_caps {
-        FontVariantCaps::SmallCaps if character.is_lowercase() => SYNTHETIC_SMALL_CAP_SCALE,
-        FontVariantCaps::AllSmallCaps if character.is_alphabetic() => SYNTHETIC_SMALL_CAP_SCALE,
-        FontVariantCaps::PetiteCaps if character.is_lowercase() => 0.7,
-        FontVariantCaps::AllPetiteCaps if character.is_alphabetic() => 0.7,
-        _ => 1.0,
-    };
-    let mut glyph_style = style.clone();
-    if matches!(
-        style.font_variant_caps,
-        FontVariantCaps::SmallCaps
-            | FontVariantCaps::AllSmallCaps
-            | FontVariantCaps::PetiteCaps
-            | FontVariantCaps::AllPetiteCaps
-    ) {
-        glyph_style.font_variant_caps = FontVariantCaps::Normal;
-    }
-    if scale < 1.0 {
-        glyph_style.font_scale *= scale;
-        for uppercase in character.to_uppercase() {
-            push_character(uppercase, &glyph_style, output);
+    push_character(character, style, output);
+}
+
+pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
+    let mut output = Vec::new();
+    for character in run.text.chars() {
+        let scale = match run.style.font_variant_caps {
+            FontVariantCaps::SmallCaps if character.is_lowercase() => 2.0 / 3.0,
+            FontVariantCaps::AllSmallCaps if character.is_alphabetic() => 2.0 / 3.0,
+            FontVariantCaps::PetiteCaps if character.is_lowercase() => 0.7,
+            FontVariantCaps::AllPetiteCaps if character.is_alphabetic() => 0.7,
+            _ => 1.0,
+        };
+        let mut style = run.style.clone();
+        style.font_variant_caps = FontVariantCaps::Normal;
+        style.font_scale *= scale;
+        if scale < 1.0 {
+            for uppercase in character.to_uppercase() {
+                push_character(uppercase, &style, &mut output);
+            }
+        } else {
+            push_character(character, &style, &mut output);
         }
-    } else {
-        push_character(character, &glyph_style, output);
     }
+    output
 }
 
 fn push_line_break(output: &mut Vec<TextRun>, style: &TextStyle, last_was_space: &mut bool) {
