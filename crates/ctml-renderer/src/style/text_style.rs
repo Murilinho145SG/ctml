@@ -29,6 +29,7 @@ pub(crate) struct TextStyle {
     pub(crate) font_style: Style,
     pub(crate) font_variant_caps: FontVariantCaps,
     pub(crate) font_variant_position: FontVariantPosition,
+    pub(crate) font_variant_numeric: Vec<String>,
     pub(crate) cursor: CursorIcon,
     pub(crate) cursor_hidden: bool,
     pub(crate) letter_spacing: f32,
@@ -117,6 +118,7 @@ impl Default for TextStyle {
             font_style: Style::Normal,
             font_variant_caps: FontVariantCaps::Normal,
             font_variant_position: FontVariantPosition::Normal,
+            font_variant_numeric: Vec::new(),
             cursor: CursorIcon::Text,
             cursor_hidden: false,
             letter_spacing: 0.0,
@@ -187,6 +189,22 @@ impl TextStyle {
             }
             FontVariantPosition::Super => {
                 font_features.enable(FeatureTag::new(b"sups"));
+            }
+        }
+        for value in &self.font_variant_numeric {
+            let tag = match value.as_str() {
+                "lining-nums" => Some(*b"lnum"),
+                "oldstyle-nums" => Some(*b"onum"),
+                "proportional-nums" => Some(*b"pnum"),
+                "tabular-nums" => Some(*b"tnum"),
+                "diagonal-fractions" => Some(*b"frac"),
+                "stacked-fractions" => Some(*b"afrc"),
+                "ordinal" => Some(*b"ordn"),
+                "slashed-zero" => Some(*b"zero"),
+                _ => None,
+            };
+            if let Some(tag) = tag {
+                font_features.enable(FeatureTag::new(&tag));
             }
         }
         font_features

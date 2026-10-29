@@ -1,6 +1,8 @@
+use crate::style::TextStyle;
 use crate::style::{FontVariantCaps, FontVariantPosition};
 
-use super::tests::style_for_declarations;
+use super::{ElementIdentity, resolve_style, tests::style_for_declarations};
+use crate::{StyleDeclaration, StyleRule};
 
 #[test]
 fn resolves_font_variant_ligatures() {
@@ -99,4 +101,72 @@ fn resolves_font_variant_shorthand_and_resets_its_subproperties() {
         ignored_invalid.font_variant_caps,
         FontVariantCaps::PetiteCaps
     );
+}
+
+#[test]
+fn resolves_font_variant_numeric_features_and_rejects_conflicting_groups() {
+    let style = style_for_declarations(&[(
+        "font-variant-numeric",
+        "lining-nums tabular-nums diagonal-fractions ordinal slashed-zero",
+    )]);
+    assert_eq!(
+        style.font_variant_numeric,
+        [
+            "lining-nums",
+            "tabular-nums",
+            "diagonal-fractions",
+            "ordinal",
+            "slashed-zero"
+        ]
+    );
+
+    let reset = style_for_declarations(&[
+        ("font-variant-numeric", "oldstyle-nums proportional-nums"),
+        ("font-variant-numeric", "normal"),
+    ]);
+    assert!(reset.font_variant_numeric.is_empty());
+
+    let invalid = style_for_declarations(&[
+        ("font-variant-numeric", "tabular-nums"),
+        ("font-variant-numeric", "lining-nums oldstyle-nums"),
+    ]);
+    assert_eq!(invalid.font_variant_numeric, ["tabular-nums"]);
+}
+
+#[test]
+fn font_variant_shorthand_sets_and_resets_numeric_features() {
+    let style = style_for_declarations(&[("font-variant", "lining-nums ordinal small-caps")]);
+    assert_eq!(style.font_variant_caps, FontVariantCaps::SmallCaps);
+    assert_eq!(style.font_variant_numeric, ["lining-nums", "ordinal"]);
+
+    let reset = style_for_declarations(&[
+        ("font-variant", "tabular-nums slashed-zero"),
+        ("font-variant", "normal"),
+    ]);
+    assert!(reset.font_variant_numeric.is_empty());
+}
+
+#[test]
+fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
+    let inherited = TextStyle {
+        font_variant_numeric: vec!["oldstyle-nums".to_owned(), "ordinal".to_owned()],
+        ..TextStyle::default()
+    };
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "font-variant-numeric".to_owned(),
+            value: "unset".to_owned(),
+        }],
+    };
+    let current = ElementIdentity {
+        tag: "span".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+
+    let style = resolve_style(&inherited, &current, &[], &[rule]);
+
+    assert_eq!(style.font_variant_numeric, inherited.font_variant_numeric);
 }

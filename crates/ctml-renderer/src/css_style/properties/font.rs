@@ -152,6 +152,7 @@ pub(super) fn reset_font(style: &mut TextStyle) {
     style.contextual_alternates = None;
     style.font_variant_caps = FontVariantCaps::Normal;
     style.font_variant_position = FontVariantPosition::Normal;
+    style.font_variant_numeric.clear();
 }
 
 pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
@@ -171,6 +172,9 @@ pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
     style.contextual_alternates = inherited.contextual_alternates;
     style.font_variant_caps = inherited.font_variant_caps;
     style.font_variant_position = inherited.font_variant_position;
+    style
+        .font_variant_numeric
+        .clone_from(&inherited.font_variant_numeric);
 }
 
 fn parse_following_line_height(

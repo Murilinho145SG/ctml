@@ -14,6 +14,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "font-variant-caps",
     "font-variant-ligatures",
     "font-variant-position",
+    "font-variant-numeric",
     "line-height",
     "letter-spacing",
     "text-transform",

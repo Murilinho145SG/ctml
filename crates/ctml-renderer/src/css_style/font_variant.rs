@@ -39,6 +39,19 @@ pub(super) fn apply_font_variant(style: &mut TextStyle, value: &str) {
     if tokens.is_empty() || tokens.iter().any(|token| !is_font_variant_token(token)) {
         return;
     }
+    let numeric = tokens
+        .iter()
+        .copied()
+        .filter(|token| is_font_variant_numeric_token(token))
+        .collect::<Vec<_>>();
+    let numeric_values = if numeric.is_empty() {
+        Some(Vec::new())
+    } else {
+        parse_font_variant_numeric(&numeric.join(" "))
+    };
+    let Some(numeric_values) = numeric_values else {
+        return;
+    };
 
     reset_font_variant(style);
     for token in tokens {
@@ -50,6 +63,7 @@ pub(super) fn apply_font_variant(style: &mut TextStyle, value: &str) {
         }
     }
     apply_font_variant_ligatures(style, value);
+    style.font_variant_numeric = numeric_values;
 }
 
 fn reset_font_variant(style: &mut TextStyle) {
@@ -59,6 +73,7 @@ fn reset_font_variant(style: &mut TextStyle) {
     style.discretionary_ligatures = None;
     style.historical_ligatures = None;
     style.contextual_alternates = None;
+    style.font_variant_numeric.clear();
 }
 
 fn is_font_variant_token(token: &str) -> bool {
@@ -80,7 +95,59 @@ fn is_font_variant_token(token: &str) -> bool {
             | "no-historical-ligatures"
             | "contextual"
             | "no-contextual"
+            | "lining-nums"
+            | "oldstyle-nums"
+            | "proportional-nums"
+            | "tabular-nums"
+            | "diagonal-fractions"
+            | "stacked-fractions"
+            | "ordinal"
+            | "slashed-zero"
             | "none"
+    )
+}
+
+pub(super) fn apply_font_variant_numeric(style: &mut TextStyle, value: &str) {
+    if let Some(values) = parse_font_variant_numeric(value) {
+        style.font_variant_numeric = values;
+    }
+}
+
+fn parse_font_variant_numeric(value: &str) -> Option<Vec<String>> {
+    if value.eq_ignore_ascii_case("normal") {
+        return Some(Vec::new());
+    }
+    let mut groups = [false; 5];
+    let mut values = Vec::new();
+    for token in value.split_ascii_whitespace() {
+        let group = match token.to_ascii_lowercase().as_str() {
+            "lining-nums" | "oldstyle-nums" => 0,
+            "proportional-nums" | "tabular-nums" => 1,
+            "diagonal-fractions" | "stacked-fractions" => 2,
+            "ordinal" => 3,
+            "slashed-zero" => 4,
+            _ => return None,
+        };
+        if groups[group] {
+            return None;
+        }
+        groups[group] = true;
+        values.push(token.to_ascii_lowercase());
+    }
+    (!values.is_empty()).then_some(values)
+}
+
+fn is_font_variant_numeric_token(token: &str) -> bool {
+    matches!(
+        token.to_ascii_lowercase().as_str(),
+        "lining-nums"
+            | "oldstyle-nums"
+            | "proportional-nums"
+            | "tabular-nums"
+            | "diagonal-fractions"
+            | "stacked-fractions"
+            | "ordinal"
+            | "slashed-zero"
     )
 }
 

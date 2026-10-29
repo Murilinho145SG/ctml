@@ -9,6 +9,7 @@ use ctml_css::{
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures,
+    apply_font_variant_numeric,
 };
 use cursor::parse_cursor;
 pub(super) use font::parse_font_size;
@@ -96,6 +97,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-caps"
             | "font-variant-ligatures"
             | "font-variant-position"
+            | "font-variant-numeric"
             | "line-height"
             | "letter-spacing"
             | "text-transform"
@@ -129,6 +131,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.discretionary_ligatures = inherited.discretionary_ligatures;
             style.historical_ligatures = inherited.historical_ligatures;
             style.contextual_alternates = inherited.contextual_alternates;
+            style
+                .font_variant_numeric
+                .clone_from(&inherited.font_variant_numeric);
         }
         "font-variant-caps" => style.font_variant_caps = inherited.font_variant_caps,
         "font-variant-ligatures" => {
@@ -138,6 +143,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.contextual_alternates = inherited.contextual_alternates;
         }
         "font-variant-position" => style.font_variant_position = inherited.font_variant_position,
+        "font-variant-numeric" => style
+            .font_variant_numeric
+            .clone_from(&inherited.font_variant_numeric),
         "line-height" => {
             style.line_height = inherited.line_height;
             style.line_height_multiplier = inherited.line_height_multiplier;
@@ -187,6 +195,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.discretionary_ligatures = None;
             style.historical_ligatures = None;
             style.contextual_alternates = None;
+            style.font_variant_numeric.clear();
         }
         "font-variant-caps" => style.font_variant_caps = crate::style::FontVariantCaps::Normal,
         "font-variant-ligatures" => {
@@ -196,6 +205,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.contextual_alternates = None;
         }
         "font-variant-position" => style.font_variant_position = FontVariantPosition::Normal,
+        "font-variant-numeric" => style.font_variant_numeric.clear(),
         "line-height" => {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
@@ -312,6 +322,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font-variant-ligatures" => apply_font_variant_ligatures(style, value),
         "font-variant" => apply_font_variant(style, value),
         "font-variant-caps" => apply_font_variant_caps(style, value),
+        "font-variant-numeric" => apply_font_variant_numeric(style, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,
