@@ -51,17 +51,17 @@ pub(super) fn selector_has_matches(
                     &anchored_selector,
                     candidate,
                     selector_tree,
-                    anchor_node_id,
+                    Some(anchor_node_id),
                 )
         })
     })
 }
 
-fn matches_tree_element_with_scope(
+pub(super) fn matches_tree_element_with_scope(
     selector: &str,
     current: &SelectorTreeElement,
     selector_tree: &[SelectorTreeElement],
-    scope_node_id: usize,
+    scope_node_id: Option<usize>,
 ) -> bool {
     let ancestors = current
         .ancestors
@@ -98,7 +98,7 @@ fn matches_tree_element_with_scope(
         current.position,
         &ancestor_positions,
         selector_tree,
-        Some(scope_node_id),
+        scope_node_id,
     )
 }
 

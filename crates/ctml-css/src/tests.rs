@@ -607,6 +607,38 @@ fn matches_has_with_descendant_child_and_sibling_relative_selectors() {
             "{selector}"
         );
     }
+    for selector in [
+        "div:nth-child(2 of .active, .warning)",
+        "div:nth-last-child(1 of .warning)",
+    ] {
+        assert!(
+            selector_matches_with_selector_tree_context(
+                selector,
+                &div,
+                &[body.clone(), main.clone()],
+                &[],
+                &[],
+                &[sibling(2, paragraph.clone(), paragraph_position)],
+                &[vec![], vec![]],
+                div_position,
+                &[body_position, main_position],
+                &tree,
+            ),
+            "{selector}"
+        );
+    }
+    assert!(!selector_matches_with_selector_tree_context(
+        "div:nth-child(2 of .active)",
+        &div,
+        &[body.clone(), main.clone()],
+        &[],
+        &[],
+        &[sibling(2, paragraph.clone(), paragraph_position)],
+        &[vec![], vec![]],
+        div_position,
+        &[body_position, main_position],
+        &tree,
+    ));
     assert!(!selector_matches(
         "main:has(> p.active)",
         &main,
