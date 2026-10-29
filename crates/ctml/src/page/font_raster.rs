@@ -72,41 +72,7 @@ pub(super) fn draw(
             paint.set_color(Color::from_argb(color.a(), color.r(), color.g(), color.b()));
 
             let mut font = Font::from_typeface(typeface, first.font_size);
-            let render_params = font_system.db().face(first.font_id).and_then(|face| {
-                let family = face.families.first()?.0.as_str();
-                #[cfg(target_os = "linux")]
-                {
-                    crate::fontconfig::render_params(
-                        family,
-                        first.font_size,
-                        first.font_weight.0,
-                        face.style != fontdb::Style::Normal,
-                    )
-                }
-                #[cfg(not(target_os = "linux"))]
-                {
-                    let _ = (family, face);
-                    None
-                }
-            });
-            let antialiasing = render_params.is_none_or(|params| params.antialiasing);
-            font.set_edging(if antialiasing {
-                Edging::AntiAlias
-            } else {
-                Edging::Alias
-            });
-            let hinting =
-                render_params.map_or(FontHinting::Slight, |params| match params.hinting {
-                    0 => FontHinting::None,
-                    1 => FontHinting::Slight,
-                    2 => FontHinting::Normal,
-                    _ => FontHinting::Full,
-                });
-            font.set_hinting(hinting);
-            font.set_force_auto_hinting(render_params.is_some_and(|params| params.autohinter));
-            font.set_embedded_bitmaps(render_params.is_none_or(|params| params.use_bitmaps));
-            font.set_subpixel(true);
-            font.set_linear_metrics(false);
+            configure_font(&mut font);
             let baseline = run.line_y - 0.4;
 
             let group = &run.glyphs[start..end];
@@ -125,6 +91,15 @@ pub(super) fn draw(
             start = end;
         }
     }
+}
+
+fn configure_font(font: &mut Font) {
+    font.set_edging(Edging::AntiAlias);
+    font.set_hinting(FontHinting::None);
+    font.set_force_auto_hinting(false);
+    font.set_embedded_bitmaps(true);
+    font.set_subpixel(true);
+    font.set_linear_metrics(false);
 }
 
 fn load_typeface(
@@ -171,7 +146,22 @@ mod tests {
     use cosmic_text::FontSystem;
     use skia_safe::FontMgr;
 
+    use super::configure_font;
     use super::load_typeface;
+
+    #[test]
+    fn configures_skia_font_to_match_chromium_parity_capture_flags() {
+        let mut font = skia_safe::Font::default();
+
+        configure_font(&mut font);
+
+        assert_eq!(font.edging(), skia_safe::font::Edging::AntiAlias);
+        assert_eq!(font.hinting(), skia_safe::FontHinting::None);
+        assert!(!font.is_force_auto_hinting());
+        assert!(font.is_embedded_bitmaps());
+        assert!(font.is_subpixel());
+        assert!(!font.is_linear_metrics());
+    }
 
     #[test]
     fn loaded_typeface_preserves_the_selected_font_face() {
