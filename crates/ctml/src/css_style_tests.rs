@@ -313,6 +313,18 @@ fn resolves_current_color_after_cascade() {
 }
 
 #[test]
+fn preserves_fractional_opacity_when_color_becomes_current_color() {
+    let style = style_for_declarations(&[
+        ("color", "rgb(51 102 153 / 50%)"),
+        ("background-color", "currentColor"),
+    ]);
+
+    assert_eq!(style.color, [51, 102, 153, 128]);
+    assert_eq!(style.color_opacity, 0.5);
+    assert_eq!(style.background, [153, 179, 204]);
+}
+
+#[test]
 fn current_color_for_color_uses_the_inherited_color() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
@@ -323,6 +335,7 @@ fn current_color_for_color_uses_the_inherited_color() {
     };
     let inherited = TextStyle {
         color: [12, 34, 56, 255],
+        color_opacity: 1.0,
         ..TextStyle::default()
     };
     let body = ElementIdentity {

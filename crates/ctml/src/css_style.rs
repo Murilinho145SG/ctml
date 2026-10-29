@@ -44,7 +44,7 @@ pub(super) fn apply_matching_styles(
     }
     matches.sort_by_key(|(specificity, rule, declaration, _)| (*specificity, *rule, *declaration));
 
-    let inherited_color = style.color;
+    let inherited_color = (style.color, style.color_opacity);
     for (_, _, _, declaration) in matches
         .iter()
         .filter(|(_, _, _, declaration)| declaration.property == "color")
@@ -59,13 +59,27 @@ pub(super) fn apply_matching_styles(
     }
 }
 
-fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: [u8; 4]) {
+fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: ([u8; 4], f32)) {
     let value = value.trim();
-    style.color = if value.eq_ignore_ascii_case("currentcolor") {
-        inherited_color
+    let color = if value.eq_ignore_ascii_case("currentcolor") {
+        Some(inherited_color)
     } else {
-        parse_color(value).unwrap_or(style.color)
+        parse_color_with_opacity(value).map(|(channels, opacity)| {
+            (
+                [
+                    channels[0],
+                    channels[1],
+                    channels[2],
+                    (opacity * 255.0).round() as u8,
+                ],
+                opacity,
+            )
+        })
     };
+    if let Some((color, opacity)) = color {
+        style.color = color;
+        style.color_opacity = opacity;
+    }
 }
 
 fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
@@ -75,7 +89,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             let color = if value.eq_ignore_ascii_case("currentcolor") {
                 Some((
                     [style.color[0], style.color[1], style.color[2]],
-                    style.color[3] as f32 / 255.0,
+                    style.color_opacity,
                 ))
             } else {
                 parse_color_with_opacity(value)
