@@ -13,6 +13,50 @@ fn body_width_constrains_text_wrapping() {
 }
 
 #[test]
+fn lh_unit_resolves_against_inherited_line_height() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Line height units".to_owned())],
+    }];
+    let make_page = |paragraph_declaration: (&str, &str)| {
+        PageRasterizer::new(
+            &nodes,
+            &[
+                StyleRule {
+                    selectors: vec!["body".to_owned()],
+                    layer: None,
+                    declarations: vec![StyleDeclaration {
+                        property: "line-height".to_owned(),
+                        value: "24px".to_owned(),
+                    }],
+                },
+                StyleRule {
+                    selectors: vec!["p".to_owned()],
+                    layer: None,
+                    declarations: vec![StyleDeclaration {
+                        property: paragraph_declaration.0.to_owned(),
+                        value: paragraph_declaration.1.to_owned(),
+                    }],
+                },
+            ],
+        )
+    };
+
+    let font_size_page = make_page(("font-size", "2lh"));
+    assert_eq!(font_size_page.runs[0].style.font_size, 48.0);
+
+    let line_height_page = make_page(("line-height", "2lh"));
+    assert_eq!(line_height_page.runs[0].style.line_height, 48.0);
+
+    let font_shorthand_page = make_page(("font", "12px/2lh serif"));
+    assert_eq!(font_shorthand_page.runs[0].style.font_size, 12.0);
+    assert_eq!(font_shorthand_page.runs[0].style.line_height, 48.0);
+}
+
+#[test]
 fn body_min_and_max_width_constrain_text_wrapping() {
     let text = "words that wrap when the body width is constrained ".repeat(8);
     let min_width_lines = line_count_with_rule("min-width", "800px", text.clone(), 160);

@@ -2,9 +2,7 @@ use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
-use ctml_css::{
-    parse_color, parse_length, parse_nonnegative_length, parse_signed_length_percentage,
-};
+use ctml_css::parse_nonnegative_length_with_line_height;
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
@@ -14,9 +12,11 @@ use background::{apply_background_color, apply_background_shorthand};
 pub(super) use color::apply_color_declaration;
 use cursor::parse_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
+#[cfg(test)]
 pub(super) use font::parse_font_size;
 use font::{
-    apply_font_shorthand, inherit_font, parse_font_stretch, relative_font_weight, reset_font,
+    apply_font_shorthand, inherit_font, parse_font_size_with_line_height, parse_font_stretch,
+    relative_font_weight, reset_font,
 };
 use font_feature_settings::apply_font_feature_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
@@ -25,7 +25,7 @@ use size::{
     apply_min_width, apply_width, inherit_width,
 };
 use text_decoration::{
-    apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
+    apply_text_decoration_line, apply_text_decoration_property, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
 };
 use text_emphasis::{apply_text_emphasis_property, inherit_text_emphasis, reset_text_emphasis};
@@ -50,7 +50,7 @@ pub(super) fn apply_declaration_with_inherited(
     inherited: &TextStyle,
 ) {
     let Some(keyword) = css_wide_keyword(value) else {
-        apply_declaration(style, property, value);
+        apply_declaration(style, property, value, inherited.line_height);
         return;
     };
     let inherit_value =
@@ -311,10 +311,10 @@ fn initial_property(style: &mut TextStyle, property: &str) {
     }
 }
 
-fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
+fn apply_declaration(style: &mut TextStyle, property: &str, value: &str, parent_line_height: f32) {
     let value = value.trim();
     match property {
-        "font" => apply_font_shorthand(style, value),
+        "font" => apply_font_shorthand(style, value, parent_line_height),
         "display" => apply_display(style, value),
         "width" | "inline-size" => apply_width(style, value),
         "box-sizing" => apply_box_sizing(style, value),
@@ -328,7 +328,9 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "font-size" => {
-            if let Some(size) = parse_font_size(value, style.font_size) {
+            if let Some(size) =
+                parse_font_size_with_line_height(value, style.font_size, parent_line_height)
+            {
                 style.font_size = size;
                 if let Some(multiplier) = style.line_height_multiplier {
                     style.line_height = size * multiplier;
@@ -343,7 +345,11 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
                 style.line_height_normal = false;
-            } else if let Some(height) = parse_length(value, style.font_size) {
+            } else if let Some(height) = parse_nonnegative_length_with_line_height(
+                value,
+                style.font_size,
+                parent_line_height,
+            ) {
                 style.line_height = height;
                 style.line_height_multiplier = None;
                 style.line_height_normal = false;
@@ -424,49 +430,13 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.text_align,
             };
         }
-        "text-decoration" => {
-            apply_text_decoration_shorthand(style, value);
-        }
-        "text-decoration-line" => apply_text_decoration_line(style, value),
-        "text-decoration-style" => {
-            style.decoration_style = match value.to_ascii_lowercase().as_str() {
-                "solid" => crate::style::TextDecorationStyle::Solid,
-                "double" => crate::style::TextDecorationStyle::Double,
-                "dotted" => crate::style::TextDecorationStyle::Dotted,
-                "dashed" => crate::style::TextDecorationStyle::Dashed,
-                "wavy" => crate::style::TextDecorationStyle::Wavy,
-                _ => style.decoration_style,
-            };
-        }
-        "text-decoration-skip-ink" => {
-            style.decoration_skip_ink = match value.to_ascii_lowercase().as_str() {
-                "auto" => crate::style::TextDecorationSkipInk::Auto,
-                "none" => crate::style::TextDecorationSkipInk::None,
-                "all" => crate::style::TextDecorationSkipInk::All,
-                _ => style.decoration_skip_ink,
-            };
-        }
-        "text-decoration-thickness" => {
-            if matches!(value.to_ascii_lowercase().as_str(), "auto" | "from-font") {
-                style.decoration_thickness = None;
-            } else if let Some(thickness) = parse_nonnegative_length(value, style.font_size) {
-                style.decoration_thickness = Some(thickness);
-            }
-        }
-        "text-underline-offset" => {
-            if value.eq_ignore_ascii_case("auto") {
-                style.underline_offset = None;
-            } else if let Some(offset) = parse_signed_length_percentage(value, style.font_size) {
-                style.underline_offset = Some(offset);
-            }
-        }
-        "text-decoration-color" => {
-            style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
-                None
-            } else {
-                parse_color(value)
-            };
-        }
+        "text-decoration"
+        | "text-decoration-line"
+        | "text-decoration-style"
+        | "text-decoration-skip-ink"
+        | "text-decoration-thickness"
+        | "text-underline-offset"
+        | "text-decoration-color" => apply_text_decoration_property(style, property, value),
         "cursor" => {
             if value.eq_ignore_ascii_case("none") {
                 style.cursor = CursorIcon::Default;

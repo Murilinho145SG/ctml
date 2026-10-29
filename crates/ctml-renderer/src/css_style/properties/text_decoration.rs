@@ -1,5 +1,8 @@
 use crate::style::TextStyle;
-use ctml_css::{parse_color, parse_nonnegative_length};
+use ctml_css::{
+    parse_color, parse_nonnegative_length_with_line_height,
+    parse_signed_length_percentage_with_line_height,
+};
 
 pub(super) fn apply_text_decoration_shorthand(style: &mut TextStyle, value: &str) {
     let components = split_css_whitespace(value);
@@ -33,7 +36,8 @@ pub(super) fn apply_text_decoration_shorthand(style: &mut TextStyle, value: &str
             if thickness.replace(None).is_some() {
                 return;
             }
-        } else if let Some(parsed_thickness) = parse_nonnegative_length(component, style.font_size)
+        } else if let Some(parsed_thickness) =
+            parse_nonnegative_length_with_line_height(component, style.font_size, style.line_height)
         {
             if thickness.replace(Some(parsed_thickness)).is_some() {
                 return;
@@ -124,6 +128,54 @@ pub(super) fn copy_text_decoration_lines(style: &mut TextStyle, inherited: &Text
     style.underline = inherited.underline;
     style.overline = inherited.overline;
     style.strikethrough = inherited.strikethrough;
+}
+
+pub(super) fn apply_text_decoration_property(style: &mut TextStyle, property: &str, value: &str) {
+    match property {
+        "text-decoration" => apply_text_decoration_shorthand(style, value),
+        "text-decoration-line" => apply_text_decoration_line(style, value),
+        "text-decoration-style" => {
+            if let Some(decoration_style) = parse_text_decoration_style(value) {
+                style.decoration_style = decoration_style;
+            }
+        }
+        "text-decoration-skip-ink" => {
+            style.decoration_skip_ink = match value.to_ascii_lowercase().as_str() {
+                "auto" => crate::style::TextDecorationSkipInk::Auto,
+                "none" => crate::style::TextDecorationSkipInk::None,
+                "all" => crate::style::TextDecorationSkipInk::All,
+                _ => style.decoration_skip_ink,
+            };
+        }
+        "text-decoration-thickness" => {
+            if matches!(value.to_ascii_lowercase().as_str(), "auto" | "from-font") {
+                style.decoration_thickness = None;
+            } else if let Some(thickness) =
+                parse_nonnegative_length_with_line_height(value, style.font_size, style.line_height)
+            {
+                style.decoration_thickness = Some(thickness);
+            }
+        }
+        "text-underline-offset" => {
+            if value.eq_ignore_ascii_case("auto") {
+                style.underline_offset = None;
+            } else if let Some(offset) = parse_signed_length_percentage_with_line_height(
+                value,
+                style.font_size,
+                style.line_height,
+            ) {
+                style.underline_offset = Some(offset);
+            }
+        }
+        "text-decoration-color" => {
+            style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
+                None
+            } else {
+                parse_color(value)
+            };
+        }
+        _ => {}
+    }
 }
 
 fn split_css_whitespace(value: &str) -> Vec<&str> {

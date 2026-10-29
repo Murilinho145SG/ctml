@@ -12,7 +12,11 @@ pub use color::{parse_color, parse_color_with_opacity};
 pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
 pub use imports::parse_stylesheet_file;
-pub use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
+pub use length::{
+    parse_length, parse_length_with_line_height, parse_nonnegative_length,
+    parse_nonnegative_length_with_line_height, parse_signed_length_percentage,
+    parse_signed_length_percentage_with_line_height,
+};
 pub use selector::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement,
     selector_matches, selector_matches_with_attributes, selector_matches_with_context,

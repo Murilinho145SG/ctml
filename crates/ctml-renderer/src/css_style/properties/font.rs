@@ -1,7 +1,7 @@
 use cosmic_text::{Stretch, Style, Weight};
 
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
-use ctml_css::parse_length;
+use ctml_css::parse_length_with_line_height;
 
 pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
     let weight = inherited.0;
@@ -63,12 +63,12 @@ pub(super) fn parse_font_stretch(value: &str) -> Option<Stretch> {
     .map(|(_, stretch)| stretch)
 }
 
-pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str) {
+pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str, parent_line_height: f32) {
     let components = split_components(value);
     let Some(size_index) = components.iter().position(|(start, end)| {
         let component = &value[*start..*end];
         let (size, _) = component.split_once('/').unwrap_or((component, ""));
-        parse_font_size(size, style.font_size).is_some()
+        parse_font_size_with_line_height(size, style.font_size, parent_line_height).is_some()
     }) else {
         return;
     };
@@ -125,22 +125,29 @@ pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str) {
     let (size_start, size_end) = components[size_index];
     let size_component = &value[size_start..size_end];
     let (size_value, inline_line_height) = split_top_level_slash(size_component);
-    let Some(font_size) = parse_font_size(size_value, style.font_size) else {
+    let Some(font_size) =
+        parse_font_size_with_line_height(size_value, style.font_size, parent_line_height)
+    else {
         return;
     };
     let mut family_index = size_index + 1;
     let line_height = if inline_line_height.is_some() {
         let inline_value = inline_line_height.unwrap();
         if inline_value.is_empty() {
-            let Some((line_height, next_index)) =
-                parse_following_line_height(&components, value, family_index, font_size)
-            else {
+            let Some((line_height, next_index)) = parse_following_line_height(
+                &components,
+                value,
+                family_index,
+                font_size,
+                parent_line_height,
+            ) else {
                 return;
             };
             family_index = next_index;
             Some(line_height)
         } else {
-            let Some(line_height) = parse_line_height(inline_value, font_size) else {
+            let Some(line_height) = parse_line_height(inline_value, font_size, parent_line_height)
+            else {
                 return;
             };
             Some(line_height)
@@ -150,16 +157,22 @@ pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str) {
         if slash_component == "/" || slash_component.starts_with('/') {
             let line_value = slash_component.trim_start_matches('/');
             if line_value.is_empty() {
-                let Some((line_height, next_index)) =
-                    parse_following_line_height(&components, value, family_index + 1, font_size)
-                else {
+                let Some((line_height, next_index)) = parse_following_line_height(
+                    &components,
+                    value,
+                    family_index + 1,
+                    font_size,
+                    parent_line_height,
+                ) else {
                     return;
                 };
                 family_index = next_index;
                 Some(line_height)
             } else {
                 family_index += 1;
-                let Some(line_height) = parse_line_height(line_value, font_size) else {
+                let Some(line_height) =
+                    parse_line_height(line_value, font_size, parent_line_height)
+                else {
                     return;
                 };
                 Some(line_height)
@@ -248,15 +261,16 @@ fn parse_following_line_height(
     source: &str,
     line_height_index: usize,
     font_size: f32,
+    parent_line_height: f32,
 ) -> Option<(Option<f32>, usize)> {
     let (start, end) = components.get(line_height_index).copied()?;
     Some((
-        parse_line_height(&source[start..end], font_size)?,
+        parse_line_height(&source[start..end], font_size, parent_line_height)?,
         line_height_index + 1,
     ))
 }
 
-fn parse_line_height(value: &str, font_size: f32) -> Option<Option<f32>> {
+fn parse_line_height(value: &str, font_size: f32, parent_line_height: f32) -> Option<Option<f32>> {
     if value.eq_ignore_ascii_case("normal") {
         return Some(None);
     }
@@ -264,7 +278,8 @@ fn parse_line_height(value: &str, font_size: f32) -> Option<Option<f32>> {
         return (multiplier.is_finite() && multiplier >= 0.0)
             .then_some(Some(font_size * multiplier));
     }
-    parse_length(value, font_size).map(Some)
+    ctml_css::parse_nonnegative_length_with_line_height(value, font_size, parent_line_height)
+        .map(Some)
 }
 
 fn split_top_level_slash(value: &str) -> (&str, Option<&str>) {
@@ -331,7 +346,16 @@ fn split_components(value: &str) -> Vec<(usize, usize)> {
     components
 }
 
+#[cfg(test)]
 pub(in crate::css_style) fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {
+    parse_font_size_with_line_height(value, relative_to, relative_to)
+}
+
+pub(in crate::css_style) fn parse_font_size_with_line_height(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+) -> Option<f32> {
     let absolute_size = match value.trim().to_ascii_lowercase().as_str() {
         "xx-small" => Some(9.0),
         "x-small" => Some(10.0),
@@ -345,5 +369,5 @@ pub(in crate::css_style) fn parse_font_size(value: &str, relative_to: f32) -> Op
         "smaller" => Some(relative_to / 1.2),
         _ => None,
     };
-    absolute_size.or_else(|| parse_length(value, relative_to))
+    absolute_size.or_else(|| parse_length_with_line_height(value, relative_to, line_height))
 }
