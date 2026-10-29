@@ -44,9 +44,9 @@ main .title {
 ## Supported CSS subset
 
 - Selectors: type, class, ID, compound, descendant, direct child (`>`), comma-separated groups, and `*`.
-- Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px`, `em`, `rem`, `%` relative to the inherited size, and absolute units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`), `font-weight` (`normal`, `bold`, `bolder`, `lighter`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, and contextual controls), `font-variant-position` (`normal`, `sub`, and `super`), `font-variant`/`font-variant-caps` (`normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid` or `double` underline style, `text-decoration-color`, and `cursor`.
+- Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px`, `em`, `rem`, `%` relative to the inherited size, and absolute units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`), `font-weight` (`normal`, `bold`, `bolder`, `lighter`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, historical, and contextual controls), `font-variant-position` (`normal`, `sub`, and `super`), `font-variant`/`font-variant-caps` (`normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid`, `double`, `dotted`, `dashed`, or `wavy` line styles, `text-decoration-color`, and `cursor`.
 - `em` font sizes are relative to the inherited size. `rem` currently uses the renderer's 16 CSS pixel root size.
-- `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`.
+- `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`; `text-decoration-style` supports `solid`, `double`, `dotted`, `dashed`, and `wavy`.
 - Colors support standard named colors, `transparent`, `currentColor` for text and page backgrounds, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax, modern space-separated `rgb()`/`hsl()` syntax, and `hwb()` with optional slash alpha. RGB channels accept numbers or percentages; hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
 - Small-cap and subscript/superscript variants use the selected font's OpenType features. A font without the requested feature may render the text without that glyph variant.
 - Cursor values include `auto`, `default`, `pointer`, `text`, `crosshair`, `move`, `wait`, `progress`, `help`, `not-allowed`, `no-drop`, `copy`, `alias`, `cell`, `all-scroll`, `grab`, `grabbing`, zoom cursors, and common resize cursors. The OS draws the native cursor icon.
@@ -82,7 +82,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 - Per-element `background-color`; the supported background color applies to the page.
 - Background images, gradients, and the `opacity` property.
 - Modern color functions such as `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()`.
-- Text shadows and dotted or wavy underline styles.
+- Text shadows, custom decoration thickness and offset, skip ink, and emphasis marks.
 
 ### Interaction and responsive rules
 
@@ -111,7 +111,7 @@ To open the visual demo, run:
 cargo run --offline -p ctml-native-demo
 ```
 
-The CTML/Chromium screenshot parity suite runs as separate tests for the cases under `crates/ctml/tests/fixtures/parity/`. Each case has its own CTML, HTML, and CSS files and compares its own screenshots. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. Screenshots and red pixel-difference images are saved under `target/css-parity/<case>/`. A pixel counts as different when any RGB channel differs by more than 16; every case fails if more than 0.05% of viewport pixels differ. To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
+The CTML/Chromium screenshot parity suite runs as separate tests for the cases under `crates/ctml/tests/fixtures/parity/`. Each case has its own CTML, HTML, and CSS files and compares its own screenshots. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. Screenshots and red pixel-difference images are saved under `target/css-parity/<case>/`. Exact parity cases fail on any RGB pixel difference; other cases retain a 0.05% limit for pixels whose channel difference exceeds 16. To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
 
 Run the parity test by itself, with a single test thread, using:
 

@@ -20,7 +20,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `letter-spacing` | `letter-spacing` | normal, positive and negative `px`/`em` values |
 | `text-transform` | `text-transform` | all four supported values |
 | `text-align` | `text-alignment`, `text-alignment-values` | all six supported values |
-| `text-decoration`, `text-decoration-line` | `text-decoration`, `text-decoration-lines` | none, each line, combinations, and both supported styles |
+| `text-decoration`, `text-decoration-line`, `text-decoration-style` | `text-decoration`, `text-decoration-lines`, `text-decoration-style` | none, each line, combinations, and all five styles |
 | `text-decoration-color` | `text-decoration`, `text-decoration-lines` | color, `currentColor`, and active decoration lines |
 | `cursor` | `cursor` | every mapped cursor keyword, aliases, and `none` |
 
@@ -49,4 +49,4 @@ Run every Chromium comparison serially:
 cargo test --offline -p ctml page::tests::parity -- --test-threads=1
 ```
 
-The Chromium suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. The current pass limit is 0.05% of pixels above that tolerance. This comparison helps identify rendering differences while the application stays fully native. Artifacts are written to `target/css-parity/<case>/`.
+The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference; other cases retain a 0.05% limit for pixels above that tolerance. Artifacts are written to `target/css-parity/<case>/`.
