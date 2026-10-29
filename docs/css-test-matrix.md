@@ -30,23 +30,26 @@ This matrix covers every CSS property and selector currently handled by the nati
 | --- | --- | --- |
 | Type, class, ID, universal, and compound selectors | `selector-matrix` | selector match matrix |
 | Descendant and direct-child combinators | `selector-matrix`, `child-selector` | descendant and child matching |
+| Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
+| `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
 | Comma-separated selector groups | `selector-matrix` | group matching and specificity |
 | `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |
+| `inherit`, `initial`, and `unset` | — | supported property cascade keyword unit test |
 
 ## Running the complete matrix
 
 Run unit coverage without Chromium:
 
 ```sh
-cargo test --offline -p ctml --lib css_style::matrix_tests
-cargo test --offline -p ctml --lib css_style::tests
-cargo test --offline -p ctml --lib css_color::tests
+cargo test --offline -p ctml-renderer --lib css_style::matrix_tests
+cargo test --offline -p ctml-renderer --lib css_style::tests
+cargo test --offline -p ctml-css color::tests
 ```
 
 Run every Chromium comparison serially:
 
 ```sh
-cargo test --offline -p ctml page::tests::parity -- --test-threads=1
+cargo test --offline -p ctml-renderer --lib page::tests::parity -- --test-threads=1
 ```
 
-The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference. Most other cases allow up to 0.05% of pixels above that tolerance; `font-stretch` allows 0.055%, `text-decoration-style` 0.11%, `font-variant-shorthand` 0.27%, and `line-height-normal` 0.48% for observed rasterization differences. Artifacts are written to `target/css-parity/<case>/`.
+The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference. Most other cases allow up to 0.05% of pixels above that tolerance; `font-stretch` allows 0.055%, `text-decoration-style` 0.11%, `attribute-selectors` 1.25%, `font-variant-shorthand` 0.27%, and `line-height-normal` 0.48% for observed rasterization differences. Artifacts are written to `target/css-parity/<case>/`.

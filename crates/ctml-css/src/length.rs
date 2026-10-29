@@ -1,6 +1,6 @@
-use super::ROOT_FONT_SIZE;
+const ROOT_FONT_SIZE: f32 = 16.0;
 
-pub(super) fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
+pub fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     if let Some(percentage) = value.strip_suffix('%') {
         return percentage
@@ -33,7 +33,7 @@ pub(super) fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
     None
 }
 
-pub(super) fn parse_nonnegative_length(value: &str, relative_to: f32) -> Option<f32> {
+pub fn parse_nonnegative_length(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     if value.parse::<f32>().ok() == Some(0.0) {
         return Some(0.0);
@@ -56,7 +56,7 @@ pub(super) fn parse_nonnegative_length(value: &str, relative_to: f32) -> Option<
     parse_length(&value, relative_to)
 }
 
-pub(super) fn parse_signed_length_percentage(value: &str, relative_to: f32) -> Option<f32> {
+pub fn parse_signed_length_percentage(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     if value.parse::<f32>().ok() == Some(0.0) {
         return Some(0.0);

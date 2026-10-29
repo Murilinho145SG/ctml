@@ -13,14 +13,16 @@ The project builds 100% native interfaces without a browser runtime or a separat
 
 ## Project status
 
-CTML is in early development. This repository contains a Rust workspace with the `ctml` and `ctml-compiler` crates; the compiler is still a prototype. The syntax, APIs, and build and execution workflows may change.
+CTML is in early development. This repository contains a Rust workspace with separate API, renderer, CSS, and markup compiler crates. The syntax, APIs, and build and execution workflows may change.
 
 ## Repository structure
 
 ```text
 crates/
-├── ctml/           # Main crate
-└── ctml-compiler/  # Compiler prototype
+├── ctml/           # Public API facade
+├── ctml-css/       # CSS parser, selectors, colors, and lengths
+├── ctml-compiler/  # CTML lexer and parser
+└── ctml-renderer/  # Native window, text styling, layout, and rendering
 ```
 
 ## Markup example
@@ -40,6 +42,8 @@ A CTML interface can be described with elements and attributes in a format famil
 This example illustrates the language's direction. It is not yet a stable API or a complete running interface.
 
 The initial syntax is documented in [docs/syntax.md](docs/syntax.md).
+
+See [docs/architecture.md](docs/architecture.md) for crate boundaries and dependencies.
 
 ## Development
 

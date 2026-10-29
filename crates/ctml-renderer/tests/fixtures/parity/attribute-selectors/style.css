@@ -1,0 +1,12 @@
+body {
+    color: #222222;
+    font-family: sans-serif;
+    font-size: 16px;
+    line-height: 20px;
+}
+
+p { margin: 0; }
+[data-kind="highlight"] { color: #0066cc; }
+[data-state~="selected"] { font-weight: 700; }
+[lang|="en"] { text-transform: uppercase; }
+[data-label*="world" i] { text-decoration: underline; }

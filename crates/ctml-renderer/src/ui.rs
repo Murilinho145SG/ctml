@@ -8,20 +8,14 @@ pub enum UiNode {
         tag: String,
         class: Option<String>,
         id: Option<String>,
+        /// Element attributes as (name, string value). Boolean attributes use `None`.
+        attributes: Vec<(String, Option<String>)>,
         children: Vec<UiNode>,
     },
 }
 
 /// A parsed CSS rule passed to CTML's native style resolver.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StyleRule {
-    pub selectors: Vec<String>,
-    pub declarations: Vec<StyleDeclaration>,
-}
+pub type StyleRule = ctml_css::CssRule;
 
 /// One property and value from a CSS rule.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StyleDeclaration {
-    pub property: String,
-    pub value: String,
-}
+pub type StyleDeclaration = ctml_css::CssDeclaration;

@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/ctml", "crates/ctml-compiler", "examples/native-app"]
+members = [
+    "crates/ctml",
+    "crates/ctml-compiler",
+    "crates/ctml-css",
+    "crates/ctml-renderer",
+    "examples/native-app",
+]
 resolver = "3"
 
 [workspace.dependencies]
@@ -12,6 +18,7 @@ winit = "0.30.13"
 pollster = "0.4.0"
 utf8-chars = "3.0.7"
 ctml-compiler = { path = "crates/ctml-compiler" }
+ctml-css = { path = "crates/ctml-css" }
 cssparser = "0.37.0"
 png = "0.18.1"
 tokio = { version = "1.54.1", features = ["net", "rt", "time"] }

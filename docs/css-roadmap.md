@@ -21,12 +21,13 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 
 - [x] Type, class, ID, universal (`*`), compound, descendant, direct child (`>`), and comma-separated selectors.
 - [ ] Namespace selectors.
-- [ ] Attribute selectors: presence, exact match, token, language, prefix, suffix, substring, and case flags.
+- [x] Attribute selectors: presence, exact match, token, language, prefix, suffix, substring, and case flags.
 - [x] Child (`>`) combinator.
 - [ ] Adjacent sibling (`+`) and general sibling (`~`) combinators.
 - [ ] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [ ] Stateful pseudo-classes: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
-- [ ] Selector logic: `:is()`, `:where()`, `:not()`, and `:has()`.
+- [x] Selector logic: `:is()`, `:where()`, and `:not()`.
+- [ ] Relational selector `:has()`.
 - [ ] Language and direction selectors: `:lang()` and `:dir()`.
 - [ ] Link, form, range, and target pseudo-classes where applicable to CTML elements.
 - [ ] Pseudo-elements: `::before`, `::after`, `::first-line`, `::first-letter`, `::selection`, and `::placeholder`.
@@ -40,7 +41,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [ ] Complete origin and importance ordering, including user-agent, author, and user origins where applicable.
 - [x] `!important` declarations.
 - [ ] Cascade layers with `@layer`.
-- [ ] `inherit`, `initial`, `unset`, `revert`, and `revert-layer` keywords.
+- [x] `inherit`, `initial`, and `unset` for supported properties.
+- [ ] `revert` and `revert-layer` keywords.
 - [ ] Shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
 - [ ] Custom properties (`--name`) and `var()` substitution, including fallback and cycle handling.

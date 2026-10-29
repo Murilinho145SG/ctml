@@ -1,11 +1,11 @@
 use cssparser::{Parser, ParserInput, Token};
 
-pub(super) fn parse_color(value: &str) -> Option<[u8; 4]> {
+pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
     Some([red, green, blue, (alpha * 255.0).round() as u8])
 }
 
-pub(super) fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
+pub fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
     let value = value.trim();
     if value.eq_ignore_ascii_case("transparent") {
         return Some(([0, 0, 0], 0.0));

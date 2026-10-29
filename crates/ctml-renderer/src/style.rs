@@ -25,12 +25,14 @@ pub(super) fn compile_runs(
     css_style::apply_matching_styles(&mut root_style, &body, &[], stylesheet);
     let mut runs = Vec::new();
     let mut path = vec![body];
+    let mut path_attributes = vec![Vec::new()];
     let mut last_was_space = true;
     let mut capitalize_next = true;
     collect_runs(
         nodes,
         stylesheet,
         &mut path,
+        &mut path_attributes,
         &root_style,
         &mut runs,
         &mut last_was_space,
@@ -310,6 +312,7 @@ fn collect_runs(
     nodes: &[UiNode],
     stylesheet: &[StyleRule],
     path: &mut Vec<ElementIdentity>,
+    path_attributes: &mut Vec<Vec<(String, Option<String>)>>,
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
@@ -324,6 +327,7 @@ fn collect_runs(
                 tag,
                 class,
                 id,
+                attributes,
                 children,
             } => {
                 let identity = ElementIdentity {
@@ -331,23 +335,33 @@ fn collect_runs(
                     class: class.clone(),
                     id: id.clone(),
                 };
-                let style = css_style::resolve_style(inherited, &identity, path, stylesheet);
+                let style = css_style::resolve_style_with_context(
+                    inherited,
+                    &identity,
+                    path,
+                    attributes,
+                    path_attributes,
+                    stylesheet,
+                );
                 let block = is_block(tag);
                 if block {
                     push_line_break(output, &style, last_was_space);
                     *capitalize_next = true;
                 }
                 path.push(identity);
+                path_attributes.push(attributes.clone());
                 collect_runs(
                     children,
                     stylesheet,
                     path,
+                    path_attributes,
                     &style,
                     output,
                     last_was_space,
                     capitalize_next,
                 );
                 path.pop();
+                path_attributes.pop();
                 if block {
                     push_line_break(output, &style, last_was_space);
                     *capitalize_next = true;

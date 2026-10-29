@@ -1,7 +1,9 @@
 use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
-use super::{ElementIdentity, apply_matching_styles, resolve_style};
+use super::{
+    ElementIdentity, apply_matching_styles, apply_matching_styles_with_attributes, resolve_style,
+};
 use crate::{
     StyleDeclaration, StyleRule,
     style::{
@@ -406,6 +408,114 @@ fn important_declarations_precede_specificity_and_source_order() {
     apply_matching_styles(&mut style, &current, &[], &rules);
 
     assert_eq!(style.color, [255, 255, 255, 255]);
+}
+
+#[test]
+fn attribute_selectors_apply_through_the_style_cascade() {
+    let current = ElementIdentity {
+        tag: "input".to_owned(),
+        class: None,
+        id: None,
+    };
+    let attributes = [("type".to_owned(), Some("TeXt".to_owned()))];
+    let rules = [
+        StyleRule {
+            selectors: vec!["input[type=text i]".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "#008000".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["input[type=password]".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+    let mut style = TextStyle::default();
+
+    apply_matching_styles_with_attributes(&mut style, &current, &[], &attributes, &rules);
+
+    assert_eq!(style.color, [0, 128, 0, 255]);
+    assert_eq!(style.weight, Weight::NORMAL);
+}
+
+#[test]
+fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let rules = [
+        StyleRule {
+            selectors: vec![".sample".to_owned()],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "#ff0000".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-weight".to_owned(),
+                    value: "700".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-size".to_owned(),
+                    value: "32px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "#000000".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-line".to_owned(),
+                    value: "underline".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec![".sample".to_owned()],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "initial".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-weight".to_owned(),
+                    value: "inherit".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-size".to_owned(),
+                    value: "unset".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "unset".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-line".to_owned(),
+                    value: "unset".to_owned(),
+                },
+            ],
+        },
+    ];
+    let inherited = TextStyle {
+        color: [0, 0, 255, 255],
+        weight: Weight(300),
+        font_size: 24.0,
+        background: [12, 34, 56],
+        ..TextStyle::default()
+    };
+
+    let style = resolve_style(&inherited, &current, &[], &rules);
+
+    assert_eq!(style.color, [0, 0, 0, 255]);
+    assert_eq!(style.weight, Weight(300));
+    assert_eq!(style.font_size, 24.0);
+    assert_eq!(style.background, [255, 255, 255]);
+    assert!(!style.underline);
 }
 
 #[test]

@@ -5,5 +5,5 @@ edition = "2024"
 license = "GPL-2.0-only"
 
 [dependencies]
-cssparser.workspace = true
+ctml-css.workspace = true
 thiserror.workspace = true

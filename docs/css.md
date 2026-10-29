@@ -43,7 +43,7 @@ main .title {
 
 ## Supported CSS subset
 
-- Selectors: type, class, ID, compound, descendant, direct child (`>`), comma-separated groups, and `*`.
+- Selectors: type, class, ID, compound, descendant, direct child (`>`), comma-separated groups, `*`, `:is()`, `:where()`, `:not()`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
 - Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px`, `em`, `rem`, `%` relative to the inherited size, and absolute units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`), `font-weight` (`normal`, `bold`, `bolder`, `lighter`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, historical, and contextual controls), `font-variant-position` (`normal`, `sub`, and `super`), `font-variant` as a shorthand for supported ligature, position, and caps values, `font-variant-caps` (`normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid`, `double`, `dotted`, `dashed`, or `wavy` line styles, `text-decoration-color`, `text-decoration-skip-ink` (`auto`, `none`, or `all`), `text-decoration-thickness` (`auto`, `from-font`, or a non-negative length or percentage), `text-underline-offset` (`auto`, signed lengths, or percentages), and `cursor`.
 - `em` font sizes are relative to the inherited size. `rem` currently uses the renderer's 16 CSS pixel root size.
 - `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`; `text-decoration-style` supports `solid`, `double`, `dotted`, `dashed`, and `wavy`.
@@ -51,6 +51,7 @@ main .title {
 - Small/petite caps are synthesized with uppercase glyphs at a reduced size; unicase, titling caps, subscript, and superscript use the selected font's OpenType features. A font without a requested OpenType feature may render the text without that glyph variant.
 - Cursor values include `auto`, `default`, `pointer`, `text`, `crosshair`, `move`, `wait`, `progress`, `help`, `not-allowed`, `no-drop`, `copy`, `alias`, `cell`, `all-scroll`, `grab`, `grabbing`, zoom cursors, and common resize cursors. The OS draws the native cursor icon.
 - The cascade follows `!important` priority, selector specificity, and source order. Text properties inherit through child elements.
+- Supported properties accept the CSS-wide keywords `inherit`, `initial`, and `unset`.
 - Text wraps to the available page width. Common block elements start a new line.
 - Text can be selected by dragging the left mouse button; double-clicking selects a word.
 
@@ -63,10 +64,10 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 ### Selectors and cascade
 
 - Pseudo-classes and pseudo-elements, such as `:hover`, `:focus`, `:active`, and `::before`.
-- Attribute selectors, such as `[disabled]` and `[type="text"]`.
 - Adjacent-sibling and general-sibling combinators: `+` and `~`.
 - Selector namespaces and escaped identifiers.
-- Cascade layers (`@layer`).
+- `:has()`, structural pseudo-classes, and stateful pseudo-classes.
+- Cascade layers (`@layer`) and the `revert`/`revert-layer` keywords.
 
 ### Layout and sizing
 
@@ -97,13 +98,13 @@ This list describes the current native renderer and will change as CTML's stylin
 
 The [CSS test matrix](css-test-matrix.md) maps each currently supported property, value family, selector, and cascade behavior to its unit and Chromium parity tests.
 
-Run the native style resolver tests with:
+Run the renderer style resolver tests with:
 
 ```sh
-cargo test --offline -p ctml
+cargo test --offline -p ctml-renderer --lib css_style
 ```
 
-The tests cover numeric font weights, oblique font style, font stretch, small-cap variants, decoration colors, named colors, alpha colors, `rgb()`/`rgba()` and `hsl()`/`hsla()`, and malformed value handling. The `examples/native-app` demo also exercises supported color and font values visually.
+The tests cover numeric font weights, oblique font style, font stretch, small-cap variants, decoration colors, and style cascade behavior. The `ctml-css` tests cover named and alpha colors, `rgb()`/`rgba()`, `hsl()`/`hsla()`, selectors, and malformed color values. The `examples/native-app` demo also exercises supported color and font values visually.
 
 To open the visual demo, run:
 
@@ -111,18 +112,18 @@ To open the visual demo, run:
 cargo run --offline -p ctml-native-demo
 ```
 
-The CTML/Chromium screenshot parity suite runs as separate tests for the cases under `crates/ctml/tests/fixtures/parity/`. Each case has its own CTML, HTML, and CSS files and compares its own screenshots. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. Screenshots and red pixel-difference images are saved under `target/css-parity/<case>/`. Exact parity cases fail on any RGB pixel difference; other cases retain a 0.05% limit for pixels whose channel difference exceeds 16. To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
+The CTML/Chromium screenshot parity suite runs as separate tests for the cases under `crates/ctml-renderer/tests/fixtures/parity/`. Each case has its own CTML, HTML, and CSS files and compares its own screenshots. It uses Chromium from `PATH` or `CHROME_BIN`, then looks for the Chromium Headless Shell in `target/css-parity/chromium-cache/`. It downloads the headless shell only when neither source has a usable executable, and reuses that cached executable on later runs. The downloader is a development-only dependency. Screenshots and red pixel-difference images are saved under `target/css-parity/<case>/`. Exact parity cases fail on any RGB pixel difference. Other cases allow up to 0.05% of pixels above channel tolerance 16, with documented per-case limits for attribute selectors, font-stretch, font-variant-shorthand, line-height-normal, and text-decoration-style in the [test matrix](css-test-matrix.md). To select a Chromium executable explicitly, set `CTML_CSS_PARITY_BROWSER` to its path.
 
 Run the parity test by itself, with a single test thread, using:
 
 ```sh
-cargo test -p ctml page::tests::parity -- --test-threads=1 --nocapture
+cargo test -p ctml-renderer --lib page::tests::parity -- --test-threads=1 --nocapture
 ```
 
 The repository's Cargo configuration runs tests serially and shows test output by default. The parity test prints its progress while it parses fixtures, renders CTML, finds or downloads Chromium, captures HTML, and compares pixels. To run only that test, use:
 
 ```sh
-cargo test -p ctml page::tests::parity
+cargo test -p ctml-renderer --lib page::tests::parity
 ```
 
 The first run needs network access only if Chromium is not already installed or cached. The downloaded browser is reused by later runs. The parity test requires Chromium to start and capture a screenshot. If a Linux container's seccomp profile blocks a syscall Chromium needs at startup, run the test on the host or allow `shutdown()` in the container profile; the test reports this restriction and fails rather than skipping pixel comparison.

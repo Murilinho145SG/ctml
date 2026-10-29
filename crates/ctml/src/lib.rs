@@ -1,15 +1,3 @@
-mod css_color;
-mod css_selector;
-mod css_style;
-mod font_family;
-mod font_metrics;
-#[cfg(target_os = "linux")]
-mod fontconfig;
-mod page;
-mod renderer;
-mod style;
-mod ui;
-mod window;
+//! Public CTML API facade.
 
-pub use ui::{StyleDeclaration, StyleRule, UiNode};
-pub use window::{Window, WindowConfig, WindowError};
+pub use ctml_renderer::{StyleDeclaration, StyleRule, UiNode, Window, WindowConfig, WindowError};

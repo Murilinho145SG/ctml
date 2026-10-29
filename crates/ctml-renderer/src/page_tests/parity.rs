@@ -202,6 +202,11 @@ parity_test!(
     false
 );
 parity_test!(child_selector_matches_chromium, "child-selector", false);
+parity_test_with_tolerance!(
+    attribute_selectors_match_chromium,
+    "attribute-selectors",
+    super::MAX_ATTRIBUTE_SELECTOR_DIFFERING_PIXEL_RATIO
+);
 parity_test!(selector_matrix_matches_chromium, "selector-matrix", false);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);
 parity_test!(

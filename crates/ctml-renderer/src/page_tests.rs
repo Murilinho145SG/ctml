@@ -25,6 +25,7 @@ const MAX_FONT_STRETCH_DIFFERING_PIXEL_RATIO: f32 = 0.00055;
 const MAX_FONT_VARIANT_DIFFERING_PIXEL_RATIO: f32 = 0.0027;
 const MAX_NORMAL_LINE_HEIGHT_DIFFERING_PIXEL_RATIO: f32 = 0.0048;
 const MAX_TEXT_DECORATION_STYLE_DIFFERING_PIXEL_RATIO: f32 = 0.0011;
+const MAX_ATTRIBUTE_SELECTOR_DIFFERING_PIXEL_RATIO: f32 = 0.0125;
 const CHROMIUM_VERSION: &str = "156.0.8078.47";
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
@@ -45,6 +46,16 @@ fn ui_node(node: &Node) -> UiNode {
                 .attribute("id")
                 .and_then(AttributeValue::as_str)
                 .map(str::to_owned),
+            attributes: element
+                .attributes
+                .iter()
+                .map(|attribute| {
+                    (
+                        attribute.name.clone(),
+                        attribute.value.as_str().map(str::to_owned),
+                    )
+                })
+                .collect(),
             children: element.children.iter().map(ui_node).collect(),
         },
     }

@@ -1,5 +1,19 @@
 use cssparser::{Delimiter, Parser, ParserInput};
 
+mod color;
+mod length;
+mod selector;
+
+pub use color::{parse_color, parse_color_with_opacity};
+pub use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
+pub use selector::{
+    ElementIdentity, selector_matches, selector_matches_with_attributes,
+    selector_matches_with_context, selector_specificity,
+};
+
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
@@ -46,9 +60,9 @@ pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
             .parse_nested_block(parse_declarations)
             .map_err(|error| format!("{error:?}"))?;
 
-        let selectors = selector_text
-            .split(',')
-            .map(str::trim)
+        let selectors = split_selector_list(&selector_text)
+            .into_iter()
+            .map(|selector| selector.trim())
             .filter(|selector| !selector.is_empty())
             .map(str::to_owned)
             .collect::<Vec<_>>();
@@ -62,6 +76,36 @@ pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
     }
 
     Ok(Stylesheet { rules })
+}
+
+fn split_selector_list(source: &str) -> Vec<&str> {
+    let mut selectors = Vec::new();
+    let mut start = 0;
+    let mut bracket_depth = 0;
+    let mut paren_depth = 0;
+    let mut quote = None;
+    for (index, character) in source.char_indices() {
+        if bracket_depth > 0 {
+            match (quote, character) {
+                (Some(current), character) if current == character => quote = None,
+                (None, '"' | '\'') => quote = Some(character),
+                (None, '[') => bracket_depth += 1,
+                (None, ']') => bracket_depth -= 1,
+                _ => {}
+            }
+        } else if character == '[' {
+            bracket_depth = 1;
+        } else if character == '(' {
+            paren_depth += 1;
+        } else if character == ')' {
+            paren_depth -= 1;
+        } else if character == ',' && paren_depth == 0 {
+            selectors.push(&source[start..index]);
+            start = index + character.len_utf8();
+        }
+    }
+    selectors.push(&source[start..]);
+    selectors
 }
 
 fn parse_declarations<'i, 't>(

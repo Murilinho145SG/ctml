@@ -1,0 +1,7 @@
+<headers><application name="Attribute selectors" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <p data-kind="highlight">Exact attribute match</p>
+    <p data-state="ready selected">Token attribute match</p>
+    <p lang="en-US">Language prefix match</p>
+    <p data-label="Friendly World">Case-insensitive substring match</p>
+</body>

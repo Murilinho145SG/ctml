@@ -533,10 +533,40 @@ dependencies = [
 name = "ctml"
 version = "0.1.0"
 dependencies = [
+ "ctml-renderer",
+]
+
+[[package]]
+name = "ctml-compiler"
+version = "0.1.0"
+dependencies = [
+ "ctml-css",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ctml-css"
+version = "0.1.0"
+dependencies = [
+ "cssparser",
+]
+
+[[package]]
+name = "ctml-native-demo"
+version = "0.1.0"
+dependencies = [
+ "ctml",
+ "ctml-compiler",
+]
+
+[[package]]
+name = "ctml-renderer"
+version = "0.1.0"
+dependencies = [
  "chromiumoxide_fetcher",
  "cosmic-text",
- "cssparser",
  "ctml-compiler",
+ "ctml-css",
  "png",
  "pollster",
  "skia-safe",
@@ -547,22 +577,6 @@ dependencies = [
  "wgpu",
  "winit",
  "yeslogic-fontconfig-sys",
-]
-
-[[package]]
-name = "ctml-compiler"
-version = "0.1.0"
-dependencies = [
- "cssparser",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "ctml-native-demo"
-version = "0.1.0"
-dependencies = [
- "ctml",
- "ctml-compiler",
 ]
 
 [[package]]

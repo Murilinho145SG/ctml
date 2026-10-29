@@ -66,14 +66,30 @@ fn rust_node(node: &Node) -> Result<String, io::Error> {
             let class = string_attribute(element, "class")?;
             let id = string_attribute(element, "id")?;
             Ok(format!(
-                "ctml::UiNode::Element {{ tag: {:?}.to_owned(), class: {}, id: {}, children: vec![{}] }}",
+                "ctml::UiNode::Element {{ tag: {:?}.to_owned(), class: {}, id: {}, attributes: vec![{}], children: vec![{}] }}",
                 element.name,
                 option_string(class),
                 option_string(id),
+                rust_attributes(element),
                 rust_nodes(&element.children)?
             ))
         }
     }
+}
+
+fn rust_attributes(element: &Element) -> String {
+    element
+        .attributes
+        .iter()
+        .map(|attribute| {
+            let value = attribute.value.as_str().map_or_else(
+                || "None".to_owned(),
+                |value| format!("Some({value:?}.to_owned())"),
+            );
+            format!("({:?}.to_owned(), {value})", attribute.name)
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn rust_stylesheet(rules: &[CssRule]) -> String {

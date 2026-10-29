@@ -1,0 +1,29 @@
+[package]
+name = "ctml-renderer"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-only"
+
+[dependencies]
+cosmic-text.workspace = true
+ctml-css.workspace = true
+pollster.workspace = true
+skia-safe = {
+    version = "0.156.0",
+    default-features = false,
+    features = ["binary-cache", "embed-freetype", "ganesh", "gl", "jpeg", "pdf", "textlayout"],
+}
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+yeslogic-fontconfig-sys = "6.0.1"
+
+[dev-dependencies]
+chromiumoxide_fetcher = "0.9.1"
+ctml-compiler.workspace = true
+png.workspace = true
+tokio.workspace = true
+url.workspace = true

@@ -2,28 +2,58 @@ use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 mod font_variant;
-mod length;
 
-pub(super) use crate::css_selector::ElementIdentity;
 use crate::{
     StyleRule,
-    css_color::{parse_color, parse_color_with_opacity},
-    css_selector::{selector_matches, selector_specificity},
     style::{FontVariantPosition, TextStyle, TextTransform},
 };
+pub(super) use ctml_css::ElementIdentity;
+#[cfg(test)]
+pub(super) use ctml_css::selector_matches;
+use ctml_css::{
+    parse_color, parse_color_with_opacity, parse_length, parse_nonnegative_length,
+    parse_signed_length_percentage, selector_matches_with_context, selector_specificity,
+};
 use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
-use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
 
-const ROOT_FONT_SIZE: f32 = 16.0;
-
+#[cfg(test)]
 pub(super) fn resolve_style(
     inherited: &TextStyle,
     current: &ElementIdentity,
     ancestors: &[ElementIdentity],
     stylesheet: &[StyleRule],
 ) -> TextStyle {
+    resolve_style_with_attributes(inherited, current, ancestors, &[], stylesheet)
+}
+
+#[cfg(test)]
+pub(super) fn resolve_style_with_attributes(
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    stylesheet: &[StyleRule],
+) -> TextStyle {
+    resolve_style_with_context(inherited, current, ancestors, attributes, &[], stylesheet)
+}
+
+pub(super) fn resolve_style_with_context(
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    stylesheet: &[StyleRule],
+) -> TextStyle {
     let mut style = inherited.clone();
-    apply_matching_styles(&mut style, current, ancestors, stylesheet);
+    apply_matching_styles_with_context(
+        &mut style,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        stylesheet,
+    );
     style
 }
 
@@ -33,12 +63,61 @@ pub(super) fn apply_matching_styles(
     ancestors: &[ElementIdentity],
     stylesheet: &[StyleRule],
 ) {
+    apply_matching_styles_with_context(style, current, ancestors, &[], &[], stylesheet);
+}
+
+pub(super) fn apply_matching_styles_with_context(
+    style: &mut TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    stylesheet: &[StyleRule],
+) {
+    apply_matching_styles_inner(
+        style,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        stylesheet,
+    );
+}
+
+#[cfg(test)]
+pub(super) fn apply_matching_styles_with_attributes(
+    style: &mut TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    stylesheet: &[StyleRule],
+) {
+    apply_matching_styles_with_context(style, current, ancestors, attributes, &[], stylesheet);
+}
+
+fn apply_matching_styles_inner(
+    style: &mut TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    stylesheet: &[StyleRule],
+) {
+    let inherited_style = style.clone();
     let mut matches = Vec::new();
     for (rule_index, rule) in stylesheet.iter().enumerate() {
         let specificity = rule
             .selectors
             .iter()
-            .filter(|selector| selector_matches(selector, current, ancestors))
+            .filter(|selector| {
+                selector_matches_with_context(
+                    selector,
+                    current,
+                    ancestors,
+                    attributes,
+                    ancestor_attributes,
+                )
+            })
             .map(|selector| selector_specificity(selector))
             .max();
         if let Some(specificity) = specificity {
@@ -71,7 +150,7 @@ pub(super) fn apply_matching_styles(
         .filter(|(_, _, _, _, declaration)| declaration.property != "color")
     {
         let (value, _) = declaration_value(&declaration.value);
-        apply_declaration(style, &declaration.property, value);
+        apply_declaration_with_inherited(style, &declaration.property, value, &inherited_style);
     }
 }
 
@@ -93,6 +172,10 @@ fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: 
     let value = value.trim();
     let color = if value.eq_ignore_ascii_case("currentcolor") {
         Some(inherited_color)
+    } else if value.eq_ignore_ascii_case("initial") {
+        Some(([0, 0, 0, 255], 1.0))
+    } else if matches!(value.to_ascii_lowercase().as_str(), "inherit" | "unset") {
+        Some(inherited_color)
     } else {
         parse_color_with_opacity(value).map(|(channels, opacity)| {
             (
@@ -109,6 +192,178 @@ fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: 
     if let Some((color, opacity)) = color {
         style.color = color;
         style.color_opacity = opacity;
+    }
+}
+
+fn apply_declaration_with_inherited(
+    style: &mut TextStyle,
+    property: &str,
+    value: &str,
+    inherited: &TextStyle,
+) {
+    let Some(keyword) = css_wide_keyword(value) else {
+        apply_declaration(style, property, value);
+        return;
+    };
+    let inherit_value =
+        keyword == "inherit" || (keyword == "unset" && is_inherited_property(property));
+    if inherit_value {
+        inherit_property(style, inherited, property);
+    } else {
+        initial_property(style, property);
+    }
+}
+
+fn css_wide_keyword(value: &str) -> Option<&str> {
+    let value = value.trim();
+    ["inherit", "initial", "unset"]
+        .into_iter()
+        .find(|keyword| value.eq_ignore_ascii_case(keyword))
+}
+
+fn is_inherited_property(property: &str) -> bool {
+    matches!(
+        property,
+        "font-family"
+            | "font-size"
+            | "font-weight"
+            | "font-style"
+            | "font-stretch"
+            | "font-kerning"
+            | "font-variant"
+            | "font-variant-caps"
+            | "font-variant-ligatures"
+            | "font-variant-position"
+            | "line-height"
+            | "letter-spacing"
+            | "text-transform"
+            | "text-align"
+            | "text-decoration-color"
+            | "text-decoration-skip-ink"
+            | "text-decoration-thickness"
+            | "text-underline-offset"
+            | "cursor"
+    )
+}
+
+fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
+    match property {
+        "background-color" => style.background = inherited.background,
+        "font-family" => style.family.clone_from(&inherited.family),
+        "font-size" => {
+            style.font_size = inherited.font_size;
+            style.font_scale = inherited.font_scale;
+            style.line_height = inherited.line_height;
+            style.line_height_multiplier = inherited.line_height_multiplier;
+            style.line_height_normal = inherited.line_height_normal;
+        }
+        "font-weight" => style.weight = inherited.weight,
+        "font-style" => style.font_style = inherited.font_style,
+        "font-stretch" => style.stretch = inherited.stretch,
+        "font-kerning" => style.kerning = inherited.kerning,
+        "font-variant" => {
+            style.font_variant_caps = inherited.font_variant_caps;
+            style.font_variant_position = inherited.font_variant_position;
+            style.common_ligatures = inherited.common_ligatures;
+            style.discretionary_ligatures = inherited.discretionary_ligatures;
+            style.historical_ligatures = inherited.historical_ligatures;
+            style.contextual_alternates = inherited.contextual_alternates;
+        }
+        "font-variant-caps" => style.font_variant_caps = inherited.font_variant_caps,
+        "font-variant-ligatures" => {
+            style.common_ligatures = inherited.common_ligatures;
+            style.discretionary_ligatures = inherited.discretionary_ligatures;
+            style.historical_ligatures = inherited.historical_ligatures;
+            style.contextual_alternates = inherited.contextual_alternates;
+        }
+        "font-variant-position" => style.font_variant_position = inherited.font_variant_position,
+        "line-height" => {
+            style.line_height = inherited.line_height;
+            style.line_height_multiplier = inherited.line_height_multiplier;
+            style.line_height_normal = inherited.line_height_normal;
+        }
+        "letter-spacing" => {
+            style.letter_spacing = inherited.letter_spacing;
+            style.letter_spacing_px = inherited.letter_spacing_px;
+        }
+        "text-transform" => style.text_transform = inherited.text_transform,
+        "text-align" => style.text_align = inherited.text_align,
+        "text-decoration-color" => style.text_decoration_color = inherited.text_decoration_color,
+        "text-decoration-skip-ink" => style.decoration_skip_ink = inherited.decoration_skip_ink,
+        "text-decoration-thickness" => style.decoration_thickness = inherited.decoration_thickness,
+        "text-underline-offset" => style.underline_offset = inherited.underline_offset,
+        "cursor" => {
+            style.cursor = inherited.cursor;
+            style.cursor_hidden = inherited.cursor_hidden;
+        }
+        _ => {}
+    }
+}
+
+fn initial_property(style: &mut TextStyle, property: &str) {
+    match property {
+        "background-color" => style.background = [255, 255, 255],
+        "font-family" => style.family = "serif".to_owned(),
+        "font-size" => {
+            style.font_size = 16.0;
+            if let Some(multiplier) = style.line_height_multiplier {
+                style.line_height = style.font_size * multiplier;
+            }
+        }
+        "font-weight" => style.weight = Weight::NORMAL,
+        "font-style" => style.font_style = Style::Normal,
+        "font-stretch" => style.stretch = Stretch::Normal,
+        "font-kerning" => style.kerning = None,
+        "font-variant" => {
+            style.font_variant_caps = crate::style::FontVariantCaps::Normal;
+            style.font_variant_position = FontVariantPosition::Normal;
+            style.common_ligatures = None;
+            style.discretionary_ligatures = None;
+            style.historical_ligatures = None;
+            style.contextual_alternates = None;
+        }
+        "font-variant-caps" => style.font_variant_caps = crate::style::FontVariantCaps::Normal,
+        "font-variant-ligatures" => {
+            style.common_ligatures = None;
+            style.discretionary_ligatures = None;
+            style.historical_ligatures = None;
+            style.contextual_alternates = None;
+        }
+        "font-variant-position" => style.font_variant_position = FontVariantPosition::Normal,
+        "line-height" => {
+            style.line_height_normal = true;
+            style.line_height_multiplier = None;
+        }
+        "letter-spacing" => {
+            style.letter_spacing = 0.0;
+            style.letter_spacing_px = false;
+        }
+        "text-transform" => style.text_transform = TextTransform::None,
+        "text-align" => style.text_align = cosmic_text::Align::Left,
+        "text-decoration" | "text-decoration-line" => {
+            style.underline = false;
+            style.overline = false;
+            style.strikethrough = false;
+            if property == "text-decoration" {
+                style.decoration_style = crate::style::TextDecorationStyle::Solid;
+                style.decoration_thickness = None;
+                style.text_decoration_color = None;
+            }
+        }
+        "text-decoration-style" => {
+            style.decoration_style = crate::style::TextDecorationStyle::Solid
+        }
+        "text-decoration-color" => style.text_decoration_color = None,
+        "text-decoration-skip-ink" => {
+            style.decoration_skip_ink = crate::style::TextDecorationSkipInk::Auto;
+        }
+        "text-decoration-thickness" => style.decoration_thickness = None,
+        "text-underline-offset" => style.underline_offset = None,
+        "cursor" => {
+            style.cursor = CursorIcon::Text;
+            style.cursor_hidden = false;
+        }
+        _ => {}
     }
 }
 
