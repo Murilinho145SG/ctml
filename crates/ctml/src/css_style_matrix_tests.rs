@@ -186,17 +186,20 @@ fn covers_every_font_feature_switch() {
     let none = style_for("font-variant-ligatures", "none");
     assert_eq!(none.common_ligatures, Some(false));
     assert_eq!(none.discretionary_ligatures, Some(false));
+    assert_eq!(none.historical_ligatures, Some(false));
     assert_eq!(none.contextual_alternates, Some(false));
     let enabled = style_for(
         "font-variant-ligatures",
-        "common-ligatures discretionary-ligatures contextual",
+        "common-ligatures discretionary-ligatures historical-ligatures contextual",
     );
     assert_eq!(enabled.common_ligatures, Some(true));
     assert_eq!(enabled.discretionary_ligatures, Some(true));
+    assert_eq!(enabled.historical_ligatures, Some(true));
     assert_eq!(enabled.contextual_alternates, Some(true));
     let normal = style_for("font-variant-ligatures", "normal");
     assert_eq!(normal.common_ligatures, None);
     assert_eq!(normal.discretionary_ligatures, None);
+    assert_eq!(normal.historical_ligatures, None);
     assert_eq!(normal.contextual_alternates, None);
 }
 

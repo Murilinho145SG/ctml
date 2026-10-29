@@ -293,6 +293,12 @@ fn resolves_font_variant_ligatures() {
     assert_eq!(style.common_ligatures, Some(false));
     assert_eq!(style.discretionary_ligatures, Some(true));
     assert_eq!(style.contextual_alternates, Some(false));
+    assert_eq!(style.historical_ligatures, None);
+    let historical = style_for_declarations(&[(
+        "font-variant-ligatures",
+        "historical-ligatures no-historical-ligatures",
+    )]);
+    assert_eq!(historical.historical_ligatures, Some(false));
 }
 
 #[test]

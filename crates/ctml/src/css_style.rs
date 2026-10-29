@@ -314,12 +314,14 @@ fn apply_font_variant_ligatures(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("normal") {
         style.common_ligatures = None;
         style.discretionary_ligatures = None;
+        style.historical_ligatures = None;
         style.contextual_alternates = None;
         return;
     }
     if value.eq_ignore_ascii_case("none") {
         style.common_ligatures = Some(false);
         style.discretionary_ligatures = Some(false);
+        style.historical_ligatures = Some(false);
         style.contextual_alternates = Some(false);
         return;
     }
@@ -329,6 +331,8 @@ fn apply_font_variant_ligatures(style: &mut TextStyle, value: &str) {
             "no-common-ligatures" => style.common_ligatures = Some(false),
             "discretionary-ligatures" => style.discretionary_ligatures = Some(true),
             "no-discretionary-ligatures" => style.discretionary_ligatures = Some(false),
+            "historical-ligatures" => style.historical_ligatures = Some(true),
+            "no-historical-ligatures" => style.historical_ligatures = Some(false),
             "contextual" => style.contextual_alternates = Some(true),
             "no-contextual" => style.contextual_alternates = Some(false),
             _ => {}

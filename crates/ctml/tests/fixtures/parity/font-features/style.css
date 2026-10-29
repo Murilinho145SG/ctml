@@ -9,3 +9,15 @@ p.sample {
     font-variant-ligatures: none;
     margin: 0;
 }
+
+p.historical {
+    font-family: serif;
+    font-variant-ligatures: historical-ligatures;
+    margin: 0;
+}
+
+p.historical-disabled {
+    font-family: serif;
+    font-variant-ligatures: no-historical-ligatures;
+    margin: 0;
+}

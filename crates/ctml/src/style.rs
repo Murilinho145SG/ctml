@@ -55,6 +55,7 @@ pub(super) struct TextStyle {
     pub(super) kerning: Option<bool>,
     pub(super) common_ligatures: Option<bool>,
     pub(super) discretionary_ligatures: Option<bool>,
+    pub(super) historical_ligatures: Option<bool>,
     pub(super) contextual_alternates: Option<bool>,
     pub(super) font_style: Style,
     pub(super) font_variant_caps: FontVariantCaps,
@@ -117,6 +118,7 @@ impl Default for TextStyle {
             kerning: None,
             common_ligatures: None,
             discretionary_ligatures: None,
+            historical_ligatures: None,
             contextual_alternates: None,
             font_style: Style::Normal,
             font_variant_caps: FontVariantCaps::Normal,
@@ -168,6 +170,9 @@ impl TextStyle {
         }
         if let Some(enabled) = self.discretionary_ligatures {
             font_features.set(FeatureTag::DISCRETIONARY_LIGATURES, u32::from(enabled));
+        }
+        if let Some(enabled) = self.historical_ligatures {
+            font_features.set(FeatureTag::new(b"hlig"), u32::from(enabled));
         }
         if let Some(enabled) = self.contextual_alternates {
             font_features.set(FeatureTag::CONTEXTUAL_ALTERNATES, u32::from(enabled));
