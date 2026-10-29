@@ -335,12 +335,17 @@ fn collect_runs(
                     class: class.clone(),
                     id: id.clone(),
                 };
-                let style = css_style::resolve_style_with_context(
+                let inline_style = attributes
+                    .iter()
+                    .find(|(name, _)| name.eq_ignore_ascii_case("style"))
+                    .and_then(|(_, value)| value.as_deref());
+                let style = css_style::resolve_style_with_inline_context(
                     inherited,
                     &identity,
                     path,
                     attributes,
                     path_attributes,
+                    inline_style,
                     stylesheet,
                 );
                 let block = is_block(tag);

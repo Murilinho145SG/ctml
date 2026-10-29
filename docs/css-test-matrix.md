@@ -31,6 +31,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Type, class, ID, universal, and compound selectors | `selector-matrix` | selector match matrix |
 | Descendant and direct-child combinators | `selector-matrix`, `child-selector` | descendant and child matching |
 | Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
+| Inline style attributes and importance ordering | `inline-style` | Declaration-list parser and renderer cascade tests |
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
 | Comma-separated selector groups | `selector-matrix` | group matching and specificity |
 | `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |

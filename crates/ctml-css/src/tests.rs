@@ -11,6 +11,16 @@ fn parses_rules_groups_declarations_and_important_values() {
 }
 
 #[test]
+fn parses_inline_declaration_lists_without_a_selector_block() {
+    let declarations =
+        super::parse_declarations("color: red; font-weight: 700 !important;").unwrap();
+
+    assert_eq!(declarations.len(), 2);
+    assert_eq!(declarations[0].property, "color");
+    assert_eq!(declarations[1].value, "700 !important");
+}
+
+#[test]
 fn strips_css_comments_and_accepts_a_utf8_bom() {
     let stylesheet = parse_stylesheet(
         "\u{feff}/* heading */ p/**/.notice { color: red/* inline */; content: \"/* literal */\"; }",

@@ -14,7 +14,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [ ] Implement complete CSS tokenization, escapes, strings, comments, and error recovery.
 - [x] Report stylesheet parse errors with a source file path, line, and column.
 - [x] Skip malformed declarations silently; retain unknown properties during parsing and ignore unsupported properties during rendering.
-- [ ] Support inline style attributes, if added to CTML markup.
+- [x] Support inline `style` attributes on CTML elements.
 - [ ] Support CSSOM or runtime stylesheet mutation (debug/development mode only, if needed).
 
 ## Selectors

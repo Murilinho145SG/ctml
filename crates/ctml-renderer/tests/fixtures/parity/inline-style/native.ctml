@@ -1,0 +1,8 @@
+<headers>
+    <application name="Inline style" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+<body>
+    <p id="target" style="color: red;">X</p>
+    <p class="important" style="color: red;">Y</p>
+</body>

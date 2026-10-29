@@ -37,6 +37,7 @@ pub(super) fn resolve_style_with_attributes(
     resolve_style_with_context(inherited, current, ancestors, attributes, &[], stylesheet)
 }
 
+#[cfg(test)]
 pub(super) fn resolve_style_with_context(
     inherited: &TextStyle,
     current: &ElementIdentity,
@@ -45,13 +46,34 @@ pub(super) fn resolve_style_with_context(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     stylesheet: &[StyleRule],
 ) -> TextStyle {
+    resolve_style_with_inline_context(
+        inherited,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        None,
+        stylesheet,
+    )
+}
+
+pub(super) fn resolve_style_with_inline_context(
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    inline_style: Option<&str>,
+    stylesheet: &[StyleRule],
+) -> TextStyle {
     let mut style = inherited.clone();
-    apply_matching_styles_with_context(
+    apply_matching_styles_with_inline_context(
         &mut style,
         current,
         ancestors,
         attributes,
         ancestor_attributes,
+        inline_style,
         stylesheet,
     );
     style
@@ -74,12 +96,33 @@ pub(super) fn apply_matching_styles_with_context(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     stylesheet: &[StyleRule],
 ) {
+    apply_matching_styles_with_inline_context(
+        style,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        None,
+        stylesheet,
+    );
+}
+
+fn apply_matching_styles_with_inline_context(
+    style: &mut TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    inline_style: Option<&str>,
+    stylesheet: &[StyleRule],
+) {
     apply_matching_styles_inner(
         style,
         current,
         ancestors,
         attributes,
         ancestor_attributes,
+        inline_style,
         stylesheet,
     );
 }
@@ -101,10 +144,14 @@ fn apply_matching_styles_inner(
     ancestors: &[ElementIdentity],
     attributes: &[(String, Option<String>)],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
+    inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) {
     let inherited_style = style.clone();
     let mut matches = Vec::new();
+    let inline_declarations = inline_style
+        .and_then(|inline_style| ctml_css::parse_declarations(inline_style).ok())
+        .unwrap_or_default();
     for (rule_index, rule) in stylesheet.iter().enumerate() {
         let specificity = rule
             .selectors
@@ -132,6 +179,16 @@ fn apply_matching_styles_inner(
                 ));
             }
         }
+    }
+    for (declaration_index, declaration) in inline_declarations.iter().enumerate() {
+        let (_, important) = declaration_value(&declaration.value);
+        matches.push((
+            important,
+            (usize::MAX, 0, 0),
+            stylesheet.len(),
+            declaration_index,
+            declaration,
+        ));
     }
     matches.sort_by_key(|(important, specificity, rule, declaration, _)| {
         (*important, *specificity, *rule, *declaration)

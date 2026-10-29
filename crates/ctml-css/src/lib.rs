@@ -78,7 +78,7 @@ pub(crate) fn parse_stylesheet_with_line_offset(
             )
         })?;
         let declarations = input
-            .parse_nested_block(parse_declarations)
+            .parse_nested_block(parse_declaration_block)
             .map_err(|error| {
                 located_error(
                     error.location.line + line_offset,
@@ -107,6 +107,16 @@ pub(crate) fn parse_stylesheet_with_line_offset(
 
 fn located_error(line: u32, column: u32, error: impl std::fmt::Debug) -> String {
     format!("line {}, column {column}: {error:?}", line + 1)
+}
+
+/// Parses a CSS declaration list, such as the value of an element's `style` attribute.
+/// Invalid declarations are discarded while later declarations remain available.
+pub fn parse_declarations(source: &str) -> Result<Vec<CssDeclaration>, String> {
+    let source = comments::strip_utf8_bom_and_comments(source)?;
+    let mut source = ParserInput::new(&source);
+    let mut input = Parser::new(&mut source);
+    parse_declaration_block(&mut input)
+        .map_err(|error| located_error(error.location.line, error.location.column, error))
 }
 
 fn split_selector_list(source: &str) -> Vec<&str> {
@@ -139,7 +149,7 @@ fn split_selector_list(source: &str) -> Vec<&str> {
     selectors
 }
 
-fn parse_declarations<'i, 't>(
+fn parse_declaration_block<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<Vec<CssDeclaration>, cssparser::ParseError<'i, ()>> {
     let mut declarations = Vec::new();

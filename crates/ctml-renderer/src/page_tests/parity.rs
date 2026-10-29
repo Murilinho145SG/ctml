@@ -202,6 +202,11 @@ parity_test!(
     false
 );
 parity_test!(child_selector_matches_chromium, "child-selector", false);
+parity_test!(
+    inline_style_attribute_matches_chromium,
+    "inline-style",
+    false
+);
 parity_test_with_tolerance!(
     attribute_selectors_match_chromium,
     "attribute-selectors",

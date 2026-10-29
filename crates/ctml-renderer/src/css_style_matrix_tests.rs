@@ -3,6 +3,7 @@ use winit::window::CursorIcon;
 
 use super::{
     ElementIdentity, apply_matching_styles, apply_matching_styles_with_attributes, resolve_style,
+    resolve_style_with_inline_context,
 };
 use crate::{
     StyleDeclaration, StyleRule,
@@ -34,6 +35,59 @@ fn ignores_unknown_properties_without_affecting_computed_text_style() {
         style_for("future-property", "anything"),
         TextStyle::default()
     );
+}
+
+#[test]
+fn inline_style_uses_author_cascade_priority_and_importance() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("target".to_owned()),
+        id: Some("target".to_owned()),
+    };
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["#target".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-family".to_owned(),
+                value: "monospace".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".target".to_owned()],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "blue !important".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-weight".to_owned(),
+                    value: "400 !important".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-transform".to_owned(),
+                    value: "lowercase !important".to_owned(),
+                },
+            ],
+        },
+    ];
+
+    let style = resolve_style_with_inline_context(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[],
+        &[],
+        Some(
+            "color: red; font-family: serif; font-weight: 700; text-transform: uppercase !important; cursor: help;",
+        ),
+        &stylesheet,
+    );
+
+    assert_eq!(style.color, [0, 0, 255, 255]);
+    assert_eq!(style.family, "serif");
+    assert_eq!(style.weight, Weight(400));
+    assert_eq!(style.text_transform, TextTransform::Uppercase);
+    assert_eq!(style.cursor, CursorIcon::Help);
 }
 
 #[test]
