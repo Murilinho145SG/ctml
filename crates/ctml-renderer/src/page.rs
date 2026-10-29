@@ -351,7 +351,7 @@ impl PageRasterizer {
                 cosmic_text::render_decoration(&mut renderer, &run, default_color);
             }
         }
-        self.draw_pseudo_decorations(&mut pixels, width, height);
+        self.draw_pseudo_decorations(&mut pixels, width, height, &auto_ink_mask, &all_ink_mask);
         pixels
     }
 }

@@ -154,7 +154,14 @@ impl PageRasterizer {
         }
     }
 
-    pub(super) fn draw_pseudo_decorations(&self, pixels: &mut [u8], width: u32, height: u32) {
+    pub(super) fn draw_pseudo_decorations(
+        &self,
+        pixels: &mut [u8],
+        width: u32,
+        height: u32,
+        auto_ink_mask: &[u8],
+        all_ink_mask: &[u8],
+    ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let first_letters = first_formatted_letters(&self.cursor_spans);
         for run in self.buffer.layout_runs() {
@@ -192,12 +199,30 @@ impl PageRasterizer {
                     && let Some(decoration) = span.first_letter_decoration
                 {
                     draw_decoration(
-                        &run, span.start, span.end, decoration, pixels, width, height,
+                        &run,
+                        span.start,
+                        span.end,
+                        decoration,
+                        pixels,
+                        width,
+                        height,
+                        auto_ink_mask,
+                        all_ink_mask,
                     );
                 }
             }
             for (start, end, _, decoration) in first_line_groups {
-                draw_decoration(&run, start, end, decoration, pixels, width, height);
+                draw_decoration(
+                    &run,
+                    start,
+                    end,
+                    decoration,
+                    pixels,
+                    width,
+                    height,
+                    auto_ink_mask,
+                    all_ink_mask,
+                );
             }
         }
     }
@@ -211,6 +236,8 @@ fn draw_decoration(
     pixels: &mut [u8],
     width: u32,
     height: u32,
+    auto_ink_mask: &[u8],
+    all_ink_mask: &[u8],
 ) {
     if start >= end || decoration.thickness <= 0.0 {
         return;
@@ -236,7 +263,11 @@ fn draw_decoration(
         pixels,
         width,
         height,
-        skip_ink_mask: None,
+        skip_ink_mask: match decoration.skip_ink {
+            crate::style::TextDecorationSkipInk::None => None,
+            crate::style::TextDecorationSkipInk::Auto => Some(auto_ink_mask),
+            crate::style::TextDecorationSkipInk::All => Some(all_ink_mask),
+        },
     };
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);

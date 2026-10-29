@@ -126,6 +126,82 @@ fn first_line_text_shadow_is_rasterized() {
 }
 
 #[test]
+fn first_line_decoration_skip_ink_changes_underline_pixels() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("gyp descenders".to_owned())],
+    }];
+    let make_page = |skip_ink: &str| {
+        let stylesheet = [StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "text-decoration-line".to_owned(),
+                    value: "underline".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-color".to_owned(),
+                    value: "red".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-skip-ink".to_owned(),
+                    value: skip_ink.to_owned(),
+                },
+            ],
+        }];
+        PageRasterizer::new(&nodes, &stylesheet)
+    };
+    let mut no_skip_page = make_page("none");
+    let mut skip_all_page = make_page("all");
+    assert_ne!(
+        no_skip_page.snapshot_pixels(180, 70),
+        skip_all_page.snapshot_pixels(180, 70)
+    );
+}
+
+#[test]
+fn first_letter_decoration_skip_ink_changes_underline_pixels() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("gyp descenders".to_owned())],
+    }];
+    let make_page = |skip_ink: &str| {
+        let stylesheet = [StyleRule {
+            selectors: vec!["p::first-letter".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "text-decoration-line".to_owned(),
+                    value: "underline".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-color".to_owned(),
+                    value: "red".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-skip-ink".to_owned(),
+                    value: skip_ink.to_owned(),
+                },
+            ],
+        }];
+        PageRasterizer::new(&nodes, &stylesheet)
+    };
+    let mut no_skip_page = make_page("none");
+    let mut skip_all_page = make_page("all");
+    assert_ne!(
+        no_skip_page.snapshot_pixels(180, 70),
+        skip_all_page.snapshot_pixels(180, 70)
+    );
+}
+
+#[test]
 fn first_letter_foreground_and_background_apply_to_one_character() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
