@@ -276,6 +276,7 @@ fn apply_matching_styles_inner(
     style.background_color = None;
     style.display_none = false;
     style.display_block = None;
+    style.display_list_item = None;
     let mut matches: Vec<MatchedDeclaration<'_>> = Vec::new();
     let inline_declarations = inline_style
         .and_then(|inline_style| ctml_css::parse_declarations(inline_style).ok())

@@ -343,6 +343,47 @@ fn display_inline_block_uses_inline_text_flow() {
     assert_display_flow("p", "inline-block", "beforemiddleafter");
 }
 
+#[test]
+fn list_items_render_bullets_and_ordered_numbers() {
+    let nodes = [
+        list_container("ul", &["apple", "pear"]),
+        list_container("ol", &["first", "second"]),
+    ];
+
+    let (runs, _) = compile_runs(&nodes, &[], &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "• apple\n• pear\n1. first\n2. second"
+    );
+}
+
+#[test]
+fn explicit_list_item_uses_a_bullet_and_block_flow() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("item".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("task".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".item".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "list-item".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "• task"
+    );
+}
+
 fn assert_display_flow(tag: &str, display: &str, expected: &str) {
     let nodes = [
         UiNode::Text("before".to_owned()),
@@ -370,4 +411,23 @@ fn assert_display_flow(tag: &str, display: &str, expected: &str) {
         runs.iter().map(|run| run.text.as_str()).collect::<String>(),
         expected
     );
+}
+
+fn list_container(tag: &str, labels: &[&str]) -> UiNode {
+    UiNode::Element {
+        tag: tag.to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: labels
+            .iter()
+            .map(|label| UiNode::Element {
+                tag: "li".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text((*label).to_owned())],
+            })
+            .collect(),
+    }
 }

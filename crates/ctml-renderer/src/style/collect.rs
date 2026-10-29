@@ -37,6 +37,7 @@ pub(super) fn collect_runs(
         keyboard_focus,
     );
     let mut element_index = 0;
+    let mut list_item_index = 0;
     for node in nodes {
         match node {
             UiNode::Text(text) => append_text(
@@ -83,6 +84,12 @@ pub(super) fn collect_runs(
                     element_index += 1;
                     continue;
                 }
+                let list_item = style.display_list_item.unwrap_or(tag == "li");
+                if list_item {
+                    list_item_index += 1;
+                }
+                let ordered_list_item =
+                    list_item && path.last().is_some_and(|parent| parent.tag == "ol");
                 let before_content = pseudo::resolve_generated_content(
                     "before",
                     &style,
@@ -121,6 +128,21 @@ pub(super) fn collect_runs(
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
+                if list_item {
+                    let marker = if ordered_list_item {
+                        format!("{list_item_index}. ")
+                    } else {
+                        "• ".to_owned()
+                    };
+                    append_text(
+                        &marker,
+                        &style,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                }
                 if let Some(content) = &before_content {
                     append_text(
                         &content.text,

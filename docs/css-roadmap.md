@@ -115,7 +115,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: block` and `display: inline` override tag-based line separation for rendered text.
 - [x] `display: contents` removes tag-based line separation while preserving child text flow.
 - [x] `display: flow-root` and `display: inline-block` use block and inline text flow, respectively.
-- [ ] Remaining `display` values and CSS formatting box generation, including list-item markers.
+- [x] `display: list-item` and default `<li>` markers, with bullets for unordered lists and ascending decimal numbers for ordered lists.
+- [ ] Remaining `display` values and CSS formatting box generation.
 - [ ] `width`, `height`, inline/block size, and min/max sizing.
 - [ ] `box-sizing` and intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
