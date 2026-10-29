@@ -353,6 +353,7 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     assert_eq!(relative_hsl_style.color, [0, 255, 0, 255]);
 
     for (space, expected) in [
+        ("display-p3", [188, 0, 188]),
         ("xyz", [188, 0, 188]),
         ("xyz-d65", [188, 0, 188]),
         ("xyz-d50", [188, 0, 188]),

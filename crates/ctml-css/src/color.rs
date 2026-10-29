@@ -465,6 +465,18 @@ mod tests {
     }
 
     #[test]
+    fn parses_display_p3_color_mixes_from_supported_srgb_colors() {
+        assert_eq!(
+            parse_color("color-mix(in display-p3, red, blue)"),
+            Some([188, 0, 188, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in display-p3, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+    }
+
+    #[test]
     fn parses_rgb_relative_colors_with_channel_and_alpha_references() {
         assert_eq!(parse_color("rgb(from red r g b)"), Some([255, 0, 0, 255]));
         assert_eq!(

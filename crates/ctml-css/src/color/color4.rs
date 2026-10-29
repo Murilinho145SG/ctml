@@ -224,6 +224,23 @@ pub(super) fn srgb_to_xyz_d50(rgb: [u8; 3]) -> [f32; 3] {
     ]
 }
 
+pub(super) fn srgb_to_display_p3_linear(rgb: [u8; 3]) -> [f32; 3] {
+    let [x, y, z] = srgb_to_xyz_d65(rgb);
+    [
+        2.49349691 * x - 0.93138362 * y - 0.40271078 * z,
+        -0.82948897 * x + 1.76266406 * y + 0.02362469 * z,
+        0.03584583 * x - 0.07617239 * y + 0.95688452 * z,
+    ]
+}
+
+pub(super) fn display_p3_linear_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3] {
+    xyz_d65_to_srgb([
+        0.48657095 * red + 0.26566769 * green + 0.19821729 * blue,
+        0.22897456 * red + 0.69173852 * green + 0.07928691 * blue,
+        0.04511338 * green + 1.04394437 * blue,
+    ])
+}
+
 pub(super) fn encode_srgb(linear: f32) -> u8 {
     let linear = linear.clamp(0.0, 1.0);
     let encoded = if linear <= 0.0031308 {

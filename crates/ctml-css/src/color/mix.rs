@@ -25,6 +25,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let xyz_d50 = interpolation_space.eq_ignore_ascii_case("xyz-d50");
             let xyz_d65 = interpolation_space.eq_ignore_ascii_case("xyz")
                 || interpolation_space.eq_ignore_ascii_case("xyz-d65");
+            let display_p3 = interpolation_space.eq_ignore_ascii_case("display-p3");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
             if !interpolation_space.eq_ignore_ascii_case("srgb")
@@ -35,6 +36,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !oklch
                 && !xyz_d50
                 && !xyz_d65
+                && !display_p3
                 && !hsl
                 && !hwb
             {
@@ -70,6 +72,14 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
             let channels = if alpha == 0.0 {
                 [0; 3]
+            } else if display_p3 {
+                let first_p3 = super::color4::srgb_to_display_p3_linear(first.0);
+                let second_p3 = super::color4::srgb_to_display_p3_linear(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let mixed_p3 = std::array::from_fn(|index| {
+                    (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
+                });
+                super::color4::display_p3_linear_to_srgb(mixed_p3)
             } else if xyz_d50 || xyz_d65 {
                 let convert = if xyz_d50 {
                     super::color4::srgb_to_xyz_d50
