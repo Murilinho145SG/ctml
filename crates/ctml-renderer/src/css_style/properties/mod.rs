@@ -3,18 +3,18 @@ use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
 use ctml_css::{
-    parse_color, parse_color_with_opacity, parse_length, parse_nonnegative_length,
-    parse_signed_length_percentage,
+    parse_color, parse_length, parse_nonnegative_length, parse_signed_length_percentage,
 };
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
     apply_font_variant_ligatures, apply_font_variant_numeric,
 };
+use background::{apply_background_color, apply_background_shorthand};
 pub(super) use color::apply_color_declaration;
 use cursor::parse_cursor;
 pub(super) use font::parse_font_size;
-use font::{apply_font_shorthand, inherit_font, reset_font};
+use font::{apply_font_shorthand, inherit_font, relative_font_weight, reset_font};
 use font_feature_settings::apply_font_feature_settings;
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
@@ -23,6 +23,7 @@ use text_decoration::{
 use text_emphasis::{apply_text_emphasis_property, inherit_text_emphasis, reset_text_emphasis};
 use text_shadow::apply_text_shadow;
 
+mod background;
 mod color;
 mod cursor;
 mod font;
@@ -95,6 +96,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background = inherited.background;
             style.background_color = inherited.background_color;
         }
+        "display" => style.display_none = inherited.display_none,
         "background" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -181,6 +183,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background = [255, 255, 255];
             style.background_color = None;
         }
+        "display" => style.display_none = false,
         "background" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -261,6 +264,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     let value = value.trim();
     match property {
         "font" => apply_font_shorthand(style, value),
+        "display" => style.display_none = value.eq_ignore_ascii_case("none"),
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "font-size" => {
@@ -414,63 +418,6 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         _ => {}
     }
-}
-
-fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
-    if value.eq_ignore_ascii_case("none") {
-        style.background = [255, 255, 255];
-        style.background_color = None;
-    } else {
-        apply_background_color(style, value);
-    }
-}
-
-fn apply_background_color(style: &mut TextStyle, value: &str) {
-    let color = if value.eq_ignore_ascii_case("currentcolor") {
-        Some((
-            [style.color[0], style.color[1], style.color[2]],
-            style.color_opacity,
-        ))
-    } else {
-        parse_color_with_opacity(value)
-    };
-    let Some((channels, alpha)) = color else {
-        return;
-    };
-    style.background_color = Some([
-        channels[0],
-        channels[1],
-        channels[2],
-        (alpha * 255.0).round() as u8,
-    ]);
-    style.background = [
-        composite_over_white(channels[0], alpha),
-        composite_over_white(channels[1], alpha),
-        composite_over_white(channels[2], alpha),
-    ];
-}
-
-fn composite_over_white(channel: u8, alpha: f32) -> u8 {
-    (channel as f32 * alpha + 255.0 * (1.0 - alpha)).round() as u8
-}
-
-fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
-    let weight = inherited.0;
-    let resolved = match (bolder, weight) {
-        (true, weight) if weight < 100 => 400,
-        (true, 100..350) => 400,
-        (true, 350..550) => 700,
-        (true, 550..750) => 900,
-        (true, 750..900) => 900,
-        (true, _) => weight,
-        (false, weight) if weight < 100 => weight,
-        (false, 100..350) => 100,
-        (false, 350..550) => 100,
-        (false, 550..750) => 400,
-        (false, 750..900) => 700,
-        (false, _) => 700,
-    };
-    Weight(resolved)
 }
 
 fn parse_font_stretch(value: &str) -> Option<Stretch> {

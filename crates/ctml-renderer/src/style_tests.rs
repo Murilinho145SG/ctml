@@ -181,3 +181,65 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
     assert_eq!(runs[0].style.color, [0, 0, 255, 255]);
     assert_eq!(runs[2].style.weight, cosmic_text::Weight(700));
 }
+
+#[test]
+fn display_none_hides_element_descendants_and_generated_content() {
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("hidden".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("hidden child".to_owned())],
+        },
+        UiNode::Element {
+            tag: "p".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("visible".to_owned())],
+        },
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".hidden".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "display".to_owned(),
+                value: "none".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".hidden::before".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "content".to_owned(),
+                value: "'hidden generated'".to_owned(),
+            }],
+        },
+    ];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "visible"
+    );
+}
+
+#[test]
+fn display_none_on_body_hides_all_rendered_content() {
+    let nodes = [UiNode::Text("hidden body".to_owned())];
+    let stylesheet = [StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "none".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert!(runs.is_empty());
+}

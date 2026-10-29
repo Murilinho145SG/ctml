@@ -79,6 +79,10 @@ pub(super) fn collect_runs(
                     inline_style,
                     stylesheet,
                 );
+                if style.display_none {
+                    element_index += 1;
+                    continue;
+                }
                 let before_content = pseudo::resolve_generated_content(
                     "before",
                     &style,

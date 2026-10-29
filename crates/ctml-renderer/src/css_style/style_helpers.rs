@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "color",
+    "display",
     "background-color",
     "font",
     "font-family",

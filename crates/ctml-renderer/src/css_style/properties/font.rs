@@ -3,7 +3,26 @@ use cosmic_text::{Stretch, Style, Weight};
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
 use ctml_css::parse_length;
 
-use super::{parse_font_stretch, relative_font_weight};
+use super::parse_font_stretch;
+
+pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
+    let weight = inherited.0;
+    let resolved = match (bolder, weight) {
+        (true, weight) if weight < 100 => 400,
+        (true, 100..350) => 400,
+        (true, 350..550) => 700,
+        (true, 550..750) => 900,
+        (true, 750..900) => 900,
+        (true, _) => weight,
+        (false, weight) if weight < 100 => weight,
+        (false, 100..350) => 100,
+        (false, 350..550) => 100,
+        (false, 550..750) => 400,
+        (false, 750..900) => 700,
+        (false, _) => 700,
+    };
+    Weight(resolved)
+}
 
 pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str) {
     let components = split_components(value);

@@ -84,25 +84,27 @@ pub(super) fn compile_runs(
     let mut next_node_id = 1;
     let mut last_was_space = true;
     let mut capitalize_next = true;
-    collect::collect_runs(
-        nodes,
-        stylesheet,
-        &mut path,
-        &mut path_attributes,
-        &mut path_siblings,
-        &mut path_positions,
-        &mut element_path,
-        &mut next_node_id,
-        hovered_path,
-        active_path,
-        focused_path,
-        keyboard_focus,
-        &selector_tree,
-        &root_style,
-        &mut runs,
-        &mut last_was_space,
-        &mut capitalize_next,
-    );
+    if !root_style.display_none {
+        collect::collect_runs(
+            nodes,
+            stylesheet,
+            &mut path,
+            &mut path_attributes,
+            &mut path_siblings,
+            &mut path_positions,
+            &mut element_path,
+            &mut next_node_id,
+            hovered_path,
+            active_path,
+            focused_path,
+            keyboard_focus,
+            &selector_tree,
+            &root_style,
+            &mut runs,
+            &mut last_was_space,
+            &mut capitalize_next,
+        );
+    }
     trim_runs(&mut runs);
     let selection_background = css_style::selection_background_color(stylesheet);
     for run in &mut runs {

@@ -274,6 +274,7 @@ fn apply_matching_styles_inner(
 ) {
     let inherited_style = style.clone();
     style.background_color = None;
+    style.display_none = false;
     let mut matches: Vec<MatchedDeclaration<'_>> = Vec::new();
     let inline_declarations = inline_style
         .and_then(|inline_style| ctml_css::parse_declarations(inline_style).ok())

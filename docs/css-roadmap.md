@@ -111,7 +111,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 ## Box model and sizing
 
-- [ ] `display` values and formatting box generation, including `none`, block, inline, flow-root, contents, and list-item.
+- [x] `display: none` removes an element's rendered text, descendants, and generated content while retaining selector-tree matching.
+- [ ] Other `display` values and formatting box generation, including block, inline, flow-root, contents, and list-item.
 - [ ] `width`, `height`, inline/block size, and min/max sizing.
 - [ ] `box-sizing` and intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
