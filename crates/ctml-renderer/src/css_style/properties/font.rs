@@ -153,6 +153,7 @@ pub(super) fn reset_font(style: &mut TextStyle) {
     style.font_variant_caps = FontVariantCaps::Normal;
     style.font_variant_position = FontVariantPosition::Normal;
     style.font_variant_numeric.clear();
+    style.font_variant_east_asian.clear();
 }
 
 pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
@@ -175,6 +176,9 @@ pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
     style
         .font_variant_numeric
         .clone_from(&inherited.font_variant_numeric);
+    style
+        .font_variant_east_asian
+        .clone_from(&inherited.font_variant_east_asian);
 }
 
 fn parse_following_line_height(

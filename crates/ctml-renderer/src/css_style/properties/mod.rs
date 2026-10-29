@@ -8,8 +8,8 @@ use ctml_css::{
 };
 
 use super::font_variant::{
-    apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures,
-    apply_font_variant_numeric,
+    apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
+    apply_font_variant_ligatures, apply_font_variant_numeric,
 };
 use cursor::parse_cursor;
 pub(super) use font::parse_font_size;
@@ -98,6 +98,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-ligatures"
             | "font-variant-position"
             | "font-variant-numeric"
+            | "font-variant-east-asian"
             | "line-height"
             | "letter-spacing"
             | "text-transform"
@@ -134,6 +135,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style
                 .font_variant_numeric
                 .clone_from(&inherited.font_variant_numeric);
+            style
+                .font_variant_east_asian
+                .clone_from(&inherited.font_variant_east_asian);
         }
         "font-variant-caps" => style.font_variant_caps = inherited.font_variant_caps,
         "font-variant-ligatures" => {
@@ -146,6 +150,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "font-variant-numeric" => style
             .font_variant_numeric
             .clone_from(&inherited.font_variant_numeric),
+        "font-variant-east-asian" => style
+            .font_variant_east_asian
+            .clone_from(&inherited.font_variant_east_asian),
         "line-height" => {
             style.line_height = inherited.line_height;
             style.line_height_multiplier = inherited.line_height_multiplier;
@@ -196,6 +203,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.historical_ligatures = None;
             style.contextual_alternates = None;
             style.font_variant_numeric.clear();
+            style.font_variant_east_asian.clear();
         }
         "font-variant-caps" => style.font_variant_caps = crate::style::FontVariantCaps::Normal,
         "font-variant-ligatures" => {
@@ -206,6 +214,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "font-variant-position" => style.font_variant_position = FontVariantPosition::Normal,
         "font-variant-numeric" => style.font_variant_numeric.clear(),
+        "font-variant-east-asian" => style.font_variant_east_asian.clear(),
         "line-height" => {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
@@ -323,6 +332,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font-variant" => apply_font_variant(style, value),
         "font-variant-caps" => apply_font_variant_caps(style, value),
         "font-variant-numeric" => apply_font_variant_numeric(style, value),
+        "font-variant-east-asian" => apply_font_variant_east_asian(style, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,

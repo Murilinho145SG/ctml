@@ -8,6 +8,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         weight: Weight(600),
         font_style: Style::Italic,
         font_variant_numeric: vec!["tabular-nums".to_owned()],
+        font_variant_east_asian: vec!["jis90".to_owned(), "ruby".to_owned()],
         color: [0, 0, 255, 255],
         background: [12, 34, 56],
         text_decoration_color: Some([255, 0, 0, 255]),
@@ -33,6 +34,10 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(reset.family, inherited.family);
     assert_eq!(reset.font_size, inherited.font_size);
     assert_eq!(reset.font_variant_numeric, inherited.font_variant_numeric);
+    assert_eq!(
+        reset.font_variant_east_asian,
+        inherited.font_variant_east_asian
+    );
     assert_eq!(reset.weight, inherited.weight);
     assert_eq!(reset.font_style, inherited.font_style);
     assert_eq!(reset.background, [255, 255, 255]);
@@ -53,6 +58,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(initial.family, "serif");
     assert_eq!(initial.font_size, 16.0);
     assert!(initial.font_variant_numeric.is_empty());
+    assert!(initial.font_variant_east_asian.is_empty());
     assert_eq!(initial.weight, Weight::NORMAL);
     assert_eq!(initial.background, [255, 255, 255]);
 
@@ -71,6 +77,10 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(
         inherited_style.font_variant_numeric,
         inherited.font_variant_numeric
+    );
+    assert_eq!(
+        inherited_style.font_variant_east_asian,
+        inherited.font_variant_east_asian
     );
     assert_eq!(inherited_style.background, inherited.background);
 

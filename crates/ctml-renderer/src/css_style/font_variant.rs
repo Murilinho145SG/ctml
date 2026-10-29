@@ -52,6 +52,19 @@ pub(super) fn apply_font_variant(style: &mut TextStyle, value: &str) {
     let Some(numeric_values) = numeric_values else {
         return;
     };
+    let east_asian = tokens
+        .iter()
+        .copied()
+        .filter(|token| is_font_variant_east_asian_token(token))
+        .collect::<Vec<_>>();
+    let east_asian_values = if east_asian.is_empty() {
+        Some(Vec::new())
+    } else {
+        parse_font_variant_east_asian(&east_asian.join(" "))
+    };
+    let Some(east_asian_values) = east_asian_values else {
+        return;
+    };
 
     reset_font_variant(style);
     for token in tokens {
@@ -64,6 +77,7 @@ pub(super) fn apply_font_variant(style: &mut TextStyle, value: &str) {
     }
     apply_font_variant_ligatures(style, value);
     style.font_variant_numeric = numeric_values;
+    style.font_variant_east_asian = east_asian_values;
 }
 
 fn reset_font_variant(style: &mut TextStyle) {
@@ -74,6 +88,7 @@ fn reset_font_variant(style: &mut TextStyle) {
     style.historical_ligatures = None;
     style.contextual_alternates = None;
     style.font_variant_numeric.clear();
+    style.font_variant_east_asian.clear();
 }
 
 fn is_font_variant_token(token: &str) -> bool {
@@ -103,6 +118,15 @@ fn is_font_variant_token(token: &str) -> bool {
             | "stacked-fractions"
             | "ordinal"
             | "slashed-zero"
+            | "jis78"
+            | "jis83"
+            | "jis90"
+            | "jis04"
+            | "simplified"
+            | "traditional"
+            | "full-width"
+            | "proportional-width"
+            | "ruby"
             | "none"
     )
 }
@@ -148,6 +172,50 @@ fn is_font_variant_numeric_token(token: &str) -> bool {
             | "stacked-fractions"
             | "ordinal"
             | "slashed-zero"
+    )
+}
+
+pub(super) fn apply_font_variant_east_asian(style: &mut TextStyle, value: &str) {
+    if let Some(values) = parse_font_variant_east_asian(value) {
+        style.font_variant_east_asian = values;
+    }
+}
+
+fn parse_font_variant_east_asian(value: &str) -> Option<Vec<String>> {
+    if value.eq_ignore_ascii_case("normal") {
+        return Some(Vec::new());
+    }
+    let mut groups = [false; 4];
+    let mut values = Vec::new();
+    for token in value.split_ascii_whitespace() {
+        let group = match token.to_ascii_lowercase().as_str() {
+            "jis78" | "jis83" | "jis90" | "jis04" => 0,
+            "simplified" | "traditional" => 1,
+            "full-width" | "proportional-width" => 2,
+            "ruby" => 3,
+            _ => return None,
+        };
+        if groups[group] {
+            return None;
+        }
+        groups[group] = true;
+        values.push(token.to_ascii_lowercase());
+    }
+    (!values.is_empty()).then_some(values)
+}
+
+fn is_font_variant_east_asian_token(token: &str) -> bool {
+    matches!(
+        token.to_ascii_lowercase().as_str(),
+        "jis78"
+            | "jis83"
+            | "jis90"
+            | "jis04"
+            | "simplified"
+            | "traditional"
+            | "full-width"
+            | "proportional-width"
+            | "ruby"
     )
 }
 

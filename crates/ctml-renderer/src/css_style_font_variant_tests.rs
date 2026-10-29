@@ -150,15 +150,22 @@ fn font_variant_shorthand_sets_and_resets_numeric_features() {
 fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
     let inherited = TextStyle {
         font_variant_numeric: vec!["oldstyle-nums".to_owned(), "ordinal".to_owned()],
+        font_variant_east_asian: vec!["jis04".to_owned(), "ruby".to_owned()],
         ..TextStyle::default()
     };
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
         layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "font-variant-numeric".to_owned(),
-            value: "unset".to_owned(),
-        }],
+        declarations: vec![
+            StyleDeclaration {
+                property: "font-variant-numeric".to_owned(),
+                value: "unset".to_owned(),
+            },
+            StyleDeclaration {
+                property: "font-variant-east-asian".to_owned(),
+                value: "unset".to_owned(),
+            },
+        ],
     };
     let current = ElementIdentity {
         tag: "span".to_owned(),
@@ -169,4 +176,41 @@ fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
     let style = resolve_style(&inherited, &current, &[], &[rule]);
 
     assert_eq!(style.font_variant_numeric, inherited.font_variant_numeric);
+    assert_eq!(
+        style.font_variant_east_asian,
+        inherited.font_variant_east_asian
+    );
+}
+
+#[test]
+fn resolves_font_variant_east_asian_features_and_conflicts() {
+    let style = style_for_declarations(&[(
+        "font-variant-east-asian",
+        "jis83 simplified proportional-width ruby",
+    )]);
+    assert_eq!(
+        style.font_variant_east_asian,
+        ["jis83", "simplified", "proportional-width", "ruby"]
+    );
+
+    let invalid = style_for_declarations(&[
+        ("font-variant-east-asian", "jis90 ruby"),
+        ("font-variant-east-asian", "jis78 jis04"),
+    ]);
+    assert_eq!(invalid.font_variant_east_asian, ["jis90", "ruby"]);
+}
+
+#[test]
+fn font_variant_shorthand_sets_and_resets_east_asian_features() {
+    let style = style_for_declarations(&[("font-variant", "jis90 traditional full-width ruby")]);
+    assert_eq!(
+        style.font_variant_east_asian,
+        ["jis90", "traditional", "full-width", "ruby"]
+    );
+
+    let reset = style_for_declarations(&[
+        ("font-variant", "jis83 simplified proportional-width"),
+        ("font-variant", "normal"),
+    ]);
+    assert!(reset.font_variant_east_asian.is_empty());
 }

@@ -30,6 +30,7 @@ pub(crate) struct TextStyle {
     pub(crate) font_variant_caps: FontVariantCaps,
     pub(crate) font_variant_position: FontVariantPosition,
     pub(crate) font_variant_numeric: Vec<String>,
+    pub(crate) font_variant_east_asian: Vec<String>,
     pub(crate) cursor: CursorIcon,
     pub(crate) cursor_hidden: bool,
     pub(crate) letter_spacing: f32,
@@ -119,6 +120,7 @@ impl Default for TextStyle {
             font_variant_caps: FontVariantCaps::Normal,
             font_variant_position: FontVariantPosition::Normal,
             font_variant_numeric: Vec::new(),
+            font_variant_east_asian: Vec::new(),
             cursor: CursorIcon::Text,
             cursor_hidden: false,
             letter_spacing: 0.0,
@@ -201,6 +203,23 @@ impl TextStyle {
                 "stacked-fractions" => Some(*b"afrc"),
                 "ordinal" => Some(*b"ordn"),
                 "slashed-zero" => Some(*b"zero"),
+                _ => None,
+            };
+            if let Some(tag) = tag {
+                font_features.enable(FeatureTag::new(&tag));
+            }
+        }
+        for value in &self.font_variant_east_asian {
+            let tag = match value.as_str() {
+                "jis78" => Some(*b"jp78"),
+                "jis83" => Some(*b"jp83"),
+                "jis90" => Some(*b"jp90"),
+                "jis04" => Some(*b"jp04"),
+                "simplified" => Some(*b"smpl"),
+                "traditional" => Some(*b"trad"),
+                "full-width" => Some(*b"fwid"),
+                "proportional-width" => Some(*b"pwid"),
+                "ruby" => Some(*b"ruby"),
                 _ => None,
             };
             if let Some(tag) = tag {
