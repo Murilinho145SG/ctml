@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
 mod font_variant;
+mod style_helpers;
+
+use style_helpers::{
+    SUPPORTED_ALL_PROPERTIES, declaration_value, is_all_keyword, layer_cascade_priority,
+};
 
 use crate::{StyleDeclaration, StyleRule, style::TextStyle};
 pub(super) use ctml_css::ElementIdentity;
@@ -328,11 +333,58 @@ fn apply_matching_styles_inner(
         },
     );
 
+    let mut all_expansions = Vec::new();
+    let expanded_matches = if matches
+        .iter()
+        .any(|entry| entry.6.property.eq_ignore_ascii_case("all"))
+    {
+        let mut expansion_ranges = vec![None; matches.len()];
+        for (index, entry) in matches.iter().enumerate() {
+            if !entry.6.property.eq_ignore_ascii_case("all") {
+                continue;
+            }
+            let (value, _) = declaration_value(&entry.6.value);
+            if !is_all_keyword(value) {
+                continue;
+            }
+            let start = all_expansions.len();
+            all_expansions.extend(SUPPORTED_ALL_PROPERTIES.iter().map(|property| {
+                StyleDeclaration {
+                    property: (*property).to_owned(),
+                    value: entry.6.value.clone(),
+                }
+            }));
+            expansion_ranges[index] = Some(start..all_expansions.len());
+        }
+        let mut expanded = Vec::with_capacity(matches.len() + all_expansions.len());
+        for (index, entry) in matches.iter().enumerate() {
+            if let Some(range) = &expansion_ranges[index] {
+                for declaration in &all_expansions[range.clone()] {
+                    expanded.push((
+                        entry.0,
+                        entry.1,
+                        entry.2,
+                        entry.3,
+                        entry.4,
+                        entry.5,
+                        declaration,
+                    ));
+                }
+            } else if !entry.6.property.eq_ignore_ascii_case("all") {
+                expanded.push(*entry);
+            }
+        }
+        Some(expanded)
+    } else {
+        None
+    };
+    let matches = expanded_matches.as_deref().unwrap_or(&matches);
+
     let mut rollback_layers = HashMap::new();
-    for entry in &matches {
+    for entry in matches {
         let property = entry.6.property.to_ascii_lowercase();
         if !rollback_layers.contains_key(&property) {
-            rollback_layers.insert(property.clone(), reverted_layers(&matches, &property));
+            rollback_layers.insert(property.clone(), reverted_layers(matches, &property));
         }
     }
     let inherited_color = (style.color, style.color_opacity);
@@ -386,29 +438,6 @@ fn reverted_layers(
         }
     }
     reverted
-}
-
-fn layer_cascade_priority(layer: Option<usize>, important: bool) -> usize {
-    match (important, layer) {
-        (false, Some(layer)) => layer,
-        (false, None) => usize::MAX,
-        (true, Some(layer)) => usize::MAX - layer,
-        (true, None) => 0,
-    }
-}
-
-fn declaration_value(value: &str) -> (&str, bool) {
-    let value = value.trim_end();
-    let Some(value_without_priority) = value.get(..value.len().saturating_sub("!important".len()))
-    else {
-        return (value, false);
-    };
-    let priority = value[value_without_priority.len()..].trim();
-    if priority.eq_ignore_ascii_case("!important") {
-        (value_without_priority.trim_end(), true)
-    } else {
-        (value, false)
-    }
 }
 
 mod properties;

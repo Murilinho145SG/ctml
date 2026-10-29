@@ -473,6 +473,8 @@ fn covers_letter_spacing_units_and_reset() {
     }
 }
 
+#[path = "css_style_all_tests.rs"]
+mod all;
 #[path = "css_style_cascade_matrix_tests.rs"]
 mod cascade;
 #[path = "css_style_decoration_matrix_tests.rs"]

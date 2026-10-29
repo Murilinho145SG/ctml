@@ -6,6 +6,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 
 | CSS property or group | Chromium fixture | Unit coverage |
 | --- | --- | --- |
+| `all` | — | CSS-wide reset, importance, source order, and layer rollback |
 | `color`, `background-color` | `colors`, `transparent` | `css_color::tests`; color cascade and alpha tests |
 | `font`, `font-family` | `font-family` | shorthand component parsing, reset and source-order tests, family selection and fallback-list tests |
 | `font-size` | `font-size`, `font-size-units`, `font-relative-sizes` | percent, absolute-unit, and inherited-relative tests |
