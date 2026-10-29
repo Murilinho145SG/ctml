@@ -83,6 +83,12 @@ pub(super) fn draw(
 
             let mut font = Font::from_typeface(typeface, first.font_size);
             configure_font(&mut font);
+            let text_style = style_index
+                .and_then(|index| runs.get(index))
+                .map(|run| &run.style);
+            if let (Some(style), Some(face)) = (text_style, font_system.db().face(first.font_id)) {
+                apply_synthetic_style(&mut font, face, style);
+            }
             let baseline = run.line_y - 0.4;
 
             let group = &run.glyphs[start..end];
@@ -93,16 +99,13 @@ pub(super) fn draw(
                 .max()
                 .unwrap_or(text_start);
             let group_text = run.text.get(text_start..text_end);
-            let style = style_index
-                .and_then(|index| runs.get(index))
-                .map(|run| &run.style);
             let anchor = if first.level.number() % 2 == 0 {
                 group.first().unwrap_or(first)
             } else {
                 group.last().unwrap_or(first)
             };
             let blob = shaper.as_ref().and_then(|shaper| {
-                let style = style?;
+                let style = text_style?;
                 let text = group_text?;
                 shape_group(
                     shaper,
@@ -218,6 +221,19 @@ fn configure_font(font: &mut Font) {
     font.set_embedded_bitmaps(true);
     font.set_subpixel(true);
     font.set_linear_metrics(true);
+}
+
+fn apply_synthetic_style(font: &mut Font, face: &fontdb::FaceInfo, style: &TextStyle) {
+    font.set_embolden(
+        style.weight >= fontdb::Weight::SEMIBOLD && face.weight < fontdb::Weight::SEMIBOLD,
+    );
+    font.set_skew_x(
+        if style.font_style != fontdb::Style::Normal && face.style == fontdb::Style::Normal {
+            -0.25
+        } else {
+            0.0
+        },
+    );
 }
 
 fn load_typeface(

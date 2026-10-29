@@ -1,8 +1,7 @@
 use cosmic_text::FontSystem;
 use skia_safe::FontMgr;
 
-use super::configure_font;
-use super::load_typeface;
+use super::{apply_synthetic_style, configure_font, load_typeface};
 
 #[test]
 fn compare_harfrust_and_skia_harfbuzz_advances() {
@@ -262,6 +261,37 @@ fn configures_skia_font_to_match_chromium_parity_capture_flags() {
     assert!(font.is_embedded_bitmaps());
     assert!(font.is_subpixel());
     assert!(font.is_linear_metrics());
+}
+
+#[test]
+fn synthesizes_bold_and_italic_when_the_selected_face_is_regular() {
+    let font_system = FontSystem::new();
+    let face = font_system
+        .db()
+        .faces()
+        .find(|face| face.style == cosmic_text::Style::Normal)
+        .expect("system font database should contain a regular face");
+    let mut font = skia_safe::Font::default();
+    let style = crate::style::TextStyle {
+        weight: cosmic_text::Weight::BOLD,
+        font_style: cosmic_text::Style::Italic,
+        ..crate::style::TextStyle::default()
+    };
+
+    apply_synthetic_style(&mut font, face, &style);
+
+    assert_eq!(
+        font.is_embolden(),
+        face.weight < cosmic_text::Weight::SEMIBOLD
+    );
+    assert_eq!(
+        font.skew_x(),
+        if face.style == cosmic_text::Style::Normal {
+            -0.25
+        } else {
+            0.0
+        }
+    );
 }
 
 #[test]
