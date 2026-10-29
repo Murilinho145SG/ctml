@@ -1,13 +1,16 @@
 use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
+mod font_variant;
+
 pub(super) use crate::css_selector::ElementIdentity;
 use crate::{
     StyleRule,
     css_color::{parse_color, parse_color_with_opacity},
     css_selector::{selector_matches, selector_specificity},
-    style::{FontVariantCaps, FontVariantPosition, TextStyle, TextTransform},
+    style::{FontVariantPosition, TextStyle, TextTransform},
 };
+use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
 
 const ROOT_FONT_SIZE: f32 = 16.0;
 
@@ -303,103 +306,6 @@ fn apply_letter_spacing(style: &mut TextStyle, value: &str) {
     }
 }
 
-fn apply_font_variant_ligatures(style: &mut TextStyle, value: &str) {
-    if value.eq_ignore_ascii_case("normal") {
-        style.common_ligatures = None;
-        style.discretionary_ligatures = None;
-        style.historical_ligatures = None;
-        style.contextual_alternates = None;
-        return;
-    }
-    if value.eq_ignore_ascii_case("none") {
-        style.common_ligatures = Some(false);
-        style.discretionary_ligatures = Some(false);
-        style.historical_ligatures = Some(false);
-        style.contextual_alternates = Some(false);
-        return;
-    }
-    for feature in value.split_ascii_whitespace() {
-        match feature.to_ascii_lowercase().as_str() {
-            "common-ligatures" => style.common_ligatures = Some(true),
-            "no-common-ligatures" => style.common_ligatures = Some(false),
-            "discretionary-ligatures" => style.discretionary_ligatures = Some(true),
-            "no-discretionary-ligatures" => style.discretionary_ligatures = Some(false),
-            "historical-ligatures" => style.historical_ligatures = Some(true),
-            "no-historical-ligatures" => style.historical_ligatures = Some(false),
-            "contextual" => style.contextual_alternates = Some(true),
-            "no-contextual" => style.contextual_alternates = Some(false),
-            _ => {}
-        }
-    }
-}
-
-fn apply_font_variant(style: &mut TextStyle, value: &str) {
-    if value.eq_ignore_ascii_case("normal") {
-        reset_font_variant(style);
-        return;
-    }
-    let tokens = value.split_ascii_whitespace().collect::<Vec<_>>();
-    if tokens.is_empty() || tokens.iter().any(|token| !is_font_variant_token(token)) {
-        return;
-    }
-
-    reset_font_variant(style);
-    for token in tokens {
-        apply_font_variant_caps(style, token);
-        match token.to_ascii_lowercase().as_str() {
-            "sub" => style.font_variant_position = FontVariantPosition::Sub,
-            "super" => style.font_variant_position = FontVariantPosition::Super,
-            _ => {}
-        }
-    }
-    apply_font_variant_ligatures(style, value);
-}
-
-fn reset_font_variant(style: &mut TextStyle) {
-    style.font_variant_caps = FontVariantCaps::Normal;
-    style.font_variant_position = FontVariantPosition::Normal;
-    style.common_ligatures = None;
-    style.discretionary_ligatures = None;
-    style.historical_ligatures = None;
-    style.contextual_alternates = None;
-}
-
-fn is_font_variant_token(token: &str) -> bool {
-    matches!(
-        token.to_ascii_lowercase().as_str(),
-        "small-caps"
-            | "all-small-caps"
-            | "petite-caps"
-            | "all-petite-caps"
-            | "unicase"
-            | "titling-caps"
-            | "sub"
-            | "super"
-            | "common-ligatures"
-            | "no-common-ligatures"
-            | "discretionary-ligatures"
-            | "no-discretionary-ligatures"
-            | "historical-ligatures"
-            | "no-historical-ligatures"
-            | "contextual"
-            | "no-contextual"
-            | "none"
-    )
-}
-
-fn apply_font_variant_caps(style: &mut TextStyle, value: &str) {
-    style.font_variant_caps = match value.to_ascii_lowercase().as_str() {
-        "normal" => FontVariantCaps::Normal,
-        "small-caps" => FontVariantCaps::SmallCaps,
-        "all-small-caps" => FontVariantCaps::AllSmallCaps,
-        "petite-caps" => FontVariantCaps::PetiteCaps,
-        "all-petite-caps" => FontVariantCaps::AllPetiteCaps,
-        "unicase" => FontVariantCaps::Unicase,
-        "titling-caps" => FontVariantCaps::TitlingCaps,
-        _ => style.font_variant_caps,
-    };
-}
-
 fn apply_text_decoration(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
         style.underline = false;
@@ -514,6 +420,10 @@ fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {
 #[cfg(test)]
 #[path = "css_style_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "css_style_font_variant_tests.rs"]
+mod font_variant_tests;
 
 #[cfg(test)]
 #[path = "css_style_matrix_tests.rs"]
