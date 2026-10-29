@@ -21,6 +21,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `font-variant-position` | `font-position` | `normal`, `sub`, `super` |
 | `font-variant-numeric` | — | all numeric feature groups, conflict rejection, shorthand reset, and inheritance |
 | `font-variant-east-asian` | — | JIS, language forms, width, and ruby feature groups, conflict rejection, shorthand reset, and inheritance |
+| `font-feature-settings` | — | four-character tags, integer/`on`/`off` values, invalid-value rejection, `normal`, shorthand reset, and inheritance |
 | `letter-spacing` | `letter-spacing` | normal, positive and negative `px`/`em` values |
 | `text-transform` | `text-transform` | all four supported values |
 | `text-align` | `text-alignment`, `text-alignment-values` | all six supported values |

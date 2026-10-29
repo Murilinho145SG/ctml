@@ -151,6 +151,7 @@ fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
     let inherited = TextStyle {
         font_variant_numeric: vec!["oldstyle-nums".to_owned(), "ordinal".to_owned()],
         font_variant_east_asian: vec!["jis04".to_owned(), "ruby".to_owned()],
+        font_feature_settings: vec![(*b"sinf", 1)],
         ..TextStyle::default()
     };
     let rule = StyleRule {
@@ -163,6 +164,10 @@ fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
             },
             StyleDeclaration {
                 property: "font-variant-east-asian".to_owned(),
+                value: "unset".to_owned(),
+            },
+            StyleDeclaration {
+                property: "font-feature-settings".to_owned(),
                 value: "unset".to_owned(),
             },
         ],
@@ -180,6 +185,7 @@ fn font_variant_numeric_inherits_and_unset_uses_the_inherited_value() {
         style.font_variant_east_asian,
         inherited.font_variant_east_asian
     );
+    assert_eq!(style.font_feature_settings, inherited.font_feature_settings);
 }
 
 #[test]
@@ -213,4 +219,37 @@ fn font_variant_shorthand_sets_and_resets_east_asian_features() {
         ("font-variant", "normal"),
     ]);
     assert!(reset.font_variant_east_asian.is_empty());
+}
+
+#[test]
+fn parses_font_feature_settings_and_ignores_invalid_values() {
+    let style = style_for_declarations(&[(
+        "font-feature-settings",
+        "\"sinf\" 1, \"liga\" off, \"ABCD\"",
+    )]);
+    assert_eq!(
+        style.font_feature_settings,
+        [(*b"sinf", 1), (*b"liga", 0), (*b"ABCD", 1)]
+    );
+
+    let invalid = style_for_declarations(&[
+        ("font-feature-settings", "\"sinf\" 1"),
+        ("font-feature-settings", "\"abc\" on"),
+    ]);
+    assert_eq!(invalid.font_feature_settings, [(*b"sinf", 1)]);
+
+    let reset = style_for_declarations(&[
+        ("font-feature-settings", "\"sinf\" on"),
+        ("font-feature-settings", "normal"),
+    ]);
+    assert!(reset.font_feature_settings.is_empty());
+}
+
+#[test]
+fn font_shorthand_resets_font_feature_settings() {
+    let style = style_for_declarations(&[
+        ("font-feature-settings", "\"sinf\" 1"),
+        ("font", "italic 18px sans-serif"),
+    ]);
+    assert!(style.font_feature_settings.is_empty());
 }

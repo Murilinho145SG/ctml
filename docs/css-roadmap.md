@@ -139,7 +139,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Subscript and superscript glyph variants through `font-variant-position`.
 - [x] Numeric glyph variants through `font-variant-numeric` for lining/oldstyle, proportional/tabular, fraction, ordinal, and slashed-zero features.
 - [x] East Asian glyph variants through `font-variant-east-asian` for JIS encodings, simplified/traditional forms, full/proportional width, and ruby.
-- [ ] Font shorthand, optical sizing, feature settings, and variation settings.
+- [x] Low-level `font-feature-settings` with four-character OpenType tags, numeric settings, `on`, and `off`.
+- [ ] Optical sizing and font variation settings.
 - [ ] Font loading (`@font-face`), fallback selection, and local font lookup policy.
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features.
 - [x] Text alignment: left, right, center, justify, start, and end.

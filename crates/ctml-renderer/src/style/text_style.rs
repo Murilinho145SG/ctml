@@ -31,6 +31,7 @@ pub(crate) struct TextStyle {
     pub(crate) font_variant_position: FontVariantPosition,
     pub(crate) font_variant_numeric: Vec<String>,
     pub(crate) font_variant_east_asian: Vec<String>,
+    pub(crate) font_feature_settings: Vec<([u8; 4], u32)>,
     pub(crate) cursor: CursorIcon,
     pub(crate) cursor_hidden: bool,
     pub(crate) letter_spacing: f32,
@@ -121,6 +122,7 @@ impl Default for TextStyle {
             font_variant_position: FontVariantPosition::Normal,
             font_variant_numeric: Vec::new(),
             font_variant_east_asian: Vec::new(),
+            font_feature_settings: Vec::new(),
             cursor: CursorIcon::Text,
             cursor_hidden: false,
             letter_spacing: 0.0,
@@ -225,6 +227,9 @@ impl TextStyle {
             if let Some(tag) = tag {
                 font_features.enable(FeatureTag::new(&tag));
             }
+        }
+        for (tag, value) in &self.font_feature_settings {
+            font_features.set(FeatureTag::new(tag), *value);
         }
         font_features
     }

@@ -2,11 +2,13 @@ use cssparser::{Delimiter, Parser, ParserInput, serialize_identifier};
 
 mod color;
 mod comments;
+mod font_features;
 mod imports;
 mod length;
 mod selector;
 
 pub use color::{parse_color, parse_color_with_opacity};
+pub use font_features::parse_font_feature_settings;
 pub use imports::parse_stylesheet_file;
 pub use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
 pub use selector::{

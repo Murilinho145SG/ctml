@@ -11,51 +11,21 @@ use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
     apply_font_variant_ligatures, apply_font_variant_numeric,
 };
+pub(super) use color::apply_color_declaration;
 use cursor::parse_cursor;
 pub(super) use font::parse_font_size;
 use font::{apply_font_shorthand, inherit_font, reset_font};
+use font_feature_settings::apply_font_feature_settings;
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
 };
 
+mod color;
 mod cursor;
 mod font;
+mod font_feature_settings;
 mod text_decoration;
-
-pub(super) fn apply_color_declaration(
-    style: &mut TextStyle,
-    value: &str,
-    inherited_color: ([u8; 4], f32),
-) -> bool {
-    let value = value.trim();
-    let color = if value.eq_ignore_ascii_case("currentcolor") {
-        Some(inherited_color)
-    } else if matches!(value.to_ascii_lowercase().as_str(), "initial" | "revert") {
-        Some(([0, 0, 0, 255], 1.0))
-    } else if matches!(value.to_ascii_lowercase().as_str(), "inherit" | "unset") {
-        Some(inherited_color)
-    } else {
-        parse_color_with_opacity(value).map(|(channels, opacity)| {
-            (
-                [
-                    channels[0],
-                    channels[1],
-                    channels[2],
-                    (opacity * 255.0).round() as u8,
-                ],
-                opacity,
-            )
-        })
-    };
-    if let Some((color, opacity)) = color {
-        style.color = color;
-        style.color_opacity = opacity;
-        true
-    } else {
-        false
-    }
-}
 
 pub(super) fn apply_declaration_with_inherited(
     style: &mut TextStyle,
@@ -99,6 +69,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-position"
             | "font-variant-numeric"
             | "font-variant-east-asian"
+            | "font-feature-settings"
             | "line-height"
             | "letter-spacing"
             | "text-transform"
@@ -153,6 +124,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "font-variant-east-asian" => style
             .font_variant_east_asian
             .clone_from(&inherited.font_variant_east_asian),
+        "font-feature-settings" => style
+            .font_feature_settings
+            .clone_from(&inherited.font_feature_settings),
         "line-height" => {
             style.line_height = inherited.line_height;
             style.line_height_multiplier = inherited.line_height_multiplier;
@@ -215,6 +189,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "font-variant-position" => style.font_variant_position = FontVariantPosition::Normal,
         "font-variant-numeric" => style.font_variant_numeric.clear(),
         "font-variant-east-asian" => style.font_variant_east_asian.clear(),
+        "font-feature-settings" => style.font_feature_settings.clear(),
         "line-height" => {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
@@ -333,6 +308,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font-variant-caps" => apply_font_variant_caps(style, value),
         "font-variant-numeric" => apply_font_variant_numeric(style, value),
         "font-variant-east-asian" => apply_font_variant_east_asian(style, value),
+        "font-feature-settings" => apply_font_feature_settings(style, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,

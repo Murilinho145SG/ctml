@@ -16,6 +16,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "font-variant-position",
     "font-variant-numeric",
     "font-variant-east-asian",
+    "font-feature-settings",
     "line-height",
     "letter-spacing",
     "text-transform",
