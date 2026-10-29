@@ -1,0 +1,6 @@
+<headers>
+    <application name="Alpha text color parity" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body><p>M</p></body>

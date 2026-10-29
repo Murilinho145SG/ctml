@@ -271,6 +271,11 @@ impl PageRasterizer {
                 let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
                 let color = glyph.color_opt.unwrap_or(default_color);
                 let base_alpha = color.a() as u16;
+                let blend = if base_alpha < 255 {
+                    blend_pixel_rounded
+                } else {
+                    blend_pixel
+                };
                 let pixels = &mut *renderer.pixels;
                 let width = renderer.width;
                 let height = renderer.height;
@@ -280,7 +285,7 @@ impl PageRasterizer {
                     color,
                     |x, y, pixel_color| {
                         let alpha = (pixel_color.a() as u16 * base_alpha / 255) as u8;
-                        blend_pixel(
+                        blend(
                             pixels,
                             width,
                             height,
@@ -366,6 +371,31 @@ fn blend_pixel(
     color: Color,
     alpha: u8,
 ) {
+    blend_pixel_with_rounding(pixels, width, height, x, y, color, alpha, false);
+}
+
+fn blend_pixel_rounded(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+    color: Color,
+    alpha: u8,
+) {
+    blend_pixel_with_rounding(pixels, width, height, x, y, color, alpha, true);
+}
+
+fn blend_pixel_with_rounding(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+    color: Color,
+    alpha: u8,
+    round: bool,
+) {
     if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 || alpha == 0 {
         return;
     }
@@ -374,7 +404,8 @@ fn blend_pixel(
     let alpha = alpha as u16;
     for channel in 0..3 {
         pixels[offset + channel] = ((pixels[offset + channel] as u16 * (255 - alpha)
-            + rgba_channel(rgba, channel) as u16 * alpha)
+            + rgba_channel(rgba, channel) as u16 * alpha
+            + if round { 127 } else { 0 })
             / 255) as u8;
     }
     pixels[offset + 3] = 255;

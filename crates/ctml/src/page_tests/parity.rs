@@ -56,6 +56,39 @@ macro_rules! exact_parity_test {
     };
 }
 
+macro_rules! alpha_text_color_test {
+    ($case:literal) => {
+        #[test]
+        fn alpha_text_color_matches_chromium_at_full_coverage() {
+            let native_markup = include_str!(concat!(
+                "../../tests/fixtures/parity/",
+                $case,
+                "/native.ctml"
+            ));
+            let browser_markup = include_str!(concat!(
+                "../../tests/fixtures/parity/",
+                $case,
+                "/browser.html"
+            ));
+            let css = include_str!(concat!("../../tests/fixtures/parity/", $case, "/style.css"));
+            run_parity_case($case, native_markup, browser_markup, css, false);
+
+            let artifact_dir = parity_artifact_dir().join($case);
+            let native = read_rgba_png(&artifact_dir.join("ctml.png"));
+            let browser = read_rgba_png(&artifact_dir.join("browser.png"));
+            let expected = [153, 178, 204];
+            assert!(
+                native
+                    .pixels
+                    .chunks_exact(4)
+                    .zip(browser.pixels.chunks_exact(4))
+                    .any(|(native, browser)| native[..3] == expected && browser[..3] == expected),
+                "no fully covered text pixel matched the expected alpha-blended color in both screenshots"
+            );
+        }
+    };
+}
+
 parity_test!(page_colors_match_chromium, "colors", false);
 exact_parity_test!(background_color_matches_chromium, "background-color");
 exact_parity_test!(
@@ -67,6 +100,7 @@ exact_parity_test!(
     alpha_color_current_color_matches_chromium,
     "color-current-color-alpha"
 );
+alpha_text_color_test!("color-alpha-text");
 parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_family_matches_chromium, "font-family", false);
