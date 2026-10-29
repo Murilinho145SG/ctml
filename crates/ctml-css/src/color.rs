@@ -490,6 +490,23 @@ mod tests {
     }
 
     #[test]
+    fn parses_hsl_relative_colors_with_angle_units_and_channel_references() {
+        assert_eq!(parse_color("hsl(from red h s l)"), Some([255, 0, 0, 255]));
+        assert_eq!(
+            parse_color("hsl(from red 120deg s l)"),
+            Some([0, 255, 0, 255])
+        );
+        assert_eq!(
+            parse_color("hsl(from red 0.5turn s l)"),
+            Some([0, 255, 255, 255])
+        );
+        assert_eq!(
+            parse_color("hsl(from hsl(240 100% 50% / 25%) h s l / alpha)"),
+            Some([0, 0, 255, 64])
+        );
+    }
+
+    #[test]
     fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
         assert_eq!(
             parse_color("color-mix(in srgb, transparent, red)"),

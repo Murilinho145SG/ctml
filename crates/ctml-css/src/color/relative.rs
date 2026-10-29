@@ -5,7 +5,9 @@ use super::parse_color_with_opacity_depth;
 pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
-    if !parser.expect_function().ok()?.eq_ignore_ascii_case("rgb") {
+    let function = parser.expect_function().ok()?.to_ascii_lowercase();
+    let is_hsl = function == "hsl";
+    if function != "rgb" && !is_hsl {
         return None;
     }
 
@@ -13,9 +15,19 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
         .parse_nested_block(|input| {
             input.expect_ident_matching("from")?;
             let source_color = parse_source_color(input, depth)?;
-            let red = parse_channel(input, source_color)?;
-            let green = parse_channel(input, source_color)?;
-            let blue = parse_channel(input, source_color)?;
+            let channels = if is_hsl {
+                let source_hsl = super::rgb_to_hsl(source_color.0);
+                let hue = parse_hue_channel(input, source_hsl.0)?;
+                let saturation = parse_hsl_unit_channel(input, source_hsl.1, "s")?;
+                let lightness = parse_hsl_unit_channel(input, source_hsl.2, "l")?;
+                super::hsl_to_rgb(hue, saturation, lightness)
+            } else {
+                [
+                    parse_channel(input, source_color)?,
+                    parse_channel(input, source_color)?,
+                    parse_channel(input, source_color)?,
+                ]
+            };
             let alpha = if input.is_exhausted() {
                 source_color.1
             } else {
@@ -25,11 +37,46 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
             if !input.is_exhausted() {
                 return Err(input.new_custom_error(()));
             }
-            Ok(([red, green, blue], alpha))
+            Ok((channels, alpha))
         })
         .ok()?;
 
     parser.is_exhausted().then_some(color)
+}
+
+fn parse_hue_channel<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    source_hue: f32,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let hue = match input.next()? {
+        Token::Ident(name) if name.eq_ignore_ascii_case("h") => source_hue,
+        Token::Number { value, .. } if value.is_finite() => *value,
+        Token::Dimension { value, unit, .. } if value.is_finite() => {
+            let value = *value;
+            match unit.to_ascii_lowercase().as_str() {
+                "deg" => value,
+                "grad" => value * 0.9,
+                "rad" => value.to_degrees(),
+                "turn" => value * 360.0,
+                _ => return Err(input.new_custom_error(())),
+            }
+        }
+        _ => return Err(input.new_custom_error(())),
+    };
+    Ok(hue.rem_euclid(360.0))
+}
+
+fn parse_hsl_unit_channel<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    source_value: f32,
+    name: &str,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let value = match input.next()? {
+        Token::Ident(value) if value.eq_ignore_ascii_case(name) => source_value,
+        Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,
+        _ => return Err(input.new_custom_error(())),
+    };
+    Ok(value.clamp(0.0, 1.0))
 }
 
 fn parse_source_color<'i, 't>(
