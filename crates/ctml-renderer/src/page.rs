@@ -5,7 +5,7 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     font_metrics::normal_line_height,
-    page::pixel::{PixelRenderer, fill_rect},
+    page::pixel::{PixelRenderer, fill_rect_alpha},
     style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
 };
 
@@ -18,7 +18,6 @@ mod interactions;
 mod pixel;
 
 const PAGE_PADDING: f32 = 8.0;
-const SELECTION_COLOR: [u8; 3] = [173, 216, 230];
 
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
@@ -29,6 +28,7 @@ pub(crate) struct PageRasterizer {
     cache: SwashCache,
     buffer: Buffer,
     root_style: TextStyle,
+    selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
     selection_anchor: Option<Cursor>,
     layout_size: Option<(u32, u32)>,
@@ -43,6 +43,7 @@ impl PageRasterizer {
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
         let (compiled_runs, root_style) = compile_runs(nodes, stylesheet, &[], &[], &[], false);
         let focus_manager = focus::FocusManager::new(nodes);
+        let selection_background_color = crate::css_style::selection_background_color(stylesheet);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
@@ -82,6 +83,7 @@ impl PageRasterizer {
             cache: SwashCache::new(),
             buffer,
             root_style,
+            selection_background_color,
             selection: None,
             selection_anchor: None,
             layout_size: None,
@@ -322,15 +324,15 @@ impl PageRasterizer {
                 continue;
             }
             for (left, span_width) in run.highlight(start, end) {
-                fill_rect(
+                fill_rect_alpha(
                     pixels,
                     width,
                     height,
-                    left + PAGE_PADDING,
-                    run.line_top + PAGE_PADDING,
+                    left,
+                    run.line_top,
                     span_width,
                     run.line_height,
-                    SELECTION_COLOR,
+                    self.selection_background_color,
                 );
             }
         }

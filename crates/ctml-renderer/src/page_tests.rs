@@ -36,6 +36,8 @@ mod backgrounds;
 mod interactions;
 #[path = "page_tests/parity.rs"]
 mod parity;
+#[path = "page_tests/selection.rs"]
+mod selection;
 
 fn ui_node(node: &Node) -> UiNode {
     match node {

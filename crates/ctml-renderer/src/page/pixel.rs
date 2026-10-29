@@ -112,28 +112,6 @@ fn blend_pixel_with_rounding(
     pixels[offset + 3] = 255;
 }
 
-pub(super) fn fill_rect(
-    pixels: &mut [u8],
-    width: u32,
-    height: u32,
-    x: f32,
-    y: f32,
-    rect_width: f32,
-    rect_height: f32,
-    color: [u8; 3],
-) {
-    let left = (x.floor() as i32).clamp(0, width as i32) as u32;
-    let top = (y.floor() as i32).clamp(0, height as i32) as u32;
-    let right = ((x + rect_width).ceil() as i32).clamp(0, width as i32) as u32;
-    let bottom = ((y + rect_height).ceil() as i32).clamp(0, height as i32) as u32;
-    for row in top..bottom {
-        for column in left..right {
-            let offset = (row as usize * width as usize + column as usize) * 4;
-            pixels[offset..offset + 3].copy_from_slice(&color);
-        }
-    }
-}
-
 pub(super) fn fill_rect_alpha(
     pixels: &mut [u8],
     width: u32,
