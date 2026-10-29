@@ -14,6 +14,10 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
             style.display_none = false;
             style.display_block = Some(false);
         }
+        "contents" => {
+            style.display_none = false;
+            style.display_block = Some(false);
+        }
         _ => {}
     }
 }

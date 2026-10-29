@@ -302,3 +302,33 @@ fn display_inline_overrides_block_tag_line_separation() {
         "beforemiddleafter"
     );
 }
+
+#[test]
+fn display_contents_removes_tag_line_separation_but_keeps_children() {
+    let nodes = [
+        UiNode::Text("before".to_owned()),
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("contents".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("middle".to_owned())],
+        },
+        UiNode::Text("after".to_owned()),
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec![".contents".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "contents".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "beforemiddleafter"
+    );
+}

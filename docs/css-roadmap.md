@@ -113,7 +113,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [x] `display: none` removes an element's rendered text, descendants, and generated content while retaining selector-tree matching.
 - [x] `display: block` and `display: inline` override tag-based line separation for rendered text.
-- [ ] Other `display` values and formatting box generation, including inline-block, flow-root, contents, and list-item.
+- [x] `display: contents` removes tag-based line separation while preserving child text flow.
+- [ ] Other `display` values and formatting box generation, including inline-block, flow-root, and list-item.
 - [ ] `width`, `height`, inline/block size, and min/max sizing.
 - [ ] `box-sizing` and intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
