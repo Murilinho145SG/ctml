@@ -223,6 +223,7 @@ parity_test!(
     "structural-selectors",
     false
 );
+parity_test_with_tolerance!(has_selectors_match_chromium, "has-selectors", 0.006);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);
 parity_test!(
     text_alignment_values_match_chromium,

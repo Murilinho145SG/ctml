@@ -32,7 +32,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Pointer-state pseudo-classes `:hover` and `:active` for text-bearing CTML elements.
 - [ ] Focus and form-state pseudo-classes: `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
-- [ ] Relational selector `:has()`.
+- [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
 - [ ] Language and direction selectors: `:lang()` and `:dir()`.
 - [ ] Link, form, range, and target pseudo-classes where applicable to CTML elements.
 - [ ] Pseudo-elements: `::before`, `::after`, `::first-line`, `::first-letter`, `::selection`, and `::placeholder`.

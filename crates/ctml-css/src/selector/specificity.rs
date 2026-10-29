@@ -44,7 +44,18 @@ pub fn selector_specificity(selector: &str) -> (usize, usize, usize) {
                         if name == "is" || name == "not" || name == "has" {
                             let specificity = arguments
                                 .into_iter()
-                                .map(selector_specificity)
+                                .map(|argument| {
+                                    if name == "has" {
+                                        let argument = argument.trim_start();
+                                        let relative_selector = argument
+                                            .strip_prefix(['>', '+', '~'])
+                                            .map(str::trim_start)
+                                            .unwrap_or(argument);
+                                        selector_specificity(relative_selector)
+                                    } else {
+                                        selector_specificity(argument)
+                                    }
+                                })
                                 .max()
                                 .unwrap_or_default();
                             ids += specificity.0;

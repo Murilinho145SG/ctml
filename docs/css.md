@@ -50,7 +50,7 @@ main .title {
 
 ## Supported CSS subset
 
-- Selectors: type, class, ID, compound, descendant, direct child (`>`), adjacent sibling (`+`), general sibling (`~`), comma-separated groups, `*`, `:is()`, `:where()`, `:not()`, `:hover`, `:active`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
+- Selectors: type, class, ID, compound, descendant, direct child (`>`), adjacent sibling (`+`), general sibling (`~`), comma-separated groups, `*`, `:is()`, `:where()`, `:not()`, relational `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors, `:hover`, `:active`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
 - Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and the corresponding `-of-type` forms. `:nth-*` accepts integers, `odd`, `even`, and An+B expressions.
 - Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px`, `em`, `rem`, `%` relative to the inherited size, and absolute units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`), `font-weight` (`normal`, `bold`, `bolder`, `lighter`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, historical, and contextual controls), `font-variant-position` (`normal`, `sub`, and `super`), `font-variant` as a shorthand for supported ligature, position, and caps values, `font-variant-caps` (`normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid`, `double`, `dotted`, `dashed`, or `wavy` line styles, `text-decoration-color`, `text-decoration-skip-ink` (`auto`, `none`, or `all`), `text-decoration-thickness` (`auto`, `from-font`, or a non-negative length or percentage), `text-underline-offset` (`auto`, signed lengths, or percentages), and `cursor`.
 - `em` font sizes are relative to the inherited size. `rem` currently uses the renderer's 16 CSS pixel root size.
@@ -73,7 +73,7 @@ Malformed declarations are skipped without a warning, and parsing continues with
 
 - Focus and form-state pseudo-classes such as `:focus`, `:disabled`, and `:checked`, plus pseudo-elements such as `::before`.
 - Selector namespaces and escaped identifiers. CTML tag names do not currently accept namespace prefixes and CTML does not model namespace URIs.
-- `:has()` and stateful pseudo-classes.
+- Stateful pseudo-classes beyond `:hover` and `:active`.
 - Cascade layers (`@layer`) and the `revert`/`revert-layer` keywords.
 
 ### Layout and sizing

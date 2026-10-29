@@ -1,0 +1,9 @@
+:root { color: #222222; font-family: sans-serif; font-size: 10px; line-height: 12px; }
+p { margin: 0; }
+main { color: #777777; }
+h1 { margin: 0; font-size: 10px; }
+h1:has(+ p.notice) { color: #cc3333; }
+h1:has(~ p.notice) { color: #cc33cc; }
+section:has(> p.active) { color: #3366cc; }
+main:has(.warning em) > p:last-child { color: #33aa66; }
+em { font-style: normal; }

@@ -1,6 +1,8 @@
+mod has;
 mod list;
 mod specificity;
 
+use has::selector_has_matches;
 pub use specificity::selector_specificity;
 
 #[derive(Clone)]
@@ -18,8 +20,28 @@ pub struct SelectorSibling {
     pub node_id: usize,
 }
 
+#[derive(Clone)]
+pub struct SelectorTreeAncestor {
+    pub element: ElementIdentity,
+    pub attributes: Vec<(String, Option<String>)>,
+    pub position: SelectorPosition,
+    pub siblings_before: Vec<SelectorSibling>,
+}
+
+#[derive(Clone)]
+pub struct SelectorTreeElement {
+    pub node_id: usize,
+    pub parent_id: Option<usize>,
+    pub element: ElementIdentity,
+    pub attributes: Vec<(String, Option<String>)>,
+    pub position: SelectorPosition,
+    pub siblings_before: Vec<SelectorSibling>,
+    pub ancestors: Vec<SelectorTreeAncestor>,
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct SelectorPosition {
+    pub node_id: usize,
     pub child_index: usize,
     pub child_count: usize,
     pub type_index: usize,
@@ -78,6 +100,62 @@ pub fn selector_matches_with_tree_context(
     current_position: SelectorPosition,
     ancestor_positions: &[SelectorPosition],
 ) -> bool {
+    selector_matches_with_selector_tree_context(
+        selector,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
+        &[],
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn selector_matches_with_selector_tree_context(
+    selector: &str,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
+    selector_tree: &[SelectorTreeElement],
+) -> bool {
+    selector_matches_with_selector_tree_context_and_scope(
+        selector,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
+        selector_tree,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn selector_matches_with_selector_tree_context_and_scope(
+    selector: &str,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
+    selector_tree: &[SelectorTreeElement],
+    scope_node_id: Option<usize>,
+) -> bool {
     let Some(compounds) = selector_compounds(selector) else {
         return false;
     };
@@ -92,6 +170,8 @@ pub fn selector_matches_with_tree_context(
         siblings_before_ancestors,
         current_position,
         ancestor_positions,
+        selector_tree,
+        scope_node_id,
     )
 }
 
@@ -107,6 +187,8 @@ fn match_selector_chain(
     siblings_before_ancestors: &[Vec<SelectorSibling>],
     current_position: SelectorPosition,
     ancestor_positions: &[SelectorPosition],
+    selector_tree: &[SelectorTreeElement],
+    scope_node_id: Option<usize>,
 ) -> bool {
     let Some(index) = index else {
         return false;
@@ -121,6 +203,8 @@ fn match_selector_chain(
         siblings_before_ancestors,
         current_position,
         ancestor_positions,
+        selector_tree,
+        scope_node_id,
     ) {
         return false;
     }
@@ -139,6 +223,8 @@ fn match_selector_chain(
             &siblings_before_ancestors[..ancestors.len().min(siblings_before_ancestors.len())],
             candidate.position,
             ancestor_positions,
+            selector_tree,
+            scope_node_id,
         )
     };
     match compounds[index].1 {
@@ -161,6 +247,8 @@ fn match_selector_chain(
                     .copied()
                     .unwrap_or_default(),
                 &ancestor_positions[..parent_index.min(ancestor_positions.len())],
+                selector_tree,
+                scope_node_id,
             )
         }),
         SelectorRelation::Descendant => (0..ancestors.len()).rev().any(|ancestor_index| {
@@ -182,6 +270,8 @@ fn match_selector_chain(
                     .copied()
                     .unwrap_or_default(),
                 &ancestor_positions[..ancestor_index.min(ancestor_positions.len())],
+                selector_tree,
+                scope_node_id,
             )
         }),
         SelectorRelation::AdjacentSibling => {

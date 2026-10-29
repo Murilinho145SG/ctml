@@ -1,6 +1,7 @@
 use super::list::split_selector_list;
 use super::{
-    ElementIdentity, SelectorPosition, SelectorSibling, selector_matches_with_tree_context,
+    ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeElement, selector_has_matches,
+    selector_matches_with_selector_tree_context_and_scope,
 };
 
 pub(super) fn compound_matches(
@@ -13,6 +14,8 @@ pub(super) fn compound_matches(
     siblings_before_ancestors: &[Vec<SelectorSibling>],
     position: SelectorPosition,
     ancestor_positions: &[SelectorPosition],
+    selector_tree: &[SelectorTreeElement],
+    scope_node_id: Option<usize>,
 ) -> bool {
     if compound == "*" {
         return true;
@@ -67,7 +70,12 @@ pub(super) fn compound_matches(
             }
             let name = compound[name_start..cursor].to_ascii_lowercase();
             if bytes.get(cursor) != Some(&b'(') {
-                if !structural_pseudo_matches(&name, position) {
+                let matches = if name == "scope" {
+                    scope_node_id == Some(position.node_id)
+                } else {
+                    structural_pseudo_matches(&name, position)
+                };
+                if !matches {
                     return false;
                 }
                 continue;
@@ -81,7 +89,7 @@ pub(super) fn compound_matches(
                 .map(str::trim)
                 .filter(|selector| !selector.is_empty())
                 .any(|selector| {
-                    selector_matches_with_tree_context(
+                    selector_matches_with_selector_tree_context_and_scope(
                         selector,
                         element,
                         ancestors,
@@ -91,12 +99,15 @@ pub(super) fn compound_matches(
                         siblings_before_ancestors,
                         position,
                         ancestor_positions,
+                        selector_tree,
+                        scope_node_id,
                     )
                 });
             let argument = argument.trim();
             let pseudo_matches = match name.as_str() {
                 "is" | "where" => matches,
                 "not" => !matches,
+                "has" => selector_has_matches(argument, position.node_id, selector_tree),
                 "nth-child" => nth_expression_matches(argument, position.child_index),
                 "nth-last-child" => {
                     position.child_index > 0

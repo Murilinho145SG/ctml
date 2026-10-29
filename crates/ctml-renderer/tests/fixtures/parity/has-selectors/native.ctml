@@ -1,0 +1,9 @@
+<headers><application name="Relational selector parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <main>
+        <h1>Heading</h1>
+        <p class="notice">Adjacent sibling matched</p>
+        <section><p class="active">Direct child matched</p><span class="warning"><em>Descendant matched</em></span></section>
+        <p>General sibling matched</p>
+    </main>
+</body>

@@ -2,7 +2,7 @@ use crate::{
     StyleRule, UiNode,
     css_style::{self, ElementIdentity},
 };
-use ctml_css::{SelectorPosition, SelectorSibling};
+use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement};
 
 mod text_style;
 pub(super) use text_style::{
@@ -17,6 +17,7 @@ pub(super) fn compile_runs(
     active_path: &[usize],
 ) -> (Vec<TextRun>, TextStyle) {
     let root_position = SelectorPosition {
+        node_id: 0,
         child_count: nodes
             .iter()
             .filter(|node| matches!(node, UiNode::Element { .. }))
@@ -33,10 +34,37 @@ pub(super) fn compile_runs(
         class: None,
         id: None,
     };
-    css_style::apply_matching_styles_with_position(
+    let root_tree_element = SelectorTreeElement {
+        node_id: 0,
+        parent_id: None,
+        element: body.clone(),
+        attributes: Vec::new(),
+        position: root_position,
+        siblings_before: Vec::new(),
+        ancestors: Vec::new(),
+    };
+    let mut selector_tree = vec![root_tree_element];
+    let root_ancestor = SelectorTreeAncestor {
+        element: body.clone(),
+        attributes: Vec::new(),
+        position: root_position,
+        siblings_before: Vec::new(),
+    };
+    let mut tree_next_node_id = 1;
+    build_selector_tree(
+        nodes,
+        0,
+        &[root_ancestor],
+        &mut tree_next_node_id,
+        hovered_path,
+        active_path,
+        &mut selector_tree,
+    );
+    css_style::apply_matching_styles_with_selector_tree_position(
         &mut root_style,
         &body,
         root_position,
+        &selector_tree,
         stylesheet,
     );
     let mut runs = Vec::new();
@@ -45,7 +73,7 @@ pub(super) fn compile_runs(
     let mut path_siblings = vec![Vec::new()];
     let mut path_positions = vec![root_position];
     let mut element_path = Vec::new();
-    let mut next_node_id = 0;
+    let mut next_node_id = 1;
     let mut last_was_space = true;
     let mut capitalize_next = true;
     collect_runs(
@@ -59,6 +87,7 @@ pub(super) fn compile_runs(
         &mut next_node_id,
         hovered_path,
         active_path,
+        &selector_tree,
         &root_style,
         &mut runs,
         &mut last_was_space,
@@ -85,6 +114,7 @@ fn collect_runs(
     next_node_id: &mut usize,
     hovered_path: &[usize],
     active_path: &[usize],
+    selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
@@ -120,7 +150,7 @@ fn collect_runs(
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case("style"))
                     .and_then(|(_, value)| value.as_deref());
-                let style = css_style::resolve_style_with_tree_inline_context(
+                let style = css_style::resolve_style_with_selector_tree_context(
                     inherited,
                     &identity,
                     path,
@@ -130,6 +160,7 @@ fn collect_runs(
                     path_siblings,
                     position,
                     path_positions,
+                    selector_tree,
                     inline_style,
                     stylesheet,
                 );
@@ -154,6 +185,7 @@ fn collect_runs(
                     next_node_id,
                     hovered_path,
                     active_path,
+                    selector_tree,
                     &style,
                     output,
                     last_was_space,
@@ -215,6 +247,7 @@ fn selector_sibling_contexts(
                 },
                 attributes: attributes.to_vec(),
                 position: SelectorPosition {
+                    node_id,
                     child_index: index + 1,
                     child_count: elements.len(),
                     type_index,
@@ -230,6 +263,56 @@ fn selector_sibling_contexts(
             }
         })
         .collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_selector_tree(
+    nodes: &[UiNode],
+    parent_id: usize,
+    ancestors: &[SelectorTreeAncestor],
+    next_node_id: &mut usize,
+    hovered_path: &[usize],
+    active_path: &[usize],
+    output: &mut Vec<SelectorTreeElement>,
+) {
+    let siblings = selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path);
+    let children = nodes
+        .iter()
+        .filter_map(|node| match node {
+            UiNode::Element { children, .. } => Some(children),
+            UiNode::Text(_) => None,
+        })
+        .collect::<Vec<_>>();
+    for (index, sibling) in siblings.iter().enumerate() {
+        output.push(SelectorTreeElement {
+            node_id: sibling.node_id,
+            parent_id: Some(parent_id),
+            element: sibling.element.clone(),
+            attributes: sibling.attributes.clone(),
+            position: sibling.position,
+            siblings_before: siblings[..index].to_vec(),
+            ancestors: ancestors.to_vec(),
+        });
+    }
+    for (index, child_nodes) in children.into_iter().enumerate() {
+        let sibling = &siblings[index];
+        let mut child_ancestors = ancestors.to_vec();
+        child_ancestors.push(SelectorTreeAncestor {
+            element: sibling.element.clone(),
+            attributes: sibling.attributes.clone(),
+            position: sibling.position,
+            siblings_before: siblings[..index].to_vec(),
+        });
+        build_selector_tree(
+            child_nodes,
+            sibling.node_id,
+            &child_ancestors,
+            next_node_id,
+            hovered_path,
+            active_path,
+            output,
+        );
+    }
 }
 
 fn append_text(
