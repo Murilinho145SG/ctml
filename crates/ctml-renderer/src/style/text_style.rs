@@ -27,6 +27,7 @@ pub(crate) struct TextStyle {
     pub(crate) width: Option<String>,
     pub(crate) min_width: Option<String>,
     pub(crate) max_width: Option<String>,
+    pub(crate) layout_sizes: Vec<LayoutSize>,
     pub(crate) family: String,
     pub(crate) weight: Weight,
     pub(crate) stretch: Stretch,
@@ -60,6 +61,13 @@ pub(crate) struct TextStyle {
     pub(crate) text_emphasis_color: Option<[u8; 4]>,
     pub(crate) text_emphasis_position: TextEmphasisPosition,
     pub(crate) custom_properties: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct LayoutSize {
+    pub(crate) width: Option<String>,
+    pub(crate) min_width: Option<String>,
+    pub(crate) max_width: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -163,6 +171,7 @@ impl Default for TextStyle {
             width: None,
             min_width: None,
             max_width: None,
+            layout_sizes: Vec::new(),
             family: "sans-serif".to_owned(),
             weight: Weight::NORMAL,
             stretch: Stretch::Normal,

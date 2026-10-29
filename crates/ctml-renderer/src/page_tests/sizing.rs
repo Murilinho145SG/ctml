@@ -24,6 +24,61 @@ fn body_min_and_max_width_constrain_text_wrapping() {
     assert!(max_width_lines > wide_lines);
 }
 
+#[test]
+fn block_element_width_constrains_nested_text_wrapping() {
+    let text = "words inside an inline child wrap to fit the parent block ".repeat(8);
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "section".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text)],
+            }],
+        }],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "width".to_owned(),
+            value: "160px".to_owned(),
+        }],
+    }];
+    let nested_stylesheet = [
+        stylesheet[0].clone(),
+        StyleRule {
+            selectors: vec!["section".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "50%".to_owned(),
+            }],
+        },
+    ];
+    let mut parent_width = PageRasterizer::new(&nodes, &stylesheet);
+    let mut wide = PageRasterizer::new(&nodes, &[]);
+    let mut nested_width = PageRasterizer::new(&nodes, &nested_stylesheet);
+    parent_width.prepare_layout(400, 1200);
+    wide.prepare_layout(400, 1200);
+    nested_width.prepare_layout(400, 1200);
+
+    let parent_line_count = parent_width.buffer.layout_runs().count();
+    let wide_line_count = wide.buffer.layout_runs().count();
+    let nested_line_count = nested_width.buffer.layout_runs().count();
+    assert!(parent_line_count > wide_line_count);
+    assert!(nested_line_count > parent_line_count);
+}
+
 fn line_count_with_rule(property: &str, value: &str, text: String, viewport_width: u32) -> usize {
     let nodes = [UiNode::Text(text)];
     let stylesheet = [StyleRule {

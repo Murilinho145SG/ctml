@@ -1,5 +1,4 @@
 use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, Shaping, SwashCache};
-use ctml_css::parse_length;
 use winit::window::CursorIcon;
 
 use crate::{
@@ -18,24 +17,11 @@ mod font_raster;
 mod highlights;
 mod interactions;
 mod pixel;
+mod sizing;
 
 const PAGE_PADDING: f32 = 8.0;
 
-fn resolve_body_width(value: &str, available_width: f32, font_size: f32) -> Option<f32> {
-    let value = value.trim();
-    if value == "0" {
-        return Some(0.0);
-    }
-    if let Some(percentage) = value.strip_suffix('%') {
-        return percentage
-            .trim()
-            .parse::<f32>()
-            .ok()
-            .map(|percentage| available_width * percentage / 100.0)
-            .filter(|width| width.is_finite() && *width >= 0.0);
-    }
-    parse_length(value, font_size)
-}
+use sizing::{line_layout_sizes, resolve_layout_width, resolve_width};
 
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
@@ -138,17 +124,17 @@ impl PageRasterizer {
             .root_style
             .min_width
             .as_deref()
-            .and_then(|value| resolve_body_width(value, available_width, font_size));
+            .and_then(|value| resolve_width(value, available_width, font_size));
         let max_width = self
             .root_style
             .max_width
             .as_deref()
-            .and_then(|value| resolve_body_width(value, available_width, font_size));
+            .and_then(|value| resolve_width(value, available_width, font_size));
         let mut content_width = self
             .root_style
             .width
             .as_deref()
-            .and_then(|value| resolve_body_width(value, available_width, font_size))
+            .and_then(|value| resolve_width(value, available_width, font_size))
             .unwrap_or(available_width);
         match (min_width, max_width) {
             (Some(min), Some(max)) if min > max => content_width = content_width.max(min),
@@ -206,6 +192,30 @@ impl PageRasterizer {
             line.set_align(Some(align));
         }
         self.buffer.shape_until_scroll(&mut self.font_system, false);
+        let line_sizes = line_layout_sizes(&self.runs, self.buffer.lines.len());
+        let metrics = self.buffer.metrics();
+        let wrap = self.buffer.wrap();
+        let ellipsize = self.buffer.ellipsize();
+        let monospace_width = self.buffer.monospace_width();
+        let tab_width = self.buffer.tab_width();
+        let hinting = self.buffer.hinting();
+        for (line, sizes) in self.buffer.lines.iter_mut().zip(line_sizes) {
+            if sizes.is_empty() {
+                continue;
+            }
+            let line_width = resolve_layout_width(&sizes, content_width, metrics.font_size);
+            line.reset_layout();
+            line.layout(
+                &mut self.font_system,
+                metrics.font_size,
+                Some(line_width),
+                wrap,
+                ellipsize,
+                monospace_width,
+                tab_width,
+                hinting,
+            );
+        }
     }
 
     pub(crate) fn redraw(&mut self, queue: &wgpu::Queue, texture: &wgpu::Texture) {

@@ -9,7 +9,7 @@ mod list_marker;
 mod pseudo;
 mod text_style;
 pub(super) use text_style::{
-    FontVariantCaps, FontVariantPosition, TextDecorationSkipInk, TextDecorationStyle,
+    FontVariantCaps, FontVariantPosition, LayoutSize, TextDecorationSkipInk, TextDecorationStyle,
     TextEmphasisPosition, TextEmphasisStyle, TextShadow, TextStyle, TextTransform,
 };
 

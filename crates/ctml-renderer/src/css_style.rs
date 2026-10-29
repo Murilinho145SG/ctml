@@ -142,6 +142,9 @@ pub(super) fn resolve_style_with_selector_tree_context(
     stylesheet: &[StyleRule],
 ) -> TextStyle {
     let mut style = inherited.clone();
+    style.width = None;
+    style.min_width = None;
+    style.max_width = None;
     apply_matching_styles_with_inline_context(
         &mut style,
         current,
@@ -429,13 +432,6 @@ fn apply_matching_styles_inner(
             declaration.property != "color" && !is_custom_property(&declaration.property)
         })
     {
-        if matches!(
-            declaration.property.to_ascii_lowercase().as_str(),
-            "width" | "min-width" | "max-width"
-        ) && !current.tag.eq_ignore_ascii_case("body")
-        {
-            continue;
-        }
         if rollback_layers
             .get(&canonical_property_name(&declaration.property))
             .is_some_and(|layers| layers.contains(&(*important, *layer)))

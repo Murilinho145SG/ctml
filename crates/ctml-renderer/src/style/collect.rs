@@ -5,8 +5,8 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
 use super::{
-    TextRun, TextStyle, append_text, is_block, list_marker::format_marker, pseudo, push_line_break,
-    selector_sibling_contexts,
+    LayoutSize, TextRun, TextStyle, append_text, is_block, list_marker::format_marker, pseudo,
+    push_line_break, selector_sibling_contexts,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -67,7 +67,7 @@ pub(super) fn collect_runs(
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case("style"))
                     .and_then(|(_, value)| value.as_deref());
-                let style = css_style::resolve_style_with_selector_tree_context(
+                let mut style = css_style::resolve_style_with_selector_tree_context(
                     inherited,
                     &identity,
                     path,
@@ -120,6 +120,17 @@ pub(super) fn collect_runs(
                     stylesheet,
                 );
                 let block = style.display_block.unwrap_or_else(|| is_block(tag));
+                if block
+                    && (style.width.is_some()
+                        || style.min_width.is_some()
+                        || style.max_width.is_some())
+                {
+                    style.layout_sizes.push(LayoutSize {
+                        width: style.width.clone(),
+                        min_width: style.min_width.clone(),
+                        max_width: style.max_width.clone(),
+                    });
+                }
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
