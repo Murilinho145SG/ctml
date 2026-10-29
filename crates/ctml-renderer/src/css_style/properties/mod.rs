@@ -95,6 +95,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background = inherited.background;
             style.background_color = inherited.background_color;
         }
+        "background" => {
+            style.background = inherited.background;
+            style.background_color = inherited.background_color;
+        }
         "font" => inherit_font(style, inherited),
         "font-family" => style.family.clone_from(&inherited.family),
         "font-size" => {
@@ -177,6 +181,10 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background = [255, 255, 255];
             style.background_color = None;
         }
+        "background" => {
+            style.background = [255, 255, 255];
+            style.background_color = None;
+        }
         "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),
         "font-size" => {
@@ -253,29 +261,8 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     let value = value.trim();
     match property {
         "font" => apply_font_shorthand(style, value),
-        "background-color" => {
-            let color = if value.eq_ignore_ascii_case("currentcolor") {
-                Some((
-                    [style.color[0], style.color[1], style.color[2]],
-                    style.color_opacity,
-                ))
-            } else {
-                parse_color_with_opacity(value)
-            };
-            if let Some((channels, alpha)) = color {
-                style.background_color = Some([
-                    channels[0],
-                    channels[1],
-                    channels[2],
-                    (alpha * 255.0).round() as u8,
-                ]);
-                style.background = [
-                    composite_over_white(channels[0], alpha),
-                    composite_over_white(channels[1], alpha),
-                    composite_over_white(channels[2], alpha),
-                ];
-            }
-        }
+        "background" => apply_background_shorthand(style, value),
+        "background-color" => apply_background_color(style, value),
         "font-size" => {
             if let Some(size) = parse_font_size(value, style.font_size) {
                 style.font_size = size;
@@ -427,6 +414,40 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         _ => {}
     }
+}
+
+fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
+    if value.eq_ignore_ascii_case("none") {
+        style.background = [255, 255, 255];
+        style.background_color = None;
+    } else {
+        apply_background_color(style, value);
+    }
+}
+
+fn apply_background_color(style: &mut TextStyle, value: &str) {
+    let color = if value.eq_ignore_ascii_case("currentcolor") {
+        Some((
+            [style.color[0], style.color[1], style.color[2]],
+            style.color_opacity,
+        ))
+    } else {
+        parse_color_with_opacity(value)
+    };
+    let Some((channels, alpha)) = color else {
+        return;
+    };
+    style.background_color = Some([
+        channels[0],
+        channels[1],
+        channels[2],
+        (alpha * 255.0).round() as u8,
+    ]);
+    style.background = [
+        composite_over_white(channels[0], alpha),
+        composite_over_white(channels[1], alpha),
+        composite_over_white(channels[2], alpha),
+    ];
 }
 
 fn composite_over_white(channel: u8, alpha: f32) -> u8 {

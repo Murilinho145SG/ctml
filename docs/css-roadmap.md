@@ -66,6 +66,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-decoration` shorthand expansion with source-order conflicts against its supported longhands.
 - [x] `font` shorthand for supported style, small-caps variant, weight, stretch, size, line-height, and family values.
 - [x] `all` shorthand for CSS-wide values across the properties supported by the renderer.
+- [x] `background` shorthand for standalone supported colors and `none`, including source-order conflicts with `background-color`.
 - [ ] Remaining shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
 - [x] Custom properties (`--name`) and `var()` substitution, including inherited values, fallback handling, and cycle invalidation.

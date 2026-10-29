@@ -55,6 +55,71 @@ fn important_declarations_precede_specificity_and_source_order() {
 }
 
 #[test]
+fn background_shorthand_color_resolves_with_longhand_source_order() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let shorthand = StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "background".to_owned(),
+            value: "rgb(255 0 0 / 50%)".to_owned(),
+        }],
+    };
+    let longhand = StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "background-color".to_owned(),
+            value: "blue".to_owned(),
+        }],
+    };
+
+    let longhand_last = resolve_style(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[shorthand.clone(), longhand.clone()],
+    );
+    assert_eq!(longhand_last.background_color, Some([0, 0, 255, 255]));
+    assert_eq!(longhand_last.background, [0, 0, 255]);
+
+    let shorthand_last =
+        resolve_style(&TextStyle::default(), &current, &[], &[longhand, shorthand]);
+    assert_eq!(shorthand_last.background_color, Some([255, 0, 0, 128]));
+    assert_eq!(shorthand_last.background, [255, 128, 128]);
+}
+
+#[test]
+fn background_none_resets_a_prior_background_color() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let rules = ["background-color", "background"].map(|property| StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: if property == "background-color" {
+                "red".to_owned()
+            } else {
+                "none".to_owned()
+            },
+        }],
+    });
+
+    let style = resolve_style(&TextStyle::default(), &current, &[], &rules);
+
+    assert_eq!(style.background_color, None);
+    assert_eq!(style.background, [255, 255, 255]);
+}
+
+#[test]
 fn cascade_layers_order_normal_and_important_declarations() {
     let current = ElementIdentity {
         tag: "p".to_owned(),
