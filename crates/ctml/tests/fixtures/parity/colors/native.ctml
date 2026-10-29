@@ -5,4 +5,10 @@
 
 <body>
     <p class="sample">O<span class="accent">K</span></p>
+    <p class="named">A</p>
+    <p class="hex3">A</p><p class="hex4">A</p><p class="hex6">A</p><p class="hex8">A</p>
+    <p class="rgb-legacy">A</p><p class="rgba-legacy">A</p>
+    <p class="hsl-legacy">A</p><p class="hsla-legacy">A</p>
+    <p class="rgb-percent">A</p><p class="rgb-modern">A</p>
+    <p class="hsl-modern">A</p><p class="hwb">A</p>
 </body>

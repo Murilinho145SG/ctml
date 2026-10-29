@@ -1,0 +1,7 @@
+<headers><application name="Letter spacing parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <p class="normal">AV</p>
+    <p class="px">AV</p>
+    <p class="negative">AV</p>
+    <p class="em">AV</p>
+</body>

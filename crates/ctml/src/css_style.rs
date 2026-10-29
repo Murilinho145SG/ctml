@@ -410,3 +410,7 @@ fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
 #[cfg(test)]
 #[path = "css_style_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "css_style_matrix_tests.rs"]
+mod matrix_tests;

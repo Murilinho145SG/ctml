@@ -95,6 +95,8 @@ This list describes the current native renderer and will change as CTML's stylin
 
 ## Testing CSS support
 
+The [CSS test matrix](css-test-matrix.md) maps each currently supported property, value family, selector, and cascade behavior to its unit and Chromium parity tests.
+
 Run the native style resolver tests with:
 
 ```sh

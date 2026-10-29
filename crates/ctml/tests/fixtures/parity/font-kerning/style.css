@@ -1,0 +1,5 @@
+body { color: #222222; font-family: serif; font-size: 22px; line-height: 28px; }
+p { margin: 0; }
+.auto { font-kerning: auto; }
+.normal { font-kerning: normal; }
+.none { font-kerning: none; }

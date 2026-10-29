@@ -37,6 +37,10 @@ macro_rules! parity_test {
 parity_test!(page_colors_match_chromium, "colors", false);
 parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
+parity_test!(font_family_matches_chromium, "font-family", false);
+parity_test!(font_style_matches_chromium, "font-style", false);
+parity_test!(font_stretch_values_match_chromium, "font-stretch", false);
+parity_test!(line_height_values_match_chromium, "line-height", false);
 parity_test!(font_size_percentages_match_chromium, "font-size", false);
 parity_test!(absolute_font_sizes_match_chromium, "font-size-units", false);
 parity_test!(
@@ -48,8 +52,22 @@ parity_test!(font_features_match_chromium, "font-features", false);
 parity_test!(additional_font_caps_match_chromium, "font-caps", false);
 parity_test!(font_positions_match_chromium, "font-position", false);
 parity_test!(text_decoration_matches_chromium, "text-decoration", false);
+parity_test!(
+    text_decoration_lines_match_chromium,
+    "text-decoration-lines",
+    false
+);
 parity_test!(child_selector_matches_chromium, "child-selector", false);
+parity_test!(selector_matrix_matches_chromium, "selector-matrix", false);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);
+parity_test!(
+    text_alignment_values_match_chromium,
+    "text-alignment-values",
+    false
+);
+parity_test!(letter_spacing_matches_chromium, "letter-spacing", false);
+parity_test!(text_transform_matches_chromium, "text-transform", false);
+parity_test!(font_kerning_values_match_chromium, "font-kerning", false);
 parity_test!(hidden_cursor_matches_chromium, "cursor", true);
 
 fn run_parity_case(

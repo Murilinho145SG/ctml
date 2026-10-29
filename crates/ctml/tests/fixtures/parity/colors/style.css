@@ -11,6 +11,22 @@ p.sample {
     margin: 0;
 }
 
+p { margin: 0; }
+
+p.named { color: rebeccapurple; }
+p.hex3 { color: #36c; }
+p.hex4 { color: #36c8; }
+p.hex6 { color: #3366cc; }
+p.hex8 { color: #3366cc80; }
+p.rgb-legacy { color: rgb(20%, 40%, 80%); }
+p.rgba-legacy { color: rgba(51, 102, 204, 80%); }
+p.hsl-legacy { color: hsl(220deg, 60%, 50%); }
+p.hsla-legacy { color: hsla(220 2.4rad 50% / 0.8); }
+p.rgb-percent { color: rgb(20% 40% 80% / 80%); }
+p.rgb-modern { color: rgb(51 102 204 / 80%); }
+p.hsl-modern { color: hsl(220 60% 50% / 80%); }
+p.hwb { color: hwb(220 20% 20% / 80%); }
+
 span.accent {
     color: hsl(220 60% 50%);
 }

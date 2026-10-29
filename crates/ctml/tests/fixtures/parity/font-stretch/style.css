@@ -1,0 +1,15 @@
+body { color: #222222; font-family: sans-serif; font-size: 18px; line-height: 24px; }
+p { margin: 0; }
+.a { font-stretch: ultra-condensed; }
+.b { font-stretch: extra-condensed; }
+.c { font-stretch: condensed; }
+.d { font-stretch: semi-condensed; }
+.e { font-stretch: normal; }
+.f { font-stretch: semi-expanded; }
+.g { font-stretch: expanded; }
+.h { font-stretch: extra-expanded; }
+.i { font-stretch: ultra-expanded; }
+.j { font-stretch: 50%; }
+.k { font-stretch: 87.5%; }
+.l { font-stretch: 125%; }
+.m { font-stretch: 200%; }

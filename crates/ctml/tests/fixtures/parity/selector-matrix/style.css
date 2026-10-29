@@ -1,0 +1,10 @@
+body { color: #222222; font-family: sans-serif; font-size: 18px; line-height: 24px; }
+p { margin: 0; }
+* { font-weight: 400; }
+p { color: #222222; }
+.class-match { color: #cc3333; }
+#id-match { color: #3366cc; }
+main p.descendant { text-decoration: underline; }
+main > p.child { font-style: italic; }
+p.group-a, p.group-b { font-variant-caps: small-caps; }
+p.compound.special { font-weight: 700; }

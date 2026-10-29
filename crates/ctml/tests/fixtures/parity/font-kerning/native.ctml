@@ -1,0 +1,6 @@
+<headers><application name="Font kerning parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <p class="auto">AV</p>
+    <p class="normal">AV</p>
+    <p class="none">AV</p>
+</body>
