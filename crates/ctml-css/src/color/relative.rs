@@ -131,6 +131,7 @@ fn parse_color_component<'i, 't>(
     source_components: [f32; 3],
     names: [&str; 3],
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let start = input.position();
     match input.next()? {
         Token::Ident(name) => names
             .iter()
@@ -139,6 +140,15 @@ fn parse_color_component<'i, 't>(
             .ok_or_else(|| input.new_custom_error(())),
         Token::Number { value, .. } if value.is_finite() => Ok(*value),
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => Ok(*unit_value),
+        Token::Function(_) => evaluate_math_component(
+            input,
+            start,
+            &[
+                (names[0], source_components[0]),
+                (names[1], source_components[1]),
+                (names[2], source_components[2]),
+            ],
+        ),
         _ => Err(input.new_custom_error(())),
     }
 }
@@ -191,23 +201,70 @@ fn parse_relative_component<'i, 't>(
     name: &str,
     percentage_scale: f32,
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let start = input.position();
     match input.next()? {
         Token::Ident(value) if value.eq_ignore_ascii_case(name) => Ok(source_value),
         Token::Number { value, .. } if value.is_finite() => Ok(*value),
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => {
             Ok(*unit_value * percentage_scale)
         }
+        Token::Function(_) => evaluate_math_component(input, start, &[(name, source_value)]),
         _ => Err(input.new_custom_error(())),
     }
+}
+
+fn evaluate_math_component<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    start: cssparser::SourcePosition,
+    references: &[(&str, f32)],
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    input.parse_nested_block(|nested| consume_all_tokens(nested, 0))?;
+    let end = input.position();
+    let expression = substitute_math_references(input.slice(start..end), references);
+    crate::parse_math_number(&expression).ok_or_else(|| input.new_custom_error(()))
+}
+
+fn substitute_math_references(expression: &str, references: &[(&str, f32)]) -> String {
+    let mut result = String::with_capacity(expression.len());
+    let mut remaining = expression;
+    while !remaining.is_empty() {
+        let Some(first) = remaining.chars().next() else {
+            break;
+        };
+        if first.is_ascii_alphabetic() || first == '-' {
+            let identifier_length = remaining
+                .char_indices()
+                .take_while(|(_, character)| character.is_ascii_alphanumeric() || *character == '-')
+                .map(|(index, character)| index + character.len_utf8())
+                .last()
+                .unwrap_or(first.len_utf8());
+            let identifier = &remaining[..identifier_length];
+            if let Some((_, value)) = references
+                .iter()
+                .find(|(name, _)| identifier.eq_ignore_ascii_case(name))
+            {
+                result.push_str(&value.to_string());
+            } else {
+                result.push_str(identifier);
+            }
+            remaining = &remaining[identifier_length..];
+        } else {
+            result.push(first);
+            remaining = &remaining[first.len_utf8()..];
+        }
+    }
+    result
 }
 
 fn parse_hue_channel<'i, 't>(
     input: &mut Parser<'i, 't>,
     source_hue: f32,
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let start = input.position();
     let hue = match input.next()? {
         Token::Ident(name) if name.eq_ignore_ascii_case("h") => source_hue,
         Token::Number { value, .. } if value.is_finite() => *value,
+        Token::Function(_) => evaluate_math_component(input, start, &[("h", source_hue)])?,
         Token::Dimension { value, unit, .. } if value.is_finite() => {
             let value = *value;
             match unit.to_ascii_lowercase().as_str() {
@@ -256,6 +313,7 @@ fn parse_channel<'i, 't>(
     input: &mut Parser<'i, 't>,
     source: ([u8; 3], f32),
 ) -> Result<u8, cssparser::ParseError<'i, ()>> {
+    let start = input.position();
     let value = match input.next()? {
         Token::Ident(name) => match name.to_ascii_lowercase().as_str() {
             "r" => source.0[0] as f32,
@@ -266,6 +324,16 @@ fn parse_channel<'i, 't>(
         },
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value * 255.0,
+        Token::Function(_) => evaluate_math_component(
+            input,
+            start,
+            &[
+                ("r", source.0[0] as f32),
+                ("g", source.0[1] as f32),
+                ("b", source.0[2] as f32),
+                ("alpha", source.1 * 255.0),
+            ],
+        )?,
         _ => return Err(input.new_custom_error(())),
     };
     Ok(value.clamp(0.0, 255.0).round() as u8)
@@ -275,10 +343,12 @@ fn parse_alpha_channel<'i, 't>(
     input: &mut Parser<'i, 't>,
     source: ([u8; 3], f32),
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    let start = input.position();
     let alpha = match input.next()? {
         Token::Ident(name) if name.eq_ignore_ascii_case("alpha") => source.1,
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,
+        Token::Function(_) => evaluate_math_component(input, start, &[("alpha", source.1)])?,
         _ => return Err(input.new_custom_error(())),
     };
     Ok(alpha.clamp(0.0, 1.0))

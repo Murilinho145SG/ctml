@@ -499,6 +499,14 @@ mod tests {
             parse_color("rgb(from red 20 40% 255 / 50%)"),
             Some([20, 102, 255, 128])
         );
+        assert_eq!(
+            parse_color("rgb(from red calc(r - 20) g b)"),
+            Some([235, 0, 0, 255])
+        );
+        assert_eq!(
+            parse_color("rgb(from red clamp(0, r - 20, 255) g b)"),
+            Some([235, 0, 0, 255])
+        );
     }
 
     #[test]
@@ -507,6 +515,8 @@ mod tests {
             "rgb(from red r g)",
             "rgb(from red x y z)",
             "rgb(from red r g b / nope)",
+            "rgb(from red calc(r + 2px) g b)",
+            "rgb(from red calc(r / 0) g b)",
             "rgb(from nope r g b)",
         ] {
             assert_eq!(parse_color(value), None, "unexpectedly parsed {value}");
@@ -572,6 +582,10 @@ mod tests {
             parse_color("color(from red srgb 0 1 0)"),
             Some([0, 255, 0, 255])
         );
+        assert_eq!(
+            parse_color("color(from red srgb calc(r - 0.5) g b)"),
+            Some([128, 0, 0, 255])
+        );
     }
 
     #[test]
@@ -620,7 +634,6 @@ mod tests {
     #[test]
     fn rejects_unsupported_or_invalid_color_mix_syntax() {
         for value in [
-            "color-mix(in display-p3, red, blue)",
             "color-mix(in srgb, red -10%, blue)",
             "color-mix(in srgb, red 0%, blue 0%)",
             "color-mix(in srgb, red 80%, blue 30%, white)",
