@@ -133,13 +133,31 @@ impl PageRasterizer {
     fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
         let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
-        let content_width = self
+        let font_size = self.root_style.font_size;
+        let min_width = self
+            .root_style
+            .min_width
+            .as_deref()
+            .and_then(|value| resolve_body_width(value, available_width, font_size));
+        let max_width = self
+            .root_style
+            .max_width
+            .as_deref()
+            .and_then(|value| resolve_body_width(value, available_width, font_size));
+        let mut content_width = self
             .root_style
             .width
             .as_deref()
-            .and_then(|value| resolve_body_width(value, available_width, self.root_style.font_size))
-            .unwrap_or(available_width)
-            .max(1.0);
+            .and_then(|value| resolve_body_width(value, available_width, font_size))
+            .unwrap_or(available_width);
+        match (min_width, max_width) {
+            (Some(min), Some(max)) if min > max => content_width = content_width.max(min),
+            (Some(min), Some(max)) => content_width = content_width.max(min).min(max),
+            (Some(min), None) => content_width = content_width.max(min),
+            (None, Some(max)) => content_width = content_width.min(max),
+            (None, None) => {}
+        }
+        let content_width = content_width.max(1.0);
         self.buffer.set_size(
             Some(content_width),
             Some((height as f32 - PAGE_PADDING * 2.0).max(1.0)),

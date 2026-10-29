@@ -20,7 +20,7 @@ use font::{
 };
 use font_feature_settings::apply_font_feature_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
-use size::{apply_width, inherit_width};
+use size::{apply_max_width, apply_min_width, apply_width, inherit_width};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -60,6 +60,10 @@ pub(super) fn apply_declaration_with_inherited(
         style.list_style_type = None;
     } else if keyword == "revert" && property == "width" {
         style.width = None;
+    } else if keyword == "revert" && property == "min-width" {
+        style.min_width = None;
+    } else if keyword == "revert" && property == "max-width" {
+        style.max_width = None;
     } else {
         initial_property(style, property);
     }
@@ -114,6 +118,8 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         }
         "display" => inherit_display(style, inherited),
         "width" => inherit_width(style, inherited),
+        "min-width" => style.min_width.clone_from(&inherited.min_width),
+        "max-width" => style.max_width.clone_from(&inherited.max_width),
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -205,6 +211,8 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "display" => reset_display(style),
         "width" => style.width = None,
+        "min-width" => style.min_width = None,
+        "max-width" => style.max_width = None,
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
@@ -288,6 +296,8 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font" => apply_font_shorthand(style, value),
         "display" => apply_display(style, value),
         "width" => apply_width(style, value),
+        "min-width" => apply_min_width(style, value),
+        "max-width" => apply_max_width(style, value),
         "list-style-type" => apply_list_style_type(style, value),
         "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),

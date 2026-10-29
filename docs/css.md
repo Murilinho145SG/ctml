@@ -54,7 +54,7 @@ main .title {
 
 - Selectors: type, class, ID, compound, descendant, direct child (`>`), adjacent sibling (`+`), general sibling (`~`), comma-separated groups, `*`, CSS escaped identifiers, `:is()`, `:where()`, `:not()`, relational `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors, inherited `:lang()`, `:dir(ltr|rtl)`, `:link` and `:any-link` for `<a href>`, `:hover`, `:active`, `:focus`, `:focus-within`, and keyboard-driven `:focus-visible`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
 - Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and the corresponding `-of-type` forms. `:nth-*` accepts integers, `odd`, `even`, An+B expressions, and `of S` selector lists on `:nth-child()` and `:nth-last-child()`.
-- `width` on the page `body` constrains text wrapping; supported values are non-negative lengths, percentages of the available page width, and `auto`.
+- `width`, `min-width`, and `max-width` on the page `body` constrain text wrapping; supported values are non-negative lengths and percentages of the available page width. `width` also accepts `auto`, `min-width` accepts `auto`, and `max-width` accepts `none`.
 - `display: none` suppresses the element, its descendants, and generated content from rendering. `display: block` and `display: flow-root` use block text flow; `display: inline`, `display: inline-block`, and `display: contents` use inline text flow. `display: list-item` adds a marker and block text flow; `<li>` elements use bullets inside unordered lists and ascending decimal numbers inside ordered lists. Inherited `list-style-type` supports `disc`, `circle`, `square`, `none`, `decimal`, `lower-alpha`, and `upper-alpha`; the `list-style` shorthand accepts one of those marker types. `contents` preserves child flow. Elements remain in the selector tree for structural matching; CSS formatting boxes are not implemented.
 - Generated content and selection: `::before` and `::after` accept quoted strings through `content`; generated text inherits the originating element's style and can override supported text properties. Global and element-scoped `::selection` rules support `background-color` and `color`, including alpha.
 - `::first-line` supports `color` and `background-color` on the first formatted line of a block. `::first-letter` supports those properties on the first non-whitespace character of a block. Other styles for these pseudo-elements are not supported yet.
@@ -92,7 +92,7 @@ Malformed declarations and selector rules are skipped without a warning, and par
 
 - `display` values other than `none`, `block`, `inline`, `contents`, `flow-root`, `inline-block`, and `list-item`; CTML does not yet implement CSS formatting boxes.
 - Other `list-style-type` values, marker position and styling, reversed ordered lists, and explicit list-item numbering.
-- The box model: `width` on non-body elements, `height`, `min-width`, `max-width`, `box-sizing`, `margin`, `padding`, and `gap`.
+- The box model: sizing on non-body elements, `height`, `inline-size`, `block-size`, `min-height`, `max-height`, `box-sizing`, `margin`, `padding`, and `gap`.
 - Borders, outlines, border radius, and shadows.
 - Flexbox, Grid, floats, and positioning (`position`, `top`, `right`, `bottom`, and `left`).
 - Overflow, clipping, scrolling, and scrollbars.

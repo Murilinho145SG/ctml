@@ -429,8 +429,10 @@ fn apply_matching_styles_inner(
             declaration.property != "color" && !is_custom_property(&declaration.property)
         })
     {
-        if declaration.property.eq_ignore_ascii_case("width")
-            && !current.tag.eq_ignore_ascii_case("body")
+        if matches!(
+            declaration.property.to_ascii_lowercase().as_str(),
+            "width" | "min-width" | "max-width"
+        ) && !current.tag.eq_ignore_ascii_case("body")
         {
             continue;
         }
