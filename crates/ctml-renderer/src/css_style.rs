@@ -449,7 +449,7 @@ mod selection;
 #[cfg(test)]
 pub(super) use ctml_css::parse_length;
 use properties::{apply_color_declaration, apply_declaration_with_inherited};
-pub(super) use pseudo::first_line_style;
+pub(super) use pseudo::{first_letter_style, first_line_style};
 pub(super) use selection::{resolve_selection_style, selection_background_color};
 
 #[cfg(test)]

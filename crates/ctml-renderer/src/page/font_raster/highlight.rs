@@ -8,6 +8,7 @@ pub(super) fn glyph_foreground(
     selection: Option<(Cursor, Cursor)>,
     spans: &[CursorSpan],
     first_line_by_block: &HashMap<usize, (usize, usize)>,
+    first_letters: &HashMap<usize, (usize, usize, usize)>,
     line: usize,
     glyph_start: usize,
     glyph_end: usize,
@@ -41,6 +42,18 @@ pub(super) fn glyph_foreground(
             if span.first_line_foreground.is_some() {
                 return span.first_line_foreground;
             }
+        }
+        if let Some((letter_line, letter_start, letter_end)) = span
+            .first_letter_block
+            .and_then(|block| first_letters.get(&block))
+            && *letter_line == line
+            && span.start == *letter_start
+            && span.end == *letter_end
+            && glyph_end > *letter_start
+            && glyph_start < *letter_end
+            && span.first_letter_foreground.is_some()
+        {
+            return span.first_letter_foreground;
         }
     }
     None

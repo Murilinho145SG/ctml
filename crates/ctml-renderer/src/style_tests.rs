@@ -75,6 +75,9 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
         first_line_block: Some(3),
         first_line_foreground: Some([0, 0, 255, 255]),
         first_line_background: Some([255, 255, 0, 255]),
+        first_letter_block: Some(3),
+        first_letter_foreground: Some([255, 0, 255, 255]),
+        first_letter_background: Some([0, 255, 255, 255]),
     });
 
     assert_eq!(runs.len(), 2);
@@ -87,6 +90,9 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     assert_eq!(runs[0].first_line_block, Some(3));
     assert_eq!(runs[0].first_line_foreground, Some([0, 0, 255, 255]));
     assert_eq!(runs[0].first_line_background, Some([255, 255, 0, 255]));
+    assert_eq!(runs[0].first_letter_block, Some(3));
+    assert_eq!(runs[0].first_letter_foreground, Some([255, 0, 255, 255]));
+    assert_eq!(runs[0].first_letter_background, Some([0, 255, 255, 255]));
     assert_eq!(runs[1].text, "B");
     assert_eq!(runs[1].style.font_scale, 1.0);
     assert_eq!(runs[1].selection_background, Some([255, 0, 0, 255]));
@@ -94,6 +100,9 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     assert_eq!(runs[1].first_line_block, Some(3));
     assert_eq!(runs[1].first_line_foreground, Some([0, 0, 255, 255]));
     assert_eq!(runs[1].first_line_background, Some([255, 255, 0, 255]));
+    assert_eq!(runs[1].first_letter_block, Some(3));
+    assert_eq!(runs[1].first_letter_foreground, Some([255, 0, 255, 255]));
+    assert_eq!(runs[1].first_letter_background, Some([0, 255, 255, 255]));
 }
 
 #[test]
@@ -113,6 +122,9 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
             first_line_block: None,
             first_line_foreground: None,
             first_line_background: None,
+            first_letter_block: None,
+            first_letter_foreground: None,
+            first_letter_background: None,
         });
 
         assert_eq!(runs.len(), 1);

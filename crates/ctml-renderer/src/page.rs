@@ -243,6 +243,7 @@ impl PageRasterizer {
             self.root_style.background_color.is_some(),
         );
         self.draw_first_line_backgrounds(&mut pixels, width, height);
+        self.draw_first_letter_backgrounds(&mut pixels, width, height);
         self.draw_selection(&mut pixels, width, height);
         let selection = self.selection.map(|(first, second)| {
             if first <= second {
@@ -363,6 +364,10 @@ pub(super) struct CursorSpan {
     pub(super) first_line_block: Option<usize>,
     pub(super) first_line_foreground: Option<[u8; 4]>,
     pub(super) first_line_background: Option<[u8; 4]>,
+    pub(super) first_letter_block: Option<usize>,
+    pub(super) first_letter_foreground: Option<[u8; 4]>,
+    pub(super) first_letter_background: Option<[u8; 4]>,
+    pub(super) character: char,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -389,6 +394,10 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 first_line_block: run.first_line_block,
                 first_line_foreground: run.first_line_foreground,
                 first_line_background: run.first_line_background,
+                first_letter_block: run.first_letter_block,
+                first_letter_foreground: run.first_letter_foreground,
+                first_letter_background: run.first_letter_background,
+                character,
             });
             index = end;
         }

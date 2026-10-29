@@ -43,7 +43,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
 - [x] `::first-line` foreground and background colors on the first formatted line of a block.
-- [ ] Other `::first-line` styles and `::first-letter`.
+- [x] `::first-letter` foreground and background colors on the first non-whitespace character of a block.
+- [ ] Other `::first-line` and `::first-letter` styles.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
 - [x] CSS escapes in type, class, and ID identifiers, attribute names and values, plus specificity for the currently supported selector constructs.

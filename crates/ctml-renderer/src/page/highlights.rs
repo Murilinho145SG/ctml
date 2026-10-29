@@ -116,6 +116,64 @@ impl PageRasterizer {
             }
         }
     }
+
+    pub(super) fn draw_first_letter_backgrounds(&self, pixels: &mut [u8], width: u32, height: u32) {
+        let first_letters = first_formatted_letters(&self.cursor_spans);
+        for run in self.buffer.layout_runs() {
+            let mut groups: Vec<(usize, usize, [u8; 4])> = Vec::new();
+            for span in self
+                .cursor_spans
+                .iter()
+                .filter(|span| span.line == run.line_i)
+            {
+                let Some(block) = span.first_letter_block else {
+                    continue;
+                };
+                let Some(background) = span.first_letter_background else {
+                    continue;
+                };
+                if first_letters.get(&block) != Some(&(span.line, span.start, span.end)) {
+                    continue;
+                }
+                groups.push((span.start, span.end, background));
+            }
+            for (group_start, group_end, background) in groups {
+                fill_highlight(
+                    run.line_i,
+                    run.line_top,
+                    run.line_height,
+                    group_start,
+                    group_end,
+                    background,
+                    &run,
+                    pixels,
+                    width,
+                    height,
+                );
+            }
+        }
+    }
+}
+
+pub(super) fn first_formatted_letters(
+    spans: &[CursorSpan],
+) -> HashMap<usize, (usize, usize, usize)> {
+    let mut first_letters = HashMap::new();
+    for span in spans {
+        let Some(block) = span.first_letter_block else {
+            continue;
+        };
+        if span.first_letter_foreground.is_none() && span.first_letter_background.is_none() {
+            continue;
+        }
+        if span.character.is_whitespace() {
+            continue;
+        }
+        first_letters
+            .entry(block)
+            .or_insert((span.line, span.start, span.end));
+    }
+    first_letters
 }
 
 pub(super) fn first_formatted_line_ranges(

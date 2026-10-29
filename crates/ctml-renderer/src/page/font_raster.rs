@@ -29,6 +29,7 @@ pub(super) fn draw(
     cursor_spans: &[CursorSpan],
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
+    let first_letters = super::highlights::first_formatted_letters(cursor_spans);
     let info = ImageInfo::new(
         (width as i32, height as i32),
         ColorType::RGBA8888,
@@ -65,6 +66,7 @@ pub(super) fn draw(
                 selection,
                 cursor_spans,
                 &first_line_by_block,
+                &first_letters,
                 run.line_i,
                 first.start,
                 first.end,
@@ -80,6 +82,7 @@ pub(super) fn draw(
                     selection,
                     cursor_spans,
                     &first_line_by_block,
+                    &first_letters,
                     run.line_i,
                     glyph.start,
                     glyph.end,

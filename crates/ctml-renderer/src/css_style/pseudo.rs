@@ -2,7 +2,7 @@ use ctml_css::{SelectorPosition, SelectorTreeElement};
 
 use crate::{StyleRule, css_style::ElementIdentity, style::TextStyle};
 
-pub(crate) struct FirstLineStyle {
+pub(crate) struct PseudoStyle {
     pub(crate) foreground: Option<[u8; 4]>,
     pub(crate) background: Option<[u8; 4]>,
 }
@@ -13,7 +13,42 @@ pub(crate) fn first_line_style(
     position: SelectorPosition,
     selector_tree: &[SelectorTreeElement],
     stylesheet: &[StyleRule],
-) -> FirstLineStyle {
+) -> PseudoStyle {
+    resolve_pseudo_style(
+        "first-line",
+        inherited,
+        current,
+        position,
+        selector_tree,
+        stylesheet,
+    )
+}
+
+pub(crate) fn first_letter_style(
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    position: SelectorPosition,
+    selector_tree: &[SelectorTreeElement],
+    stylesheet: &[StyleRule],
+) -> PseudoStyle {
+    resolve_pseudo_style(
+        "first-letter",
+        inherited,
+        current,
+        position,
+        selector_tree,
+        stylesheet,
+    )
+}
+
+fn resolve_pseudo_style(
+    pseudo_element: &str,
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    position: SelectorPosition,
+    selector_tree: &[SelectorTreeElement],
+    stylesheet: &[StyleRule],
+) -> PseudoStyle {
     let rules = stylesheet
         .iter()
         .filter_map(|rule| {
@@ -22,7 +57,7 @@ pub(crate) fn first_line_style(
                 .iter()
                 .filter_map(|selector| {
                     let (base, suffix) = selector.rsplit_once("::")?;
-                    if !suffix.eq_ignore_ascii_case("first-line") {
+                    if !suffix.eq_ignore_ascii_case(pseudo_element) {
                         return None;
                     }
                     let base = base.trim();
@@ -69,7 +104,7 @@ pub(crate) fn first_line_style(
         None,
         &rules,
     );
-    FirstLineStyle {
+    PseudoStyle {
         foreground: (resolved.color != inherited.color).then_some(resolved.color),
         background: resolved.background_color,
     }
