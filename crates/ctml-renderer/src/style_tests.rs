@@ -344,64 +344,6 @@ fn display_inline_block_uses_inline_text_flow() {
 }
 
 #[test]
-fn list_items_render_bullets_and_ordered_numbers() {
-    let nodes = [
-        list_container("ul", &["apple", "pear"]),
-        list_container("ol", &["first", "second"]),
-    ];
-
-    let (runs, _) = compile_runs(&nodes, &[], &[], &[], &[], false);
-
-    assert_eq!(
-        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
-        "• apple\n• pear\n1. first\n2. second"
-    );
-}
-
-#[test]
-fn list_style_type_inherits_shapes_and_alphabetic_numbering() {
-    let nodes = [
-        list_container("ul", &["apple", "pear"]),
-        list_container("ol", &["first", "second"]),
-    ];
-    let stylesheet = [("ul", "square"), ("ol", "upper-alpha")].map(|(selector, value)| StyleRule {
-        selectors: vec![selector.to_owned()],
-        layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "list-style-type".to_owned(),
-            value: value.to_owned(),
-        }],
-    });
-
-    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
-
-    assert_eq!(
-        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
-        "▪ apple\n▪ pear\nA. first\nB. second"
-    );
-}
-
-#[test]
-fn list_style_type_none_suppresses_markers_without_hiding_items() {
-    let nodes = [list_container("ul", &["apple", "pear"])];
-    let stylesheet = [StyleRule {
-        selectors: vec!["ul".to_owned()],
-        layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "list-style-type".to_owned(),
-            value: "none".to_owned(),
-        }],
-    }];
-
-    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
-
-    assert_eq!(
-        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
-        "apple\npear"
-    );
-}
-
-#[test]
 fn explicit_list_item_uses_a_bullet_and_block_flow() {
     let nodes = [UiNode::Element {
         tag: "span".to_owned(),
@@ -454,23 +396,4 @@ fn assert_display_flow(tag: &str, display: &str, expected: &str) {
         runs.iter().map(|run| run.text.as_str()).collect::<String>(),
         expected
     );
-}
-
-fn list_container(tag: &str, labels: &[&str]) -> UiNode {
-    UiNode::Element {
-        tag: tag.to_owned(),
-        class: None,
-        id: None,
-        attributes: Vec::new(),
-        children: labels
-            .iter()
-            .map(|label| UiNode::Element {
-                tag: "li".to_owned(),
-                class: None,
-                id: None,
-                attributes: Vec::new(),
-                children: vec![UiNode::Text((*label).to_owned())],
-            })
-            .collect(),
-    }
 }

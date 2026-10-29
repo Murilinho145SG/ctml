@@ -487,3 +487,7 @@ fn is_block(tag: &str) -> bool {
 #[cfg(test)]
 #[path = "style_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "style_list_tests.rs"]
+mod list_tests;

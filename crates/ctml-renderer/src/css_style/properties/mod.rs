@@ -17,7 +17,7 @@ use display::{apply_display, inherit_display, reset_display, revert_display};
 pub(super) use font::parse_font_size;
 use font::{apply_font_shorthand, inherit_font, relative_font_weight, reset_font};
 use font_feature_settings::apply_font_feature_settings;
-use list_style::{apply_list_style_type, reset_list_style_type};
+use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -52,7 +52,7 @@ pub(super) fn apply_declaration_with_inherited(
         inherit_property(style, inherited, property);
     } else if keyword == "revert" && property == "display" {
         revert_display(style);
-    } else if keyword == "revert" && property == "list-style-type" {
+    } else if keyword == "revert" && matches!(property, "list-style" | "list-style-type") {
         style.list_style_type = None;
     } else {
         initial_property(style, property);
@@ -83,6 +83,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-numeric"
             | "font-variant-east-asian"
             | "font-feature-settings"
+            | "list-style"
             | "list-style-type"
             | "text-shadow"
             | "text-emphasis"
@@ -106,7 +107,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background_color = inherited.background_color;
         }
         "display" => inherit_display(style, inherited),
-        "list-style-type" => style.list_style_type.clone_from(&inherited.list_style_type),
+        "list-style" | "list-style-type" => {
+            style.list_style_type.clone_from(&inherited.list_style_type);
+        }
         "background" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -194,7 +197,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "display" => reset_display(style),
-        "list-style-type" => reset_list_style_type(style),
+        "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -277,6 +280,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font" => apply_font_shorthand(style, value),
         "display" => apply_display(style, value),
         "list-style-type" => apply_list_style_type(style, value),
+        "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "font-size" => {

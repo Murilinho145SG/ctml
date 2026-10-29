@@ -17,6 +17,10 @@ pub(super) fn apply_list_style_type(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_list_style_shorthand(style: &mut TextStyle, value: &str) {
+    apply_list_style_type(style, value);
+}
+
 pub(super) fn reset_list_style_type(style: &mut TextStyle) {
     style.list_style_type = Some("disc".to_owned());
 }

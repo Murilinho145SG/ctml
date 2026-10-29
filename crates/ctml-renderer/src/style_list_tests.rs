@@ -1,0 +1,121 @@
+use super::compile_runs;
+use crate::{StyleDeclaration, StyleRule, UiNode};
+
+#[test]
+fn list_items_render_bullets_and_ordered_numbers() {
+    let nodes = [
+        list_container("ul", &["apple", "pear"]),
+        list_container("ol", &["first", "second"]),
+    ];
+
+    let (runs, _) = compile_runs(&nodes, &[], &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "• apple\n• pear\n1. first\n2. second"
+    );
+}
+
+#[test]
+fn list_style_type_inherits_shapes_and_alphabetic_numbering() {
+    let nodes = [
+        list_container("ul", &["apple", "pear"]),
+        list_container("ol", &["first", "second"]),
+    ];
+    let stylesheet = [("ul", "square"), ("ol", "upper-alpha")].map(|(selector, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "list-style-type".to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "▪ apple\n▪ pear\nA. first\nB. second"
+    );
+}
+
+#[test]
+fn list_style_type_none_suppresses_markers_without_hiding_items() {
+    let nodes = [list_container("ul", &["apple", "pear"])];
+    let stylesheet = [StyleRule {
+        selectors: vec!["ul".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "list-style-type".to_owned(),
+            value: "none".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "apple\npear"
+    );
+}
+
+#[test]
+fn list_style_shorthand_and_type_longhand_follow_source_order() {
+    let nodes = [list_container("ul", &["apple"])];
+    let declarations = [("list-style-type", "square"), ("list-style", "upper-alpha")];
+    let stylesheet = declarations.map(|(property, value)| StyleRule {
+        selectors: vec!["ul".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+    let (shorthand_last, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    assert_eq!(
+        shorthand_last
+            .iter()
+            .map(|run| run.text.as_str())
+            .collect::<String>(),
+        "A. apple"
+    );
+
+    let stylesheet =
+        [("list-style", "upper-alpha"), ("list-style-type", "square")].map(|(property, value)| {
+            StyleRule {
+                selectors: vec!["ul".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: property.to_owned(),
+                    value: value.to_owned(),
+                }],
+            }
+        });
+    let (longhand_last, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    assert_eq!(
+        longhand_last
+            .iter()
+            .map(|run| run.text.as_str())
+            .collect::<String>(),
+        "▪ apple"
+    );
+}
+
+fn list_container(tag: &str, labels: &[&str]) -> UiNode {
+    UiNode::Element {
+        tag: tag.to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: labels
+            .iter()
+            .map(|label| UiNode::Element {
+                tag: "li".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text((*label).to_owned())],
+            })
+            .collect(),
+    }
+}
