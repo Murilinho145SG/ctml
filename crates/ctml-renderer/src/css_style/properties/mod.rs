@@ -12,6 +12,7 @@ use super::font_variant::{
 };
 use cursor::parse_cursor;
 pub(super) use font::parse_font_size;
+use font::{apply_font_shorthand, inherit_font, reset_font};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -106,6 +107,7 @@ fn is_inherited_property(property: &str) -> bool {
 fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
         "background-color" => style.background = inherited.background,
+        "font" => inherit_font(style, inherited),
         "font-family" => style.family.clone_from(&inherited.family),
         "font-size" => {
             style.font_size = inherited.font_size;
@@ -164,6 +166,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
 fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "background-color" => style.background = [255, 255, 255],
+        "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),
         "font-size" => {
             style.font_size = 16.0;
@@ -228,6 +231,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
 fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     let value = value.trim();
     match property {
+        "font" => apply_font_shorthand(style, value),
         "background-color" => {
             let color = if value.eq_ignore_ascii_case("currentcolor") {
                 Some((

@@ -91,6 +91,46 @@ fn text_decoration_shorthand_parses_and_resets_longhands_in_cascade_order() {
 }
 
 #[test]
+fn font_shorthand_expands_and_resets_supported_font_longhands() {
+    let style = style_for_declarations(&[(
+        "font",
+        "italic small-caps 700 condensed 20px/1.5 \"Open Sans\", sans-serif",
+    )]);
+    assert_eq!(style.font_style, Style::Italic);
+    assert_eq!(style.font_variant_caps, FontVariantCaps::SmallCaps);
+    assert_eq!(style.weight, Weight(700));
+    assert_eq!(style.stretch, Stretch::Condensed);
+    assert_eq!(style.font_size, 20.0);
+    assert_eq!(style.line_height, 30.0);
+    assert!(!style.line_height_normal);
+    assert_eq!(style.family, "\"Open Sans\", sans-serif");
+
+    let reset = style_for_declarations(&[
+        ("font-kerning", "none"),
+        ("font-variant-ligatures", "none"),
+        ("font-weight", "700"),
+        ("font", "16px serif"),
+    ]);
+    assert_eq!(reset.kerning, None);
+    assert_eq!(reset.common_ligatures, None);
+    assert_eq!(reset.weight, Weight::NORMAL);
+    assert!(reset.line_height_normal);
+    assert_eq!(reset.family, "serif");
+
+    let longhand_after =
+        style_for_declarations(&[("font", "italic 24px sans-serif"), ("font-weight", "700")]);
+    let shorthand_after =
+        style_for_declarations(&[("font-weight", "700"), ("font", "italic 24px sans-serif")]);
+    assert_eq!(longhand_after.weight, Weight(700));
+    assert_eq!(shorthand_after.weight, Weight::NORMAL);
+    assert_eq!(shorthand_after.font_size, 24.0);
+
+    let invalid = style_for_declarations(&[("font", "italic 20px")]);
+    assert_eq!(invalid.font_size, 16.0);
+    assert_eq!(invalid.font_style, Style::Normal);
+}
+
+#[test]
 fn covers_every_text_decoration_skip_ink_value() {
     for (value, expected) in [
         ("auto", TextDecorationSkipInk::Auto),
