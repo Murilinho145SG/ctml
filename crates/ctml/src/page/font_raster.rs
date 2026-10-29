@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem, fontdb};
 use skia_safe::{
     AlphaType, Color, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId, ImageInfo, Paint,
-    Point, TextBlobBuilder,
+    PixelGeometry, Point, SurfaceProps, SurfacePropsFlags, TextBlobBuilder,
     font::Edging,
     font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
     surfaces,
@@ -24,8 +24,18 @@ pub(super) fn draw(
         AlphaType::Premul,
         ColorSpace::new_srgb(),
     );
-    let Some(mut surface) = surfaces::wrap_pixels(&info, pixels, Some(width as usize * 4), None)
-    else {
+    let surface_props = SurfaceProps::new_with_text_properties(
+        SurfacePropsFlags::DEFAULT,
+        PixelGeometry::Unknown,
+        0.2,
+        1.2,
+    );
+    let Some(mut surface) = surfaces::wrap_pixels(
+        &info,
+        pixels,
+        Some(width as usize * 4),
+        Some(&surface_props),
+    ) else {
         return;
     };
 
