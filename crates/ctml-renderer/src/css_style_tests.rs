@@ -352,6 +352,56 @@ fn preserves_fractional_opacity_when_color_becomes_current_color() {
 }
 
 #[test]
+fn collects_background_layers_without_inheriting_background_color() {
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let parent = ElementIdentity {
+        tag: "section".to_owned(),
+        class: Some("parent".to_owned()),
+        id: None,
+    };
+    let child = ElementIdentity {
+        tag: "span".to_owned(),
+        class: Some("child".to_owned()),
+        id: None,
+    };
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".parent".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "#ff000080".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".child".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "blue".to_owned(),
+            }],
+        },
+    ];
+
+    let parent_style = resolve_style(&TextStyle::default(), &parent, &[body.clone()], &stylesheet);
+    let inherited_child =
+        resolve_style(&parent_style, &child, &[body.clone(), parent.clone()], &[]);
+    let styled_child = resolve_style(&parent_style, &child, &[body, parent], &stylesheet);
+
+    assert_eq!(inherited_child.background_color, None);
+    assert_eq!(inherited_child.background_layers, [[255, 0, 0, 128]]);
+    assert_eq!(styled_child.background_color, Some([0, 0, 255, 255]));
+    assert_eq!(
+        styled_child.background_layers,
+        [[255, 0, 0, 128], [0, 0, 255, 255]]
+    );
+}
+
+#[test]
 fn current_color_for_color_uses_the_inherited_color() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],

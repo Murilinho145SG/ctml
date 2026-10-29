@@ -10,6 +10,7 @@ use crate::{
     style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
 };
 
+mod backgrounds;
 mod decorations;
 mod font_features;
 mod font_raster;
@@ -397,6 +398,14 @@ impl PageRasterizer {
             pixel[..3].copy_from_slice(&self.root_style.background);
             pixel[3] = 255;
         }
+        backgrounds::draw(
+            &self.runs,
+            &self.buffer,
+            &mut pixels,
+            width,
+            height,
+            self.root_style.background_color.is_some(),
+        );
         self.draw_selection(&mut pixels, width, height);
         let Self {
             runs,

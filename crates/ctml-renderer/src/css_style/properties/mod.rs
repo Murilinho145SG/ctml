@@ -91,7 +91,10 @@ fn is_inherited_property(property: &str) -> bool {
 
 fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
-        "background-color" => style.background = inherited.background,
+        "background-color" => {
+            style.background = inherited.background;
+            style.background_color = inherited.background_color;
+        }
         "font" => inherit_font(style, inherited),
         "font-family" => style.family.clone_from(&inherited.family),
         "font-size" => {
@@ -170,7 +173,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
 
 fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
-        "background-color" => style.background = [255, 255, 255],
+        "background-color" => {
+            style.background = [255, 255, 255];
+            style.background_color = None;
+        }
         "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),
         "font-size" => {
@@ -257,6 +263,12 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 parse_color_with_opacity(value)
             };
             if let Some((channels, alpha)) = color {
+                style.background_color = Some([
+                    channels[0],
+                    channels[1],
+                    channels[2],
+                    (alpha * 255.0).round() as u8,
+                ]);
                 style.background = [
                     composite_over_white(channels[0], alpha),
                     composite_over_white(channels[1], alpha),

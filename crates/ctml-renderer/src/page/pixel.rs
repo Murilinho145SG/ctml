@@ -134,6 +134,28 @@ pub(super) fn fill_rect(
     }
 }
 
+pub(super) fn fill_rect_alpha(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    x: f32,
+    y: f32,
+    rect_width: f32,
+    rect_height: f32,
+    color: [u8; 4],
+) {
+    let left = ((x + PAGE_PADDING).floor() as i32).clamp(0, width as i32);
+    let top = ((y + PAGE_PADDING).floor() as i32).clamp(0, height as i32);
+    let right = ((x + rect_width + PAGE_PADDING).ceil() as i32).clamp(0, width as i32);
+    let bottom = ((y + rect_height + PAGE_PADDING).ceil() as i32).clamp(0, height as i32);
+    let color = Color::rgba(color[0], color[1], color[2], color[3]);
+    for row in top..bottom {
+        for column in left..right {
+            blend_pixel(pixels, width, height, column, row, color, color.a());
+        }
+    }
+}
+
 fn rgba_channel(rgba: (u8, u8, u8, u8), channel: usize) -> u8 {
     match channel {
         0 => rgba.0,

@@ -273,6 +273,7 @@ fn apply_matching_styles_inner(
     stylesheet: &[StyleRule],
 ) {
     let inherited_style = style.clone();
+    style.background_color = None;
     let mut matches: Vec<MatchedDeclaration<'_>> = Vec::new();
     let inline_declarations = inline_style
         .and_then(|inline_style| ctml_css::parse_declarations(inline_style).ok())
@@ -436,6 +437,9 @@ fn apply_matching_styles_inner(
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "unset".to_owned());
         apply_declaration_with_inherited(style, &declaration.property, &value, &inherited_style);
+    }
+    if let Some(background) = style.background_color {
+        style.background_layers.push(background);
     }
 }
 

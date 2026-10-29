@@ -164,7 +164,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 ## Backgrounds, borders, and visual effects
 
-- [ ] Per-element background color (currently only the page background is supported).
+- [x] `background-color` on rendered text fragments, including alpha compositing and nested elements.
+- [ ] Background painting for empty elements and complete CSS boxes, including padding, sizing, and fragmented inline boxes.
 - [ ] Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip.
 - [ ] Linear, radial, conic, and repeating gradients.
 - [ ] Border images and nine-slice behavior.
