@@ -146,6 +146,10 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 "normal" => FontVariantCaps::Normal,
                 "small-caps" => FontVariantCaps::SmallCaps,
                 "all-small-caps" => FontVariantCaps::AllSmallCaps,
+                "petite-caps" => FontVariantCaps::PetiteCaps,
+                "all-petite-caps" => FontVariantCaps::AllPetiteCaps,
+                "unicase" => FontVariantCaps::Unicase,
+                "titling-caps" => FontVariantCaps::TitlingCaps,
                 _ => style.font_variant_caps,
             };
         }

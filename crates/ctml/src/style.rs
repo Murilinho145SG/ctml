@@ -76,6 +76,10 @@ pub(super) enum FontVariantCaps {
     Normal,
     SmallCaps,
     AllSmallCaps,
+    PetiteCaps,
+    AllPetiteCaps,
+    Unicase,
+    TitlingCaps,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -173,6 +177,20 @@ impl TextStyle {
                 font_features
                     .enable(FeatureTag::SMALL_CAPS)
                     .enable(FeatureTag::ALL_SMALL_CAPS);
+            }
+            FontVariantCaps::PetiteCaps => {
+                font_features.enable(FeatureTag::new(b"pcap"));
+            }
+            FontVariantCaps::AllPetiteCaps => {
+                font_features
+                    .enable(FeatureTag::new(b"pcap"))
+                    .enable(FeatureTag::new(b"c2pc"));
+            }
+            FontVariantCaps::Unicase => {
+                font_features.enable(FeatureTag::new(b"unic"));
+            }
+            FontVariantCaps::TitlingCaps => {
+                font_features.enable(FeatureTag::new(b"titl"));
             }
         }
         match self.font_variant_position {

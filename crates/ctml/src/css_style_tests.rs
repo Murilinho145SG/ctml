@@ -424,6 +424,22 @@ fn resolves_small_caps_variants() {
 }
 
 #[test]
+fn resolves_additional_font_variant_caps_values() {
+    for (value, expected) in [
+        ("petite-caps", FontVariantCaps::PetiteCaps),
+        ("all-petite-caps", FontVariantCaps::AllPetiteCaps),
+        ("unicase", FontVariantCaps::Unicase),
+        ("titling-caps", FontVariantCaps::TitlingCaps),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("font-variant-caps", value)]).font_variant_caps,
+            expected,
+            "font-variant-caps: {value}"
+        );
+    }
+}
+
+#[test]
 fn applies_text_decoration_color_to_active_lines() {
     let style = style_for_declarations(&[
         ("text-decoration", "underline line-through"),

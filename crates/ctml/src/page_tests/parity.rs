@@ -45,6 +45,7 @@ parity_test!(
     false
 );
 parity_test!(font_features_match_chromium, "font-features", false);
+parity_test!(additional_font_caps_match_chromium, "font-caps", false);
 parity_test!(font_positions_match_chromium, "font-position", false);
 parity_test!(text_decoration_matches_chromium, "text-decoration", false);
 parity_test!(child_selector_matches_chromium, "child-selector", false);
