@@ -345,6 +345,18 @@ mod tests {
     }
 
     #[test]
+    fn parses_oklab_color_mixes_perceptually() {
+        assert_eq!(
+            parse_color("color-mix(in oklab, red, blue)"),
+            Some([140, 83, 162, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in oklab, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+    }
+
+    #[test]
     fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
         assert_eq!(
             parse_color("color-mix(in srgb, transparent, red)"),
@@ -361,7 +373,7 @@ mod tests {
     #[test]
     fn rejects_unsupported_or_invalid_color_mix_syntax() {
         for value in [
-            "color-mix(in oklab, red, blue)",
+            "color-mix(in lab, red, blue)",
             "color-mix(in srgb, red -10%, blue)",
             "color-mix(in srgb, red 0%, blue 0%)",
             "color-mix(in srgb, red 80%, blue 30%, white)",

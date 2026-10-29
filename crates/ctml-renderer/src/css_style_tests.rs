@@ -335,6 +335,10 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     let linear_style =
         style_for_declarations(&[("background-color", "color-mix(in srgb-linear, red, blue)")]);
     assert_eq!(linear_style.background, [188, 0, 188]);
+
+    let oklab_style =
+        style_for_declarations(&[("background-color", "color-mix(in oklab, red, blue)")]);
+    assert_eq!(oklab_style.background, [140, 83, 162]);
 }
 
 #[test]

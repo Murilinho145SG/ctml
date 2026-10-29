@@ -17,13 +17,11 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
         .parse_nested_block(|input| {
             input.expect_ident_matching("in")?;
             let interpolation_space = input.expect_ident_cloned()?;
-            let linear_srgb = if interpolation_space.eq_ignore_ascii_case("srgb") {
-                false
-            } else if interpolation_space.eq_ignore_ascii_case("srgb-linear") {
-                true
-            } else {
+            let linear_srgb = interpolation_space.eq_ignore_ascii_case("srgb-linear");
+            let oklab = interpolation_space.eq_ignore_ascii_case("oklab");
+            if !interpolation_space.eq_ignore_ascii_case("srgb") && !linear_srgb && !oklab {
                 return Err(input.new_custom_error(()));
-            };
+            }
             input.expect_comma()?;
 
             let (first, first_percentage) = parse_mix_component(input, depth)?;
@@ -54,6 +52,15 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
             let channels = if alpha == 0.0 {
                 [0; 3]
+            } else if oklab {
+                let first_lab = super::color4::srgb_to_oklab(first.0);
+                let second_lab = super::color4::srgb_to_oklab(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                super::color4::oklab_to_srgb((
+                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum,
+                    (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
+                    (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
+                ))
             } else {
                 std::array::from_fn(|index| {
                     if linear_srgb {
