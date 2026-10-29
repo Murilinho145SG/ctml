@@ -147,7 +147,7 @@ fn render_span<R: Renderer>(
     }
 }
 
-fn draw_line<R: Renderer>(
+pub(super) fn draw_line<R: Renderer>(
     renderer: &mut R,
     x: i32,
     y: i32,

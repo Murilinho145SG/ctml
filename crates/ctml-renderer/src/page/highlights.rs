@@ -158,6 +158,12 @@ impl PageRasterizer {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let first_letters = first_formatted_letters(&self.cursor_spans);
         for run in self.buffer.layout_runs() {
+            let mut first_line_groups: Vec<(
+                usize,
+                usize,
+                usize,
+                crate::css_style::PseudoDecoration,
+            )> = Vec::new();
             for span in self
                 .cursor_spans
                 .iter()
@@ -169,15 +175,17 @@ impl PageRasterizer {
                     && span.start < end
                     && let Some(decoration) = span.first_line_decoration
                 {
-                    draw_decoration(
-                        &run,
-                        span.start,
-                        span.end.min(end),
-                        decoration,
-                        pixels,
-                        width,
-                        height,
-                    );
+                    let span_end = span.end.min(end);
+                    if let Some((_, group_end, group_block, group_decoration)) =
+                        first_line_groups.last_mut()
+                        && *group_end == span.start
+                        && *group_block == block
+                        && *group_decoration == decoration
+                    {
+                        *group_end = span_end;
+                    } else {
+                        first_line_groups.push((span.start, span_end, block, decoration));
+                    }
                 }
                 if let Some(block) = span.first_letter_block
                     && first_letters.get(&block) == Some(&(span.line, span.start, span.end))
@@ -187,6 +195,9 @@ impl PageRasterizer {
                         &run, span.start, span.end, decoration, pixels, width, height,
                     );
                 }
+            }
+            for (start, end, _, decoration) in first_line_groups {
+                draw_decoration(&run, start, end, decoration, pixels, width, height);
             }
         }
     }
@@ -214,42 +225,43 @@ fn draw_decoration(
         index: end,
         affinity: cosmic_text::Affinity::After,
     };
+    let color = cosmic_text::Color::rgba(
+        decoration.color[0],
+        decoration.color[1],
+        decoration.color[2],
+        decoration.color[3],
+    );
+    let thickness = decoration.thickness.round().max(1.0) as u32;
+    let mut renderer = super::pixel::PixelRenderer {
+        pixels,
+        width,
+        height,
+        skip_ink_mask: None,
+    };
     for (left, span_width) in run.highlight(start, end) {
-        if decoration.underline {
-            fill_rect_alpha(
-                pixels,
-                width,
-                height,
-                left,
-                run.line_y + 1.0,
-                span_width,
-                decoration.thickness,
-                decoration.color,
-            );
+        let width_exact = span_width.max(0.0);
+        let line_width = width_exact as u32;
+        let tail_coverage = ((width_exact - line_width as f32) * 255.0).round() as u8;
+        if line_width == 0 {
+            continue;
         }
-        if decoration.overline {
-            fill_rect_alpha(
-                pixels,
-                width,
-                height,
-                left,
-                run.line_y - run.line_height * 0.8,
-                span_width,
-                decoration.thickness,
-                decoration.color,
-            );
-        }
-        if decoration.line_through {
-            fill_rect_alpha(
-                pixels,
-                width,
-                height,
-                left,
-                run.line_y - run.line_height * 0.3,
-                span_width,
-                decoration.thickness,
-                decoration.color,
-            );
+        for (enabled, y) in [
+            (decoration.underline, run.line_y + 1.0),
+            (decoration.overline, run.line_y - run.line_height * 0.8),
+            (decoration.line_through, run.line_y - run.line_height * 0.3),
+        ] {
+            if enabled {
+                super::decorations::draw_line(
+                    &mut renderer,
+                    left as i32,
+                    y.round() as i32,
+                    line_width,
+                    tail_coverage,
+                    thickness,
+                    decoration.style,
+                    color,
+                );
+            }
         }
     }
 }

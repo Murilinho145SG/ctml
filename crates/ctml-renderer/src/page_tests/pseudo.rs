@@ -39,6 +39,10 @@ fn first_line_foreground_applies_only_to_the_first_line_of_a_block() {
                 property: "text-decoration-color".to_owned(),
                 value: "red".to_owned(),
             },
+            StyleDeclaration {
+                property: "text-decoration-style".to_owned(),
+                value: "double".to_owned(),
+            },
         ],
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
@@ -53,11 +57,13 @@ fn first_line_foreground_applies_only_to_the_first_line_of_a_block() {
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [255, 255, 0])
     );
-    assert!(
-        pixels
-            .chunks_exact(4)
-            .any(|pixel| pixel[..3] == [255, 0, 0])
-    );
+    let red_rows = pixels
+        .chunks_exact(4)
+        .enumerate()
+        .filter(|(_, pixel)| pixel[..3] == [255, 0, 0])
+        .map(|(index, _)| index / 140)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(red_rows.len() >= 2, "double underline should draw two rows");
     assert!(pixels.chunks_exact(4).any(|pixel| pixel[..3] == [0, 0, 0]));
 }
 
