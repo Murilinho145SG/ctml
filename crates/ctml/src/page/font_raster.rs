@@ -50,9 +50,9 @@ pub(super) fn draw(
 
             let mut font = Font::from_typeface(typeface, glyph.font_size);
             font.set_edging(Edging::AntiAlias);
-            font.set_hinting(FontHinting::None);
+            font.set_hinting(FontHinting::Slight);
             font.set_force_auto_hinting(false);
-            font.set_embedded_bitmaps(true);
+            font.set_embedded_bitmaps(false);
             font.set_subpixel(true);
             font.set_linear_metrics(false);
 
