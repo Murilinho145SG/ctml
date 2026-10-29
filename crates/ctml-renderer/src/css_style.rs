@@ -114,6 +114,7 @@ pub(super) fn resolve_style_with_tree_inline_context(
     style
 }
 
+#[cfg(test)]
 pub(super) fn apply_matching_styles(
     style: &mut TextStyle,
     current: &ElementIdentity,
@@ -144,6 +145,7 @@ pub(super) fn apply_matching_styles_with_position(
     );
 }
 
+#[cfg(test)]
 pub(super) fn apply_matching_styles_with_context(
     style: &mut TextStyle,
     current: &ElementIdentity,

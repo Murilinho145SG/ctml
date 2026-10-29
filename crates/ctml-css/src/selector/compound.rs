@@ -156,6 +156,8 @@ fn structural_pseudo_matches(name: &str, position: SelectorPosition) -> bool {
     match name {
         "root" => position.is_root,
         "empty" => position.is_empty,
+        "hover" => position.is_hovered,
+        "active" => position.is_active,
         "first-child" | "first-of-type" => {
             if name == "first-child" {
                 position.child_index == 1

@@ -30,6 +30,8 @@ const CHROMIUM_VERSION: &str = "156.0.8078.47";
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
+#[path = "page_tests/interactions.rs"]
+mod interactions;
 #[path = "page_tests/parity.rs"]
 mod parity;
 

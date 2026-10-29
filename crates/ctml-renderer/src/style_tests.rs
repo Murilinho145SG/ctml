@@ -14,6 +14,7 @@ fn preserves_small_caps_for_font_feature_shaping() {
     append_text(
         "aB",
         &style,
+        &[],
         &mut runs,
         &mut last_was_space,
         &mut capitalize_next,
@@ -39,6 +40,7 @@ fn preserves_all_small_caps_for_font_feature_shaping() {
     append_text(
         "aB",
         &style,
+        &[],
         &mut runs,
         &mut last_was_space,
         &mut capitalize_next,
@@ -64,6 +66,7 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     let runs = synthesize_font_variant_caps(TextRun {
         text: "aB".to_owned(),
         style,
+        element_path: Vec::new(),
     });
 
     assert_eq!(runs.len(), 2);
@@ -86,6 +89,7 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
         let runs = synthesize_font_variant_caps(TextRun {
             text: "a".to_owned(),
             style,
+            element_path: Vec::new(),
         });
 
         assert_eq!(runs.len(), 1);

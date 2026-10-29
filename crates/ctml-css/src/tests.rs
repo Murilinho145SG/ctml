@@ -199,6 +199,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
             },
             attributes: Vec::new(),
             position: SelectorPosition::default(),
+            node_id: 0,
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -208,6 +209,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
             },
             attributes: Vec::new(),
             position: SelectorPosition::default(),
+            node_id: 0,
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -217,6 +219,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
             },
             attributes: Vec::new(),
             position: SelectorPosition::default(),
+            node_id: 0,
         },
     ];
     let current = ElementIdentity {
@@ -280,6 +283,7 @@ fn matches_structural_pseudo_classes_for_children_and_types() {
         type_count: 2,
         is_empty: true,
         is_root: false,
+        ..SelectorPosition::default()
     };
     assert!(!selector_matches(":last-child", &current, &[]));
     assert!(!selector_matches(":nth-last-child(1)", &current, &[]));

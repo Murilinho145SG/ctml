@@ -19,6 +19,8 @@ const PAGE_PADDING: f32 = 8.0;
 const SELECTION_COLOR: [u8; 3] = [173, 216, 230];
 
 pub(crate) struct PageRasterizer {
+    nodes: Vec<UiNode>,
+    stylesheet: Vec<StyleRule>,
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
     font_system: FontSystem,
@@ -28,11 +30,13 @@ pub(crate) struct PageRasterizer {
     selection: Option<(Cursor, Cursor)>,
     selection_anchor: Option<Cursor>,
     layout_size: Option<(u32, u32)>,
+    hovered_path: Vec<usize>,
+    active_path: Vec<usize>,
 }
 
 impl PageRasterizer {
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
-        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet);
+        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet, &[], &[]);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
@@ -64,6 +68,8 @@ impl PageRasterizer {
         );
 
         Self {
+            nodes: nodes.to_vec(),
+            stylesheet: stylesheet.to_vec(),
             runs,
             cursor_spans,
             font_system,
@@ -73,6 +79,8 @@ impl PageRasterizer {
             selection: None,
             selection_anchor: None,
             layout_size: None,
+            hovered_path: Vec::new(),
+            active_path: Vec::new(),
         }
     }
 
@@ -181,11 +189,36 @@ impl PageRasterizer {
             })
     }
 
+    pub(crate) fn update_hover(&mut self, x: f64, y: f64) -> bool {
+        let path = self.element_path_at(x, y);
+        if path == self.hovered_path {
+            return false;
+        }
+        self.hovered_path = path;
+        self.rebuild_interaction_styles();
+        true
+    }
+
+    pub(crate) fn clear_hover(&mut self) -> bool {
+        if self.hovered_path.is_empty() {
+            return false;
+        }
+        self.hovered_path.clear();
+        self.rebuild_interaction_styles();
+        true
+    }
+
     pub(crate) fn begin_selection(&mut self, x: f64, y: f64) -> bool {
+        let path = self.element_path_at(x, y);
+        let active_changed = path != self.active_path;
+        if active_changed {
+            self.active_path = path.clone();
+            self.rebuild_interaction_styles();
+        }
         let Some(cursor) = self.hit(x, y) else {
             let changed = self.selection.take().is_some();
             self.selection_anchor = None;
-            return changed;
+            return changed || active_changed;
         };
         self.selection_anchor = Some(cursor);
         self.selection = Some((cursor, cursor));
@@ -244,6 +277,58 @@ impl PageRasterizer {
 
     pub(crate) fn end_selection(&mut self) {
         self.selection_anchor = None;
+    }
+
+    pub(crate) fn end_active(&mut self) -> bool {
+        if self.active_path.is_empty() {
+            return false;
+        }
+        self.active_path.clear();
+        self.rebuild_interaction_styles();
+        true
+    }
+
+    fn element_path_at(&self, x: f64, y: f64) -> Vec<usize> {
+        let Some(cursor) = self.hit(x, y) else {
+            return Vec::new();
+        };
+        self.cursor_spans
+            .iter()
+            .find(|span| {
+                span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
+            })
+            .or_else(|| {
+                self.cursor_spans
+                    .iter()
+                    .rev()
+                    .find(|span| span.line == cursor.line && cursor.index == span.end)
+            })
+            .map_or_else(Vec::new, |span| span.element_path.clone())
+    }
+
+    fn rebuild_interaction_styles(&mut self) {
+        let (compiled_runs, root_style) = compile_runs(
+            &self.nodes,
+            &self.stylesheet,
+            &self.hovered_path,
+            &self.active_path,
+        );
+        self.runs = compiled_runs
+            .into_iter()
+            .flat_map(|run| {
+                let family = resolve_family_list(&run.style.family, &self.font_system);
+                if font_features::supports_caps_features(&self.font_system, &family, &run.style) {
+                    vec![run]
+                } else {
+                    synthesize_font_variant_caps(run)
+                }
+            })
+            .collect();
+        self.cursor_spans = cursor_spans(&self.runs);
+        self.root_style = root_style;
+        if let Some((width, height)) = self.layout_size {
+            self.prepare_layout(width, height);
+        }
     }
 
     fn hit(&self, x: f64, y: f64) -> Option<Cursor> {
@@ -419,6 +504,7 @@ struct CursorSpan {
     end: usize,
     icon: CursorIcon,
     hidden: bool,
+    element_path: Vec<usize>,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -439,6 +525,7 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 end,
                 icon: run.style.cursor,
                 hidden: run.style.cursor_hidden,
+                element_path: run.element_path.clone(),
             });
             index = end;
         }

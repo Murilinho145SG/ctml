@@ -15,6 +15,7 @@ pub struct SelectorSibling {
     pub element: ElementIdentity,
     pub attributes: Vec<(String, Option<String>)>,
     pub position: SelectorPosition,
+    pub node_id: usize,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -25,6 +26,8 @@ pub struct SelectorPosition {
     pub type_count: usize,
     pub is_empty: bool,
     pub is_root: bool,
+    pub is_hovered: bool,
+    pub is_active: bool,
 }
 
 pub fn selector_matches(

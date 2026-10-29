@@ -29,7 +29,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Child (`>`) combinator.
 - [x] Adjacent sibling (`+`) and general sibling (`~`) combinators.
 - [x] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
-- [ ] Stateful pseudo-classes: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
+- [x] Pointer-state pseudo-classes `:hover` and `:active` for text-bearing CTML elements.
+- [ ] Focus and form-state pseudo-classes: `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [ ] Relational selector `:has()`.
 - [ ] Language and direction selectors: `:lang()` and `:dir()`.

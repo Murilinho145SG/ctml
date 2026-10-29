@@ -107,6 +107,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
             },
             attributes: Vec::new(),
             position: SelectorPosition::default(),
+            node_id: 0,
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -116,6 +117,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
             },
             attributes: Vec::new(),
             position: SelectorPosition::default(),
+            node_id: 0,
         },
     ];
     let stylesheet = [
@@ -167,6 +169,7 @@ fn structural_pseudo_classes_apply_styles_from_element_positions() {
         type_count: 2,
         is_empty: true,
         is_root: false,
+        ..SelectorPosition::default()
     };
     let stylesheet = [
         StyleRule {
@@ -201,6 +204,72 @@ fn structural_pseudo_classes_apply_styles_from_element_positions() {
 
     assert_eq!(style.color, [255, 0, 0, 255]);
     assert_eq!(style.weight, Weight(700));
+}
+
+#[test]
+fn hover_and_active_pseudo_classes_follow_pointer_state() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("target".to_owned()),
+        id: None,
+    };
+    let hovered = SelectorPosition {
+        is_hovered: true,
+        ..SelectorPosition::default()
+    };
+    let active = SelectorPosition {
+        is_hovered: true,
+        is_active: true,
+        ..SelectorPosition::default()
+    };
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p:hover".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p:active".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+
+    let hover_style = resolve_style_with_tree_inline_context(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        hovered,
+        &[],
+        None,
+        &stylesheet,
+    );
+    let active_style = resolve_style_with_tree_inline_context(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        active,
+        &[],
+        None,
+        &stylesheet,
+    );
+
+    assert_eq!(hover_style.color, [255, 0, 0, 255]);
+    assert_eq!(hover_style.weight, Weight(400));
+    assert_eq!(active_style.color, [255, 0, 0, 255]);
+    assert_eq!(active_style.weight, Weight(700));
 }
 
 #[test]

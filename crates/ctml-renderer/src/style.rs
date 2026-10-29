@@ -13,7 +13,20 @@ pub(super) use text_style::{
 pub(super) fn compile_runs(
     nodes: &[UiNode],
     stylesheet: &[StyleRule],
+    hovered_path: &[usize],
+    active_path: &[usize],
 ) -> (Vec<TextRun>, TextStyle) {
+    let root_position = SelectorPosition {
+        child_count: nodes
+            .iter()
+            .filter(|node| matches!(node, UiNode::Element { .. }))
+            .count(),
+        is_empty: nodes.is_empty(),
+        is_root: true,
+        is_hovered: !hovered_path.is_empty(),
+        is_active: !active_path.is_empty(),
+        ..SelectorPosition::default()
+    };
     let mut root_style = TextStyle::default();
     let body = ElementIdentity {
         tag: "body".to_owned(),
@@ -23,30 +36,16 @@ pub(super) fn compile_runs(
     css_style::apply_matching_styles_with_position(
         &mut root_style,
         &body,
-        SelectorPosition {
-            child_count: nodes
-                .iter()
-                .filter(|node| matches!(node, UiNode::Element { .. }))
-                .count(),
-            is_empty: nodes.is_empty(),
-            is_root: true,
-            ..SelectorPosition::default()
-        },
+        root_position,
         stylesheet,
     );
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];
     let mut path_siblings = vec![Vec::new()];
-    let mut path_positions = vec![SelectorPosition {
-        child_count: nodes
-            .iter()
-            .filter(|node| matches!(node, UiNode::Element { .. }))
-            .count(),
-        is_empty: nodes.is_empty(),
-        is_root: true,
-        ..SelectorPosition::default()
-    }];
+    let mut path_positions = vec![root_position];
+    let mut element_path = Vec::new();
+    let mut next_node_id = 0;
     let mut last_was_space = true;
     let mut capitalize_next = true;
     collect_runs(
@@ -56,6 +55,10 @@ pub(super) fn compile_runs(
         &mut path_attributes,
         &mut path_siblings,
         &mut path_positions,
+        &mut element_path,
+        &mut next_node_id,
+        hovered_path,
+        active_path,
         &root_style,
         &mut runs,
         &mut last_was_space,
@@ -68,6 +71,7 @@ pub(super) fn compile_runs(
 pub(super) struct TextRun {
     pub(super) text: String,
     pub(super) style: TextStyle,
+    pub(super) element_path: Vec<usize>,
 }
 
 fn collect_runs(
@@ -77,18 +81,27 @@ fn collect_runs(
     path_attributes: &mut Vec<Vec<(String, Option<String>)>>,
     path_siblings: &mut Vec<Vec<SelectorSibling>>,
     path_positions: &mut Vec<SelectorPosition>,
+    element_path: &mut Vec<usize>,
+    next_node_id: &mut usize,
+    hovered_path: &[usize],
+    active_path: &[usize],
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
-    let siblings = selector_sibling_contexts(nodes);
+    let siblings = selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path);
     let mut element_index = 0;
     for node in nodes {
         match node {
-            UiNode::Text(text) => {
-                append_text(text, inherited, output, last_was_space, capitalize_next)
-            }
+            UiNode::Text(text) => append_text(
+                text,
+                inherited,
+                element_path,
+                output,
+                last_was_space,
+                capitalize_next,
+            ),
             UiNode::Element {
                 tag,
                 class,
@@ -122,10 +135,11 @@ fn collect_runs(
                 );
                 let block = is_block(tag);
                 if block {
-                    push_line_break(output, &style, last_was_space);
+                    push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
                 }
                 path.push(identity);
+                element_path.push(sibling.node_id);
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
@@ -136,18 +150,23 @@ fn collect_runs(
                     path_attributes,
                     path_siblings,
                     path_positions,
+                    element_path,
+                    next_node_id,
+                    hovered_path,
+                    active_path,
                     &style,
                     output,
                     last_was_space,
                     capitalize_next,
                 );
                 path.pop();
+                element_path.pop();
                 path_attributes.pop();
                 path_siblings.pop();
                 path_positions.pop();
                 element_index += 1;
                 if block {
-                    push_line_break(output, &style, last_was_space);
+                    push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
                 }
             }
@@ -155,7 +174,12 @@ fn collect_runs(
     }
 }
 
-fn selector_sibling_contexts(nodes: &[UiNode]) -> Vec<SelectorSibling> {
+fn selector_sibling_contexts(
+    nodes: &[UiNode],
+    next_node_id: &mut usize,
+    hovered_path: &[usize],
+    active_path: &[usize],
+) -> Vec<SelectorSibling> {
     let elements = nodes
         .iter()
         .filter_map(|node| match node {
@@ -181,6 +205,8 @@ fn selector_sibling_contexts(nodes: &[UiNode]) -> Vec<SelectorSibling> {
                 .iter()
                 .filter(|(other_tag, _, _, _, _)| other_tag.eq_ignore_ascii_case(tag))
                 .count();
+            let node_id = *next_node_id;
+            *next_node_id += 1;
             SelectorSibling {
                 element: ElementIdentity {
                     tag: (*tag).clone(),
@@ -197,7 +223,10 @@ fn selector_sibling_contexts(nodes: &[UiNode]) -> Vec<SelectorSibling> {
                         .iter()
                         .all(|child| matches!(child, UiNode::Text(text) if text.is_empty())),
                     is_root: false,
+                    is_hovered: hovered_path.contains(&node_id),
+                    is_active: active_path.contains(&node_id),
                 },
+                node_id,
             }
         })
         .collect()
@@ -206,6 +235,7 @@ fn selector_sibling_contexts(nodes: &[UiNode]) -> Vec<SelectorSibling> {
 fn append_text(
     text: &str,
     style: &TextStyle,
+    element_path: &[usize],
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
@@ -213,7 +243,7 @@ fn append_text(
     for character in text.chars() {
         if character.is_whitespace() {
             if !*last_was_space {
-                push_character(' ', style, output);
+                push_character(' ', style, element_path, output);
             }
             *last_was_space = true;
             *capitalize_next = true;
@@ -221,20 +251,20 @@ fn append_text(
             match style.text_transform {
                 TextTransform::Uppercase => {
                     for transformed in character.to_uppercase() {
-                        push_variant_character(transformed, style, output);
+                        push_variant_character(transformed, style, element_path, output);
                     }
                 }
                 TextTransform::Lowercase => {
                     for transformed in character.to_lowercase() {
-                        push_variant_character(transformed, style, output);
+                        push_variant_character(transformed, style, element_path, output);
                     }
                 }
                 TextTransform::Capitalize if *capitalize_next => {
                     for transformed in character.to_uppercase() {
-                        push_variant_character(transformed, style, output);
+                        push_variant_character(transformed, style, element_path, output);
                     }
                 }
-                _ => push_variant_character(character, style, output),
+                _ => push_variant_character(character, style, element_path, output),
             }
             *last_was_space = false;
             *capitalize_next = !character.is_alphanumeric();
@@ -242,8 +272,13 @@ fn append_text(
     }
 }
 
-fn push_variant_character(character: char, style: &TextStyle, output: &mut Vec<TextRun>) {
-    push_character(character, style, output);
+fn push_variant_character(
+    character: char,
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+) {
+    push_character(character, style, element_path, output);
 }
 
 pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
@@ -267,36 +302,48 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
                 0.0
             };
             for uppercase in character.to_uppercase() {
-                push_character(uppercase, &style, &mut output);
+                push_character(uppercase, &style, &run.element_path, &mut output);
             }
         } else {
-            push_character(character, &style, &mut output);
+            push_character(character, &style, &run.element_path, &mut output);
         }
     }
     output
 }
 
-fn push_line_break(output: &mut Vec<TextRun>, style: &TextStyle, last_was_space: &mut bool) {
+fn push_line_break(
+    output: &mut Vec<TextRun>,
+    style: &TextStyle,
+    element_path: &[usize],
+    last_was_space: &mut bool,
+) {
     if let Some(last) = output.last_mut() {
         while last.text.ends_with(' ') {
             last.text.pop();
         }
         if !last.text.ends_with('\n') {
-            push_character('\n', style, output);
+            push_character('\n', style, element_path, output);
         }
     }
     *last_was_space = true;
 }
 
-fn push_character(character: char, style: &TextStyle, output: &mut Vec<TextRun>) {
+fn push_character(
+    character: char,
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+) {
     if let Some(last) = output.last_mut()
         && last.style == *style
+        && last.element_path == element_path
     {
         last.text.push(character);
     } else {
         output.push(TextRun {
             text: character.to_string(),
             style: style.clone(),
+            element_path: element_path.to_vec(),
         });
     }
 }

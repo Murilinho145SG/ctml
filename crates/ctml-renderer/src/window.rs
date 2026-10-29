@@ -196,6 +196,11 @@ impl ApplicationHandler for WindowApplication {
             WindowEvent::CursorLeft { .. } => {
                 window.set_cursor(CursorIcon::Default);
                 window.set_cursor_visible(true);
+                if let Some(renderer) = self.renderer.as_mut()
+                    && renderer.pointer_left()
+                {
+                    window.request_redraw();
+                }
             }
             WindowEvent::MouseInput { state, button, .. } => {
                 if button == winit::event::MouseButton::Left {
@@ -218,7 +223,9 @@ impl ApplicationHandler for WindowApplication {
                             self.double_click_active = is_double_click;
                             if let Some(renderer) = self.renderer.as_mut() {
                                 let changed = if is_double_click {
-                                    renderer.select_word_at(self.cursor_position)
+                                    let active_changed =
+                                        renderer.mouse_input(state, button, self.cursor_position);
+                                    renderer.select_word_at(self.cursor_position) || active_changed
                                 } else {
                                     renderer.mouse_input(state, button, self.cursor_position)
                                 };
@@ -228,8 +235,10 @@ impl ApplicationHandler for WindowApplication {
                             }
                         }
                         winit::event::ElementState::Released => {
-                            if let Some(renderer) = self.renderer.as_mut() {
-                                renderer.mouse_input(state, button, self.cursor_position);
+                            if let Some(renderer) = self.renderer.as_mut()
+                                && renderer.mouse_input(state, button, self.cursor_position)
+                            {
+                                window.request_redraw();
                             }
                             if !self.dragged_during_click && !self.double_click_active {
                                 self.last_click = Some((Instant::now(), self.cursor_position));

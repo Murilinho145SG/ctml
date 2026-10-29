@@ -148,9 +148,14 @@ impl Renderer {
         &mut self,
         position: PhysicalPosition<f64>,
     ) -> (CursorIcon, bool, bool) {
-        let changed = self.page.extend_selection(position.x, position.y);
+        let hover_changed = self.page.update_hover(position.x, position.y);
+        let selection_changed = self.page.extend_selection(position.x, position.y);
         let (cursor, visible) = self.page.cursor_at(position.x, position.y);
-        (cursor, visible, changed)
+        (cursor, visible, hover_changed || selection_changed)
+    }
+
+    pub(super) fn pointer_left(&mut self) -> bool {
+        self.page.clear_hover()
     }
 
     pub(super) fn select_word_at(&mut self, position: PhysicalPosition<f64>) -> bool {
@@ -170,7 +175,7 @@ impl Renderer {
             ElementState::Pressed => self.page.begin_selection(position.x, position.y),
             ElementState::Released => {
                 self.page.end_selection();
-                false
+                self.page.end_active()
             }
         }
     }

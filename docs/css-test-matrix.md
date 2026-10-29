@@ -32,6 +32,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Descendant and direct-child combinators | `selector-matrix`, `child-selector` | descendant and child matching |
 | Adjacent and general sibling combinators | `sibling-selectors` | sibling matching, chained relations, and renderer cascade |
 | Structural pseudo-classes and type equivalents | `structural-selectors` | root, empty, child/type positions, An+B formulas, and renderer cascade |
+| Pointer-state pseudo-classes | — | selector-state cascade and live text rerender tests for hover/active |
 | Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
 | Inline style attributes and importance ordering | `inline-style` | Declaration-list parser and renderer cascade tests |
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
