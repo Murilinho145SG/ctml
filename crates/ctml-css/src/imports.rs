@@ -4,7 +4,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use crate::{Stylesheet, parse_stylesheet};
+use crate::{Stylesheet, comments::strip_utf8_bom_and_comments, parse_stylesheet};
 
 /// Loads a local stylesheet and expands quoted, relative `@import` rules in place.
 ///
@@ -54,6 +54,8 @@ fn expand_file(
 
     let source = fs::read_to_string(&path)
         .map_err(|error| format!("cannot read stylesheet {}: {error}", path.display()))?;
+    let source = strip_utf8_bom_and_comments(&source)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
     if !dependencies.contains(&path) {
         dependencies.push(path.clone());
     }

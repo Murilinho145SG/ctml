@@ -10,7 +10,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [x] Parse style rules and declarations at build time.
 - [x] Parse multiple linked stylesheets in document header order.
 - [x] Support local `@import` resolution at build time, preserving import order and rejecting cycles or paths outside the stylesheet root.
-- [ ] Define stylesheet encoding and comment handling behavior.
+- [x] Require UTF-8 stylesheet files, accept and remove an optional UTF-8 BOM, discard comments outside strings, and report unterminated comments; `@charset` does not select another encoding.
 - [ ] Implement complete CSS tokenization, escapes, strings, comments, and error recovery.
 - [ ] Report malformed stylesheet syntax with file and source locations.
 - [ ] Define how invalid declarations and unknown properties are diagnosed.

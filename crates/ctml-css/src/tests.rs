@@ -11,6 +11,22 @@ fn parses_rules_groups_declarations_and_important_values() {
 }
 
 #[test]
+fn strips_css_comments_and_accepts_a_utf8_bom() {
+    let stylesheet = parse_stylesheet(
+        "\u{feff}/* heading */ p/**/.notice { color: red/* inline */; content: \"/* literal */\"; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.rules[0].selectors, ["p.notice"]);
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "red");
+    assert_eq!(
+        stylesheet.rules[0].declarations[1].value,
+        "\"/* literal */\""
+    );
+    assert!(parse_stylesheet("/* unterminated").is_err());
+}
+
+#[test]
 fn matches_type_class_id_descendant_and_child_selectors() {
     let body = ElementIdentity {
         tag: "body".to_owned(),
@@ -232,6 +248,19 @@ fn rejects_import_cycles_and_paths_outside_the_root() {
     let late = super::parse_stylesheet_file(root.join("late.css"), &root)
         .expect_err("imports after qualified rules should be rejected");
     assert!(late.contains("must precede qualified rules"));
+    std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
+}
+
+#[test]
+fn stylesheet_files_require_utf8_encoding() {
+    let root = temporary_directory("encoding");
+    std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
+    std::fs::write(root.join("invalid.css"), [0xff, 0xfe])
+        .expect("invalid UTF-8 stylesheet should be written");
+
+    let error = super::parse_stylesheet_file(root.join("invalid.css"), &root)
+        .expect_err("non-UTF-8 stylesheet files should be rejected");
+    assert!(error.contains("valid UTF-8"));
     std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
 }
 

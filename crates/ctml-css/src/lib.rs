@@ -1,6 +1,7 @@
 use cssparser::{Delimiter, Parser, ParserInput};
 
 mod color;
+mod comments;
 mod imports;
 mod length;
 mod selector;
@@ -38,7 +39,8 @@ pub struct CssDeclaration {
 /// Selectors and values are retained as source text for the native styling layer.
 /// At-rules are outside the initial CTML CSS subset.
 pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
-    let mut source = ParserInput::new(source);
+    let source = comments::strip_utf8_bom_and_comments(source)?;
+    let mut source = ParserInput::new(&source);
     let mut input = Parser::new(&mut source);
     let mut rules = Vec::new();
 

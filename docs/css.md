@@ -21,6 +21,8 @@ Each stylesheet path is relative to the Rust application's `src/` directory.
 
 Stylesheets can import local files with a quoted path or `url()`, for example `@import "shared/colors.css";`. Imported rules are expanded where the import appears, and nested imports resolve relative to their importing file. Imports cannot escape the application's `src/` directory or form cycles. Network URLs, import media qualifiers, and escaped import paths are currently rejected. Imported files are tracked as build dependencies so Cargo recompiles the application when they change.
 
+Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments are discarded outside quoted strings, and an unterminated comment is an error. The legacy `@charset` rule does not change decoding and is unsupported.
+
 ```css
 body {
     font-family: sans-serif;
