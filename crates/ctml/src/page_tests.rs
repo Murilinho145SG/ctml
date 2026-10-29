@@ -20,7 +20,7 @@ mod progress;
 const WIDTH: u32 = 640;
 const HEIGHT: u32 = 360;
 const CHANNEL_TOLERANCE: u8 = 16;
-const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.005;
+const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.0005;
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 

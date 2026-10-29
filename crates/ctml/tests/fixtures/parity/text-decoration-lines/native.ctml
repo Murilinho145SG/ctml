@@ -1,9 +1,9 @@
 <headers><application name="Text decoration lines parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
 <body>
-    <p class="none">Aa</p>
-    <p class="underline">Aa</p>
-    <p class="overline">Aa</p>
-    <p class="strike">Aa</p>
-    <p class="all">Aa</p>
-    <p class="color">Aa</p>
+    <p class="none">A</p>
+    <p class="underline">A</p>
+    <p class="overline">A</p>
+    <p class="strike">A</p>
+    <p class="all">A</p>
+    <p class="color">A</p>
 </body>

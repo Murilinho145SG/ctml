@@ -4,5 +4,5 @@
 </headers>
 
 <body>
-    <p class="sample">H<span class="sub">2</span>O</p>
+    <p class="sample">x<span class="sub">2</span></p>
 </body>
