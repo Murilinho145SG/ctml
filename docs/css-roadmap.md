@@ -122,7 +122,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
 - [ ] Other predefined and custom color profiles, perceptual gamut mapping, and full CSS missing-component handling.
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
-- [ ] `color-mix()` and relative color syntax.
+- [x] `color-mix(in srgb, ...)` with two supported colors, optional percentages, nested color functions, and alpha-aware interpolation.
+- [ ] Other `color-mix()` interpolation spaces and relative color syntax.
 - [ ] System colors and forced-color behavior where supported by the host OS.
 - [x] Alpha colors for text and page background, including page-background compositing over white.
 - [ ] Element `opacity` and group compositing.

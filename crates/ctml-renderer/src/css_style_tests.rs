@@ -320,6 +320,20 @@ fn resolves_alpha_text_color_and_blends_page_background_with_white() {
 }
 
 #[test]
+fn resolves_srgb_color_mix_for_text_and_page_background() {
+    let style = style_for_declarations(&[
+        ("color", "color-mix(in srgb, transparent, red)"),
+        (
+            "background-color",
+            "color-mix(in srgb, #0000ff 25%, white 75%)",
+        ),
+    ]);
+
+    assert_eq!(style.color, [255, 0, 0, 128]);
+    assert_eq!(style.background, [191, 191, 255]);
+}
+
+#[test]
 fn resolves_transparent_text_and_page_background() {
     let style = style_for_declarations(&[
         ("color", "transparent"),

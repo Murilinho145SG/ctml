@@ -1,6 +1,7 @@
 use cssparser::{Parser, ParserInput, Token};
 
 mod color4;
+mod mix;
 
 pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
@@ -8,6 +9,13 @@ pub fn parse_color(value: &str) -> Option<[u8; 4]> {
 }
 
 pub fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
+    parse_color_with_opacity_depth(value, 0)
+}
+
+pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
+    if depth > 32 {
+        return None;
+    }
     let value = value.trim();
     if value.eq_ignore_ascii_case("transparent") {
         return Some(([0, 0, 0], 0.0));
@@ -22,10 +30,13 @@ pub fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
         return Some(([red, green, blue], 1.0));
     }
 
-    parse_function_color(value)
+    parse_function_color(value, depth)
 }
 
-fn parse_function_color(value: &str) -> Option<([u8; 3], f32)> {
+fn parse_function_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
+    if let Some(color) = mix::parse_color_mix(value, depth) {
+        return Some(color);
+    }
     if let Some(color) = color4::parse_color_function(value) {
         return Some(color);
     }
@@ -299,5 +310,52 @@ mod tests {
             Some([255, 0, 0, 128])
         );
         assert_eq!(parse_color("lab(50% nope 0)"), None);
+    }
+
+    #[test]
+    fn parses_srgb_color_mixes_with_default_and_explicit_weights() {
+        assert_eq!(
+            parse_color("color-mix(in srgb, red, blue)"),
+            Some([128, 0, 128, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb, red 25%, blue)"),
+            Some([64, 0, 191, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb, red, blue 25%)"),
+            Some([191, 0, 64, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb, red 25%, blue 25%)"),
+            Some([128, 0, 128, 128])
+        );
+    }
+
+    #[test]
+    fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
+        assert_eq!(
+            parse_color("color-mix(in srgb, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+        assert_eq!(
+            parse_color(
+                "color-mix(in srgb, rgb(255 0 0 / 50%) 50%, color-mix(in srgb, blue, white) 50%)"
+            ),
+            Some([170, 85, 170, 191])
+        );
+    }
+
+    #[test]
+    fn rejects_unsupported_or_invalid_color_mix_syntax() {
+        for value in [
+            "color-mix(in oklab, red, blue)",
+            "color-mix(in srgb, red -10%, blue)",
+            "color-mix(in srgb, red 0%, blue 0%)",
+            "color-mix(in srgb, red 80%, blue 30%, white)",
+            "color-mix(in srgb, red, nope)",
+        ] {
+            assert_eq!(parse_color(value), None, "unexpectedly parsed {value}");
+        }
     }
 }
