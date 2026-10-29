@@ -3,7 +3,7 @@ use winit::window::CursorIcon;
 
 use super::{
     ElementIdentity, apply_matching_styles, apply_matching_styles_with_attributes, resolve_style,
-    resolve_style_with_inline_context,
+    resolve_style_with_inline_context, resolve_style_with_tree_inline_context,
 };
 use crate::{
     StyleDeclaration, StyleRule,
@@ -12,6 +12,7 @@ use crate::{
         TextStyle, TextTransform,
     },
 };
+use ctml_css::SelectorSibling;
 
 fn style_for(property: &str, value: &str) -> TextStyle {
     let rule = StyleRule {
@@ -88,6 +89,64 @@ fn inline_style_uses_author_cascade_priority_and_importance() {
     assert_eq!(style.weight, Weight(400));
     assert_eq!(style.text_transform, TextTransform::Uppercase);
     assert_eq!(style.cursor, CursorIcon::Help);
+}
+
+#[test]
+fn sibling_selectors_apply_styles_to_elements_in_document_order() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("target".to_owned()),
+        id: None,
+    };
+    let previous = [
+        SelectorSibling {
+            element: ElementIdentity {
+                tag: "h1".to_owned(),
+                class: Some("title".to_owned()),
+                id: None,
+            },
+            attributes: Vec::new(),
+        },
+        SelectorSibling {
+            element: ElementIdentity {
+                tag: "div".to_owned(),
+                class: None,
+                id: None,
+            },
+            attributes: Vec::new(),
+        },
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div + p.target".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["h1 ~ p.target".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+
+    let style = resolve_style_with_tree_inline_context(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[],
+        &[],
+        &previous,
+        &[],
+        None,
+        &stylesheet,
+    );
+
+    assert_eq!(style.color, [255, 0, 0, 255]);
+    assert_eq!(style.weight, Weight(700));
 }
 
 #[test]

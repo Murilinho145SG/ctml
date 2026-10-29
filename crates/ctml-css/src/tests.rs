@@ -1,4 +1,6 @@
-use super::{ElementIdentity, parse_stylesheet, selector_matches, selector_specificity};
+use super::{
+    ElementIdentity, SelectorSibling, parse_stylesheet, selector_matches, selector_specificity,
+};
 
 #[test]
 fn parses_rules_groups_declarations_and_important_values() {
@@ -182,6 +184,74 @@ fn matches_attribute_selectors_on_ancestors() {
         &ancestors,
         &[],
         &[ancestor_attributes],
+    ));
+}
+
+#[test]
+fn matches_adjacent_and_general_sibling_combinators_with_chains() {
+    let previous = [
+        SelectorSibling {
+            element: ElementIdentity {
+                tag: "h1".to_owned(),
+                class: Some("title".to_owned()),
+                id: None,
+            },
+            attributes: Vec::new(),
+        },
+        SelectorSibling {
+            element: ElementIdentity {
+                tag: "p".to_owned(),
+                class: Some("intro".to_owned()),
+                id: None,
+            },
+            attributes: Vec::new(),
+        },
+        SelectorSibling {
+            element: ElementIdentity {
+                tag: "hr".to_owned(),
+                class: None,
+                id: None,
+            },
+            attributes: Vec::new(),
+        },
+    ];
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("body".to_owned()),
+        id: None,
+    };
+
+    for selector in ["hr + p", "h1 ~ p", "h1 + p.intro + hr + p.body"] {
+        assert!(
+            super::selector_matches_with_tree_context(
+                selector,
+                &current,
+                &[],
+                &[],
+                &[],
+                &previous,
+                &[],
+            ),
+            "{selector}"
+        );
+    }
+    assert!(!super::selector_matches_with_tree_context(
+        "h1 + p.body",
+        &current,
+        &[],
+        &[],
+        &[],
+        &previous,
+        &[],
+    ));
+    assert!(!super::selector_matches_with_tree_context(
+        "h1 ~ p.body + p",
+        &current,
+        &[],
+        &[],
+        &[],
+        &previous,
+        &[],
     ));
 }
 

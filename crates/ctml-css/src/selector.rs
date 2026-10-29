@@ -1,8 +1,20 @@
+mod list;
+mod specificity;
+
+use list::split_selector_list;
+pub use specificity::selector_specificity;
+
 #[derive(Clone)]
 pub struct ElementIdentity {
     pub tag: String,
     pub class: Option<String>,
     pub id: Option<String>,
+}
+
+#[derive(Clone)]
+pub struct SelectorSibling {
+    pub element: ElementIdentity,
+    pub attributes: Vec<(String, Option<String>)>,
 }
 
 pub fn selector_matches(
@@ -29,64 +41,143 @@ pub fn selector_matches_with_context(
     attributes: &[(String, Option<String>)],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
 ) -> bool {
+    selector_matches_with_tree_context(
+        selector,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        &[],
+        &[],
+    )
+}
+
+pub fn selector_matches_with_tree_context(
+    selector: &str,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
+) -> bool {
     let Some(compounds) = selector_compounds(selector) else {
         return false;
     };
-    let Some((last, _)) = compounds.last() else {
+    match_selector_chain(
+        &compounds,
+        compounds.len().checked_sub(1),
+        current,
+        attributes,
+        ancestors,
+        ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn match_selector_chain(
+    compounds: &[(String, SelectorRelation)],
+    index: Option<usize>,
+    current: &ElementIdentity,
+    attributes: &[(String, Option<String>)],
+    ancestors: &[ElementIdentity],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
+) -> bool {
+    let Some(index) = index else {
         return false;
     };
-    if !compound_matches(last, current, attributes, ancestors, ancestor_attributes) {
+    if !compound_matches(
+        &compounds[index].0,
+        current,
+        attributes,
+        ancestors,
+        ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
+    ) {
         return false;
     }
-    let mut ancestor_index = ancestors.len();
-    for index in (0..compounds.len() - 1).rev() {
-        let (compound, _) = &compounds[index];
-        match compounds[index + 1].1 {
-            SelectorRelation::Child => {
-                let Some(parent_index) = ancestor_index.checked_sub(1) else {
-                    return false;
-                };
-                if !compound_matches(
-                    compound,
-                    &ancestors[parent_index],
-                    ancestor_attributes
-                        .get(parent_index)
-                        .map_or(&[], Vec::as_slice),
-                    &ancestors[..parent_index],
-                    &ancestor_attributes[..parent_index.min(ancestor_attributes.len())],
-                ) {
-                    return false;
-                }
-                ancestor_index = parent_index;
-            }
-            SelectorRelation::Descendant => {
-                let Some(found) = ancestors[..ancestor_index].iter().enumerate().rposition(
-                    |(index, ancestor)| {
-                        compound_matches(
-                            compound,
-                            ancestor,
-                            ancestor_attributes.get(index).map_or(&[], Vec::as_slice),
-                            &ancestors[..index],
-                            &ancestor_attributes[..index.min(ancestor_attributes.len())],
-                        )
-                    },
-                ) else {
-                    return false;
-                };
-                ancestor_index = found;
-            }
+    if index == 0 {
+        return true;
+    }
+    let recurse = |candidate: &SelectorSibling, prior: &[SelectorSibling]| {
+        match_selector_chain(
+            compounds,
+            Some(index - 1),
+            &candidate.element,
+            &candidate.attributes,
+            ancestors,
+            ancestor_attributes,
+            prior,
+            &siblings_before_ancestors[..ancestors.len().min(siblings_before_ancestors.len())],
+        )
+    };
+    match compounds[index].1 {
+        SelectorRelation::Child => ancestors.len().checked_sub(1).is_some_and(|parent_index| {
+            match_selector_chain(
+                compounds,
+                Some(index - 1),
+                &ancestors[parent_index],
+                ancestor_attributes
+                    .get(parent_index)
+                    .map_or(&[], Vec::as_slice),
+                &ancestors[..parent_index],
+                &ancestor_attributes[..parent_index.min(ancestor_attributes.len())],
+                siblings_before_ancestors
+                    .get(parent_index)
+                    .map_or(&[], Vec::as_slice),
+                &siblings_before_ancestors[..parent_index.min(siblings_before_ancestors.len())],
+            )
+        }),
+        SelectorRelation::Descendant => (0..ancestors.len()).rev().any(|ancestor_index| {
+            match_selector_chain(
+                compounds,
+                Some(index - 1),
+                &ancestors[ancestor_index],
+                ancestor_attributes
+                    .get(ancestor_index)
+                    .map_or(&[], Vec::as_slice),
+                &ancestors[..ancestor_index],
+                &ancestor_attributes[..ancestor_index.min(ancestor_attributes.len())],
+                siblings_before_ancestors
+                    .get(ancestor_index)
+                    .map_or(&[], Vec::as_slice),
+                &siblings_before_ancestors[..ancestor_index.min(siblings_before_ancestors.len())],
+            )
+        }),
+        SelectorRelation::AdjacentSibling => {
+            siblings_before_current.last().is_some_and(|candidate| {
+                recurse(
+                    candidate,
+                    &siblings_before_current[..siblings_before_current.len() - 1],
+                )
+            })
+        }
+        SelectorRelation::GeneralSibling => {
+            siblings_before_current
+                .iter()
+                .enumerate()
+                .rev()
+                .any(|(candidate_index, candidate)| {
+                    recurse(candidate, &siblings_before_current[..candidate_index])
+                })
         }
     }
-    true
 }
 
 #[derive(Clone, Copy)]
-enum SelectorRelation {
+pub(super) enum SelectorRelation {
     Descendant,
     Child,
+    AdjacentSibling,
+    GeneralSibling,
 }
 
-fn selector_compounds(selector: &str) -> Option<Vec<(String, SelectorRelation)>> {
+pub(super) fn selector_compounds(selector: &str) -> Option<Vec<(String, SelectorRelation)>> {
     let mut compounds = Vec::new();
     let mut start = None;
     let mut relation = SelectorRelation::Descendant;
@@ -125,17 +216,20 @@ fn selector_compounds(selector: &str) -> Option<Vec<(String, SelectorRelation)>>
             paren_depth = 1;
             continue;
         }
-        if character.is_ascii_whitespace() || character == '>' {
+        if character.is_ascii_whitespace() || matches!(character, '>' | '+' | '~') {
             if let Some(compound_start) = start.take() {
                 compounds.push((selector[compound_start..index].to_owned(), relation));
                 relation = SelectorRelation::Descendant;
-            } else if character == '>'
-                && (compounds.is_empty() || matches!(relation, SelectorRelation::Child))
+            } else if matches!(character, '>' | '+' | '~')
+                && (compounds.is_empty() || !matches!(relation, SelectorRelation::Descendant))
             {
                 return None;
             }
-            if character == '>' {
-                relation = SelectorRelation::Child;
+            relation = match character {
+                '>' => SelectorRelation::Child,
+                '+' => SelectorRelation::AdjacentSibling,
+                '~' => SelectorRelation::GeneralSibling,
+                _ => relation,
             }
         } else if start.is_none() {
             start = Some(index);
@@ -155,6 +249,8 @@ fn compound_matches(
     attributes: &[(String, Option<String>)],
     ancestors: &[ElementIdentity],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
 ) -> bool {
     if compound == "*" {
         return true;
@@ -217,12 +313,14 @@ fn compound_matches(
                 .map(str::trim)
                 .filter(|selector| !selector.is_empty())
                 .any(|selector| {
-                    selector_matches_with_context(
+                    selector_matches_with_tree_context(
                         selector,
                         element,
                         ancestors,
                         attributes,
                         ancestor_attributes,
+                        siblings_before_current,
+                        siblings_before_ancestors,
                     )
                 });
             let pseudo_matches = match compound[name_start..cursor].to_ascii_lowercase().as_str() {
@@ -267,7 +365,7 @@ fn compound_matches(
     true
 }
 
-fn attribute_selector_end(selector: &str, start: usize) -> Option<usize> {
+pub(super) fn attribute_selector_end(selector: &str, start: usize) -> Option<usize> {
     let mut quote = None;
     for (offset, character) in selector[start + 1..].char_indices() {
         match (quote, character) {
@@ -280,7 +378,7 @@ fn attribute_selector_end(selector: &str, start: usize) -> Option<usize> {
     None
 }
 
-fn function_selector_end(selector: &str, start: usize) -> Option<usize> {
+pub(super) fn function_selector_end(selector: &str, start: usize) -> Option<usize> {
     let mut depth = 0;
     let mut quote = None;
     for (offset, character) in selector[start..].char_indices() {
@@ -298,38 +396,6 @@ fn function_selector_end(selector: &str, start: usize) -> Option<usize> {
         }
     }
     None
-}
-
-fn split_selector_list(source: &str) -> Vec<&str> {
-    let mut selectors = Vec::new();
-    let mut start = 0;
-    let mut bracket_depth = 0;
-    let mut paren_depth = 0;
-    let mut quote = None;
-    for (index, character) in source.char_indices() {
-        if quote.is_some() {
-            if quote == Some(character) {
-                quote = None;
-            }
-            continue;
-        }
-        if character == '"' || character == '\'' {
-            quote = Some(character);
-        } else if character == '[' {
-            bracket_depth += 1;
-        } else if character == ']' {
-            bracket_depth -= 1;
-        } else if bracket_depth == 0 && character == '(' {
-            paren_depth += 1;
-        } else if bracket_depth == 0 && character == ')' {
-            paren_depth -= 1;
-        } else if bracket_depth == 0 && paren_depth == 0 && character == ',' {
-            selectors.push(&source[start..index]);
-            start = index + 1;
-        }
-    }
-    selectors.push(&source[start..]);
-    selectors
 }
 
 fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) -> bool {
@@ -407,71 +473,4 @@ fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) ->
         "*=" => !value.is_empty() && attribute_value.contains(&value),
         _ => false,
     }
-}
-
-pub fn selector_specificity(selector: &str) -> (usize, usize, usize) {
-    let Some(compounds) = selector_compounds(selector) else {
-        return (0, 0, 0);
-    };
-    let mut ids = 0;
-    let mut classes = 0;
-    let mut tags = 0;
-    for (compound, _) in compounds {
-        if !compound.starts_with(['.', '#', '*', '[', ':']) {
-            tags += 1;
-        }
-        let mut cursor = 0;
-        while cursor < compound.len() {
-            let character = compound[cursor..].chars().next().unwrap();
-            if character == '[' {
-                classes += 1;
-                let Some(end) = attribute_selector_end(&compound, cursor) else {
-                    break;
-                };
-                cursor = end + 1;
-                continue;
-            }
-            if character == ':' {
-                cursor += 1;
-                let name_start = cursor;
-                while cursor < compound.len()
-                    && !matches!(
-                        compound.as_bytes()[cursor],
-                        b'(' | b'.' | b'#' | b'[' | b':'
-                    )
-                {
-                    cursor += 1;
-                }
-                let name = compound[name_start..cursor].to_ascii_lowercase();
-                if cursor < compound.len() && compound.as_bytes()[cursor] == b'(' {
-                    if let Some(end) = function_selector_end(&compound, cursor) {
-                        let arguments = split_selector_list(&compound[cursor + 1..end]);
-                        if name == "is" || name == "not" || name == "has" {
-                            let specificity = arguments
-                                .into_iter()
-                                .map(selector_specificity)
-                                .max()
-                                .unwrap_or_default();
-                            ids += specificity.0;
-                            classes += specificity.1;
-                            tags += specificity.2;
-                        } else if name != "where" {
-                            classes += 1;
-                        }
-                        cursor = end + 1;
-                        continue;
-                    }
-                }
-                classes += 1;
-                continue;
-            }
-            match character {
-                '#' => ids += 1,
-                '.' => classes += 1,
-                _ => {}
-            }
-            cursor += character.len_utf8();
-        }
-    }
-    (ids, classes, tags)
 }

@@ -11,8 +11,8 @@ pub(super) use ctml_css::ElementIdentity;
 #[cfg(test)]
 pub(super) use ctml_css::selector_matches;
 use ctml_css::{
-    parse_color, parse_color_with_opacity, parse_length, parse_nonnegative_length,
-    parse_signed_length_percentage, selector_matches_with_context, selector_specificity,
+    SelectorSibling, parse_color, parse_color_with_opacity, parse_length, parse_nonnegative_length,
+    parse_signed_length_percentage, selector_matches_with_tree_context, selector_specificity,
 };
 use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
 
@@ -57,12 +57,38 @@ pub(super) fn resolve_style_with_context(
     )
 }
 
+#[cfg(test)]
 pub(super) fn resolve_style_with_inline_context(
     inherited: &TextStyle,
     current: &ElementIdentity,
     ancestors: &[ElementIdentity],
     attributes: &[(String, Option<String>)],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
+    inline_style: Option<&str>,
+    stylesheet: &[StyleRule],
+) -> TextStyle {
+    resolve_style_with_tree_inline_context(
+        inherited,
+        current,
+        ancestors,
+        attributes,
+        ancestor_attributes,
+        &[],
+        &[],
+        inline_style,
+        stylesheet,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn resolve_style_with_tree_inline_context(
+    inherited: &TextStyle,
+    current: &ElementIdentity,
+    ancestors: &[ElementIdentity],
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) -> TextStyle {
@@ -73,6 +99,8 @@ pub(super) fn resolve_style_with_inline_context(
         ancestors,
         attributes,
         ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
         inline_style,
         stylesheet,
     );
@@ -102,6 +130,8 @@ pub(super) fn apply_matching_styles_with_context(
         ancestors,
         attributes,
         ancestor_attributes,
+        &[],
+        &[],
         None,
         stylesheet,
     );
@@ -113,6 +143,8 @@ fn apply_matching_styles_with_inline_context(
     ancestors: &[ElementIdentity],
     attributes: &[(String, Option<String>)],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) {
@@ -122,6 +154,8 @@ fn apply_matching_styles_with_inline_context(
         ancestors,
         attributes,
         ancestor_attributes,
+        siblings_before_current,
+        siblings_before_ancestors,
         inline_style,
         stylesheet,
     );
@@ -144,6 +178,8 @@ fn apply_matching_styles_inner(
     ancestors: &[ElementIdentity],
     attributes: &[(String, Option<String>)],
     ancestor_attributes: &[Vec<(String, Option<String>)>],
+    siblings_before_current: &[SelectorSibling],
+    siblings_before_ancestors: &[Vec<SelectorSibling>],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) {
@@ -157,12 +193,14 @@ fn apply_matching_styles_inner(
             .selectors
             .iter()
             .filter(|selector| {
-                selector_matches_with_context(
+                selector_matches_with_tree_context(
                     selector,
                     current,
                     ancestors,
                     attributes,
                     ancestor_attributes,
+                    siblings_before_current,
+                    siblings_before_ancestors,
                 )
             })
             .map(|selector| selector_specificity(selector))

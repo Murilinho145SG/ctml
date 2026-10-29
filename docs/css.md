@@ -50,7 +50,7 @@ main .title {
 
 ## Supported CSS subset
 
-- Selectors: type, class, ID, compound, descendant, direct child (`>`), comma-separated groups, `*`, `:is()`, `:where()`, `:not()`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
+- Selectors: type, class, ID, compound, descendant, direct child (`>`), adjacent sibling (`+`), general sibling (`~`), comma-separated groups, `*`, `:is()`, `:where()`, `:not()`, and attribute selectors for presence, exact match, token (`~=`), language prefix (`|=`), prefix (`^=`), suffix (`$=`), substring (`*=`), and ASCII-insensitive (`i`) or sensitive (`s`) matching.
 - Text and page properties: `color`, `background-color` on the page, `font-family`, `font-size` in `px`, `em`, `rem`, `%` relative to the inherited size, and absolute units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`), `font-weight` (`normal`, `bold`, `bolder`, `lighter`, or a numeric value from 1 to 1000), `font-style` (`normal`, `italic`, or `oblique`), `font-stretch` keywords and percentages, `font-kerning` (`auto`, `normal`, or `none`), `font-variant-ligatures` (common, discretionary, historical, and contextual controls), `font-variant-position` (`normal`, `sub`, and `super`), `font-variant` as a shorthand for supported ligature, position, and caps values, `font-variant-caps` (`normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps`), `line-height` as a multiplier or length, `letter-spacing` in `px` or `em`, `text-align` (`left`, `right`, `center`, `justify`, `start`, and `end`), `text-transform`, `text-decoration` with `solid`, `double`, `dotted`, `dashed`, or `wavy` line styles, `text-decoration-color`, `text-decoration-skip-ink` (`auto`, `none`, or `all`), `text-decoration-thickness` (`auto`, `from-font`, or a non-negative length or percentage), `text-underline-offset` (`auto`, signed lengths, or percentages), and `cursor`.
 - `em` font sizes are relative to the inherited size. `rem` currently uses the renderer's 16 CSS pixel root size.
 - `text-transform` supports `none`, `uppercase`, `lowercase`, and `capitalize`. `text-decoration` supports `none`, `underline`, `overline`, and `line-through`; `text-decoration-style` supports `solid`, `double`, `dotted`, `dashed`, and `wavy`.
@@ -71,8 +71,7 @@ Malformed declarations are skipped without a warning, and parsing continues with
 ### Selectors and cascade
 
 - Pseudo-classes and pseudo-elements, such as `:hover`, `:focus`, `:active`, and `::before`.
-- Adjacent-sibling and general-sibling combinators: `+` and `~`.
-- Selector namespaces and escaped identifiers.
+- Selector namespaces and escaped identifiers. CTML tag names do not currently accept namespace prefixes and CTML does not model namespace URIs.
 - `:has()`, structural pseudo-classes, and stateful pseudo-classes.
 - Cascade layers (`@layer`) and the `revert`/`revert-layer` keywords.
 

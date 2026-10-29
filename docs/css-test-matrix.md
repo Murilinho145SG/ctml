@@ -30,6 +30,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | --- | --- | --- |
 | Type, class, ID, universal, and compound selectors | `selector-matrix` | selector match matrix |
 | Descendant and direct-child combinators | `selector-matrix`, `child-selector` | descendant and child matching |
+| Adjacent and general sibling combinators | `sibling-selectors` | sibling matching, chained relations, and renderer cascade |
 | Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
 | Inline style attributes and importance ordering | `inline-style` | Declaration-list parser and renderer cascade tests |
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
@@ -64,4 +65,4 @@ Run every Chromium comparison serially:
 cargo test --offline -p ctml-renderer --lib page::tests::parity -- --test-threads=1
 ```
 
-The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference. Most other cases allow up to 0.05% of pixels above that tolerance; `font-stretch` allows 0.055%, `text-decoration-style` 0.11%, `attribute-selectors` 1.25%, `font-variant-shorthand` 0.27%, and `line-height-normal` 0.48% for observed rasterization differences. Artifacts are written to `target/css-parity/<case>/`.
+The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference. Most other cases allow up to 0.05% of pixels above that tolerance; `font-stretch` allows 0.055%, sibling selectors 0.07%, `text-decoration-style` 0.11%, `attribute-selectors` 1.25%, `font-variant-shorthand` 0.27%, and `line-height-normal` 0.48% for observed rasterization differences. Artifacts are written to `target/css-parity/<case>/`.

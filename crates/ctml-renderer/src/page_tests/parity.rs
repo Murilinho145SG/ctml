@@ -213,6 +213,11 @@ parity_test_with_tolerance!(
     super::MAX_ATTRIBUTE_SELECTOR_DIFFERING_PIXEL_RATIO
 );
 parity_test!(selector_matrix_matches_chromium, "selector-matrix", false);
+parity_test_with_tolerance!(
+    sibling_selectors_match_chromium,
+    "sibling-selectors",
+    0.0007
+);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);
 parity_test!(
     text_alignment_values_match_chromium,

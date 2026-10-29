@@ -8,6 +8,7 @@ use crate::{
     StyleRule, UiNode,
     css_style::{self, ElementIdentity},
 };
+use ctml_css::SelectorSibling;
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
 const DEFAULT_LINE_HEIGHT: f32 = 20.0;
@@ -26,6 +27,7 @@ pub(super) fn compile_runs(
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];
+    let mut path_siblings = vec![Vec::new()];
     let mut last_was_space = true;
     let mut capitalize_next = true;
     collect_runs(
@@ -33,6 +35,7 @@ pub(super) fn compile_runs(
         stylesheet,
         &mut path,
         &mut path_attributes,
+        &mut path_siblings,
         &root_style,
         &mut runs,
         &mut last_was_space,
@@ -313,11 +316,13 @@ fn collect_runs(
     stylesheet: &[StyleRule],
     path: &mut Vec<ElementIdentity>,
     path_attributes: &mut Vec<Vec<(String, Option<String>)>>,
+    path_siblings: &mut Vec<Vec<SelectorSibling>>,
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
+    let mut preceding_siblings = Vec::new();
     for node in nodes {
         match node {
             UiNode::Text(text) => {
@@ -339,12 +344,14 @@ fn collect_runs(
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case("style"))
                     .and_then(|(_, value)| value.as_deref());
-                let style = css_style::resolve_style_with_inline_context(
+                let style = css_style::resolve_style_with_tree_inline_context(
                     inherited,
                     &identity,
                     path,
                     attributes,
                     path_attributes,
+                    &preceding_siblings,
+                    path_siblings,
                     inline_style,
                     stylesheet,
                 );
@@ -355,11 +362,13 @@ fn collect_runs(
                 }
                 path.push(identity);
                 path_attributes.push(attributes.clone());
+                path_siblings.push(preceding_siblings.clone());
                 collect_runs(
                     children,
                     stylesheet,
                     path,
                     path_attributes,
+                    path_siblings,
                     &style,
                     output,
                     last_was_space,
@@ -367,6 +376,15 @@ fn collect_runs(
                 );
                 path.pop();
                 path_attributes.pop();
+                path_siblings.pop();
+                preceding_siblings.push(SelectorSibling {
+                    element: ElementIdentity {
+                        tag: tag.clone(),
+                        class: class.clone(),
+                        id: id.clone(),
+                    },
+                    attributes: attributes.clone(),
+                });
                 if block {
                     push_line_break(output, &style, last_was_space);
                     *capitalize_next = true;

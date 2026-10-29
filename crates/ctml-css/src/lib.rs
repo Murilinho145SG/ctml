@@ -10,8 +10,8 @@ pub use color::{parse_color, parse_color_with_opacity};
 pub use imports::parse_stylesheet_file;
 pub use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
 pub use selector::{
-    ElementIdentity, selector_matches, selector_matches_with_attributes,
-    selector_matches_with_context, selector_specificity,
+    ElementIdentity, SelectorSibling, selector_matches, selector_matches_with_attributes,
+    selector_matches_with_context, selector_matches_with_tree_context, selector_specificity,
 };
 
 #[cfg(test)]

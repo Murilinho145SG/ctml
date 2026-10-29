@@ -17,13 +17,15 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [x] Support inline `style` attributes on CTML elements.
 - [ ] Support CSSOM or runtime stylesheet mutation (debug/development mode only, if needed).
 
+Runtime stylesheet mutation is not needed by the current native renderer: it compiles stylesheets into the application at build time and has no runtime DOM or development refresh loop.
+
 ## Selectors
 
 - [x] Type, class, ID, universal (`*`), compound, descendant, direct child (`>`), and comma-separated selectors.
 - [ ] Namespace selectors.
 - [x] Attribute selectors: presence, exact match, token, language, prefix, suffix, substring, and case flags.
 - [x] Child (`>`) combinator.
-- [ ] Adjacent sibling (`+`) and general sibling (`~`) combinators.
+- [x] Adjacent sibling (`+`) and general sibling (`~`) combinators.
 - [ ] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [ ] Stateful pseudo-classes: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
