@@ -214,7 +214,7 @@ fn text_line_starts(runs: &[TextRun]) -> Vec<usize> {
 fn configure_font(font: &mut Font) {
     font.set_edging(Edging::AntiAlias);
     font.set_hinting(FontHinting::None);
-    font.set_force_auto_hinting(false);
+    font.set_force_auto_hinting(true);
     font.set_embedded_bitmaps(true);
     font.set_subpixel(true);
     font.set_linear_metrics(true);
