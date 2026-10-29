@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod backgrounds;
+mod cursor_spans;
 mod decorations;
 mod focus;
 mod font_features;
@@ -22,6 +23,7 @@ mod viewport;
 
 const PAGE_PADDING: f32 = 8.0;
 
+use cursor_spans::{CursorSpan, cursor_spans};
 use layout::shape_buffer;
 use sizing::{
     block_spacer_heights, cursor_with_flow_spacers, cursor_without_flow_spacers, flow_spacer_lines,
@@ -137,6 +139,7 @@ impl PageRasterizer {
 
     fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
+        self.runs.retain(|run| !run.style.flow_spacer);
         let selection = self.selection.map(|(start, end)| {
             (
                 cursor_without_flow_spacers(start, &self.spacer_line_flags),
@@ -193,7 +196,6 @@ impl PageRasterizer {
         }
         let content_width = content_width.max(1.0);
         let content_height = (height as f32 - PAGE_PADDING * 2.0).max(1.0);
-        self.runs.retain(|run| !run.style.flow_spacer);
         self.cursor_spans = cursor_spans(&self.runs);
         shape_buffer(self, content_width, content_height);
         let metrics = self.buffer.metrics();
@@ -208,6 +210,11 @@ impl PageRasterizer {
         );
         if let Some(runs) = insert_block_spacers(&self.runs, &spacer_heights) {
             self.runs = runs;
+            self.cursor_spans = cursor_spans(&self.runs);
+            shape_buffer(self, content_width, content_height);
+        }
+        if layout::apply_first_line_text_transform(&self.buffer, &mut self.runs, &self.cursor_spans)
+        {
             self.cursor_spans = cursor_spans(&self.runs);
             shape_buffer(self, content_width, content_height);
         }
@@ -416,74 +423,6 @@ fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
         }
     }
     alignments
-}
-
-pub(super) struct CursorSpan {
-    pub(super) line: usize,
-    pub(super) start: usize,
-    pub(super) end: usize,
-    icon: CursorIcon,
-    hidden: bool,
-    pub(super) element_path: Vec<usize>,
-    pub(super) selection_background: Option<[u8; 4]>,
-    pub(super) selection_foreground: Option<[u8; 4]>,
-    pub(super) first_line_block: Option<usize>,
-    pub(super) first_line_foreground: Option<[u8; 4]>,
-    pub(super) first_line_background: Option<[u8; 4]>,
-    pub(super) first_line_decoration: Option<crate::css_style::PseudoDecoration>,
-    pub(super) first_line_font_style: Option<crate::style::TextStyle>,
-    pub(super) first_letter_block: Option<usize>,
-    pub(super) first_letter_foreground: Option<[u8; 4]>,
-    pub(super) first_letter_background: Option<[u8; 4]>,
-    pub(super) first_letter_decoration: Option<crate::css_style::PseudoDecoration>,
-    pub(super) character: char,
-}
-
-fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
-    let mut spans = Vec::new();
-    let mut line = 0;
-    let mut index = 0;
-    for run in runs {
-        if run.style.flow_spacer {
-            line += run
-                .text
-                .chars()
-                .filter(|character| *character == '\n')
-                .count();
-            index = 0;
-            continue;
-        }
-        for character in run.text.chars() {
-            if character == '\n' {
-                line += 1;
-                index = 0;
-                continue;
-            }
-            let end = index + character.len_utf8();
-            spans.push(CursorSpan {
-                line,
-                start: index,
-                end,
-                icon: run.style.cursor,
-                hidden: run.style.cursor_hidden,
-                element_path: run.element_path.clone(),
-                selection_background: run.selection_background,
-                selection_foreground: run.selection_foreground,
-                first_line_block: run.first_line_block,
-                first_line_foreground: run.first_line_foreground,
-                first_line_background: run.first_line_background,
-                first_line_decoration: run.first_line_decoration,
-                first_line_font_style: run.first_line_font_style.clone(),
-                first_letter_block: run.first_letter_block,
-                first_letter_foreground: run.first_letter_foreground,
-                first_letter_background: run.first_letter_background,
-                first_letter_decoration: run.first_letter_decoration,
-                character,
-            });
-            index = end;
-        }
-    }
-    spans
 }
 
 #[cfg(test)]

@@ -1,11 +1,70 @@
 use cosmic_text::Shaping;
+use std::collections::HashMap;
 
 use crate::{font_family::resolve_family_list, font_metrics::normal_line_height};
+use crate::{
+    page::highlights::first_formatted_line_ranges,
+    style::{TextRun, TextTransform},
+};
 
 use super::{
-    PageRasterizer, line_alignments,
+    CursorSpan, PageRasterizer, line_alignments,
     sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width},
 };
+
+pub(super) fn apply_first_line_text_transform(
+    buffer: &cosmic_text::Buffer,
+    runs: &mut [TextRun],
+    spans: &[CursorSpan],
+) -> bool {
+    let first_lines = first_formatted_line_ranges(buffer, spans);
+    let mut capitalize_next = HashMap::new();
+    let mut replacements = vec![Vec::new(); runs.len()];
+    for span in spans {
+        let Some(block) = span.first_line_block else {
+            continue;
+        };
+        let Some((line, end)) = first_lines.get(&block).copied() else {
+            continue;
+        };
+        if span.line != line || span.start >= end {
+            continue;
+        }
+        let Some(style) = &span.first_line_font_style else {
+            continue;
+        };
+        if span
+            .first_letter_font_style
+            .as_ref()
+            .is_some_and(|first_letter| first_letter.text_transform != style.text_transform)
+        {
+            continue;
+        }
+        let capitalize = capitalize_next.entry(block).or_insert(true);
+        let transformed = match style.text_transform {
+            TextTransform::Uppercase => span.character.to_uppercase().collect::<String>(),
+            TextTransform::Lowercase => span.character.to_lowercase().collect::<String>(),
+            TextTransform::Capitalize if *capitalize => {
+                span.character.to_uppercase().collect::<String>()
+            }
+            TextTransform::Capitalize | TextTransform::None => span.character.to_string(),
+        };
+        *capitalize = !span.character.is_alphanumeric();
+        if transformed != span.character.to_string() {
+            replacements[span.run_index].push((span.run_offset, span.character, transformed));
+        }
+    }
+
+    let mut changed = false;
+    for (run, replacements) in runs.iter_mut().zip(replacements) {
+        for (offset, character, transformed) in replacements.into_iter().rev() {
+            run.text
+                .replace_range(offset..offset + character.len_utf8(), &transformed);
+            changed = true;
+        }
+    }
+    changed
+}
 
 pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_height: f32) {
     page.buffer

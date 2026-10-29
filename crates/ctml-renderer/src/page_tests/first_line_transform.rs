@@ -1,0 +1,78 @@
+use super::super::PageRasterizer;
+use crate::{StyleDeclaration, StyleRule, UiNode};
+
+#[test]
+fn first_line_text_transform_changes_only_the_formatted_first_line() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "72px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-transform".to_owned(),
+                value: "uppercase".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(180, 120);
+    let rendered_text = page
+        .runs
+        .iter()
+        .map(|run| run.text.as_str())
+        .collect::<String>();
+
+    assert!(rendered_text.starts_with("ALPHA"));
+    assert!(rendered_text.contains("gamma"));
+    assert!(!rendered_text.contains("GAMMA"));
+
+    let inherited_stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "width".to_owned(),
+                    value: "72px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-transform".to_owned(),
+                    value: "uppercase".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-transform".to_owned(),
+                value: "lowercase".to_owned(),
+            }],
+        },
+    ];
+    let mut inherited_page = PageRasterizer::new(&nodes, &inherited_stylesheet);
+    inherited_page.snapshot_pixels(180, 120);
+    let inherited_text = inherited_page
+        .runs
+        .iter()
+        .map(|run| run.text.as_str())
+        .collect::<String>();
+
+    assert!(inherited_text.starts_with("alpha"));
+    assert!(inherited_text.contains("GAMMA"));
+    assert!(!inherited_text.starts_with("ALPHA"));
+}

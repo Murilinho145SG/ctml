@@ -118,6 +118,7 @@ fn resolve_pseudo_style(
                             "text-emphasis-style",
                             "text-emphasis-color",
                             "text-emphasis-position",
+                            "text-transform",
                             "text-decoration",
                             "text-decoration-line",
                             "text-decoration-color",
@@ -128,8 +129,6 @@ fn resolve_pseudo_style(
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
-                            || (pseudo_element.eq_ignore_ascii_case("first-letter")
-                                && declaration.property.eq_ignore_ascii_case("text-transform"))
                     })
                     .cloned()
                     .collect(),
@@ -195,6 +194,7 @@ fn resolve_pseudo_style(
                     "text-emphasis-style",
                     "text-emphasis-color",
                     "text-emphasis-position",
+                    "text-transform",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))
