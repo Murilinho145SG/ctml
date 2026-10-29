@@ -38,7 +38,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
 - [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
 - [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Form, range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
-- [x] `::before` and `::after` generated text from quoted `content` strings, with supported text properties.
+- [x] `::before` and `::after` generated text from quoted `content` strings and string-valued `attr(name)`, with supported text properties.
 - [x] Global `::selection` background color, including alpha compositing.
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
@@ -105,7 +105,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Angles, times, frequencies, and resolutions where relevant.
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.
 - [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
-- [ ] `attr()` and `env()` value functions where relevant.
+- [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
 - [ ] URL resolution, resource loading policy, and safe handling of external resources.
 - [ ] Locale-independent numeric parsing and well-defined rounding behavior.
 

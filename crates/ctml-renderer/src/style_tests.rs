@@ -225,6 +225,58 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
 }
 
 #[test]
+fn generated_content_concatenates_strings_and_attribute_values() {
+    let nodes = [UiNode::Element {
+        tag: "a".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![("title".to_owned(), Some("documentation".to_owned()))],
+        children: vec![UiNode::Text("link".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["a::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: "\"Open \" attr(title) \" now\"".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "Open documentation nowlink"
+    );
+}
+
+#[test]
+fn missing_generated_content_attribute_contributes_an_empty_string() {
+    let nodes = [UiNode::Element {
+        tag: "a".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("link".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["a::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: "\"Open \" attr(title)".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "Open link"
+    );
+}
+
+#[test]
 fn display_none_hides_element_descendants_and_generated_content() {
     let nodes = [
         UiNode::Element {

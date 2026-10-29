@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use cssparser::{Parser, ParserInput, Token};
+
 use crate::style::TextTransform;
 use crate::{StyleDeclaration, StyleRule, css_style, style::TextStyle};
 use ctml_css::{
@@ -191,7 +193,7 @@ pub(super) fn resolve_generated_content(
     }
     let (_, declaration) = winning_content?;
     let (value, _) = declaration_value(&declaration.value);
-    let text = parse_string_content(value)?;
+    let text = parse_generated_content(value, attributes)?;
     let style = css_style::resolve_style_with_selector_tree_context(
         inherited,
         current,
@@ -263,23 +265,36 @@ fn declaration_value(value: &str) -> (&str, bool) {
     }
 }
 
-fn parse_string_content(value: &str) -> Option<String> {
-    let value = value.trim();
-    let quote = value.chars().next()?;
-    if !matches!(quote, '\'' | '"') || value.chars().last()? != quote {
-        return None;
-    }
-    if value.len() < quote.len_utf8() * 2 {
-        return None;
-    }
-    let inner = &value[quote.len_utf8()..value.len() - quote.len_utf8()];
-    let mut output = String::with_capacity(inner.len());
-    let mut characters = inner.chars();
-    while let Some(character) = characters.next() {
-        if character == '\\' {
-            output.push(characters.next()?);
-        } else {
-            output.push(character);
+fn parse_generated_content(value: &str, attributes: &[(String, Option<String>)]) -> Option<String> {
+    let mut source = ParserInput::new(value);
+    let mut parser = Parser::new(&mut source);
+    let mut output = String::new();
+    while !parser.is_exhausted() {
+        let token = parser.next().ok()?;
+        match token {
+            Token::QuotedString(text) => output.push_str(text),
+            Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
+                let attribute_name = parser
+                    .parse_nested_block(|nested| -> Result<_, cssparser::ParseError<()>> {
+                        let name = nested
+                            .expect_ident_cloned()
+                            .map_err(|_| nested.new_custom_error(()))?;
+                        nested.skip_whitespace();
+                        if !nested.is_exhausted() {
+                            return Err(nested.new_custom_error(()));
+                        }
+                        Ok(name)
+                    })
+                    .ok()?;
+                if let Some((_, Some(attribute_value))) = attributes
+                    .iter()
+                    .find(|(name, _)| name.eq_ignore_ascii_case(&attribute_name))
+                {
+                    output.push_str(attribute_value);
+                }
+            }
+            Token::WhiteSpace(_) => {}
+            _ => return None,
         }
     }
     Some(output)

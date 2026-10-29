@@ -7,6 +7,7 @@ license = "GPL-2.0-only"
 [dependencies]
 cosmic-text.workspace = true
 ctml-css.workspace = true
+cssparser.workspace = true
 pollster.workspace = true
 skia-safe = {
     version = "0.156.0",
