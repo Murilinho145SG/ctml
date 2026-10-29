@@ -59,7 +59,7 @@ pub(super) fn draw(
             let glyph_id: GlyphId = glyph.glyph_id;
             let position = Point::new(
                 glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
-                run.line_y + PAGE_PADDING - 1.0,
+                run.line_y + PAGE_PADDING - 1.0 - glyph.y_offset * glyph.font_size,
             );
             let origin = [Point::new(0.0, 0.0)];
             canvas.draw_glyphs_at(&[glyph_id], &origin[..], position, &font, &paint);
