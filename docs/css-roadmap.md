@@ -34,7 +34,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
 - [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
-- [ ] Link, form, range, and target pseudo-classes where applicable to CTML elements.
+- [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Form, range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
 - [ ] Pseudo-elements: `::before`, `::after`, `::first-line`, `::first-letter`, `::selection`, and `::placeholder`.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
 - [ ] Escaped identifiers and complete selector specificity calculation.

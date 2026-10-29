@@ -253,6 +253,39 @@ fn matches_inherited_language_and_direction_pseudo_classes() {
 }
 
 #[test]
+fn matches_link_pseudo_classes_for_ctml_anchors() {
+    let anchor = ElementIdentity {
+        tag: "a".to_owned(),
+        class: None,
+        id: None,
+    };
+    let href = [("href".to_owned(), Some("https://example.test".to_owned()))];
+    for selector in ["a:link", "a:any-link", "a[href]:any-link"] {
+        assert!(
+            super::selector_matches_with_attributes(selector, &anchor, &[], &href),
+            "{selector}"
+        );
+    }
+    for selector in ["a:visited", "a:link"] {
+        assert!(
+            !super::selector_matches_with_attributes(selector, &anchor, &[], &[]),
+            "{selector}"
+        );
+    }
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert!(!super::selector_matches_with_attributes(
+        ":any-link",
+        &paragraph,
+        &[],
+        &href,
+    ));
+}
+
+#[test]
 fn matches_adjacent_and_general_sibling_combinators_with_chains() {
     let previous = [
         SelectorSibling {

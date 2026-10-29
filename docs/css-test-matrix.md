@@ -38,6 +38,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
 | Relational `:has()` selectors | `has-selectors` | descendant, child, and adjacent-sibling relative matching |
 | Language and direction pseudo-classes | — | inherited language ranges, direction values, default direction, and renderer cascade |
+| Link pseudo-classes | — | `:link` and `:any-link` require `<a href>`; `:visited` remains false without history state |
 | Comma-separated selector groups | `selector-matrix` | group matching and specificity |
 | `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |
 | `inherit`, `initial`, and `unset` | — | supported property cascade keyword unit test |

@@ -72,6 +72,8 @@ pub(super) fn compound_matches(
             if bytes.get(cursor) != Some(&b'(') {
                 let matches = if name == "scope" {
                     scope_node_id == Some(position.node_id)
+                } else if matches!(name.as_str(), "link" | "visited" | "any-link") {
+                    link_pseudo_matches(&name, element, attributes)
                 } else {
                     structural_pseudo_matches(&name, position)
                 };
@@ -163,6 +165,21 @@ pub(super) fn compound_matches(
         }
     }
     true
+}
+
+fn link_pseudo_matches(
+    name: &str,
+    element: &ElementIdentity,
+    attributes: &[(String, Option<String>)],
+) -> bool {
+    if name == "visited" {
+        return false;
+    }
+    matches!(name, "link" | "any-link")
+        && element.tag.eq_ignore_ascii_case("a")
+        && attributes
+            .iter()
+            .any(|(attribute, _)| attribute.eq_ignore_ascii_case("href"))
 }
 
 fn language_pseudo_matches(
