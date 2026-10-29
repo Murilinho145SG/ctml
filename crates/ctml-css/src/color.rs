@@ -230,7 +230,7 @@ pub(super) fn rgb_to_hsl([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
     (hue, saturation, lightness)
 }
 
-fn hwb_to_rgb(hue: f32, whiteness: f32, blackness: f32) -> [u8; 3] {
+pub(super) fn hwb_to_rgb(hue: f32, whiteness: f32, blackness: f32) -> [u8; 3] {
     let whiteness = whiteness.clamp(0.0, 1.0);
     let blackness = blackness.clamp(0.0, 1.0);
     if whiteness + blackness >= 1.0 {
@@ -241,6 +241,18 @@ fn hwb_to_rgb(hue: f32, whiteness: f32, blackness: f32) -> [u8; 3] {
     let pure_hue = hsl_to_rgb(hue, 1.0, 0.5);
     let chroma = 1.0 - whiteness - blackness;
     pure_hue.map(|channel| ((channel as f32 / 255.0 * chroma + whiteness) * 255.0).round() as u8)
+}
+
+pub(super) fn rgb_to_hwb(color: [u8; 3]) -> (f32, f32, f32) {
+    let hue = rgb_to_hsl(color).0;
+    let red = color[0] as f32 / 255.0;
+    let green = color[1] as f32 / 255.0;
+    let blue = color[2] as f32 / 255.0;
+    (
+        hue,
+        red.min(green).min(blue),
+        1.0 - red.max(green).max(blue),
+    )
 }
 
 #[cfg(test)]
@@ -395,6 +407,22 @@ mod tests {
         assert_eq!(
             parse_color("color-mix(in hsl, red 25%, blue)"),
             Some([128, 0, 255, 255])
+        );
+    }
+
+    #[test]
+    fn parses_hwb_color_mixes_with_shorter_hue_interpolation() {
+        assert_eq!(
+            parse_color("color-mix(in hwb, red, blue)"),
+            Some([255, 0, 255, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hwb, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hwb, white, blue)"),
+            Some([128, 128, 255, 255])
         );
     }
 

@@ -20,7 +20,13 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let linear_srgb = interpolation_space.eq_ignore_ascii_case("srgb-linear");
             let oklab = interpolation_space.eq_ignore_ascii_case("oklab");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
-            if !interpolation_space.eq_ignore_ascii_case("srgb") && !linear_srgb && !oklab && !hsl {
+            let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
+            if !interpolation_space.eq_ignore_ascii_case("srgb")
+                && !linear_srgb
+                && !oklab
+                && !hsl
+                && !hwb
+            {
                 return Err(input.new_custom_error(()));
             }
             input.expect_comma()?;
@@ -83,6 +89,27 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 let lightness =
                     (first_hsl.2 * first_alpha + second_hsl.2 * second_alpha) / alpha_sum;
                 super::hsl_to_rgb(hue, saturation, lightness)
+            } else if hwb {
+                let first_hwb = super::rgb_to_hwb(first.0);
+                let second_hwb = super::rgb_to_hwb(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let first_hue = if first_hwb.1 + first_hwb.2 >= 1.0 || first_alpha == 0.0 {
+                    second_hwb.0
+                } else {
+                    first_hwb.0
+                };
+                let second_hue = if second_hwb.1 + second_hwb.2 >= 1.0 || second_alpha == 0.0 {
+                    first_hue
+                } else {
+                    second_hwb.0
+                };
+                let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
+                let hue = (first_hue + hue_delta * (second_alpha / alpha_sum)).rem_euclid(360.0);
+                let whiteness =
+                    (first_hwb.1 * first_alpha + second_hwb.1 * second_alpha) / alpha_sum;
+                let blackness =
+                    (first_hwb.2 * first_alpha + second_hwb.2 * second_alpha) / alpha_sum;
+                super::hwb_to_rgb(hue, whiteness, blackness)
             } else {
                 std::array::from_fn(|index| {
                     if linear_srgb {
