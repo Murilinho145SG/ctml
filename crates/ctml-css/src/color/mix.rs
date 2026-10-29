@@ -2,6 +2,14 @@ use cssparser::{Parser, ParserInput, Token};
 
 use super::parse_color_with_opacity_depth;
 
+#[derive(Clone, Copy)]
+enum HueInterpolation {
+    Shorter,
+    Longer,
+    Increasing,
+    Decreasing,
+}
+
 pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
@@ -42,6 +50,22 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             {
                 return Err(input.new_custom_error(()));
             }
+            let hue_interpolation = if lch || oklch || hsl || hwb {
+                if let Ok(method) = input.try_parse(|input| input.expect_ident_cloned()) {
+                    input.expect_ident_matching("hue")?;
+                    match method.to_ascii_lowercase().as_str() {
+                        "shorter" => HueInterpolation::Shorter,
+                        "longer" => HueInterpolation::Longer,
+                        "increasing" => HueInterpolation::Increasing,
+                        "decreasing" => HueInterpolation::Decreasing,
+                        _ => return Err(input.new_custom_error(())),
+                    }
+                } else {
+                    HueInterpolation::Shorter
+                }
+            } else {
+                HueInterpolation::Shorter
+            };
             input.expect_comma()?;
 
             let (first, first_percentage) = parse_mix_component(input, depth)?;
@@ -129,6 +153,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     second_chroma < 0.0001,
                     first_alpha,
                     second_alpha,
+                    hue_interpolation,
                 );
                 let lightness =
                     (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
@@ -168,6 +193,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     second_chroma < 0.0001,
                     first_alpha,
                     second_alpha,
+                    hue_interpolation,
                 );
                 let lightness =
                     (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
@@ -186,6 +212,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     second_hsl.1 == 0.0,
                     first_alpha,
                     second_alpha,
+                    hue_interpolation,
                 );
                 let saturation =
                     (first_hsl.1 * first_alpha + second_hsl.1 * second_alpha) / alpha_sum;
@@ -203,6 +230,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     second_hwb.1 + second_hwb.2 >= 1.0,
                     first_alpha,
                     second_alpha,
+                    hue_interpolation,
                 );
                 let whiteness =
                     (first_hwb.1 * first_alpha + second_hwb.1 * second_alpha) / alpha_sum;
@@ -242,6 +270,7 @@ fn interpolate_hue(
     second_powerless: bool,
     first_alpha: f32,
     second_alpha: f32,
+    interpolation: HueInterpolation,
 ) -> f32 {
     let first_hue = if first_powerless || first_alpha == 0.0 {
         second_hue
@@ -253,7 +282,33 @@ fn interpolate_hue(
     } else {
         second_hue
     };
-    let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
+    let difference = (second_hue - first_hue).rem_euclid(360.0);
+    let hue_delta = match interpolation {
+        HueInterpolation::Shorter => {
+            if difference > 180.0 {
+                difference - 360.0
+            } else {
+                difference
+            }
+        }
+        HueInterpolation::Longer => {
+            if difference == 0.0 {
+                360.0
+            } else if difference < 180.0 {
+                difference - 360.0
+            } else {
+                difference
+            }
+        }
+        HueInterpolation::Increasing => difference,
+        HueInterpolation::Decreasing => {
+            if difference == 0.0 {
+                0.0
+            } else {
+                difference - 360.0
+            }
+        }
+    };
     (first_hue + hue_delta * (second_alpha / (first_alpha + second_alpha))).rem_euclid(360.0)
 }
 

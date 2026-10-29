@@ -408,6 +408,18 @@ mod tests {
             parse_color("color-mix(in hsl, red 25%, blue)"),
             Some([128, 0, 255, 255])
         );
+        assert_eq!(
+            parse_color("color-mix(in hsl longer hue, red, blue)"),
+            Some([0, 255, 0, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hsl increasing hue, red, blue)"),
+            Some([0, 255, 0, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hsl decreasing hue, red, blue)"),
+            Some([255, 0, 255, 255])
+        );
     }
 
     #[test]

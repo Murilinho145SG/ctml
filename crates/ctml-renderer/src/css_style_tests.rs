@@ -346,6 +346,12 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     let hsl_style = style_for_declarations(&[("background-color", "color-mix(in hsl, red, blue)")]);
     assert_eq!(hsl_style.background, [255, 0, 255]);
 
+    let hue_method_style = style_for_declarations(&[(
+        "background-color",
+        "color-mix(in hsl longer hue, red, blue)",
+    )]);
+    assert_eq!(hue_method_style.background, [0, 255, 0]);
+
     let hwb_style = style_for_declarations(&[("background-color", "color-mix(in hwb, red, blue)")]);
     assert_eq!(hwb_style.background, [255, 0, 255]);
 
