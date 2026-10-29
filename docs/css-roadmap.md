@@ -55,7 +55,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `inherit`, `initial`, and `unset` for supported properties.
 - [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
 - [x] `revert-layer` for supported declarations in named layers.
-- [ ] Shorthand and longhand expansion, including conflict resolution.
+- [x] `text-decoration` shorthand expansion with source-order conflicts against its supported longhands.
+- [ ] Remaining shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
 - [ ] Custom properties (`--name`) and `var()` substitution, including fallback and cycle handling.
 - [ ] Define specified, computed, used, and actual value processing for supported properties.

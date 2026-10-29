@@ -238,10 +238,22 @@ fn preserves_the_font_family_fallback_list() {
 
 #[test]
 fn resolves_relative_font_size_keywords() {
-    assert_eq!(super::parse_font_size("larger", 16.0), Some(19.2));
-    assert_eq!(super::parse_font_size("smaller", 16.0), Some(16.0 / 1.2));
-    assert_eq!(super::parse_font_size("larger", 20.0), Some(24.0));
-    assert_eq!(super::parse_font_size("smaller", 20.0), Some(20.0 / 1.2));
+    assert_eq!(
+        super::properties::parse_font_size("larger", 16.0),
+        Some(19.2)
+    );
+    assert_eq!(
+        super::properties::parse_font_size("smaller", 16.0),
+        Some(16.0 / 1.2)
+    );
+    assert_eq!(
+        super::properties::parse_font_size("larger", 20.0),
+        Some(24.0)
+    );
+    assert_eq!(
+        super::properties::parse_font_size("smaller", 20.0),
+        Some(20.0 / 1.2)
+    );
 }
 
 #[test]
@@ -466,37 +478,5 @@ fn applies_text_decoration_color_to_active_lines() {
     assert_eq!(style.text_decoration_color, Some([255, 0, 128, 128]));
 }
 
-#[test]
-fn text_decoration_shorthand_resets_inherited_style_and_color() {
-    let rule = StyleRule {
-        selectors: vec![".sample".to_owned()],
-        layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "text-decoration".to_owned(),
-            value: "overline".to_owned(),
-        }],
-    };
-    let body = ElementIdentity {
-        tag: "body".to_owned(),
-        class: None,
-        id: None,
-    };
-    let paragraph = ElementIdentity {
-        tag: "p".to_owned(),
-        class: Some("sample".to_owned()),
-        id: None,
-    };
-    let inherited = TextStyle {
-        decoration_style: TextDecorationStyle::Wavy,
-        decoration_thickness: Some(3.0),
-        text_decoration_color: Some([51, 102, 204, 255]),
-        ..TextStyle::default()
-    };
-
-    let style = resolve_style(&inherited, &paragraph, &[body], &[rule]);
-
-    assert_eq!(style.decoration_style, TextDecorationStyle::Solid);
-    assert_eq!(style.decoration_thickness, None);
-    assert_eq!(style.text_decoration_color, None);
-    assert!(style.overline);
-}
+#[path = "css_style_decoration_inherit_tests.rs"]
+mod decoration_inherit;
