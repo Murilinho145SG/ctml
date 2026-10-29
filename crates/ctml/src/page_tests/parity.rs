@@ -34,7 +34,30 @@ macro_rules! parity_test {
     };
 }
 
+macro_rules! exact_parity_test {
+    ($name:ident, $case:literal) => {
+        #[test]
+        fn $name() {
+            run_exact_parity_case(
+                $case,
+                include_str!(concat!(
+                    "../../tests/fixtures/parity/",
+                    $case,
+                    "/native.ctml"
+                )),
+                include_str!(concat!(
+                    "../../tests/fixtures/parity/",
+                    $case,
+                    "/browser.html"
+                )),
+                include_str!(concat!("../../tests/fixtures/parity/", $case, "/style.css")),
+            );
+        }
+    };
+}
+
 parity_test!(page_colors_match_chromium, "colors", false);
+exact_parity_test!(background_color_matches_chromium, "background-color");
 parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_family_matches_chromium, "font-family", false);
@@ -128,6 +151,28 @@ fn run_parity_case(
     css: &str,
     expect_hidden_cursor: bool,
 ) {
+    run_parity_case_with_mode(
+        name,
+        native_markup,
+        browser_markup,
+        css,
+        expect_hidden_cursor,
+        false,
+    );
+}
+
+fn run_exact_parity_case(name: &str, native_markup: &str, browser_markup: &str, css: &str) {
+    run_parity_case_with_mode(name, native_markup, browser_markup, css, false, true);
+}
+
+fn run_parity_case_with_mode(
+    name: &str,
+    native_markup: &str,
+    browser_markup: &str,
+    css: &str,
+    expect_hidden_cursor: bool,
+    require_exact_match: bool,
+) {
     log_step(&format!("[{name}] Parsing CTML, HTML, and CSS fixtures"));
     let document = parse(native_markup).expect("CTML parity fixture should parse");
     let stylesheet_link = document
@@ -213,6 +258,17 @@ fn run_parity_case(
             "\x1b[36m"
         )
     );
+    if require_exact_match {
+        assert_eq!(
+            exact_differences,
+            0,
+            "CSS parity case {name} differs in {exact_differences} pixels; inspect {} and {}",
+            native_image.display(),
+            browser_image.display()
+        );
+        log_success(&format!("[{name}] Pixels match Chromium exactly"));
+        return;
+    }
     assert!(
         diff_ratio <= MAX_DIFFERING_PIXEL_RATIO,
         "CSS parity case {name} differs in {:.3}% of pixels (limit {:.3}%); inspect {} and {}",
