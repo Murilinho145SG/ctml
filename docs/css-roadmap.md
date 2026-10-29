@@ -123,7 +123,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Other predefined and custom color profiles, perceptual gamut mapping, and full CSS missing-component handling.
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
 - [x] `color-mix()` in `srgb`, `srgb-linear`, and `oklab` with two supported colors, optional percentages, nested color functions, and alpha-aware interpolation.
-- [ ] Other `color-mix()` interpolation spaces and relative color syntax.
+- [ ] Other `color-mix()` interpolation spaces.
+- [x] Basic `rgb(from ...)` relative colors with `r`, `g`, `b`, and `alpha` references plus number and percentage channel values.
+- [ ] Other relative color functions, calculations, and missing-component behavior.
 - [ ] System colors and forced-color behavior where supported by the host OS.
 - [x] Alpha colors for text and page background, including page-background compositing over white.
 - [ ] Element `opacity` and group compositing.

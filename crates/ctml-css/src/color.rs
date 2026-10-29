@@ -2,6 +2,7 @@ use cssparser::{Parser, ParserInput, Token};
 
 mod color4;
 mod mix;
+mod relative;
 
 pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
@@ -35,6 +36,9 @@ pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Optio
 
 fn parse_function_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
     if let Some(color) = mix::parse_color_mix(value, depth) {
+        return Some(color);
+    }
+    if let Some(color) = relative::parse_relative_color(value, depth) {
         return Some(color);
     }
     if let Some(color) = color4::parse_color_function(value) {
@@ -354,6 +358,31 @@ mod tests {
             parse_color("color-mix(in oklab, transparent, red)"),
             Some([255, 0, 0, 128])
         );
+    }
+
+    #[test]
+    fn parses_rgb_relative_colors_with_channel_and_alpha_references() {
+        assert_eq!(parse_color("rgb(from red r g b)"), Some([255, 0, 0, 255]));
+        assert_eq!(
+            parse_color("rgb(from rgb(10 20 30 / 25%) b g r / alpha)"),
+            Some([30, 20, 10, 64])
+        );
+        assert_eq!(
+            parse_color("rgb(from red 20 40% 255 / 50%)"),
+            Some([20, 102, 255, 128])
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_rgb_relative_color_components() {
+        for value in [
+            "rgb(from red r g)",
+            "rgb(from red x y z)",
+            "rgb(from red r g b / nope)",
+            "rgb(from nope r g b)",
+        ] {
+            assert_eq!(parse_color(value), None, "unexpectedly parsed {value}");
+        }
     }
 
     #[test]
