@@ -121,24 +121,22 @@ fn parse_declarations<'i, 't>(
         if input.is_exhausted() {
             break;
         }
-        let raw = input.parse_until_after(Delimiter::Semicolon, |declaration| {
-            let start = declaration.position();
+        let parsed = input.parse_until_after::<_, _, ()>(Delimiter::Semicolon, |declaration| {
+            let property = declaration.expect_ident()?.to_ascii_lowercase();
+            declaration.expect_colon()?;
+            declaration.skip_whitespace();
+            let value_start = declaration.position();
             while declaration.next_including_whitespace().is_ok() {}
-            Ok(declaration
-                .slice(start..declaration.position())
+            let value = declaration
+                .slice(value_start..declaration.position())
                 .trim()
-                .to_owned())
-        })?;
-        let Some((property, value)) = raw.split_once(':') else {
-            continue;
-        };
-        let property = property.trim();
-        let value = value.trim();
-        if !property.is_empty() && !value.is_empty() {
-            declarations.push(CssDeclaration {
-                property: property.to_ascii_lowercase(),
-                value: value.to_owned(),
-            });
+                .to_owned();
+            Ok((property, value))
+        });
+        if let Ok((property, value)) = parsed
+            && !value.is_empty()
+        {
+            declarations.push(CssDeclaration { property, value });
         }
     }
     Ok(declarations)

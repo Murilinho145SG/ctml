@@ -27,6 +27,21 @@ fn strips_css_comments_and_accepts_a_utf8_bom() {
 }
 
 #[test]
+fn tokenizes_escaped_property_names_strings_and_recovers_bad_declarations() {
+    let stylesheet = parse_stylesheet(
+        "p { color red; \\63 olor: blue; content: \"a:b;c\"; } h1 { color: green; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.rules.len(), 2);
+    assert_eq!(stylesheet.rules[0].declarations.len(), 2);
+    assert_eq!(stylesheet.rules[0].declarations[0].property, "color");
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "blue");
+    assert_eq!(stylesheet.rules[0].declarations[1].value, "\"a:b;c\"");
+    assert_eq!(stylesheet.rules[1].declarations[0].value, "green");
+}
+
+#[test]
 fn matches_type_class_id_descendant_and_child_selectors() {
     let body = ElementIdentity {
         tag: "body".to_owned(),
