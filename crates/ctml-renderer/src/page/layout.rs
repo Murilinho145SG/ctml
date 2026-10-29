@@ -4,13 +4,76 @@ use std::collections::HashMap;
 use crate::{font_family::resolve_family_list, font_metrics::normal_line_height};
 use crate::{
     page::highlights::first_formatted_line_ranges,
-    style::{TextRun, TextTransform},
+    style::{TextRun, TextStyle, TextTransform},
 };
 
 use super::{
     CursorSpan, PageRasterizer, line_alignments,
     sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width},
 };
+
+pub(super) fn apply_first_line_line_height(
+    buffer: &cosmic_text::Buffer,
+    runs: &mut Vec<TextRun>,
+    spans: &[CursorSpan],
+) -> bool {
+    let first_lines = first_formatted_line_ranges(buffer, spans);
+    let mut prefix_ends = HashMap::new();
+    for span in spans {
+        let Some(block) = span.first_line_block else {
+            continue;
+        };
+        let Some((line, end)) = first_lines.get(&block).copied() else {
+            continue;
+        };
+        if span.line != line || span.start >= end {
+            continue;
+        }
+        let Some(style) = &span.first_line_font_style else {
+            continue;
+        };
+        let Some(run) = runs.get(span.run_index) else {
+            continue;
+        };
+        if run.style.line_height == style.line_height
+            && run.style.line_height_multiplier == style.line_height_multiplier
+            && run.style.line_height_normal == style.line_height_normal
+        {
+            continue;
+        }
+        prefix_ends
+            .entry(span.run_index)
+            .and_modify(|(run_end, _): &mut (usize, TextStyle)| {
+                *run_end = (*run_end).max(span.run_offset + span.character.len_utf8());
+            })
+            .or_insert((span.run_offset + span.character.len_utf8(), style.clone()));
+    }
+
+    if prefix_ends.is_empty() {
+        return false;
+    }
+    let mut output = Vec::with_capacity(runs.len() + prefix_ends.len());
+    for (run_index, run) in runs.iter().enumerate() {
+        let Some((end, pseudo_style)) = prefix_ends.remove(&run_index) else {
+            output.push(run.clone());
+            continue;
+        };
+        let end = end.min(run.text.len());
+        let mut first_line = run.clone();
+        first_line.text = run.text[..end].to_owned();
+        first_line.style.line_height = pseudo_style.line_height;
+        first_line.style.line_height_multiplier = pseudo_style.line_height_multiplier;
+        first_line.style.line_height_normal = pseudo_style.line_height_normal;
+        output.push(first_line);
+        if end < run.text.len() {
+            let mut remainder = run.clone();
+            remainder.text = run.text[end..].to_owned();
+            output.push(remainder);
+        }
+    }
+    *runs = output;
+    true
+}
 
 pub(super) fn apply_first_line_text_transform(
     buffer: &cosmic_text::Buffer,

@@ -188,6 +188,7 @@ fn resolve_pseudo_style(
                     "font-variant-numeric",
                     "font-variant-east-asian",
                     "font-feature-settings",
+                    "line-height",
                     "letter-spacing",
                     "text-shadow",
                     "text-emphasis",

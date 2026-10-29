@@ -54,6 +54,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Apply the supported color-only `background` shorthand to `::first-line` and `::first-letter`.
 - [x] Apply inherited and overridden `text-transform` to the `::first-letter` source character, including case expansion.
 - [x] Apply `text-transform` to `::first-line` text during line formation and reshape the resulting lines.
+- [x] Apply `line-height` from `::first-line` to the first line box.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.

@@ -76,3 +76,43 @@ fn first_line_text_transform_changes_only_the_formatted_first_line() {
     assert!(inherited_text.contains("GAMMA"));
     assert!(!inherited_text.starts_with("ALPHA"));
 }
+
+#[test]
+fn first_line_line_height_changes_only_the_first_line_box() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "72px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "line-height".to_owned(),
+                value: "40px".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(180, 160);
+    let line_heights = page
+        .buffer
+        .layout_runs()
+        .map(|line| line.line_height)
+        .collect::<Vec<_>>();
+
+    assert!(line_heights.len() > 1);
+    assert!(line_heights[0] >= 40.0);
+    assert!(line_heights[1] < line_heights[0]);
+}

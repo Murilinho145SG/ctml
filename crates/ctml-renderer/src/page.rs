@@ -218,6 +218,10 @@ impl PageRasterizer {
             self.cursor_spans = cursor_spans(&self.runs);
             shape_buffer(self, content_width, content_height);
         }
+        if layout::apply_first_line_line_height(&self.buffer, &mut self.runs, &self.cursor_spans) {
+            self.cursor_spans = cursor_spans(&self.runs);
+            shape_buffer(self, content_width, content_height);
+        }
         self.spacer_line_flags = flow_spacer_lines(&self.runs, self.buffer.lines.len());
         self.selection = selection.map(|(start, end)| {
             (
