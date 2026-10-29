@@ -1,0 +1,6 @@
+<headers>
+    <application name="Color currentColor parity" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body></body>

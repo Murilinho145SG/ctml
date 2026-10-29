@@ -58,6 +58,7 @@ macro_rules! exact_parity_test {
 
 parity_test!(page_colors_match_chromium, "colors", false);
 exact_parity_test!(background_color_matches_chromium, "background-color");
+exact_parity_test!(color_current_color_matches_chromium, "color-current-color");
 parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_family_matches_chromium, "font-family", false);
