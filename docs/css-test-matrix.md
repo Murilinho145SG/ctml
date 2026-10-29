@@ -15,7 +15,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `font-stretch` | `font-stretch` | all nine keywords and percentage mapping buckets |
 | `font-kerning` | `font-kerning` | `auto`, `normal`, `none` |
 | `font-variant-ligatures` | `font-features` | enable, disable, and reset switches |
-| `font-variant`, `font-variant-caps` | `font-caps` | all seven supported caps values |
+| `font-variant`, `font-variant-caps` | `font-caps`, `font-variant-shorthand` | all supported caps values, shorthand combinations, and shorthand reset |
 | `font-variant-position` | `font-position` | `normal`, `sub`, `super` |
 | `letter-spacing` | `letter-spacing` | normal, positive and negative `px`/`em` values |
 | `text-transform` | `text-transform` | all four supported values |

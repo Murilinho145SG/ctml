@@ -501,6 +501,52 @@ fn resolves_additional_font_variant_caps_values() {
 }
 
 #[test]
+fn resolves_font_variant_shorthand_and_resets_its_subproperties() {
+    let mixed = style_for_declarations(&[(
+        "font-variant",
+        "small-caps sub no-common-ligatures historical-ligatures",
+    )]);
+    assert_eq!(mixed.font_variant_caps, FontVariantCaps::SmallCaps);
+    assert_eq!(mixed.font_variant_position, FontVariantPosition::Sub);
+    assert_eq!(mixed.common_ligatures, Some(false));
+    assert_eq!(mixed.historical_ligatures, Some(true));
+
+    let reset_to_defaults = style_for_declarations(&[
+        ("font-variant-position", "super"),
+        ("font-variant-ligatures", "none"),
+        ("font-variant", "small-caps"),
+    ]);
+    assert_eq!(
+        reset_to_defaults.font_variant_position,
+        FontVariantPosition::Normal
+    );
+    assert_eq!(reset_to_defaults.common_ligatures, None);
+    assert_eq!(reset_to_defaults.discretionary_ligatures, None);
+
+    let reset = style_for_declarations(&[
+        ("font-variant-caps", "petite-caps"),
+        ("font-variant-position", "super"),
+        ("font-variant-ligatures", "none"),
+        ("font-variant", "normal"),
+    ]);
+    assert_eq!(reset.font_variant_caps, FontVariantCaps::Normal);
+    assert_eq!(reset.font_variant_position, FontVariantPosition::Normal);
+    assert_eq!(reset.common_ligatures, None);
+    assert_eq!(reset.discretionary_ligatures, None);
+    assert_eq!(reset.historical_ligatures, None);
+    assert_eq!(reset.contextual_alternates, None);
+
+    let ignored_invalid = style_for_declarations(&[
+        ("font-variant-caps", "petite-caps"),
+        ("font-variant", "small-caps unsupported-value"),
+    ]);
+    assert_eq!(
+        ignored_invalid.font_variant_caps,
+        FontVariantCaps::PetiteCaps
+    );
+}
+
+#[test]
 fn applies_text_decoration_color_to_active_lines() {
     let style = style_for_declarations(&[
         ("text-decoration", "underline line-through"),

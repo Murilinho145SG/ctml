@@ -161,18 +161,8 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             };
         }
         "font-variant-ligatures" => apply_font_variant_ligatures(style, value),
-        "font-variant" | "font-variant-caps" => {
-            style.font_variant_caps = match value.to_ascii_lowercase().as_str() {
-                "normal" => FontVariantCaps::Normal,
-                "small-caps" => FontVariantCaps::SmallCaps,
-                "all-small-caps" => FontVariantCaps::AllSmallCaps,
-                "petite-caps" => FontVariantCaps::PetiteCaps,
-                "all-petite-caps" => FontVariantCaps::AllPetiteCaps,
-                "unicase" => FontVariantCaps::Unicase,
-                "titling-caps" => FontVariantCaps::TitlingCaps,
-                _ => style.font_variant_caps,
-            };
-        }
+        "font-variant" => apply_font_variant(style, value),
+        "font-variant-caps" => apply_font_variant_caps(style, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,
@@ -341,6 +331,73 @@ fn apply_font_variant_ligatures(style: &mut TextStyle, value: &str) {
             _ => {}
         }
     }
+}
+
+fn apply_font_variant(style: &mut TextStyle, value: &str) {
+    if value.eq_ignore_ascii_case("normal") {
+        reset_font_variant(style);
+        return;
+    }
+    let tokens = value.split_ascii_whitespace().collect::<Vec<_>>();
+    if tokens.is_empty() || tokens.iter().any(|token| !is_font_variant_token(token)) {
+        return;
+    }
+
+    reset_font_variant(style);
+    for token in tokens {
+        apply_font_variant_caps(style, token);
+        match token.to_ascii_lowercase().as_str() {
+            "sub" => style.font_variant_position = FontVariantPosition::Sub,
+            "super" => style.font_variant_position = FontVariantPosition::Super,
+            _ => {}
+        }
+    }
+    apply_font_variant_ligatures(style, value);
+}
+
+fn reset_font_variant(style: &mut TextStyle) {
+    style.font_variant_caps = FontVariantCaps::Normal;
+    style.font_variant_position = FontVariantPosition::Normal;
+    style.common_ligatures = None;
+    style.discretionary_ligatures = None;
+    style.historical_ligatures = None;
+    style.contextual_alternates = None;
+}
+
+fn is_font_variant_token(token: &str) -> bool {
+    matches!(
+        token.to_ascii_lowercase().as_str(),
+        "small-caps"
+            | "all-small-caps"
+            | "petite-caps"
+            | "all-petite-caps"
+            | "unicase"
+            | "titling-caps"
+            | "sub"
+            | "super"
+            | "common-ligatures"
+            | "no-common-ligatures"
+            | "discretionary-ligatures"
+            | "no-discretionary-ligatures"
+            | "historical-ligatures"
+            | "no-historical-ligatures"
+            | "contextual"
+            | "no-contextual"
+            | "none"
+    )
+}
+
+fn apply_font_variant_caps(style: &mut TextStyle, value: &str) {
+    style.font_variant_caps = match value.to_ascii_lowercase().as_str() {
+        "normal" => FontVariantCaps::Normal,
+        "small-caps" => FontVariantCaps::SmallCaps,
+        "all-small-caps" => FontVariantCaps::AllSmallCaps,
+        "petite-caps" => FontVariantCaps::PetiteCaps,
+        "all-petite-caps" => FontVariantCaps::AllPetiteCaps,
+        "unicase" => FontVariantCaps::Unicase,
+        "titling-caps" => FontVariantCaps::TitlingCaps,
+        _ => style.font_variant_caps,
+    };
 }
 
 fn apply_text_decoration(style: &mut TextStyle, value: &str) {

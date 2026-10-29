@@ -1,0 +1,11 @@
+body {
+    color: #222222;
+    font-family: sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+p { margin: 0; }
+.normal { font-variant: normal; }
+.caps { font-variant: small-caps; }
+.mixed { font-variant: small-caps sub no-common-ligatures historical-ligatures; }

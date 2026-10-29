@@ -43,6 +43,7 @@ pub(super) fn compile_runs(
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TextStyle {
     pub(super) font_size: f32,
+    pub(super) font_scale: f32,
     pub(super) line_height: f32,
     pub(super) line_height_multiplier: Option<f32>,
     pub(super) line_height_normal: bool,
@@ -117,6 +118,7 @@ impl Default for TextStyle {
     fn default() -> Self {
         Self {
             font_size: DEFAULT_FONT_SIZE,
+            font_scale: 1.0,
             line_height: DEFAULT_LINE_HEIGHT,
             line_height_multiplier: Some(DEFAULT_LINE_HEIGHT / DEFAULT_FONT_SIZE),
             line_height_normal: true,
@@ -224,7 +226,10 @@ impl TextStyle {
         }
         attrs = attrs.font_features(font_features);
         attrs = attrs.metadata(self.decoration_style as usize);
-        attrs = attrs.metrics(Metrics::new(self.font_size, self.line_height));
+        attrs = attrs.metrics(Metrics::new(
+            self.font_size * self.font_scale,
+            self.line_height,
+        ));
         if self.letter_spacing != 0.0 {
             attrs = attrs.letter_spacing(if self.letter_spacing_px {
                 self.letter_spacing / self.font_size
@@ -334,24 +339,52 @@ fn append_text(
             match style.text_transform {
                 TextTransform::Uppercase => {
                     for transformed in character.to_uppercase() {
-                        push_character(transformed, style, output);
+                        push_variant_character(transformed, style, output);
                     }
                 }
                 TextTransform::Lowercase => {
                     for transformed in character.to_lowercase() {
-                        push_character(transformed, style, output);
+                        push_variant_character(transformed, style, output);
                     }
                 }
                 TextTransform::Capitalize if *capitalize_next => {
                     for transformed in character.to_uppercase() {
-                        push_character(transformed, style, output);
+                        push_variant_character(transformed, style, output);
                     }
                 }
-                _ => push_character(character, style, output),
+                _ => push_variant_character(character, style, output),
             }
             *last_was_space = false;
             *capitalize_next = !character.is_alphanumeric();
         }
+    }
+}
+
+fn push_variant_character(character: char, style: &TextStyle, output: &mut Vec<TextRun>) {
+    let scale = match style.font_variant_caps {
+        FontVariantCaps::SmallCaps if character.is_lowercase() => 0.8,
+        FontVariantCaps::AllSmallCaps if character.is_alphabetic() => 0.8,
+        FontVariantCaps::PetiteCaps if character.is_lowercase() => 0.7,
+        FontVariantCaps::AllPetiteCaps if character.is_alphabetic() => 0.7,
+        _ => 1.0,
+    };
+    let mut glyph_style = style.clone();
+    if matches!(
+        style.font_variant_caps,
+        FontVariantCaps::SmallCaps
+            | FontVariantCaps::AllSmallCaps
+            | FontVariantCaps::PetiteCaps
+            | FontVariantCaps::AllPetiteCaps
+    ) {
+        glyph_style.font_variant_caps = FontVariantCaps::Normal;
+    }
+    if scale < 1.0 {
+        glyph_style.font_scale *= scale;
+        for uppercase in character.to_uppercase() {
+            push_character(uppercase, &glyph_style, output);
+        }
+    } else {
+        push_character(character, &glyph_style, output);
     }
 }
 
@@ -424,4 +457,55 @@ fn is_block(tag: &str) -> bool {
             | "section"
             | "ul"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FontVariantCaps, TextRun, TextStyle, append_text};
+
+    #[test]
+    fn synthesizes_small_caps_without_changing_element_line_height() {
+        let mut style = TextStyle::default();
+        style.font_size = 12.0;
+        style.line_height = 20.0;
+        style.font_variant_caps = FontVariantCaps::SmallCaps;
+        let mut runs = Vec::<TextRun>::new();
+        let (mut last_was_space, mut capitalize_next) = (false, false);
+
+        append_text(
+            "aB",
+            &style,
+            &mut runs,
+            &mut last_was_space,
+            &mut capitalize_next,
+        );
+
+        assert_eq!(runs.len(), 2);
+        assert_eq!(runs[0].text, "A");
+        assert_eq!(runs[0].style.font_scale, 0.8);
+        assert_eq!(runs[0].style.font_size, 12.0);
+        assert_eq!(runs[0].style.line_height, 20.0);
+        assert_eq!(runs[1].text, "B");
+        assert_eq!(runs[1].style.font_scale, 1.0);
+    }
+
+    #[test]
+    fn synthesizes_all_small_caps_for_lowercase_and_uppercase_letters() {
+        let mut style = TextStyle::default();
+        style.font_variant_caps = FontVariantCaps::AllSmallCaps;
+        let mut runs = Vec::<TextRun>::new();
+        let (mut last_was_space, mut capitalize_next) = (false, false);
+
+        append_text(
+            "aB",
+            &style,
+            &mut runs,
+            &mut last_was_space,
+            &mut capitalize_next,
+        );
+
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].text, "AB");
+        assert_eq!(runs[0].style.font_scale, 0.8);
+    }
 }

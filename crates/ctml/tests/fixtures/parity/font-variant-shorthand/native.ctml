@@ -1,0 +1,10 @@
+<headers>
+    <application name="Font variant shorthand parity" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body>
+    <p class="normal">Normal variant</p>
+    <p class="caps">Small caps variant</p>
+    <p class="mixed">Mixed variant shorthand</p>
+</body>
