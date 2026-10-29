@@ -4,7 +4,7 @@ use winit::window::CursorIcon;
 pub(super) use crate::css_selector::ElementIdentity;
 use crate::{
     StyleRule,
-    css_color::parse_color,
+    css_color::{parse_color, parse_color_with_opacity},
     css_selector::{selector_matches, selector_specificity},
     style::{FontVariantCaps, FontVariantPosition, TextStyle, TextTransform},
 };
@@ -73,15 +73,18 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "background-color" => {
             let color = if value.eq_ignore_ascii_case("currentcolor") {
-                Some(style.color)
+                Some((
+                    [style.color[0], style.color[1], style.color[2]],
+                    style.color[3] as f32 / 255.0,
+                ))
             } else {
-                parse_color(value)
+                parse_color_with_opacity(value)
             };
-            if let Some(color) = color {
+            if let Some((channels, alpha)) = color {
                 style.background = [
-                    composite_over_white(color[0], color[3]),
-                    composite_over_white(color[1], color[3]),
-                    composite_over_white(color[2], color[3]),
+                    composite_over_white(channels[0], alpha),
+                    composite_over_white(channels[1], alpha),
+                    composite_over_white(channels[2], alpha),
                 ];
             }
         }
@@ -209,8 +212,8 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     }
 }
 
-fn composite_over_white(channel: u8, alpha: u8) -> u8 {
-    ((channel as u32 * alpha as u32 + 255 * (255 - alpha) as u32 + 127) / 255) as u8
+fn composite_over_white(channel: u8, alpha: f32) -> u8 {
+    (channel as f32 * alpha + 255.0 * (1.0 - alpha)).round() as u8
 }
 
 fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {

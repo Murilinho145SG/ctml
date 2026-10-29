@@ -1,24 +1,29 @@
 use cssparser::{Parser, ParserInput, Token};
 
 pub(super) fn parse_color(value: &str) -> Option<[u8; 4]> {
+    let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
+    Some([red, green, blue, (alpha * 255.0).round() as u8])
+}
+
+pub(super) fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
     let value = value.trim();
     if value.eq_ignore_ascii_case("transparent") {
-        return Some([0, 0, 0, 0]);
+        return Some(([0, 0, 0], 0.0));
     }
     if let Some(hex) = value.strip_prefix('#') {
         let (red, green, blue, alpha) = cssparser::color::parse_hash_color(hex.as_bytes()).ok()?;
-        return Some([red, green, blue, (alpha * 255.0).round() as u8]);
+        return Some(([red, green, blue], alpha));
     }
 
     if let Ok((red, green, blue)) = cssparser::color::parse_named_color(&value.to_ascii_lowercase())
     {
-        return Some([red, green, blue, 255]);
+        return Some(([red, green, blue], 1.0));
     }
 
     parse_function_color(value)
 }
 
-fn parse_function_color(value: &str) -> Option<[u8; 4]> {
+fn parse_function_color(value: &str) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
@@ -55,13 +60,13 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
 
             let alpha = if legacy_syntax {
                 if input.is_exhausted() {
-                    255
+                    1.0
                 } else {
                     input.expect_comma()?;
                     parse_alpha(input)?
                 }
             } else if input.is_exhausted() {
-                255
+                1.0
             } else {
                 input.expect_delim('/')?;
                 parse_alpha(input)?
@@ -85,7 +90,7 @@ fn parse_function_color(value: &str) -> Option<[u8; 4]> {
                     component_to_byte(blue_or_lightness),
                 )
             };
-            Ok([red, green, blue, alpha])
+            Ok(([red, green, blue], alpha))
         })
         .ok()?;
 
@@ -152,13 +157,13 @@ fn parse_hue<'i, 't>(input: &mut Parser<'i, 't>) -> Result<f32, cssparser::Parse
     }
 }
 
-fn parse_alpha<'i, 't>(input: &mut Parser<'i, 't>) -> Result<u8, cssparser::ParseError<'i, ()>> {
+fn parse_alpha<'i, 't>(input: &mut Parser<'i, 't>) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let alpha = match input.next()? {
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,
         _ => return Err(input.new_custom_error(())),
     };
-    Ok((alpha.clamp(0.0, 1.0) * 255.0).round() as u8)
+    Ok(alpha.clamp(0.0, 1.0))
 }
 
 fn component_to_byte(component: f32) -> u8 {

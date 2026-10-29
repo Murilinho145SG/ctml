@@ -289,7 +289,7 @@ fn resolves_alpha_text_color_and_blends_page_background_with_white() {
     ]);
 
     assert_eq!(style.color, [0, 0, 0, 128]);
-    assert_eq!(style.background, [127, 127, 127]);
+    assert_eq!(style.background, [128, 128, 128]);
 }
 
 #[test]

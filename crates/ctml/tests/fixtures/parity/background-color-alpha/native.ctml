@@ -1,0 +1,6 @@
+<headers>
+    <application name="Alpha background color parity" desktop width="640" height="360" />
+    <stylesheet href="style.css" />
+</headers>
+
+<body></body>
