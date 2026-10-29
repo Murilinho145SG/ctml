@@ -113,7 +113,8 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
         .layers
         .iter()
         .map(|name| {
-            name.split('.')
+            crate::split_layer_path(name)
+                .iter()
                 .map(|segment| {
                     if is_anonymous_layer_segment(segment) {
                         anonymous_segments
@@ -134,9 +135,12 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
         .collect::<Vec<_>>();
     for name in &source_layers {
         if !target.layers.contains(name) {
-            let insertion = name
-                .rsplit_once('.')
-                .and_then(|(parent, _)| target.layers.iter().position(|layer| layer == parent))
+            let mut path = crate::split_layer_path(name);
+            path.pop();
+            let parent = path.join(".");
+            let insertion = (!parent.is_empty())
+                .then(|| target.layers.iter().position(|layer| layer == &parent))
+                .flatten()
                 .unwrap_or(target.layers.len());
             target.layers.insert(insertion, name.clone());
         }

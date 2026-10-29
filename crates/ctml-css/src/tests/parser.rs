@@ -49,6 +49,23 @@ fn parses_anonymous_layers_in_source_order() {
 }
 
 #[test]
+fn parses_escaped_layer_identifiers_without_confusing_path_separators() {
+    let stylesheet = parse_stylesheet(
+        r"@layer \66 oo; @layer foo\ bar { p { color: red; } } @layer foo.bar { p { color: blue; } } @layer foo\.bar { p { color: green; } }",
+    )
+    .expect("escaped layer identifiers should parse");
+
+    assert_eq!(
+        stylesheet.layers,
+        ["foo.bar", "foo", "foo\\ bar", "foo\\.bar"]
+    );
+    assert_eq!(stylesheet.rules[0].layer, Some(2));
+    assert_eq!(stylesheet.rules[1].layer, Some(0));
+    assert_eq!(stylesheet.rules[2].layer, Some(3));
+    assert!(parse_stylesheet("@layer foo,;").is_err());
+}
+
+#[test]
 fn rejects_malformed_layer_statements() {
     assert!(parse_stylesheet("@layer first,,second;").is_err());
     assert!(parse_stylesheet("@layer -1invalid;").is_err());

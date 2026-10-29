@@ -1,4 +1,4 @@
-use cssparser::{Delimiter, Parser, ParserInput};
+use cssparser::{Delimiter, Parser, ParserInput, serialize_identifier};
 
 mod color;
 mod comments;
@@ -102,7 +102,7 @@ impl LayerParseState {
         let mut path = Vec::new();
         for part in parts {
             path.push(part.as_str());
-            let full_path = path.join(".");
+            let full_path = canonical_layer_path(&path);
             let index = siblings.iter().position(|layer| layer.name == *part);
             let index = index.unwrap_or_else(|| {
                 siblings.push(LayerNode {
@@ -114,7 +114,7 @@ impl LayerParseState {
             });
             siblings = &mut siblings[index].children;
         }
-        path.join(".")
+        canonical_layer_path(&path)
     }
 
     fn ordered_layers(&self) -> Vec<String> {
@@ -155,7 +155,13 @@ fn parse_rule_list<'i, 't>(
                     return Err(input.new_custom_error(()));
                 }
                 let path = state.register_anonymous(current_layer);
-                let path = path.split('.').map(str::to_owned).collect::<Vec<_>>();
+                let path = current_layer
+                    .iter()
+                    .cloned()
+                    .chain(std::iter::once(
+                        path.rsplit('.').next().unwrap_or_default().to_owned(),
+                    ))
+                    .collect::<Vec<_>>();
                 input.expect_curly_bracket_block()?;
                 input.parse_nested_block(|nested| parse_rule_list(nested, &path, state))?;
                 continue;
@@ -199,7 +205,7 @@ fn parse_rule_list<'i, 't>(
         }
         input.expect_curly_bracket_block()?;
         let declarations = input.parse_nested_block(parse_declaration_block)?;
-        let layer_name = (!current_layer.is_empty()).then(|| current_layer.join("."));
+        let layer_name = (!current_layer.is_empty()).then(|| canonical_layer_path(current_layer));
         state.rules.push((
             layer_name,
             CssRule {
@@ -222,44 +228,71 @@ fn layer_at_rule(prelude: &str) -> Option<&str> {
 }
 
 fn parse_layer_names(header: &str) -> Result<Vec<Vec<String>>, ()> {
-    if header.is_empty() {
-        return Err(());
-    }
-    header
-        .split(',')
-        .map(|name| {
-            let parts = name.trim().split('.').map(str::trim).collect::<Vec<_>>();
-            if parts.is_empty() || parts.iter().any(|part| !is_layer_identifier(part)) {
-                return Err(());
+    let mut source = ParserInput::new(header);
+    let mut input = Parser::new(&mut source);
+    let mut names = Vec::new();
+    while !input.is_exhausted() {
+        input.skip_whitespace();
+        if input.is_exhausted() {
+            break;
+        }
+        let mut parts = vec![input.expect_ident().map_err(|_| ())?.to_string()];
+        loop {
+            input.skip_whitespace();
+            if input.try_parse(|input| input.expect_delim('.')).is_err() {
+                break;
             }
-            Ok(parts.into_iter().map(str::to_owned).collect())
-        })
-        .collect()
+            input.skip_whitespace();
+            parts.push(input.expect_ident().map_err(|_| ())?.to_string());
+        }
+        names.push(parts);
+        input.skip_whitespace();
+        if input.is_exhausted() {
+            break;
+        }
+        input.expect_comma().map_err(|_| ())?;
+        input.skip_whitespace();
+        if input.is_exhausted() {
+            return Err(());
+        }
+    }
+    if names.is_empty() { Err(()) } else { Ok(names) }
 }
 
-fn is_layer_identifier(identifier: &str) -> bool {
-    let characters = identifier.chars().collect::<Vec<_>>();
-    let Some(first) = characters.first() else {
-        return false;
-    };
-    let starts_with_identifier = if *first == '-' {
-        characters
-            .get(1)
-            .is_some_and(|character| *character == '-' || is_layer_name_start(*character))
-    } else {
-        is_layer_name_start(*first)
-    };
-    starts_with_identifier
-        && characters.iter().skip(1).all(|character| {
-            *character == '_'
-                || *character == '-'
-                || character.is_alphanumeric()
-                || !character.is_ascii()
+pub(crate) fn canonical_layer_path(parts: &[impl AsRef<str>]) -> String {
+    parts
+        .iter()
+        .map(|part| {
+            let part = part.as_ref();
+            if part.starts_with("<anonymous-layer-") {
+                part.to_owned()
+            } else {
+                let mut serialized = String::new();
+                serialize_identifier(part, &mut serialized)
+                    .expect("writing a CSS identifier into a String cannot fail");
+                serialized
+            }
         })
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
-fn is_layer_name_start(character: char) -> bool {
-    character == '_' || character.is_alphabetic() || !character.is_ascii()
+pub(crate) fn split_layer_path(path: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+    let mut escaped = false;
+    for (index, character) in path.char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == '.' {
+            parts.push(path[start..index].to_owned());
+            start = index + character.len_utf8();
+        }
+    }
+    parts.push(path[start..].to_owned());
+    parts
 }
 
 fn located_error(line: u32, column: u32, error: impl std::fmt::Debug) -> String {

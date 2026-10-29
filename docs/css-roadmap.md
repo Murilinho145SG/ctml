@@ -52,7 +52,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `!important` declarations.
 - [x] Named cascade layers with `@layer` statements and blocks, including nested order and reversed `!important` precedence.
 - [x] Anonymous cascade layers.
-- [ ] Escaped layer names.
+- [x] Escaped layer names.
 - [x] `inherit`, `initial`, and `unset` for supported properties.
 - [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
 - [x] `revert-layer` for supported declarations in named layers.

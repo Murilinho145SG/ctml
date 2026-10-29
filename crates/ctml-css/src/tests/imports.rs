@@ -74,6 +74,30 @@ fn keeps_anonymous_layers_distinct_across_imports() {
 }
 
 #[test]
+fn merges_escaped_layer_names_across_imports() {
+    let root = temporary_directory("imported-escaped-layers");
+    std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
+    std::fs::write(
+        root.join("theme.css"),
+        r"@layer foo\.bar { p { color: red; } }",
+    )
+    .expect("imported escaped layer should be written");
+    std::fs::write(
+        root.join("main.css"),
+        r#"@import "theme.css"; @layer foo\.bar { p { color: blue; } }"#,
+    )
+    .expect("main escaped layer should be written");
+
+    let (stylesheet, _) = super::parse_stylesheet_file(root.join("main.css"), &root).unwrap();
+
+    assert_eq!(stylesheet.layers, [r"foo\.bar"]);
+    assert_eq!(stylesheet.rules.len(), 2);
+    assert_eq!(stylesheet.rules[0].layer, Some(0));
+    assert_eq!(stylesheet.rules[1].layer, Some(0));
+    std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
+}
+
+#[test]
 fn rejects_import_cycles_and_paths_outside_the_root() {
     let root = temporary_directory("invalid-imports");
     std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
