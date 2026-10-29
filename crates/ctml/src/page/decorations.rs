@@ -46,14 +46,14 @@ fn render_span<R: Renderer>(
     let font_size = span.font_size;
     let thickness = (data.underline_metrics.thickness * font_size)
         .max(1.0)
-        .ceil() as u32;
+        .round() as u32;
 
     if decoration.underline != UnderlineStyle::None {
         let color = decoration
             .underline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y = (run.line_y - data.underline_metrics.offset * font_size) as i32;
+        let y = (run.line_y - data.underline_metrics.offset * font_size) as i32 + 1;
         let line_style = if decoration.underline == UnderlineStyle::Double {
             TextDecorationStyle::Double
         } else {
@@ -77,8 +77,8 @@ fn render_span<R: Renderer>(
             .unwrap_or(default_color);
         let thickness = (data.strikethrough_metrics.thickness * font_size)
             .max(1.0)
-            .ceil() as u32;
-        let y = (run.line_y - data.strikethrough_metrics.offset * font_size) as i32;
+            .round() as u32;
+        let y = (run.line_y - data.strikethrough_metrics.offset * font_size) as i32 + 1;
         draw_line(renderer, x_min as i32, y, width, thickness, style, color);
     }
 
@@ -87,7 +87,7 @@ fn render_span<R: Renderer>(
             .overline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y = (run.line_y - data.ascent * font_size).max(run.line_top) as i32;
+        let y = (run.line_y - data.ascent * font_size).max(run.line_top) as i32 + 1;
         draw_line(renderer, x_min as i32, y, width, thickness, style, color);
     }
 }
