@@ -123,16 +123,36 @@ pub(super) fn collect_runs(
                 if block
                     && (style.width.is_some()
                         || style.min_width.is_some()
-                        || style.max_width.is_some())
+                        || style.max_width.is_some()
+                        || style.height.is_some()
+                        || style.min_height.is_some()
+                        || style.max_height.is_some())
                 {
                     style.layout_sizes.push(LayoutSize {
+                        node_id: sibling.node_id,
                         width: style.width.clone(),
                         min_width: style.min_width.clone(),
                         max_width: style.max_width.clone(),
+                        height: style.height.clone(),
+                        min_height: style.min_height.clone(),
+                        max_height: style.max_height.clone(),
                     });
                 }
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
+                    if style.height.is_some()
+                        || style.min_height.is_some()
+                        || style.max_height.is_some()
+                    {
+                        if let Some(layout_size) = style
+                            .layout_sizes
+                            .iter()
+                            .find(|size| size.node_id == sibling.node_id)
+                            && let Some(last_run) = output.last_mut()
+                        {
+                            last_run.style.layout_end_sizes.push(layout_size.clone());
+                        }
+                    }
                     *capitalize_next = true;
                 }
                 path.push(identity);

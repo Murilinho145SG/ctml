@@ -149,6 +149,8 @@ pub(super) fn resolve_style_with_selector_tree_context(
     style.min_height = None;
     style.max_height = None;
     style.empty_block_height = None;
+    style.layout_end_sizes.clear();
+    style.flow_spacer = false;
     apply_matching_styles_with_inline_context(
         &mut style,
         current,

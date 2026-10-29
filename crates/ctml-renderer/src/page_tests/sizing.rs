@@ -80,6 +80,92 @@ fn empty_block_height_reserves_vertical_flow_space() {
     }
 }
 
+#[test]
+fn content_block_min_height_reserves_remaining_vertical_space() {
+    let natural_after_y = content_block_after_y(Vec::new());
+    for property in ["min-height", "min-block-size"] {
+        let sized_after_y = content_block_after_y(vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: "140px".to_owned(),
+        }]);
+        assert!(
+            sized_after_y >= natural_after_y + 100.0,
+            "{property} should reserve space below the block's content"
+        );
+    }
+    let short_min_height_after_y = content_block_after_y(vec![StyleDeclaration {
+        property: "min-height".to_owned(),
+        value: "10px".to_owned(),
+    }]);
+    assert!((short_min_height_after_y - natural_after_y).abs() < 1.0);
+}
+
+#[test]
+fn nested_content_block_min_heights_compose_in_flow() {
+    let inner = UiNode::Element {
+        tag: "section".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("content".to_owned())],
+    };
+    let outer = UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![inner],
+    };
+    let nodes = [text_paragraph("before"), outer, text_paragraph("after")];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "min-height".to_owned(),
+                value: "180px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["section".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "min-height".to_owned(),
+                value: "100px".to_owned(),
+            }],
+        },
+    ];
+    let mut sized = PageRasterizer::new(&nodes, &stylesheet);
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    sized.prepare_layout(400, 500);
+    natural.prepare_layout(400, 500);
+    assert!(text_line_y(&sized, "after") >= text_line_y(&natural, "after") + 160.0);
+}
+
+fn content_block_after_y(declarations: Vec<StyleDeclaration>) -> f32 {
+    let block = UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("content".to_owned())],
+    };
+    let nodes = [text_paragraph("before"), block, text_paragraph("after")];
+    if declarations.is_empty() {
+        let mut page = PageRasterizer::new(&nodes, &[]);
+        page.prepare_layout(400, 400);
+        return text_line_y(&page, "after");
+    }
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations,
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(400, 400);
+    text_line_y(&page, "after")
+}
+
 fn empty_block_after_y(declarations: Vec<StyleDeclaration>) -> f32 {
     let nodes = [
         text_paragraph("before"),

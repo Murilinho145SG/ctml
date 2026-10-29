@@ -1,10 +1,9 @@
-use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, Shaping, SwashCache};
+use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, SwashCache};
 use winit::window::CursorIcon;
 
 use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
-    font_metrics::normal_line_height,
     page::pixel::PixelRenderer,
     style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
 };
@@ -16,18 +15,24 @@ mod font_features;
 mod font_raster;
 mod highlights;
 mod interactions;
+mod layout;
 mod pixel;
 mod sizing;
 
 const PAGE_PADDING: f32 = 8.0;
 
-use sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width, resolve_width};
+use layout::shape_buffer;
+use sizing::{
+    block_spacer_heights, cursor_with_flow_spacers, cursor_without_flow_spacers, flow_spacer_lines,
+    insert_block_spacers, line_layout_sizes, resolve_width,
+};
 
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
     stylesheet: Vec<StyleRule>,
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
+    spacer_line_flags: Vec<bool>,
     font_system: FontSystem,
     cache: SwashCache,
     buffer: Buffer,
@@ -83,6 +88,7 @@ impl PageRasterizer {
             stylesheet: stylesheet.to_vec(),
             runs,
             cursor_spans,
+            spacer_line_flags: Vec::new(),
             font_system,
             cache: SwashCache::new(),
             buffer,
@@ -118,6 +124,15 @@ impl PageRasterizer {
 
     fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
+        let selection = self.selection.map(|(start, end)| {
+            (
+                cursor_without_flow_spacers(start, &self.spacer_line_flags),
+                cursor_without_flow_spacers(end, &self.spacer_line_flags),
+            )
+        });
+        let selection_anchor = self
+            .selection_anchor
+            .map(|cursor| cursor_without_flow_spacers(cursor, &self.spacer_line_flags));
         let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
         let min_width = self
@@ -144,86 +159,34 @@ impl PageRasterizer {
             (None, None) => {}
         }
         let content_width = content_width.max(1.0);
-        self.buffer.set_size(
-            Some(content_width),
-            Some((height as f32 - PAGE_PADDING * 2.0).max(1.0)),
-        );
-        let run_families = self
-            .runs
-            .iter()
-            .map(|run| resolve_family_list(&run.style.family, &self.font_system))
-            .collect::<Vec<_>>();
-        let attributes = self
-            .runs
-            .iter()
-            .zip(&run_families)
-            .map(|(run, family)| {
-                let mut style = run.style.clone();
-                if let Some(height_size) = &style.empty_block_height {
-                    style.line_height = resolve_layout_height(
-                        height_size,
-                        (height as f32 - PAGE_PADDING * 2.0).max(1.0),
-                        style.font_size,
-                    );
-                    style.line_height_normal = false;
-                }
-                if style.line_height_normal {
-                    style.line_height = normal_line_height(&mut self.font_system, &style, family)
-                        .unwrap_or(style.font_size * 1.2);
-                }
-                style.to_attrs(family)
-            })
-            .collect::<Vec<_>>();
-        let root_family = resolve_family_list(&self.root_style.family, &self.font_system);
-        let mut root_style = self.root_style.clone();
-        if root_style.line_height_normal {
-            root_style.line_height =
-                normal_line_height(&mut self.font_system, &root_style, &root_family)
-                    .unwrap_or(root_style.font_size * 1.2);
-        }
-        let root_attributes = root_style.to_attrs(&root_family);
-        self.buffer.set_rich_text(
-            self.runs
-                .iter()
-                .zip(&attributes)
-                .map(|(run, attrs)| (run.text.as_str(), attrs.clone())),
-            &root_attributes,
-            Shaping::Advanced,
-            Some(self.root_style.text_align),
-        );
-        for (line, align) in self
-            .buffer
-            .lines
-            .iter_mut()
-            .zip(line_alignments(&self.runs))
-        {
-            line.set_align(Some(align));
-        }
-        self.buffer.shape_until_scroll(&mut self.font_system, false);
-        let line_sizes = line_layout_sizes(&self.runs, self.buffer.lines.len());
+        let content_height = (height as f32 - PAGE_PADDING * 2.0).max(1.0);
+        self.runs.retain(|run| !run.style.flow_spacer);
+        self.cursor_spans = cursor_spans(&self.runs);
+        shape_buffer(self, content_width, content_height);
         let metrics = self.buffer.metrics();
-        let wrap = self.buffer.wrap();
-        let ellipsize = self.buffer.ellipsize();
-        let monospace_width = self.buffer.monospace_width();
-        let tab_width = self.buffer.tab_width();
-        let hinting = self.buffer.hinting();
-        for (line, sizes) in self.buffer.lines.iter_mut().zip(line_sizes) {
-            if sizes.is_empty() {
-                continue;
-            }
-            let line_width = resolve_layout_width(&sizes, content_width, metrics.font_size);
-            line.reset_layout();
-            line.layout(
-                &mut self.font_system,
-                metrics.font_size,
-                Some(line_width),
-                wrap,
-                ellipsize,
-                monospace_width,
-                tab_width,
-                hinting,
-            );
+        let line_sizes = line_layout_sizes(&self.runs, self.buffer.lines.len());
+        let spacer_heights = block_spacer_heights(
+            &self.runs,
+            &line_sizes,
+            &self.buffer,
+            content_height,
+            metrics.font_size,
+            metrics.line_height,
+        );
+        if let Some(runs) = insert_block_spacers(&self.runs, &spacer_heights) {
+            self.runs = runs;
+            self.cursor_spans = cursor_spans(&self.runs);
+            shape_buffer(self, content_width, content_height);
         }
+        self.spacer_line_flags = flow_spacer_lines(&self.runs, self.buffer.lines.len());
+        self.selection = selection.map(|(start, end)| {
+            (
+                cursor_with_flow_spacers(start, &self.spacer_line_flags),
+                cursor_with_flow_spacers(end, &self.spacer_line_flags),
+            )
+        });
+        self.selection_anchor = selection_anchor
+            .map(|cursor| cursor_with_flow_spacers(cursor, &self.spacer_line_flags));
     }
 
     pub(crate) fn redraw(&mut self, queue: &wgpu::Queue, texture: &wgpu::Texture) {
@@ -436,6 +399,15 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
     let mut line = 0;
     let mut index = 0;
     for run in runs {
+        if run.style.flow_spacer {
+            line += run
+                .text
+                .chars()
+                .filter(|character| *character == '\n')
+                .count();
+            index = 0;
+            continue;
+        }
         for character in run.text.chars() {
             if character == '\n' {
                 line += 1;

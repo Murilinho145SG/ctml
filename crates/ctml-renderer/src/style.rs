@@ -166,6 +166,7 @@ pub(super) fn compile_runs(
     (runs, root_style)
 }
 
+#[derive(Clone)]
 pub(super) struct TextRun {
     pub(super) text: String,
     pub(super) style: TextStyle,
