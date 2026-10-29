@@ -399,17 +399,23 @@ fn push_variant_character(character: char, style: &TextStyle, output: &mut Vec<T
 pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
     let mut output = Vec::new();
     for character in run.text.chars() {
-        let scale = match run.style.font_variant_caps {
-            FontVariantCaps::SmallCaps if character.is_lowercase() => 2.0 / 3.0,
-            FontVariantCaps::AllSmallCaps if character.is_alphabetic() => 2.0 / 3.0,
-            FontVariantCaps::PetiteCaps if character.is_lowercase() => 0.7,
-            FontVariantCaps::AllPetiteCaps if character.is_alphabetic() => 0.7,
-            _ => 1.0,
+        let synthesize = match run.style.font_variant_caps {
+            FontVariantCaps::SmallCaps | FontVariantCaps::PetiteCaps => character.is_lowercase(),
+            FontVariantCaps::AllSmallCaps | FontVariantCaps::AllPetiteCaps => {
+                character.is_alphabetic()
+            }
+            _ => false,
         };
         let mut style = run.style.clone();
         style.font_variant_caps = FontVariantCaps::Normal;
-        style.font_scale *= scale;
-        if scale < 1.0 {
+        if synthesize {
+            let original_size = style.font_size * style.font_scale;
+            let synthesized_size = (original_size * 0.7).round();
+            style.font_scale = if style.font_size > 0.0 {
+                synthesized_size / style.font_size
+            } else {
+                0.0
+            };
             for uppercase in character.to_uppercase() {
                 push_character(uppercase, &style, &mut output);
             }
