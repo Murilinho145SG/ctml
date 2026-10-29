@@ -28,6 +28,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-decoration-skip-ink",
     "text-decoration-thickness",
     "text-underline-offset",
+    "text-shadow",
     "cursor",
 ];
 

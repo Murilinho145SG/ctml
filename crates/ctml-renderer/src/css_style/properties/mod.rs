@@ -20,12 +20,14 @@ use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
 };
+use text_shadow::apply_text_shadow;
 
 mod color;
 mod cursor;
 mod font;
 mod font_feature_settings;
 mod text_decoration;
+mod text_shadow;
 
 pub(super) fn apply_declaration_with_inherited(
     style: &mut TextStyle,
@@ -70,6 +72,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-numeric"
             | "font-variant-east-asian"
             | "font-feature-settings"
+            | "text-shadow"
             | "line-height"
             | "letter-spacing"
             | "text-transform"
@@ -127,6 +130,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "font-feature-settings" => style
             .font_feature_settings
             .clone_from(&inherited.font_feature_settings),
+        "text-shadow" => style.text_shadows.clone_from(&inherited.text_shadows),
         "line-height" => {
             style.line_height = inherited.line_height;
             style.line_height_multiplier = inherited.line_height_multiplier;
@@ -190,6 +194,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "font-variant-numeric" => style.font_variant_numeric.clear(),
         "font-variant-east-asian" => style.font_variant_east_asian.clear(),
         "font-feature-settings" => style.font_feature_settings.clear(),
+        "text-shadow" => style.text_shadows.clear(),
         "line-height" => {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
@@ -309,6 +314,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font-variant-numeric" => apply_font_variant_numeric(style, value),
         "font-variant-east-asian" => apply_font_variant_east_asian(style, value),
         "font-feature-settings" => apply_font_feature_settings(style, value),
+        "text-shadow" => apply_text_shadow(style, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,

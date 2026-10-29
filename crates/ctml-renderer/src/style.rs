@@ -8,8 +8,8 @@ mod collect;
 mod pseudo;
 mod text_style;
 pub(super) use text_style::{
-    FontVariantCaps, FontVariantPosition, TextDecorationSkipInk, TextDecorationStyle, TextStyle,
-    TextTransform,
+    FontVariantCaps, FontVariantPosition, TextDecorationSkipInk, TextDecorationStyle, TextShadow,
+    TextStyle, TextTransform,
 };
 
 pub(super) fn compile_runs(

@@ -109,3 +109,31 @@ fn numeric_tabindex_makes_generic_elements_focusable() {
     assert!(page.begin_selection(10.0, 14.0));
     assert_ne!(normal, page.snapshot_pixels(120, 50));
 }
+
+#[test]
+fn text_shadow_is_rasterized_behind_text() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Shadow".to_owned())],
+    }];
+    let baseline = PageRasterizer::new(&nodes, &[]).snapshot_pixels(120, 50);
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-shadow".to_owned(),
+            value: "4px 3px 2px red".to_owned(),
+        }],
+    }];
+    let shadow = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(120, 50);
+
+    assert_ne!(baseline, shadow);
+    assert!(
+        shadow
+            .chunks_exact(4)
+            .any(|pixel| u16::from(pixel[0]) > u16::from(pixel[1]) + 32)
+    );
+}

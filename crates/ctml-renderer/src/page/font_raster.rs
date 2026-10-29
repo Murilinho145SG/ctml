@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use cosmic_text::{Buffer, FontSystem, fontdb};
 use skia_safe::{
-    AlphaType, Color, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId, ImageInfo, Paint,
-    PixelGeometry, Point, Shaper, SurfaceProps, SurfacePropsFlags, TextBlobBuilder,
+    AlphaType, Canvas, Color, Color4f, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId,
+    ImageInfo, Paint, PixelGeometry, Point, Shaper, SurfaceProps, SurfacePropsFlags, TextBlob,
+    TextBlobBuilder,
     font::Edging,
     font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
     shaper::{Feature as SkiaFeature, TextBlobBuilderRunHandler},
@@ -120,6 +121,9 @@ pub(super) fn draw(
                 )
             });
             if let Some(blob) = blob {
+                if let Some(style) = text_style {
+                    draw_text_shadows(canvas, &blob, style);
+                }
                 canvas.draw_text_blob(blob, Point::default(), &paint);
             } else {
                 let mut builder = TextBlobBuilder::new();
@@ -132,11 +136,40 @@ pub(super) fn draw(
                     );
                 }
                 if let Some(blob) = builder.make() {
+                    if let Some(style) = text_style {
+                        draw_text_shadows(canvas, &blob, style);
+                    }
                     canvas.draw_text_blob(blob, Point::default(), &paint);
                 }
             }
             start = end;
         }
+    }
+}
+
+fn draw_text_shadows(canvas: &Canvas, blob: &TextBlob, style: &TextStyle) {
+    for shadow in style.text_shadows.iter().rev() {
+        let color = shadow.color;
+        let color = Color4f::new(
+            f32::from(color[0]) / 255.0,
+            f32::from(color[1]) / 255.0,
+            f32::from(color[2]) / 255.0,
+            f32::from(color[3]) / 255.0,
+        );
+        let Some(filter) = skia_safe::image_filters::drop_shadow_only(
+            (shadow.offset_x, shadow.offset_y),
+            (shadow.blur, shadow.blur),
+            color,
+            None,
+            None,
+            None,
+        ) else {
+            continue;
+        };
+        let mut paint = Paint::default();
+        paint.set_color(Color::WHITE);
+        paint.set_image_filter(filter);
+        canvas.draw_text_blob(blob, Point::default(), &paint);
     }
 }
 

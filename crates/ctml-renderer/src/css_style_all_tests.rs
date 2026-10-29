@@ -10,6 +10,12 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         font_variant_numeric: vec!["tabular-nums".to_owned()],
         font_variant_east_asian: vec!["jis90".to_owned(), "ruby".to_owned()],
         font_feature_settings: vec![(*b"sinf", 1)],
+        text_shadows: vec![crate::style::TextShadow {
+            offset_x: 1.0,
+            offset_y: 2.0,
+            blur: 3.0,
+            color: [10, 20, 30, 255],
+        }],
         color: [0, 0, 255, 255],
         background: [12, 34, 56],
         text_decoration_color: Some([255, 0, 0, 255]),
@@ -40,6 +46,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         inherited.font_variant_east_asian
     );
     assert_eq!(reset.font_feature_settings, inherited.font_feature_settings);
+    assert_eq!(reset.text_shadows, inherited.text_shadows);
     assert_eq!(reset.weight, inherited.weight);
     assert_eq!(reset.font_style, inherited.font_style);
     assert_eq!(reset.background, [255, 255, 255]);
@@ -62,6 +69,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert!(initial.font_variant_numeric.is_empty());
     assert!(initial.font_variant_east_asian.is_empty());
     assert!(initial.font_feature_settings.is_empty());
+    assert!(initial.text_shadows.is_empty());
     assert_eq!(initial.weight, Weight::NORMAL);
     assert_eq!(initial.background, [255, 255, 255]);
 
@@ -90,6 +98,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         inherited.font_feature_settings
     );
     assert_eq!(inherited_style.background, inherited.background);
+    assert_eq!(inherited_style.text_shadows, inherited.text_shadows);
 
     let variable_all = StyleRule {
         selectors: vec![".sample".to_owned()],

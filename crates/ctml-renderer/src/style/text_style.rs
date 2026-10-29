@@ -46,7 +46,16 @@ pub(crate) struct TextStyle {
     pub(crate) overline: bool,
     pub(crate) strikethrough: bool,
     pub(crate) text_decoration_color: Option<[u8; 4]>,
+    pub(crate) text_shadows: Vec<TextShadow>,
     pub(crate) custom_properties: HashMap<String, String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct TextShadow {
+    pub(crate) offset_x: f32,
+    pub(crate) offset_y: f32,
+    pub(crate) blur: f32,
+    pub(crate) color: [u8; 4],
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -137,6 +146,7 @@ impl Default for TextStyle {
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
+            text_shadows: Vec::new(),
             custom_properties: HashMap::new(),
         }
     }
