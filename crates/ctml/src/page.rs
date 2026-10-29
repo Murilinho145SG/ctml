@@ -1,4 +1,6 @@
-use cosmic_text::{Affinity, Buffer, Color, Cursor, FontSystem, Metrics, Shaping, SwashCache};
+use cosmic_text::{
+    Affinity, Buffer, Color, Cursor, FontSystem, Metrics, Renderer, Shaping, SwashCache,
+};
 use unicode_segmentation::UnicodeSegmentation;
 use winit::window::CursorIcon;
 
@@ -248,39 +250,46 @@ impl PageRasterizer {
             pixel[3] = 255;
         }
         self.draw_selection(&mut pixels, width, height);
-        self.buffer.draw(
-            &mut self.font_system,
-            &mut self.cache,
-            Color::rgb(0, 0, 0),
-            |x, y, glyph_width, glyph_height, color| {
-                let rgba = color.as_rgba_tuple();
-                for glyph_y in 0..glyph_height as i32 {
-                    for glyph_x in 0..glyph_width as i32 {
-                        let pixel_x = x + glyph_x + PAGE_PADDING as i32;
-                        let pixel_y = y + glyph_y + PAGE_PADDING as i32;
-                        if pixel_x < 0
-                            || pixel_y < 0
-                            || pixel_x >= width as i32
-                            || pixel_y >= height as i32
-                        {
-                            continue;
-                        }
-                        let alpha = rgba.3 as u16;
-                        if alpha == 0 {
-                            continue;
-                        }
-                        let offset = (pixel_y as usize * width as usize + pixel_x as usize) * 4;
-                        for channel in 0..3 {
-                            pixels[offset + channel] = ((pixels[offset + channel] as u16
-                                * (255 - alpha)
-                                + rgba_channel(rgba, channel) as u16 * alpha)
-                                / 255) as u8;
-                        }
-                        pixels[offset + 3] = 255;
-                    }
-                }
-            },
-        );
+        let Self {
+            buffer,
+            font_system,
+            cache,
+            ..
+        } = self;
+        let mut renderer = PixelRenderer {
+            pixels: &mut pixels,
+            width,
+            height,
+        };
+        let default_color = Color::rgb(0, 0, 0);
+        for run in buffer.layout_runs() {
+            for glyph in run.glyphs {
+                let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
+                let color = glyph.color_opt.unwrap_or(default_color);
+                let base_alpha = color.a() as u16;
+                let pixels = &mut *renderer.pixels;
+                let width = renderer.width;
+                let height = renderer.height;
+                cache.with_pixels(
+                    font_system,
+                    physical_glyph.cache_key,
+                    color,
+                    |x, y, pixel_color| {
+                        let alpha = (pixel_color.a() as u16 * base_alpha / 255) as u8;
+                        blend_pixel(
+                            pixels,
+                            width,
+                            height,
+                            physical_glyph.x + x + PAGE_PADDING as i32,
+                            physical_glyph.y + y + PAGE_PADDING as i32,
+                            pixel_color,
+                            alpha,
+                        );
+                    },
+                );
+            }
+            cosmic_text::render_decoration(&mut renderer, &run, default_color);
+        }
         pixels
     }
 
@@ -311,6 +320,60 @@ impl PageRasterizer {
             }
         }
     }
+}
+
+struct PixelRenderer<'a> {
+    pixels: &'a mut [u8],
+    width: u32,
+    height: u32,
+}
+
+impl Renderer for PixelRenderer<'_> {
+    fn rectangle(&mut self, x: i32, y: i32, width: u32, height: u32, color: Color) {
+        for offset_y in 0..height as i32 {
+            for offset_x in 0..width as i32 {
+                self.blend(
+                    x + offset_x + PAGE_PADDING as i32,
+                    y + offset_y + PAGE_PADDING as i32,
+                    color,
+                    color.a(),
+                );
+            }
+        }
+    }
+
+    fn glyph(&mut self, _glyph: cosmic_text::PhysicalGlyph, _color: Color) {
+        unreachable!("glyphs are rasterized through the alpha-aware page renderer")
+    }
+}
+
+impl PixelRenderer<'_> {
+    fn blend(&mut self, x: i32, y: i32, color: Color, alpha: u8) {
+        blend_pixel(self.pixels, self.width, self.height, x, y, color, alpha);
+    }
+}
+
+fn blend_pixel(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+    color: Color,
+    alpha: u8,
+) {
+    if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 || alpha == 0 {
+        return;
+    }
+    let offset = (y as usize * width as usize + x as usize) * 4;
+    let rgba = color.as_rgba_tuple();
+    let alpha = alpha as u16;
+    for channel in 0..3 {
+        pixels[offset + channel] = ((pixels[offset + channel] as u16 * (255 - alpha)
+            + rgba_channel(rgba, channel) as u16 * alpha)
+            / 255) as u8;
+    }
+    pixels[offset + 3] = 255;
 }
 
 fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {

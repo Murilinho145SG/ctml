@@ -70,6 +70,57 @@ parity_test!(text_transform_matches_chromium, "text-transform", false);
 parity_test!(font_kerning_values_match_chromium, "font-kerning", false);
 parity_test!(hidden_cursor_matches_chromium, "cursor", true);
 
+#[test]
+fn transparent_nested_text_resolves_to_zero_alpha() {
+    let document = parse(include_str!(
+        "../../tests/fixtures/parity/transparent/native.ctml"
+    ))
+    .expect("transparent CTML fixture should parse");
+    let body = document.body.iter().map(ui_node).collect::<Vec<_>>();
+    let stylesheet = parse_stylesheet(include_str!(
+        "../../tests/fixtures/parity/transparent/style.css"
+    ))
+    .expect("transparent CSS fixture should parse")
+    .rules
+    .into_iter()
+    .map(|rule| StyleRule {
+        selectors: rule.selectors,
+        declarations: rule
+            .declarations
+            .into_iter()
+            .map(|declaration| StyleDeclaration {
+                property: declaration.property,
+                value: declaration.value,
+            })
+            .collect(),
+    })
+    .collect::<Vec<_>>();
+    let rasterizer = PageRasterizer::new(&body, &stylesheet);
+    let clear_run = rasterizer
+        .runs
+        .iter()
+        .find(|run| run.text.contains('B'))
+        .expect("transparent span should produce a text run");
+
+    assert_eq!(clear_run.style.color, [0, 0, 0, 0]);
+
+    let clear_document = parse(
+        "<headers><application name=\"Clear text\" desktop /></headers><body><p class=\"clear\">B</p></body>",
+    )
+    .expect("transparent text CTML should parse");
+    let clear_body = clear_document.body.iter().map(ui_node).collect::<Vec<_>>();
+    let mut clear_rasterizer = PageRasterizer::new(&clear_body, &stylesheet);
+    let pixels = clear_rasterizer.snapshot_pixels(WIDTH, HEIGHT);
+    let visible_pixel_count = pixels
+        .chunks_exact(4)
+        .filter(|pixel| pixel[..3] != [255, 255, 255])
+        .count();
+    assert_eq!(
+        visible_pixel_count, 0,
+        "transparent text must not paint any pixels"
+    );
+}
+
 fn run_parity_case(
     name: &str,
     native_markup: &str,
