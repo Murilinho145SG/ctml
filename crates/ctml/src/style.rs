@@ -71,6 +71,7 @@ pub(super) struct TextStyle {
     pub(super) decoration_style: TextDecorationStyle,
     pub(super) decoration_skip_ink: TextDecorationSkipInk,
     pub(super) decoration_thickness: Option<f32>,
+    pub(super) underline_offset: Option<f32>,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
     pub(super) text_decoration_color: Option<[u8; 4]>,
@@ -157,6 +158,7 @@ impl Default for TextStyle {
             decoration_style: TextDecorationStyle::Solid,
             decoration_skip_ink: TextDecorationSkipInk::Auto,
             decoration_thickness: None,
+            underline_offset: None,
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
@@ -239,13 +241,23 @@ impl TextStyle {
         }
         attrs = attrs.font_features(font_features);
         let mut decoration_metadata =
-            self.decoration_style as usize | ((self.decoration_skip_ink as usize) << 4);
+            (self.decoration_style as u64) | ((self.decoration_skip_ink as u64) << 4);
         if let Some(thickness) = self.decoration_thickness {
             let encoded_thickness = (thickness * 256.0).round().clamp(0.0, 0x00ff_ffff as f32);
             decoration_metadata |= 1 << 6;
-            decoration_metadata |= (encoded_thickness as usize) << 8;
+            decoration_metadata |= (encoded_thickness as u64) << 8;
         }
-        attrs = attrs.metadata(decoration_metadata);
+        if let Some(offset) = self.underline_offset
+            && usize::BITS >= 64
+        {
+            let encoded_offset = (offset * 16.0)
+                .round()
+                .clamp(i16::MIN as f32, i16::MAX as f32) as i16
+                as u16;
+            decoration_metadata |= 1_u64 << 32;
+            decoration_metadata |= (encoded_offset as u64) << 33;
+        }
+        attrs = attrs.metadata(decoration_metadata as usize);
         attrs = attrs.metrics(Metrics::new(
             self.font_size * self.font_scale,
             self.line_height,

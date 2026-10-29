@@ -20,7 +20,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `letter-spacing` | `letter-spacing` | normal, positive and negative `px`/`em` values |
 | `text-transform` | `text-transform` | all four supported values |
 | `text-align` | `text-alignment`, `text-alignment-values` | all six supported values |
-| `text-decoration`, `text-decoration-line`, `text-decoration-style`, `text-decoration-skip-ink`, `text-decoration-thickness` | `text-decoration`, `text-decoration-lines`, `text-decoration-style`, `text-decoration-skip-ink`, `text-decoration-thickness` | none, each line, combinations, all five styles, all skip-ink values, and thickness lengths |
+| `text-decoration`, `text-decoration-line`, `text-decoration-style`, `text-decoration-skip-ink`, `text-decoration-thickness`, `text-underline-offset` | `text-decoration`, `text-decoration-lines`, `text-decoration-style`, `text-decoration-skip-ink`, `text-decoration-thickness`, `text-underline-offset` | none, each line, combinations, all five styles, skip-ink values, thickness, and signed offsets |
 | `text-decoration-color` | `text-decoration`, `text-decoration-lines` | color, `currentColor`, and active decoration lines |
 | `cursor` | `cursor` | every mapped cursor keyword, aliases, and `none` |
 

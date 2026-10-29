@@ -1,0 +1,21 @@
+body {
+    color: transparent;
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 24px;
+    /* Keep decoration endpoints integral for exact pixel comparison. */
+    letter-spacing: 0.056317px;
+}
+
+p {
+    margin: 0;
+    text-decoration: underline;
+    text-decoration-color: #3366cc;
+    text-decoration-skip-ink: none;
+}
+
+.auto { text-underline-offset: auto; }
+.zero { text-underline-offset: 0px; }
+.positive { text-underline-offset: 2px; }
+.negative { text-underline-offset: -2px; }
+.half { text-underline-offset: 50%; }

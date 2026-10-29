@@ -233,6 +233,32 @@ fn covers_nonnegative_text_decoration_thickness_lengths() {
 }
 
 #[test]
+fn covers_signed_text_underline_offset_lengths() {
+    for (value, expected) in [
+        ("0", 0.0),
+        ("2px", 2.0),
+        ("-2px", -2.0),
+        ("1em", 16.0),
+        ("50%", 8.0),
+        ("-25%", -4.0),
+    ] {
+        assert_eq!(
+            style_for("text-underline-offset", value).underline_offset,
+            Some(expected),
+            "{value}"
+        );
+    }
+    assert_eq!(
+        style_for("text-underline-offset", "auto").underline_offset,
+        None
+    );
+    assert_eq!(
+        style_for("text-underline-offset", "invalid").underline_offset,
+        None
+    );
+}
+
+#[test]
 fn covers_every_font_feature_switch() {
     let none = style_for("font-variant-ligatures", "none");
     assert_eq!(none.common_ligatures, Some(false));

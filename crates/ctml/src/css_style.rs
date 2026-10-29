@@ -2,6 +2,7 @@ use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 mod font_variant;
+mod length;
 
 pub(super) use crate::css_selector::ElementIdentity;
 use crate::{
@@ -11,6 +12,7 @@ use crate::{
     style::{FontVariantPosition, TextStyle, TextTransform},
 };
 use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
+use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
 
 const ROOT_FONT_SIZE: f32 = 16.0;
 
@@ -220,6 +222,13 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 style.decoration_thickness = Some(thickness);
             }
         }
+        "text-underline-offset" => {
+            if value.eq_ignore_ascii_case("auto") {
+                style.underline_offset = None;
+            } else if let Some(offset) = parse_signed_length_percentage(value, style.font_size) {
+                style.underline_offset = Some(offset);
+            }
+        }
         "text-decoration-color" => {
             style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
                 None
@@ -380,62 +389,6 @@ fn parse_cursor(value: &str) -> Option<CursorIcon> {
         "zoom-out" => CursorIcon::ZoomOut,
         _ => return None,
     })
-}
-
-fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
-    let value = value.trim().to_ascii_lowercase();
-    if let Some(percentage) = value.strip_suffix('%') {
-        return percentage
-            .trim()
-            .parse::<f32>()
-            .ok()
-            .map(|percentage| relative_to * percentage / 100.0)
-            .filter(|value| value.is_finite() && *value > 0.0);
-    }
-    for (unit, pixels_per_unit) in [
-        ("rem", ROOT_FONT_SIZE),
-        ("px", 1.0),
-        ("in", 96.0),
-        ("cm", 96.0 / 2.54),
-        ("mm", 96.0 / 25.4),
-        ("q", 96.0 / 101.6),
-        ("pt", 96.0 / 72.0),
-        ("pc", 16.0),
-        ("em", relative_to),
-    ] {
-        if let Some(number) = value.strip_suffix(unit) {
-            return number
-                .trim()
-                .parse::<f32>()
-                .ok()
-                .map(|number| number * pixels_per_unit)
-                .filter(|value| value.is_finite() && *value > 0.0);
-        }
-    }
-    None
-}
-
-fn parse_nonnegative_length(value: &str, relative_to: f32) -> Option<f32> {
-    let value = value.trim().to_ascii_lowercase();
-    if value.parse::<f32>().ok() == Some(0.0) {
-        return Some(0.0);
-    }
-    if let Some(percentage) = value.strip_suffix('%') {
-        return percentage
-            .trim()
-            .parse::<f32>()
-            .ok()
-            .map(|percentage| relative_to * percentage / 100.0)
-            .filter(|length| length.is_finite() && *length >= 0.0);
-    }
-    for unit in ["rem", "px", "in", "cm", "mm", "q", "pt", "pc", "em"] {
-        if let Some(number) = value.strip_suffix(unit)
-            && number.trim().parse::<f32>().ok() == Some(0.0)
-        {
-            return Some(0.0);
-        }
-    }
-    parse_length(&value, relative_to)
 }
 
 fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {

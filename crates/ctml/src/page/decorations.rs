@@ -80,8 +80,17 @@ fn render_span<R: Renderer>(
             .underline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y =
-            (run.line_y - data.underline_metrics.offset * font_size) as i32 + 1 + thickness_offset;
+        let has_explicit_underline_offset = metadata as u64 & (1_u64 << 32) != 0;
+        let underline_offset = if has_explicit_underline_offset {
+            ((((metadata as u64 >> 33) & 0xffff) as u16 as i16) as f32 / 16.0).round() as i32
+        } else {
+            0
+        };
+        let baseline_adjustment = i32::from(!has_explicit_underline_offset);
+        let y = (run.line_y - data.underline_metrics.offset * font_size) as i32
+            + baseline_adjustment
+            + thickness_offset
+            + underline_offset;
         let line_style = if decoration.underline == UnderlineStyle::Double {
             TextDecorationStyle::Double
         } else {

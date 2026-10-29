@@ -163,6 +163,11 @@ parity_test!(
     "text-decoration-thickness",
     false
 );
+parity_test!(
+    text_underline_offset_matches_chromium,
+    "text-underline-offset",
+    false
+);
 parity_test!(child_selector_matches_chromium, "child-selector", false);
 parity_test!(selector_matrix_matches_chromium, "selector-matrix", false);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);
