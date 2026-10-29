@@ -3,6 +3,27 @@ use std::collections::HashMap;
 use cosmic_text::Cursor;
 
 use crate::page::CursorSpan;
+use crate::style::TextStyle;
+
+pub(super) fn first_line_style_at<'a>(
+    spans: &'a [CursorSpan],
+    first_line_by_block: &HashMap<usize, (usize, usize)>,
+    line: usize,
+    index: usize,
+) -> Option<&'a TextStyle> {
+    let first_span =
+        spans.partition_point(|span| span.line < line || (span.line == line && span.end <= index));
+    spans[first_span..]
+        .iter()
+        .take_while(|span| span.line == line && span.start <= index)
+        .find_map(|span| {
+            let block = span.first_line_block?;
+            let (first_line, end) = first_line_by_block.get(&block)?;
+            (*first_line == line && index < *end)
+                .then_some(span.first_line_font_style.as_ref())
+                .flatten()
+        })
+}
 
 pub(super) fn glyph_foreground(
     selection: Option<(Cursor, Cursor)>,

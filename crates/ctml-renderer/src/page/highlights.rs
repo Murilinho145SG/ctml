@@ -310,6 +310,7 @@ pub(super) fn first_formatted_line_ranges(
             if span.first_line_foreground.is_none()
                 && span.first_line_background.is_none()
                 && span.first_line_decoration.is_none()
+                && span.first_line_font_style.is_none()
             {
                 continue;
             }

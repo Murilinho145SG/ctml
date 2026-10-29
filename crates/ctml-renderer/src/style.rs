@@ -152,6 +152,7 @@ pub(super) fn compile_runs(
             run.first_line_foreground = first_line.foreground;
             run.first_line_background = first_line.background;
             run.first_line_decoration = first_line.decoration;
+            run.first_line_font_style = first_line.has_font_style.then_some(first_line.resolved);
             run.first_letter_block = Some(block.node_id);
             let first_letter = css_style::first_letter_style(
                 &run.style,
@@ -181,6 +182,7 @@ pub(super) struct TextRun {
     pub(super) first_line_foreground: Option<[u8; 4]>,
     pub(super) first_line_background: Option<[u8; 4]>,
     pub(super) first_line_decoration: Option<crate::css_style::PseudoDecoration>,
+    pub(super) first_line_font_style: Option<TextStyle>,
     pub(super) first_letter_block: Option<usize>,
     pub(super) first_letter_foreground: Option<[u8; 4]>,
     pub(super) first_letter_background: Option<[u8; 4]>,
@@ -396,6 +398,7 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
         synthesized.first_line_foreground = run.first_line_foreground;
         synthesized.first_line_background = run.first_line_background;
         synthesized.first_line_decoration = run.first_line_decoration;
+        synthesized.first_line_font_style = run.first_line_font_style.clone();
         synthesized.first_letter_block = run.first_letter_block;
         synthesized.first_letter_foreground = run.first_letter_foreground;
         synthesized.first_letter_background = run.first_letter_background;
@@ -444,6 +447,7 @@ fn push_character(
             first_line_foreground: None,
             first_line_background: None,
             first_line_decoration: None,
+            first_line_font_style: None,
             first_letter_block: None,
             first_letter_foreground: None,
             first_letter_background: None,

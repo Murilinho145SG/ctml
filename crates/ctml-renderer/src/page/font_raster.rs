@@ -16,7 +16,7 @@ use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextRun, TextStyle};
 
 mod highlight;
 
-use highlight::glyph_foreground;
+use highlight::{first_line_style_at, glyph_foreground};
 
 pub(super) fn draw(
     runs: &[TextRun],
@@ -75,6 +75,8 @@ pub(super) fn draw(
             .or(first.color_opt)
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
             let style_index = style_index_at(&style_ranges, line_start + first.start);
+            let first_line_style =
+                first_line_style_at(cursor_spans, &first_line_by_block, run.line_i, first.start);
             let mut end = start + 1;
             while end < run.glyphs.len() {
                 let glyph = &run.glyphs[end];
@@ -93,6 +95,14 @@ pub(super) fn draw(
                     || glyph.font_size != first.font_size
                     || glyph.level != first.level
                     || style_index_at(&style_ranges, line_start + glyph.start) != style_index
+                    || first_line_style_at(
+                        cursor_spans,
+                        &first_line_by_block,
+                        run.line_i,
+                        glyph.start,
+                    )
+                    .is_some()
+                        != first_line_style.is_some()
                     || glyph_color.unwrap_or(cosmic_text::Color::rgb(0, 0, 0)) != color
                 {
                     break;
@@ -112,11 +122,14 @@ pub(super) fn draw(
             let mut paint = Paint::default();
             paint.set_color(Color::from_argb(color.a(), color.r(), color.g(), color.b()));
 
-            let mut font = Font::from_typeface(typeface, first.font_size);
+            let text_style = first_line_style.or_else(|| {
+                style_index
+                    .and_then(|index| runs.get(index))
+                    .map(|run| &run.style)
+            });
+            let font_size = text_style.map_or(first.font_size, |style| style.font_size);
+            let mut font = Font::from_typeface(typeface, font_size);
             configure_font(&mut font);
-            let text_style = style_index
-                .and_then(|index| runs.get(index))
-                .map(|run| &run.style);
             if let (Some(style), Some(face)) = (text_style, font_system.db().face(first.font_id)) {
                 apply_synthetic_style(&mut font, face, style);
             }
