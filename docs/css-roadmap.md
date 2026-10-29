@@ -48,6 +48,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-letter` applies `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch` to its first non-whitespace character.
 - [x] `::first-letter` also applies supported font kerning, variant, feature, line-height, letter-spacing, text-shadow, and text-emphasis properties to that character.
 - [x] `::first-line` font family, size, weight, style, stretch, kerning, supported variants/features, and letter spacing in glyph rendering; wrapping and line metrics still come from the base text layout.
+- [x] `::first-line` text shadow and emphasis marks in glyph rendering.
 - [ ] Other `::first-line` and `::first-letter` styles, including pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.

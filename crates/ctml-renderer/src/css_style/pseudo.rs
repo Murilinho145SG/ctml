@@ -7,7 +7,7 @@ pub(crate) struct PseudoStyle {
     pub(crate) background: Option<[u8; 4]>,
     pub(crate) resolved: TextStyle,
     pub(crate) decoration: Option<PseudoDecoration>,
-    pub(crate) has_font_style: bool,
+    pub(crate) has_rendered_text_style: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -160,30 +160,36 @@ fn resolve_pseudo_style(
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))
             });
-    let has_font_style = rules
-        .iter()
-        .flat_map(|rule| &rule.declarations)
-        .any(|declaration| {
-            [
-                "font",
-                "font-family",
-                "font-size",
-                "font-weight",
-                "font-style",
-                "font-stretch",
-                "font-kerning",
-                "font-variant",
-                "font-variant-caps",
-                "font-variant-ligatures",
-                "font-variant-position",
-                "font-variant-numeric",
-                "font-variant-east-asian",
-                "font-feature-settings",
-                "letter-spacing",
-            ]
+    let has_rendered_text_style =
+        rules
             .iter()
-            .any(|property| declaration.property.eq_ignore_ascii_case(property))
-        });
+            .flat_map(|rule| &rule.declarations)
+            .any(|declaration| {
+                [
+                    "font",
+                    "font-family",
+                    "font-size",
+                    "font-weight",
+                    "font-style",
+                    "font-stretch",
+                    "font-kerning",
+                    "font-variant",
+                    "font-variant-caps",
+                    "font-variant-ligatures",
+                    "font-variant-position",
+                    "font-variant-numeric",
+                    "font-variant-east-asian",
+                    "font-feature-settings",
+                    "letter-spacing",
+                    "text-shadow",
+                    "text-emphasis",
+                    "text-emphasis-style",
+                    "text-emphasis-color",
+                    "text-emphasis-position",
+                ]
+                .iter()
+                .any(|property| declaration.property.eq_ignore_ascii_case(property))
+            });
     let decoration = (has_decoration_declaration
         && (resolved.underline || resolved.overline || resolved.strikethrough))
         .then_some(PseudoDecoration {
@@ -199,6 +205,6 @@ fn resolve_pseudo_style(
         background: resolved.background_color,
         resolved,
         decoration,
-        has_font_style,
+        has_rendered_text_style,
     }
 }

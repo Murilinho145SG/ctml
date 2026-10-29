@@ -101,6 +101,31 @@ fn first_line_font_size_changes_glyph_rendering() {
 }
 
 #[test]
+fn first_line_text_shadow_is_rasterized() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First formatted line".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-line".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-shadow".to_owned(),
+            value: "3px 0px red".to_owned(),
+        }],
+    }];
+    let mut shadowed_page = PageRasterizer::new(&nodes, &stylesheet);
+    let mut plain_page = PageRasterizer::new(&nodes, &[]);
+    assert_ne!(
+        shadowed_page.snapshot_pixels(180, 70),
+        plain_page.snapshot_pixels(180, 70)
+    );
+}
+
+#[test]
 fn first_letter_foreground_and_background_apply_to_one_character() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

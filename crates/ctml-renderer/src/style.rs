@@ -152,7 +152,9 @@ pub(super) fn compile_runs(
             run.first_line_foreground = first_line.foreground;
             run.first_line_background = first_line.background;
             run.first_line_decoration = first_line.decoration;
-            run.first_line_font_style = first_line.has_font_style.then_some(first_line.resolved);
+            run.first_line_font_style = first_line
+                .has_rendered_text_style
+                .then_some(first_line.resolved);
             run.first_letter_block = Some(block.node_id);
             let first_letter = css_style::first_letter_style(
                 &run.style,
