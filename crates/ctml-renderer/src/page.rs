@@ -351,6 +351,7 @@ impl PageRasterizer {
                 cosmic_text::render_decoration(&mut renderer, &run, default_color);
             }
         }
+        self.draw_pseudo_decorations(&mut pixels, width, height);
         pixels
     }
 }
@@ -388,9 +389,11 @@ pub(super) struct CursorSpan {
     pub(super) first_line_block: Option<usize>,
     pub(super) first_line_foreground: Option<[u8; 4]>,
     pub(super) first_line_background: Option<[u8; 4]>,
+    pub(super) first_line_decoration: Option<crate::css_style::PseudoDecoration>,
     pub(super) first_letter_block: Option<usize>,
     pub(super) first_letter_foreground: Option<[u8; 4]>,
     pub(super) first_letter_background: Option<[u8; 4]>,
+    pub(super) first_letter_decoration: Option<crate::css_style::PseudoDecoration>,
     pub(super) character: char,
 }
 
@@ -427,9 +430,11 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 first_line_block: run.first_line_block,
                 first_line_foreground: run.first_line_foreground,
                 first_line_background: run.first_line_background,
+                first_line_decoration: run.first_line_decoration,
                 first_letter_block: run.first_letter_block,
                 first_letter_foreground: run.first_letter_foreground,
                 first_letter_background: run.first_letter_background,
+                first_letter_decoration: run.first_letter_decoration,
                 character,
             });
             index = end;

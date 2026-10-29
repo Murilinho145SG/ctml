@@ -44,6 +44,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Global and element-scoped `::selection` foreground colors.
 - [x] `::first-line` foreground and background colors on the first formatted line of a block.
 - [x] `::first-letter` foreground and background colors on the first non-whitespace character of a block.
+- [x] Solid `text-decoration-line` values `underline`, `overline`, and `line-through` on `::first-line` and `::first-letter`, with supported decoration color and thickness.
 - [x] `::first-letter` applies `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch` to its first non-whitespace character.
 - [ ] Other `::first-line` and `::first-letter` styles, including font styling on the first formatted line.
 - [ ] `::placeholder`; CTML does not currently define form controls.

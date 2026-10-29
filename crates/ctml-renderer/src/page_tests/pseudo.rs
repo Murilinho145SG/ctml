@@ -31,6 +31,14 @@ fn first_line_foreground_applies_only_to_the_first_line_of_a_block() {
                 property: "background-color".to_owned(),
                 value: "yellow".to_owned(),
             },
+            StyleDeclaration {
+                property: "text-decoration-line".to_owned(),
+                value: "underline".to_owned(),
+            },
+            StyleDeclaration {
+                property: "text-decoration-color".to_owned(),
+                value: "red".to_owned(),
+            },
         ],
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
@@ -44,6 +52,11 @@ fn first_line_foreground_applies_only_to_the_first_line_of_a_block() {
         pixels
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [255, 255, 0])
+    );
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0])
     );
     assert!(pixels.chunks_exact(4).any(|pixel| pixel[..3] == [0, 0, 0]));
 }
@@ -69,6 +82,14 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
                 property: "background-color".to_owned(),
                 value: "yellow".to_owned(),
             },
+            StyleDeclaration {
+                property: "text-decoration-line".to_owned(),
+                value: "line-through".to_owned(),
+            },
+            StyleDeclaration {
+                property: "text-decoration-color".to_owned(),
+                value: "red".to_owned(),
+            },
         ],
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
@@ -83,6 +104,11 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
         pixels
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [255, 255, 0])
+    );
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0])
     );
     assert!(pixels.chunks_exact(4).any(|pixel| pixel[..3] == [0, 0, 0]));
 }

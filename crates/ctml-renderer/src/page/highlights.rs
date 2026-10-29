@@ -153,6 +153,105 @@ impl PageRasterizer {
             }
         }
     }
+
+    pub(super) fn draw_pseudo_decorations(&self, pixels: &mut [u8], width: u32, height: u32) {
+        let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
+        let first_letters = first_formatted_letters(&self.cursor_spans);
+        for run in self.buffer.layout_runs() {
+            for span in self
+                .cursor_spans
+                .iter()
+                .filter(|span| span.line == run.line_i)
+            {
+                if let Some(block) = span.first_line_block
+                    && let Some((line, end)) = first_lines.get(&block).copied()
+                    && line == run.line_i
+                    && span.start < end
+                    && let Some(decoration) = span.first_line_decoration
+                {
+                    draw_decoration(
+                        &run,
+                        span.start,
+                        span.end.min(end),
+                        decoration,
+                        pixels,
+                        width,
+                        height,
+                    );
+                }
+                if let Some(block) = span.first_letter_block
+                    && first_letters.get(&block) == Some(&(span.line, span.start, span.end))
+                    && let Some(decoration) = span.first_letter_decoration
+                {
+                    draw_decoration(
+                        &run, span.start, span.end, decoration, pixels, width, height,
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn draw_decoration(
+    run: &cosmic_text::LayoutRun<'_>,
+    start: usize,
+    end: usize,
+    decoration: crate::css_style::PseudoDecoration,
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+) {
+    if start >= end || decoration.thickness <= 0.0 {
+        return;
+    }
+    let start = Cursor {
+        line: run.line_i,
+        index: start,
+        affinity: cosmic_text::Affinity::Before,
+    };
+    let end = Cursor {
+        line: run.line_i,
+        index: end,
+        affinity: cosmic_text::Affinity::After,
+    };
+    for (left, span_width) in run.highlight(start, end) {
+        if decoration.underline {
+            fill_rect_alpha(
+                pixels,
+                width,
+                height,
+                left,
+                run.line_y + 1.0,
+                span_width,
+                decoration.thickness,
+                decoration.color,
+            );
+        }
+        if decoration.overline {
+            fill_rect_alpha(
+                pixels,
+                width,
+                height,
+                left,
+                run.line_y - run.line_height * 0.8,
+                span_width,
+                decoration.thickness,
+                decoration.color,
+            );
+        }
+        if decoration.line_through {
+            fill_rect_alpha(
+                pixels,
+                width,
+                height,
+                left,
+                run.line_y - run.line_height * 0.3,
+                span_width,
+                decoration.thickness,
+                decoration.color,
+            );
+        }
+    }
 }
 
 pub(super) fn first_formatted_letters(
@@ -163,7 +262,10 @@ pub(super) fn first_formatted_letters(
         let Some(block) = span.first_letter_block else {
             continue;
         };
-        if span.first_letter_foreground.is_none() && span.first_letter_background.is_none() {
+        if span.first_letter_foreground.is_none()
+            && span.first_letter_background.is_none()
+            && span.first_letter_decoration.is_none()
+        {
             continue;
         }
         if span.character.is_whitespace() {
@@ -193,7 +295,10 @@ pub(super) fn first_formatted_line_ranges(
             let Some(block) = span.first_line_block else {
                 continue;
             };
-            if span.first_line_foreground.is_none() && span.first_line_background.is_none() {
+            if span.first_line_foreground.is_none()
+                && span.first_line_background.is_none()
+                && span.first_line_decoration.is_none()
+            {
                 continue;
             }
             if span.end > run_start && span.start < run_end {

@@ -6,6 +6,16 @@ pub(crate) struct PseudoStyle {
     pub(crate) foreground: Option<[u8; 4]>,
     pub(crate) background: Option<[u8; 4]>,
     pub(crate) resolved: TextStyle,
+    pub(crate) decoration: Option<PseudoDecoration>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct PseudoDecoration {
+    pub(crate) underline: bool,
+    pub(crate) overline: bool,
+    pub(crate) line_through: bool,
+    pub(crate) color: [u8; 4],
+    pub(crate) thickness: f32,
 }
 
 pub(crate) fn first_line_style(
@@ -88,6 +98,10 @@ fn resolve_pseudo_style(
                             "font-weight",
                             "font-style",
                             "font-stretch",
+                            "text-decoration",
+                            "text-decoration-line",
+                            "text-decoration-color",
+                            "text-decoration-thickness",
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -113,9 +127,33 @@ fn resolve_pseudo_style(
         None,
         &rules,
     );
+    let has_decoration_declaration =
+        rules
+            .iter()
+            .flat_map(|rule| &rule.declarations)
+            .any(|declaration| {
+                [
+                    "text-decoration",
+                    "text-decoration-line",
+                    "text-decoration-color",
+                    "text-decoration-thickness",
+                ]
+                .iter()
+                .any(|property| declaration.property.eq_ignore_ascii_case(property))
+            });
+    let decoration = (has_decoration_declaration
+        && (resolved.underline || resolved.overline || resolved.strikethrough))
+        .then_some(PseudoDecoration {
+            underline: resolved.underline,
+            overline: resolved.overline,
+            line_through: resolved.strikethrough,
+            color: resolved.text_decoration_color.unwrap_or(resolved.color),
+            thickness: resolved.decoration_thickness.unwrap_or(1.0),
+        });
     PseudoStyle {
         foreground: (resolved.color != inherited.color).then_some(resolved.color),
         background: resolved.background_color,
         resolved,
+        decoration,
     }
 }
