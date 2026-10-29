@@ -29,6 +29,14 @@ fn style_for(property: &str, value: &str) -> TextStyle {
 }
 
 #[test]
+fn ignores_unknown_properties_without_affecting_computed_text_style() {
+    assert_eq!(
+        style_for("future-property", "anything"),
+        TextStyle::default()
+    );
+}
+
+#[test]
 fn covers_every_font_style_keyword() {
     for (value, expected) in [
         ("normal", Style::Normal),

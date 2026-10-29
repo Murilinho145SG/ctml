@@ -43,6 +43,20 @@ fn tokenizes_escaped_property_names_strings_and_recovers_bad_declarations() {
 }
 
 #[test]
+fn skips_malformed_declarations_and_preserves_unknown_properties() {
+    let stylesheet =
+        parse_stylesheet("p { color red; future-property: value; color: blue; }").unwrap();
+
+    assert_eq!(stylesheet.rules[0].declarations.len(), 2);
+    assert_eq!(
+        stylesheet.rules[0].declarations[0].property,
+        "future-property"
+    );
+    assert_eq!(stylesheet.rules[0].declarations[1].property, "color");
+    assert_eq!(stylesheet.rules[0].declarations[1].value, "blue");
+}
+
+#[test]
 fn matches_type_class_id_descendant_and_child_selectors() {
     let body = ElementIdentity {
         tag: "body".to_owned(),

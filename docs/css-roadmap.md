@@ -13,7 +13,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [x] Require UTF-8 stylesheet files, accept and remove an optional UTF-8 BOM, discard comments outside strings, and report unterminated comments; `@charset` does not select another encoding.
 - [ ] Implement complete CSS tokenization, escapes, strings, comments, and error recovery.
 - [x] Report stylesheet parse errors with a source file path, line, and column.
-- [ ] Define how invalid declarations and unknown properties are diagnosed.
+- [x] Skip malformed declarations silently; retain unknown properties during parsing and ignore unsupported properties during rendering.
 - [ ] Support inline style attributes, if added to CTML markup.
 - [ ] Support CSSOM or runtime stylesheet mutation (debug/development mode only, if needed).
 

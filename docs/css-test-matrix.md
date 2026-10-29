@@ -45,6 +45,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | UTF-8 encoding, optional BOM, and CSS comments | Native demo build script | BOM, comment, unterminated-comment, and invalid-UTF-8 tests |
 | CSS-tokenized declaration names and values; malformed declaration recovery | — | Escaped property, quoted punctuation, and invalid declaration tests |
 | File, line, and column diagnostics for malformed stylesheets and imports | — | Top-level, nested-import, and late-import diagnostic tests |
+| Invalid declaration and unknown property policy | — | Malformed declaration recovery, parser preservation, and renderer ignore tests |
 
 ## Running the complete matrix
 

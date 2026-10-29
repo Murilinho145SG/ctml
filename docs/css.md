@@ -66,7 +66,7 @@ main .title {
 
 For a broader implementation checklist covering CSS feature areas, see the [CSS feature checklist](css-roadmap.md).
 
-Unsupported CSS selectors and properties are currently ignored. They do not produce an error or affect the rendered page.
+Malformed declarations are skipped without a warning, and parsing continues with later declarations. Unknown property names are retained by the stylesheet parser; properties the renderer does not support are ignored without a warning. Unsupported selectors are also ignored without a warning. Malformed stylesheet structure fails the build with a file, line, and column diagnostic.
 
 ### Selectors and cascade
 
