@@ -34,6 +34,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Adjacent and general sibling combinators | `sibling-selectors` | sibling matching, chained relations, and renderer cascade |
 | Structural pseudo-classes and type equivalents | `structural-selectors` | root, empty, child/type positions, An+B formulas, `of S` filtered child positions, and renderer cascade |
 | Pointer-state pseudo-classes | — | selector-state cascade and live text rerender tests for hover/active |
+| Focus pseudo-classes | — | `:focus`, `:focus-within`, focusable links and `tabindex` nodes, and clearing focus on an outside click |
 | Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
 | Inline style attributes and importance ordering | `inline-style` | Declaration-list parser and renderer cascade tests |
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |

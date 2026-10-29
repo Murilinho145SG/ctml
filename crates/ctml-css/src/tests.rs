@@ -291,6 +291,50 @@ fn matches_link_pseudo_classes_for_ctml_anchors() {
 }
 
 #[test]
+fn matches_focus_and_focus_within_from_selector_position() {
+    let element = identity("a", None);
+    let position = SelectorPosition {
+        node_id: 2,
+        is_focused: true,
+        is_focus_within: true,
+        ..SelectorPosition::default()
+    };
+    assert!(super::selector_matches_with_tree_context(
+        ":focus",
+        &element,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        position,
+        &[],
+    ));
+    assert!(super::selector_matches_with_tree_context(
+        ":focus-within",
+        &element,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        position,
+        &[],
+    ));
+    assert!(!super::selector_matches_with_tree_context(
+        ":focus-visible",
+        &element,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        position,
+        &[],
+    ));
+}
+
+#[test]
 fn matches_escaped_selector_identifiers_and_attribute_values() {
     let element = ElementIdentity {
         tag: "my:element".to_owned(),

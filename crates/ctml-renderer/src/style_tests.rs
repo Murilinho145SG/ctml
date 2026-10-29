@@ -138,7 +138,7 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
             ],
         },
     ];
-    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[]);
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[]);
 
     assert_eq!(
         runs.iter().map(|run| run.text.as_str()).collect::<String>(),

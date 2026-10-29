@@ -32,11 +32,16 @@ pub(crate) struct PageRasterizer {
     layout_size: Option<(u32, u32)>,
     hovered_path: Vec<usize>,
     active_path: Vec<usize>,
+    focused_path: Vec<usize>,
+    focusable_node_ids: Vec<usize>,
 }
 
 impl PageRasterizer {
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
-        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet, &[], &[]);
+        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet, &[], &[], &[]);
+        let mut focusable_node_ids = Vec::new();
+        let mut next_node_id = 1;
+        collect_focusable_node_ids(nodes, &mut next_node_id, &mut focusable_node_ids);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
@@ -81,6 +86,8 @@ impl PageRasterizer {
             layout_size: None,
             hovered_path: Vec::new(),
             active_path: Vec::new(),
+            focused_path: Vec::new(),
+            focusable_node_ids,
         }
     }
 
@@ -210,15 +217,25 @@ impl PageRasterizer {
 
     pub(crate) fn begin_selection(&mut self, x: f64, y: f64) -> bool {
         let path = self.element_path_at(x, y);
+        let focused_path = path
+            .iter()
+            .rposition(|node_id| self.focusable_node_ids.contains(node_id))
+            .map_or_else(Vec::new, |index| path[..=index].to_vec());
+        let focus_changed = self.focused_path != focused_path;
+        if focus_changed {
+            self.focused_path = focused_path;
+        }
         let active_changed = path != self.active_path;
         if active_changed {
             self.active_path = path.clone();
+        }
+        if active_changed || focus_changed {
             self.rebuild_interaction_styles();
         }
         let Some(cursor) = self.hit(x, y) else {
             let changed = self.selection.take().is_some();
             self.selection_anchor = None;
-            return changed || active_changed;
+            return changed || active_changed || focus_changed;
         };
         self.selection_anchor = Some(cursor);
         self.selection = Some((cursor, cursor));
@@ -312,6 +329,7 @@ impl PageRasterizer {
             &self.stylesheet,
             &self.hovered_path,
             &self.active_path,
+            &self.focused_path,
         );
         self.runs = compiled_runs
             .into_iter()
@@ -475,6 +493,44 @@ impl PageRasterizer {
             }
         }
     }
+}
+
+fn collect_focusable_node_ids(nodes: &[UiNode], next_node_id: &mut usize, output: &mut Vec<usize>) {
+    let mut child_groups = Vec::new();
+    for node in nodes {
+        let UiNode::Element {
+            tag,
+            attributes,
+            children,
+            ..
+        } = node
+        else {
+            continue;
+        };
+        let node_id = *next_node_id;
+        *next_node_id += 1;
+        if is_focusable(tag, attributes) {
+            output.push(node_id);
+        }
+        child_groups.push(children.as_slice());
+    }
+    for children in child_groups {
+        collect_focusable_node_ids(children, next_node_id, output);
+    }
+}
+
+fn is_focusable(tag: &str, attributes: &[(String, Option<String>)]) -> bool {
+    let has_tabindex = attributes.iter().any(|(name, value)| {
+        name.eq_ignore_ascii_case("tabindex")
+            && value
+                .as_deref()
+                .is_some_and(|value| value.trim().parse::<i32>().is_ok())
+    });
+    has_tabindex
+        || (tag.eq_ignore_ascii_case("a")
+            && attributes
+                .iter()
+                .any(|(name, _)| name.eq_ignore_ascii_case("href")))
 }
 
 fn is_underline_descender(character: char) -> bool {

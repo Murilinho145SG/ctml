@@ -17,6 +17,7 @@ pub(super) fn compile_runs(
     stylesheet: &[StyleRule],
     hovered_path: &[usize],
     active_path: &[usize],
+    focused_path: &[usize],
 ) -> (Vec<TextRun>, TextStyle) {
     let root_position = SelectorPosition {
         node_id: 0,
@@ -28,6 +29,8 @@ pub(super) fn compile_runs(
         is_root: true,
         is_hovered: !hovered_path.is_empty(),
         is_active: !active_path.is_empty(),
+        is_focused: false,
+        is_focus_within: !focused_path.is_empty(),
         ..SelectorPosition::default()
     };
     let mut root_style = TextStyle::default();
@@ -60,6 +63,7 @@ pub(super) fn compile_runs(
         &mut tree_next_node_id,
         hovered_path,
         active_path,
+        focused_path,
         &mut selector_tree,
     );
     css_style::apply_matching_styles_with_selector_tree_position(
@@ -89,6 +93,7 @@ pub(super) fn compile_runs(
         &mut next_node_id,
         hovered_path,
         active_path,
+        focused_path,
         &selector_tree,
         &root_style,
         &mut runs,
@@ -110,6 +115,7 @@ fn selector_sibling_contexts(
     next_node_id: &mut usize,
     hovered_path: &[usize],
     active_path: &[usize],
+    focused_path: &[usize],
 ) -> Vec<SelectorSibling> {
     let elements = nodes
         .iter()
@@ -157,6 +163,8 @@ fn selector_sibling_contexts(
                     is_root: false,
                     is_hovered: hovered_path.contains(&node_id),
                     is_active: active_path.contains(&node_id),
+                    is_focused: focused_path.last() == Some(&node_id),
+                    is_focus_within: focused_path.contains(&node_id),
                 },
                 node_id,
             }
@@ -172,9 +180,11 @@ fn build_selector_tree(
     next_node_id: &mut usize,
     hovered_path: &[usize],
     active_path: &[usize],
+    focused_path: &[usize],
     output: &mut Vec<SelectorTreeElement>,
 ) {
-    let siblings = selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path);
+    let siblings =
+        selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path, focused_path);
     let children = nodes
         .iter()
         .filter_map(|node| match node {
@@ -209,6 +219,7 @@ fn build_selector_tree(
             next_node_id,
             hovered_path,
             active_path,
+            focused_path,
             output,
         );
     }

@@ -51,6 +51,8 @@ pub struct SelectorPosition {
     pub is_root: bool,
     pub is_hovered: bool,
     pub is_active: bool,
+    pub is_focused: bool,
+    pub is_focus_within: bool,
 }
 
 pub fn selector_matches(

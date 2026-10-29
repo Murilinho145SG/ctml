@@ -20,13 +20,15 @@ pub(super) fn collect_runs(
     next_node_id: &mut usize,
     hovered_path: &[usize],
     active_path: &[usize],
+    focused_path: &[usize],
     selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
-    let siblings = selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path);
+    let siblings =
+        selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path, focused_path);
     let mut element_index = 0;
     for node in nodes {
         match node {
@@ -129,6 +131,7 @@ pub(super) fn collect_runs(
                     next_node_id,
                     hovered_path,
                     active_path,
+                    focused_path,
                     selector_tree,
                     &style,
                     output,
