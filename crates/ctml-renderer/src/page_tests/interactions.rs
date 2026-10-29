@@ -194,3 +194,27 @@ fn text_emphasis_draws_marks_on_non_whitespace_glyphs() {
         "over marks should appear above under marks"
     );
 }
+
+#[test]
+fn text_emphasis_renders_custom_string_marks() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("A".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-emphasis".to_owned(),
+            value: "'*' red".to_owned(),
+        }],
+    }];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 50);
+    assert!(pixels.chunks_exact(4).any(|pixel| {
+        u16::from(pixel[0]) > u16::from(pixel[1]) + 32
+            && u16::from(pixel[0]) > u16::from(pixel[2]) + 32
+    }));
+}

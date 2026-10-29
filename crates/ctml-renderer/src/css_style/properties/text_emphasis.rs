@@ -1,5 +1,6 @@
 use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextStyle};
-use ctml_css::parse_color_with_opacity;
+use ctml_css::{parse_color_with_opacity, parse_css_string};
+use unicode_segmentation::UnicodeSegmentation;
 
 pub(super) fn apply_text_emphasis_shorthand(style: &mut TextStyle, value: &str) {
     let components = split_components(value);
@@ -97,10 +98,12 @@ pub(super) fn apply_text_emphasis_property(style: &mut TextStyle, property: &str
 pub(super) fn inherit_text_emphasis(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
         "text-emphasis" => {
-            style.text_emphasis_style = inherited.text_emphasis_style;
+            style.text_emphasis_style = inherited.text_emphasis_style.clone();
             style.text_emphasis_color = inherited.text_emphasis_color;
         }
-        "text-emphasis-style" => style.text_emphasis_style = inherited.text_emphasis_style,
+        "text-emphasis-style" => {
+            style.text_emphasis_style = inherited.text_emphasis_style.clone();
+        }
         "text-emphasis-color" => style.text_emphasis_color = inherited.text_emphasis_color,
         "text-emphasis-position" => {
             style.text_emphasis_position = inherited.text_emphasis_position;
@@ -125,6 +128,15 @@ pub(super) fn reset_text_emphasis(style: &mut TextStyle, property: &str) {
 fn parse_emphasis_style(value: &str) -> Option<TextEmphasisStyle> {
     if value.eq_ignore_ascii_case("none") {
         return Some(TextEmphasisStyle::None);
+    }
+    if value.starts_with('\'') || value.starts_with('"') {
+        let string = parse_css_string(value)?;
+        let mut graphemes = string.graphemes(true);
+        let mark = graphemes.next()?;
+        return graphemes
+            .next()
+            .is_none()
+            .then(|| TextEmphasisStyle::Custom(mark.to_owned()));
     }
     let components = value.split_ascii_whitespace().collect::<Vec<_>>();
     if components.len() > 2 || components.is_empty() {
@@ -169,20 +181,33 @@ fn parse_emphasis_style(value: &str) -> Option<TextEmphasisStyle> {
 fn split_components(value: &str) -> Vec<&str> {
     let mut components = Vec::new();
     let mut depth = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
     let mut start = None;
     for (index, character) in value.char_indices() {
         if start.is_none() && !character.is_whitespace() {
             start = Some(index);
         }
-        match character {
-            '(' => depth += 1,
-            ')' => depth = depth.saturating_sub(1),
-            character if character.is_whitespace() && depth == 0 => {
-                if let Some(component_start) = start.take() {
-                    components.push(&value[component_start..index]);
-                }
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == active_quote {
+                quote = None;
             }
-            _ => {}
+        } else {
+            match character {
+                '\'' | '"' => quote = Some(character),
+                '(' => depth += 1,
+                ')' => depth = depth.saturating_sub(1),
+                character if character.is_whitespace() && depth == 0 => {
+                    if let Some(component_start) = start.take() {
+                        components.push(&value[component_start..index]);
+                    }
+                }
+                _ => {}
+            }
         }
     }
     if let Some(component_start) = start {
@@ -222,7 +247,13 @@ mod tests {
     fn rejects_conflicting_or_unsupported_style_values() {
         let mut style = TextStyle::default();
         style.text_emphasis_style = TextEmphasisStyle::OpenCircle;
-        for value in ["filled open", "dot triangle", "custom", "none dot"] {
+        for value in [
+            "filled open",
+            "dot triangle",
+            "custom",
+            "none dot",
+            "\"two graphemes\"",
+        ] {
             apply_text_emphasis_style(&mut style, value);
             assert_eq!(style.text_emphasis_style, TextEmphasisStyle::OpenCircle);
         }

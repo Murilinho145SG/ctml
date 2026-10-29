@@ -126,7 +126,7 @@ pub(super) fn draw(
                 }
                 canvas.draw_text_blob(blob, Point::default(), &paint);
                 if let Some(style) = text_style {
-                    draw_text_emphasis(canvas, &run, group, style);
+                    draw_text_emphasis(canvas, &run, group, style, &font);
                 }
             } else {
                 let mut builder = TextBlobBuilder::new();
@@ -144,7 +144,7 @@ pub(super) fn draw(
                     }
                     canvas.draw_text_blob(blob, Point::default(), &paint);
                     if let Some(style) = text_style {
-                        draw_text_emphasis(canvas, &run, group, style);
+                        draw_text_emphasis(canvas, &run, group, style, &font);
                     }
                 }
             }
@@ -184,6 +184,7 @@ fn draw_text_emphasis(
     line: &cosmic_text::LayoutRun<'_>,
     glyphs: &[cosmic_text::LayoutGlyph],
     style: &TextStyle,
+    font: &Font,
 ) {
     if style.text_emphasis_style == TextEmphasisStyle::None {
         return;
@@ -215,7 +216,8 @@ fn draw_text_emphasis(
             canvas,
             center,
             radius,
-            style.text_emphasis_style,
+            style.text_emphasis_style.clone(),
+            font,
             &mut paint,
         );
     }
@@ -226,10 +228,11 @@ fn draw_emphasis_mark(
     center: Point,
     radius: f32,
     style: TextEmphasisStyle,
+    font: &Font,
     paint: &mut Paint,
 ) {
     let open = matches!(
-        style,
+        &style,
         TextEmphasisStyle::OpenDot
             | TextEmphasisStyle::OpenCircle
             | TextEmphasisStyle::OpenDoubleCircle
@@ -284,6 +287,20 @@ fn draw_emphasis_mark(
                 radius * 2.0,
             );
             canvas.draw_oval(bounds, paint);
+        }
+        TextEmphasisStyle::Custom(mark) => {
+            let mut mark_font = font.clone();
+            mark_font.set_size((font.size() * 0.5).max(1.0));
+            let (width, bounds) = mark_font.measure_text(&mark, Some(paint));
+            canvas.draw_str(
+                mark,
+                (
+                    center.x - width * 0.5,
+                    center.y - (bounds.top() + bounds.bottom()) * 0.5,
+                ),
+                &mark_font,
+                paint,
+            );
         }
         TextEmphasisStyle::None => {}
     }

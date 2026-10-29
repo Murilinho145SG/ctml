@@ -61,7 +61,7 @@ pub(crate) struct TextShadow {
     pub(crate) color: [u8; 4],
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) enum TextEmphasisStyle {
     #[default]
     None,
@@ -75,6 +75,7 @@ pub(crate) enum TextEmphasisStyle {
     OpenTriangle,
     FilledSesame,
     OpenSesame,
+    Custom(String),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

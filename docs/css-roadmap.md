@@ -155,8 +155,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-decoration-thickness` values `auto`, `from-font`, and non-negative lengths or percentages.
 - [x] `text-underline-offset` values `auto`, signed lengths, and percentages.
 - [x] `text-shadow` with multiple shadows, signed offsets, non-negative blur lengths, explicit colors, and `currentColor`.
-- [x] Keyword `text-emphasis` marks (`dot`, `circle`, `double-circle`, `triangle`, and `sesame`), filled/open styles, inherited color and over/under position.
-- [ ] Custom-string emphasis marks and vertical text-emphasis side placement.
+- [x] Keyword and single-grapheme string `text-emphasis` marks (`dot`, `circle`, `double-circle`, `triangle`, and `sesame`), filled/open styles, inherited color, and over/under position.
+- [ ] Vertical text-emphasis side placement.
 - [ ] Writing modes, direction, bidirectional isolation, and vertical text.
 - [ ] List markers and counters.
 - [ ] Generated content with `content`, counters, and quotes.

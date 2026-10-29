@@ -30,6 +30,12 @@ fn parses_text_emphasis_styles_colors_and_positions() {
         TextEmphasisStyle::FilledDot
     );
     assert_eq!(current_color.text_emphasis_color, None);
+
+    let custom = style_for_declarations(&[("text-emphasis-style", "'\\2a'")]);
+    assert_eq!(
+        custom.text_emphasis_style,
+        TextEmphasisStyle::Custom("*".to_owned())
+    );
 }
 
 #[test]
