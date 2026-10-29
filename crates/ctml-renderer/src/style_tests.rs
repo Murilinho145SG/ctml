@@ -1,4 +1,7 @@
-use super::{FontVariantCaps, TextRun, TextStyle, append_text, synthesize_font_variant_caps};
+use super::{
+    FontVariantCaps, TextRun, TextStyle, append_text, compile_runs, synthesize_font_variant_caps,
+};
+use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
 fn preserves_small_caps_for_font_feature_shaping() {
@@ -96,4 +99,51 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
         assert_eq!(runs[0].text, "A");
         assert_eq!(runs[0].style.font_size * runs[0].style.font_scale, 6.0);
     }
+}
+
+#[test]
+fn generates_before_and_after_text_with_pseudo_element_styles() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("body".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p::before".to_owned()],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "content".to_owned(),
+                    value: "\"before\"".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "blue".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["p::after".to_owned()],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "content".to_owned(),
+                    value: "'after'".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "font-weight".to_owned(),
+                    value: "700".to_owned(),
+                },
+            ],
+        },
+    ];
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[]);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "beforebodyafter"
+    );
+    assert_eq!(runs[0].style.color, [0, 0, 255, 255]);
+    assert_eq!(runs[2].style.weight, cosmic_text::Weight(700));
 }
