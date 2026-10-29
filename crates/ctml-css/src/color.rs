@@ -525,6 +525,7 @@ mod tests {
             "rgb(from red r g b / nope)",
             "rgb(from red calc(r + 2px) g b)",
             "rgb(from red calc(r / 0) g b)",
+            "hsl(from red calc(h + 50%) s l)",
             "rgb(from nope r g b)",
         ] {
             assert_eq!(parse_color(value), None, "unexpectedly parsed {value}");
@@ -546,6 +547,18 @@ mod tests {
             parse_color("hsl(from hsl(240 100% 50% / 25%) h s l / alpha)"),
             Some([0, 0, 255, 64])
         );
+        for expression in [
+            "calc(h + 180deg)",
+            "calc(h + 200grad)",
+            "calc(h + 3.1415927rad)",
+            "calc(h + 0.5turn)",
+        ] {
+            assert_eq!(
+                parse_color(&format!("hsl(from red {expression} s l)")),
+                Some([0, 255, 255, 255]),
+                "unexpected hue calculation result for {expression}"
+            );
+        }
     }
 
     #[test]

@@ -222,10 +222,24 @@ fn evaluate_math_component<'i, 't>(
     references: &[(&str, f32)],
     percentage_scale: f32,
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    evaluate_math_component_with_angles(input, start, references, percentage_scale, false)
+}
+
+fn evaluate_math_component_with_angles<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    start: cssparser::SourcePosition,
+    references: &[(&str, f32)],
+    percentage_scale: f32,
+    convert_angles: bool,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
     input.parse_nested_block(|nested| consume_all_tokens(nested, 0))?;
     let end = input.position();
-    let expression =
-        substitute_math_references(input.slice(start..end), references, percentage_scale);
+    let expression = substitute_math_references(
+        input.slice(start..end),
+        references,
+        percentage_scale,
+        convert_angles,
+    );
     crate::parse_math_number(&expression).ok_or_else(|| input.new_custom_error(()))
 }
 
@@ -233,6 +247,7 @@ fn substitute_math_references(
     expression: &str,
     references: &[(&str, f32)],
     percentage_scale: f32,
+    convert_angles: bool,
 ) -> String {
     let mut result = String::with_capacity(expression.len());
     let mut cursor = 0;
@@ -265,6 +280,28 @@ fn substitute_math_references(
                 let value = number.parse::<f32>().unwrap_or(f32::NAN) / 100.0 * percentage_scale;
                 result.push_str(&value.to_string());
                 cursor += number_length + 1;
+            } else if convert_angles {
+                let unit_length = remaining[number_length..]
+                    .chars()
+                    .take_while(char::is_ascii_alphabetic)
+                    .map(char::len_utf8)
+                    .sum::<usize>();
+                let unit = &remaining[number_length..number_length + unit_length];
+                let value = number.parse::<f32>().unwrap_or(f32::NAN);
+                let degrees = match unit.to_ascii_lowercase().as_str() {
+                    "deg" => Some(value),
+                    "grad" => Some(value * 0.9),
+                    "rad" => Some(value.to_degrees()),
+                    "turn" => Some(value * 360.0),
+                    _ => None,
+                };
+                if let Some(degrees) = degrees {
+                    result.push_str(&degrees.to_string());
+                    cursor += number_length + unit_length;
+                } else {
+                    result.push_str(number);
+                    cursor += number_length;
+                }
             } else {
                 result.push_str(number);
                 cursor += number_length;
@@ -320,7 +357,9 @@ fn parse_hue_channel<'i, 't>(
     let hue = match input.next()? {
         Token::Ident(name) if name.eq_ignore_ascii_case("h") => source_hue,
         Token::Number { value, .. } if value.is_finite() => *value,
-        Token::Function(_) => evaluate_math_component(input, start, &[("h", source_hue)], 1.0)?,
+        Token::Function(_) => {
+            evaluate_math_component_with_angles(input, start, &[("h", source_hue)], f32::NAN, true)?
+        }
         Token::Dimension { value, unit, .. } if value.is_finite() => {
             let value = *value;
             match unit.to_ascii_lowercase().as_str() {
