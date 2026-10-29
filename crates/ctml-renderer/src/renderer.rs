@@ -158,6 +158,10 @@ impl Renderer {
         self.page.clear_hover()
     }
 
+    pub(super) fn tab_focus(&mut self, backwards: bool) -> bool {
+        self.page.focus_next(backwards)
+    }
+
     pub(super) fn select_word_at(&mut self, position: PhysicalPosition<f64>) -> bool {
         self.page.select_word_at(position.x, position.y)
     }

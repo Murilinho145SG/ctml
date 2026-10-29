@@ -193,6 +193,7 @@ fn structural_pseudo_matches(name: &str, position: SelectorPosition) -> bool {
         "hover" => position.is_hovered,
         "active" => position.is_active,
         "focus" => position.is_focused,
+        "focus-visible" => position.is_focus_visible,
         "focus-within" => position.is_focus_within,
         "first-child" | "first-of-type" => {
             if name == "first-child" {

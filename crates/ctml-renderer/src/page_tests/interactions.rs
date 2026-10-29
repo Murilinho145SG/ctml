@@ -87,6 +87,45 @@ fn focus_and_focus_within_restyle_clicked_links() {
 }
 
 #[test]
+fn keyboard_focus_activates_focus_visible_and_pointer_focus_does_not() {
+    let nodes = [UiNode::Element {
+        tag: "a".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![("href".to_owned(), Some("/next".to_owned()))],
+        children: vec![UiNode::Text("Focus".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["a:focus".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "blue".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["a:focus-visible".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+
+    assert!(page.focus_next(false));
+    let keyboard = page.snapshot_pixels(100, 50);
+    assert!(keyboard.chunks_exact(4).any(|pixel| pixel[0] > pixel[2]));
+
+    assert!(page.begin_selection(10.0, 14.0));
+    let pointer = page.snapshot_pixels(100, 50);
+    assert!(pointer.chunks_exact(4).any(|pixel| pixel[2] > pixel[0]));
+    assert!(!pointer.chunks_exact(4).any(|pixel| pixel[0] > pixel[2]));
+}
+
+#[test]
 fn numeric_tabindex_makes_generic_elements_focusable() {
     let nodes = [UiNode::Element {
         tag: "span".to_owned(),

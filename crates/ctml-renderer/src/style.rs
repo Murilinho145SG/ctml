@@ -18,6 +18,7 @@ pub(super) fn compile_runs(
     hovered_path: &[usize],
     active_path: &[usize],
     focused_path: &[usize],
+    keyboard_focus: bool,
 ) -> (Vec<TextRun>, TextStyle) {
     let root_position = SelectorPosition {
         node_id: 0,
@@ -64,6 +65,7 @@ pub(super) fn compile_runs(
         hovered_path,
         active_path,
         focused_path,
+        keyboard_focus,
         &mut selector_tree,
     );
     css_style::apply_matching_styles_with_selector_tree_position(
@@ -94,6 +96,7 @@ pub(super) fn compile_runs(
         hovered_path,
         active_path,
         focused_path,
+        keyboard_focus,
         &selector_tree,
         &root_style,
         &mut runs,
@@ -116,6 +119,7 @@ fn selector_sibling_contexts(
     hovered_path: &[usize],
     active_path: &[usize],
     focused_path: &[usize],
+    keyboard_focus: bool,
 ) -> Vec<SelectorSibling> {
     let elements = nodes
         .iter()
@@ -164,6 +168,7 @@ fn selector_sibling_contexts(
                     is_hovered: hovered_path.contains(&node_id),
                     is_active: active_path.contains(&node_id),
                     is_focused: focused_path.last() == Some(&node_id),
+                    is_focus_visible: keyboard_focus && focused_path.last() == Some(&node_id),
                     is_focus_within: focused_path.contains(&node_id),
                 },
                 node_id,
@@ -181,10 +186,17 @@ fn build_selector_tree(
     hovered_path: &[usize],
     active_path: &[usize],
     focused_path: &[usize],
+    keyboard_focus: bool,
     output: &mut Vec<SelectorTreeElement>,
 ) {
-    let siblings =
-        selector_sibling_contexts(nodes, next_node_id, hovered_path, active_path, focused_path);
+    let siblings = selector_sibling_contexts(
+        nodes,
+        next_node_id,
+        hovered_path,
+        active_path,
+        focused_path,
+        keyboard_focus,
+    );
     let children = nodes
         .iter()
         .filter_map(|node| match node {
@@ -220,6 +232,7 @@ fn build_selector_tree(
             hovered_path,
             active_path,
             focused_path,
+            keyboard_focus,
             output,
         );
     }

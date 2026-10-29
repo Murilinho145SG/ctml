@@ -10,6 +10,7 @@ use winit::{
     error::{EventLoopError, OsError},
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    keyboard::{Key, ModifiersState, NamedKey},
     window::{CursorIcon, Window as NativeWindow, WindowId},
 };
 
@@ -93,6 +94,7 @@ struct WindowApplication {
     dragged_during_click: bool,
     double_click_active: bool,
     last_click: Option<(Instant, PhysicalPosition<f64>)>,
+    modifiers: ModifiersState,
 }
 
 impl WindowApplication {
@@ -108,6 +110,7 @@ impl WindowApplication {
             dragged_during_click: false,
             double_click_active: false,
             last_click: None,
+            modifiers: ModifiersState::empty(),
         }
     }
 
@@ -198,6 +201,19 @@ impl ApplicationHandler for WindowApplication {
                 window.set_cursor_visible(true);
                 if let Some(renderer) = self.renderer.as_mut()
                     && renderer.pointer_left()
+                {
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = modifiers.state();
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == winit::event::ElementState::Pressed
+                    && event.logical_key == Key::Named(NamedKey::Tab) =>
+            {
+                if let Some(renderer) = self.renderer.as_mut()
+                    && renderer.tab_focus(self.modifiers.shift_key())
                 {
                     window.request_redraw();
                 }

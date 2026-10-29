@@ -138,3 +138,34 @@ fn matches_focus_and_focus_within_from_selector_position() {
         &[],
     ));
 }
+
+#[test]
+fn matches_focus_visible_only_when_keyboard_modality_is_visible() {
+    let element = identity("a", None);
+    let keyboard_position = SelectorPosition {
+        is_focused: true,
+        is_focus_visible: true,
+        ..SelectorPosition::default()
+    };
+    let pointer_position = SelectorPosition {
+        is_focused: true,
+        ..SelectorPosition::default()
+    };
+
+    for (position, expected) in [(keyboard_position, true), (pointer_position, false)] {
+        assert_eq!(
+            super::selector_matches_with_tree_context(
+                ":focus-visible",
+                &element,
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                position,
+                &[],
+            ),
+            expected
+        );
+    }
+}

@@ -32,7 +32,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [x] Pointer-state pseudo-classes `:hover` and `:active` for text-bearing CTML elements.
 - [x] `:focus` and `:focus-within` for clicked links with `href` and elements with numeric `tabindex`.
-- [ ] `:focus-visible`, keyboard focus navigation, and form-state pseudo-classes; CTML does not yet have native form controls.
+- [x] `:focus-visible` based on keyboard focus, with Tab and Shift+Tab navigation through links and sequentially focusable elements.
+- [ ] Form-state pseudo-classes; CTML does not yet have native form controls.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
 - [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
