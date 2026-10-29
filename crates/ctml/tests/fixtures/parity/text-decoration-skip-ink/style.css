@@ -3,6 +3,8 @@ body {
     font-family: sans-serif;
     font-size: 14px;
     line-height: 24px;
+    /* Keep uppercase sample endpoints on integral pixels during comparison. */
+    letter-spacing: 0.063057px;
 }
 
 p {
@@ -14,3 +16,5 @@ p {
 .auto { text-decoration-skip-ink: auto; }
 .none { text-decoration-skip-ink: none; }
 .all { text-decoration-skip-ink: all; }
+/* Keep the descender sample endpoint just below an integral pixel. */
+.descender { letter-spacing: 0.212px; }

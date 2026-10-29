@@ -5,7 +5,7 @@
 
 <body>
     <p class="auto">HAMBURG</p>
-    <p class="auto">gypq</p>
-    <p class="none">gypq</p>
+    <p class="auto descender">p</p>
+    <p class="none descender">p</p>
     <p class="all">HAMBURG</p>
 </body>
