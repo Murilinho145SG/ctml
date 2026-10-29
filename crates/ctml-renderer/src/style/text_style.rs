@@ -2,7 +2,7 @@ use cosmic_text::{
     Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
     Weight,
 };
-use ctml_css::FontRelativeUnits;
+use ctml_css::{FontRelativeUnits, ViewportSize};
 use std::collections::HashMap;
 use winit::window::CursorIcon;
 
@@ -12,6 +12,7 @@ const DEFAULT_LINE_HEIGHT: f32 = 20.0;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
+    pub(crate) viewport_size: ViewportSize,
     pub(crate) font_size: f32,
     pub(crate) font_scale: f32,
     pub(crate) line_height: f32,
@@ -84,6 +85,7 @@ pub(crate) struct LayoutSize {
     pub(crate) font_size: f32,
     pub(crate) line_height: f32,
     pub(crate) font_relative_units: FontRelativeUnits,
+    pub(crate) viewport_size: ViewportSize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,6 +96,7 @@ pub(crate) struct LayoutHeight {
     pub(crate) font_size: f32,
     pub(crate) line_height: f32,
     pub(crate) font_relative_units: FontRelativeUnits,
+    pub(crate) viewport_size: ViewportSize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -181,6 +184,7 @@ impl Default for TextStyle {
     fn default() -> Self {
         Self {
             font_relative_units: FontRelativeUnits::default(),
+            viewport_size: ViewportSize::default(),
             font_size: DEFAULT_FONT_SIZE,
             font_scale: 1.0,
             line_height: DEFAULT_LINE_HEIGHT,

@@ -1,5 +1,5 @@
 use cosmic_text::{Buffer, Cursor};
-use ctml_css::{FontRelativeUnits, parse_font_relative_length};
+use ctml_css::{FontRelativeUnits, ViewportSize, parse_font_relative_length_with_viewport};
 use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun};
@@ -10,6 +10,7 @@ pub(super) fn resolve_width(
     font_size: f32,
     line_height: f32,
     font_relative_units: FontRelativeUnits,
+    viewport_size: ViewportSize,
 ) -> Option<f32> {
     let value = value.trim();
     if value == "0" {
@@ -23,7 +24,13 @@ pub(super) fn resolve_width(
             .map(|percentage| available_width * percentage / 100.0)
             .filter(|width| width.is_finite() && *width >= 0.0);
     }
-    parse_font_relative_length(value, font_size, line_height, font_relative_units)
+    parse_font_relative_length_with_viewport(
+        value,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    )
 }
 
 pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -> f32 {
@@ -36,6 +43,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
                 size.font_size,
                 size.line_height,
                 size.font_relative_units,
+                size.viewport_size,
             )
         });
         let max_width = size.max_width.as_deref().and_then(|value| {
@@ -45,6 +53,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
                 size.font_size,
                 size.line_height,
                 size.font_relative_units,
+                size.viewport_size,
             )
         });
         let specified_width = size
@@ -57,6 +66,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
                     size.font_size,
                     size.line_height,
                     size.font_relative_units,
+                    size.viewport_size,
                 )
             })
             .unwrap_or(content_width);
@@ -74,7 +84,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
 #[cfg(test)]
 mod tests {
     use super::resolve_width;
-    use ctml_css::FontRelativeUnits;
+    use ctml_css::{FontRelativeUnits, ViewportSize};
 
     #[test]
     fn resolves_font_metric_units_for_box_dimensions() {
@@ -84,9 +94,26 @@ mod tests {
             ic: 1.0,
             cap: 0.7,
         };
-        assert_eq!(resolve_width("2ch", 200.0, 20.0, 24.0, units), Some(22.0));
-        assert_eq!(resolve_width("0.5lh", 200.0, 20.0, 24.0, units), Some(12.0));
-        assert_eq!(resolve_width("25%", 200.0, 20.0, 24.0, units), Some(50.0));
+        let viewport = ViewportSize {
+            width: 800.0,
+            height: 600.0,
+        };
+        assert_eq!(
+            resolve_width("2ch", 200.0, 20.0, 24.0, units, viewport),
+            Some(22.0)
+        );
+        assert_eq!(
+            resolve_width("0.5lh", 200.0, 20.0, 24.0, units, viewport),
+            Some(12.0)
+        );
+        assert_eq!(
+            resolve_width("25%", 200.0, 20.0, 24.0, units, viewport),
+            Some(50.0)
+        );
+        assert_eq!(
+            resolve_width("10svw", 200.0, 20.0, 24.0, units, viewport),
+            Some(80.0)
+        );
     }
 }
 
@@ -98,6 +125,7 @@ pub(super) fn resolve_layout_height(
     font_size: f32,
     line_height: f32,
     font_relative_units: FontRelativeUnits,
+    viewport_size: ViewportSize,
 ) -> f32 {
     let min_height = min_height.and_then(|value| {
         resolve_width(
@@ -106,6 +134,7 @@ pub(super) fn resolve_layout_height(
             font_size,
             line_height,
             font_relative_units,
+            viewport_size,
         )
     });
     let max_height = max_height.and_then(|value| {
@@ -115,6 +144,7 @@ pub(super) fn resolve_layout_height(
             font_size,
             line_height,
             font_relative_units,
+            viewport_size,
         )
     });
     let specified_height = height
@@ -125,6 +155,7 @@ pub(super) fn resolve_layout_height(
                 font_size,
                 line_height,
                 font_relative_units,
+                viewport_size,
             )
         })
         .unwrap_or(0.0);
@@ -265,6 +296,7 @@ pub(super) fn block_spacer_heights(
             size.font_size,
             size.line_height,
             size.font_relative_units,
+            size.viewport_size,
         );
         let extra_height = (requested_height - content_height).max(0.0);
         if extra_height <= 0.0 {

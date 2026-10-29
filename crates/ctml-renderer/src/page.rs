@@ -18,6 +18,7 @@ mod interactions;
 mod layout;
 mod pixel;
 mod sizing;
+mod viewport;
 
 const PAGE_PADDING: f32 = 8.0;
 
@@ -71,6 +72,7 @@ impl PageRasterizer {
             &[],
             false,
             Some(&font_system),
+            ctml_css::ViewportSize::default(),
         );
         let focus_manager = focus::FocusManager::new(nodes);
         let selection_background_color = crate::css_style::selection_background_color(stylesheet);
@@ -88,7 +90,10 @@ impl PageRasterizer {
         let cursor_spans = cursor_spans(&runs);
         let buffer = Buffer::new(
             &mut font_system,
-            Metrics::new(root_style.font_size, root_style.line_height),
+            Metrics::new(
+                root_style.font_size.max(1.0),
+                root_style.line_height.max(1.0),
+            ),
         );
 
         Self {
@@ -141,6 +146,7 @@ impl PageRasterizer {
         let selection_anchor = self
             .selection_anchor
             .map(|cursor| cursor_without_flow_spacers(cursor, &self.spacer_line_flags));
+        let viewport_size = viewport::resize_styles(self, width, height);
         let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
         let min_width = self.root_style.min_width.as_deref().and_then(|value| {
@@ -150,6 +156,7 @@ impl PageRasterizer {
                 font_size,
                 self.root_style.line_height,
                 self.root_style.font_relative_units,
+                viewport_size,
             )
         });
         let max_width = self.root_style.max_width.as_deref().and_then(|value| {
@@ -159,6 +166,7 @@ impl PageRasterizer {
                 font_size,
                 self.root_style.line_height,
                 self.root_style.font_relative_units,
+                viewport_size,
             )
         });
         let mut content_width = self
@@ -172,6 +180,7 @@ impl PageRasterizer {
                     font_size,
                     self.root_style.line_height,
                     self.root_style.font_relative_units,
+                    viewport_size,
                 )
             })
             .unwrap_or(available_width);
@@ -229,6 +238,13 @@ impl PageRasterizer {
             &self.focused_path,
             self.keyboard_focus,
             Some(&self.font_system),
+            self.layout_size
+                .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
+                    ctml_css::ViewportSize {
+                        width: width as f32,
+                        height: height as f32,
+                    }
+                }),
         );
         self.runs = compiled_runs
             .into_iter()

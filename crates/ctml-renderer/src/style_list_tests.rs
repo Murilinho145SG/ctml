@@ -17,6 +17,7 @@ fn compile_runs(
         focused_path,
         keyboard_focus,
         None,
+        ctml_css::ViewportSize::default(),
     )
 }
 

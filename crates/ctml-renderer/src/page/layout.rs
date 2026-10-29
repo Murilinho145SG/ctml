@@ -30,6 +30,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
                     style.font_size,
                     style.line_height,
                     style.font_relative_units,
+                    style.viewport_size,
                 );
                 style.line_height_normal = false;
             }

@@ -2,7 +2,9 @@ use crate::{
     StyleRule, UiNode,
     css_style::{self, ElementIdentity},
 };
-use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement};
+use ctml_css::{
+    SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement, ViewportSize,
+};
 
 mod collect;
 mod font_units;
@@ -23,6 +25,7 @@ pub(super) fn compile_runs_with_font_system(
     focused_path: &[usize],
     keyboard_focus: bool,
     font_system: Option<&cosmic_text::FontSystem>,
+    viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
@@ -39,10 +42,6 @@ pub(super) fn compile_runs_with_font_system(
         is_focus_within: !focused_path.is_empty(),
         ..SelectorPosition::default()
     };
-    let mut root_style = TextStyle::default();
-    if let Some(font_metrics) = &font_metrics {
-        root_style.font_relative_units = font_metrics.resolve(&root_style);
-    }
     let body = ElementIdentity {
         tag: "body".to_owned(),
         class: None,
@@ -76,13 +75,13 @@ pub(super) fn compile_runs_with_font_system(
         keyboard_focus,
         &mut selector_tree,
     );
-    root_style = font_units::resolve_root_style(
-        &root_style,
+    let root_style = font_units::resolve_root_style(
         &body,
         root_position,
         &selector_tree,
         stylesheet,
         font_metrics.as_ref(),
+        viewport_size,
     );
     let mut runs = Vec::new();
     let mut path = vec![body];

@@ -1,6 +1,7 @@
 use crate::style::TextStyle;
 use ctml_css::{
-    parse_color, parse_nonnegative_font_relative_length, parse_signed_font_relative_length,
+    parse_color, parse_nonnegative_font_relative_length_with_viewport,
+    parse_signed_font_relative_length_with_viewport,
 };
 
 pub(super) fn apply_text_decoration_shorthand(style: &mut TextStyle, value: &str) {
@@ -35,11 +36,12 @@ pub(super) fn apply_text_decoration_shorthand(style: &mut TextStyle, value: &str
             if thickness.replace(None).is_some() {
                 return;
             }
-        } else if let Some(parsed_thickness) = parse_nonnegative_font_relative_length(
+        } else if let Some(parsed_thickness) = parse_nonnegative_font_relative_length_with_viewport(
             component,
             style.font_size,
             style.line_height,
             style.font_relative_units,
+            style.viewport_size,
         ) {
             if thickness.replace(Some(parsed_thickness)).is_some() {
                 return;
@@ -152,11 +154,12 @@ pub(super) fn apply_text_decoration_property(style: &mut TextStyle, property: &s
         "text-decoration-thickness" => {
             if matches!(value.to_ascii_lowercase().as_str(), "auto" | "from-font") {
                 style.decoration_thickness = None;
-            } else if let Some(thickness) = parse_nonnegative_font_relative_length(
+            } else if let Some(thickness) = parse_nonnegative_font_relative_length_with_viewport(
                 value,
                 style.font_size,
                 style.line_height,
                 style.font_relative_units,
+                style.viewport_size,
             ) {
                 style.decoration_thickness = Some(thickness);
             }
@@ -164,11 +167,12 @@ pub(super) fn apply_text_decoration_property(style: &mut TextStyle, property: &s
         "text-underline-offset" => {
             if value.eq_ignore_ascii_case("auto") {
                 style.underline_offset = None;
-            } else if let Some(offset) = parse_signed_font_relative_length(
+            } else if let Some(offset) = parse_signed_font_relative_length_with_viewport(
                 value,
                 style.font_size,
                 style.line_height,
                 style.font_relative_units,
+                style.viewport_size,
             ) {
                 style.underline_offset = Some(offset);
             }

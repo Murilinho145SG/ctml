@@ -44,6 +44,8 @@ mod pseudo;
 mod selection;
 #[path = "page_tests/sizing.rs"]
 mod sizing;
+#[path = "page_tests/viewport_units.rs"]
+mod viewport_units;
 
 fn ui_node(node: &Node) -> UiNode {
     match node {

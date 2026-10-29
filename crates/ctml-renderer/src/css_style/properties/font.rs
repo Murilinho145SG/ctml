@@ -1,7 +1,7 @@
 use cosmic_text::{Stretch, Style, Weight};
 
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
-use ctml_css::{FontRelativeUnits, parse_font_relative_length};
+use ctml_css::{FontRelativeUnits, ViewportSize, parse_font_relative_length_with_viewport};
 
 pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
     let weight = inherited.0;
@@ -78,6 +78,7 @@ pub(super) fn apply_font_shorthand(
             style.font_size,
             parent_line_height,
             parent_font_units,
+            style.viewport_size,
         )
         .is_some()
     }) else {
@@ -141,6 +142,7 @@ pub(super) fn apply_font_shorthand(
         style.font_size,
         parent_line_height,
         parent_font_units,
+        style.viewport_size,
     ) else {
         return;
     };
@@ -155,6 +157,7 @@ pub(super) fn apply_font_shorthand(
                 font_size,
                 parent_line_height,
                 parent_font_units,
+                style.viewport_size,
             ) else {
                 return;
             };
@@ -166,6 +169,7 @@ pub(super) fn apply_font_shorthand(
                 font_size,
                 parent_line_height,
                 parent_font_units,
+                style.viewport_size,
             ) else {
                 return;
             };
@@ -183,6 +187,7 @@ pub(super) fn apply_font_shorthand(
                     font_size,
                     parent_line_height,
                     parent_font_units,
+                    style.viewport_size,
                 ) else {
                     return;
                 };
@@ -190,9 +195,13 @@ pub(super) fn apply_font_shorthand(
                 Some(line_height)
             } else {
                 family_index += 1;
-                let Some(line_height) =
-                    parse_line_height(line_value, font_size, parent_line_height, parent_font_units)
-                else {
+                let Some(line_height) = parse_line_height(
+                    line_value,
+                    font_size,
+                    parent_line_height,
+                    parent_font_units,
+                    style.viewport_size,
+                ) else {
                     return;
                 };
                 Some(line_height)
@@ -283,6 +292,7 @@ fn parse_following_line_height(
     font_size: f32,
     parent_line_height: f32,
     font_metrics: FontRelativeUnits,
+    viewport: ViewportSize,
 ) -> Option<(Option<f32>, usize)> {
     let (start, end) = components.get(line_height_index).copied()?;
     Some((
@@ -291,6 +301,7 @@ fn parse_following_line_height(
             font_size,
             parent_line_height,
             font_metrics,
+            viewport,
         )?,
         line_height_index + 1,
     ))
@@ -301,6 +312,7 @@ fn parse_line_height(
     font_size: f32,
     parent_line_height: f32,
     font_metrics: FontRelativeUnits,
+    viewport: ViewportSize,
 ) -> Option<Option<f32>> {
     if value.eq_ignore_ascii_case("normal") {
         return Some(None);
@@ -309,11 +321,12 @@ fn parse_line_height(
         return (multiplier.is_finite() && multiplier >= 0.0)
             .then_some(Some(font_size * multiplier));
     }
-    ctml_css::parse_nonnegative_font_relative_length(
+    ctml_css::parse_nonnegative_font_relative_length_with_viewport(
         value,
         font_size,
         parent_line_height,
         font_metrics,
+        viewport,
     )
     .map(Some)
 }
@@ -389,6 +402,7 @@ pub(in crate::css_style) fn parse_font_size(value: &str, relative_to: f32) -> Op
         relative_to,
         relative_to,
         FontRelativeUnits::default(),
+        ViewportSize::default(),
     )
 }
 
@@ -397,6 +411,7 @@ pub(in crate::css_style) fn parse_font_size_with_font_units(
     relative_to: f32,
     line_height: f32,
     font_units: FontRelativeUnits,
+    viewport: ViewportSize,
 ) -> Option<f32> {
     let absolute_size = match value.trim().to_ascii_lowercase().as_str() {
         "xx-small" => Some(9.0),
@@ -411,6 +426,13 @@ pub(in crate::css_style) fn parse_font_size_with_font_units(
         "smaller" => Some(relative_to / 1.2),
         _ => None,
     };
-    absolute_size
-        .or_else(|| parse_font_relative_length(value, relative_to, line_height, font_units))
+    absolute_size.or_else(|| {
+        parse_font_relative_length_with_viewport(
+            value,
+            relative_to,
+            line_height,
+            font_units,
+            viewport,
+        )
+    })
 }

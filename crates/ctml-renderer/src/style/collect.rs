@@ -188,6 +188,7 @@ pub(super) fn collect_runs(
                         font_size: style.font_size,
                         line_height: style.line_height,
                         font_relative_units: style.font_relative_units,
+                        viewport_size: style.viewport_size,
                     });
                 }
                 if block {
@@ -253,6 +254,7 @@ pub(super) fn collect_runs(
                         font_size: style.font_size,
                         line_height: style.line_height,
                         font_relative_units: style.font_relative_units,
+                        viewport_size: style.viewport_size,
                     });
                     let last_was_space_before = *last_was_space;
                     let capitalize_next_before = *capitalize_next;

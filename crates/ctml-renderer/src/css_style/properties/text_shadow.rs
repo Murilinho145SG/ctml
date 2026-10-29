@@ -1,7 +1,7 @@
 use crate::style::{TextShadow, TextStyle};
 use ctml_css::{
-    parse_color_with_opacity, parse_nonnegative_font_relative_length,
-    parse_signed_font_relative_length,
+    parse_color_with_opacity, parse_nonnegative_font_relative_length_with_viewport,
+    parse_signed_font_relative_length_with_viewport,
 };
 
 pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
@@ -14,6 +14,7 @@ pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
         style.color,
     ) else {
         return;
@@ -26,6 +27,7 @@ fn parse_text_shadows(
     font_size: f32,
     line_height: f32,
     font_metrics: ctml_css::FontRelativeUnits,
+    viewport: ctml_css::ViewportSize,
     current_color: [u8; 4],
 ) -> Option<Vec<TextShadow>> {
     let mut shadows = Vec::new();
@@ -55,17 +57,19 @@ fn parse_text_shadows(
                     return None;
                 }
             } else if offsets.len() < 2 {
-                let length = parse_shadow_length(component, font_size, line_height, font_metrics)?;
+                let length =
+                    parse_shadow_length(component, font_size, line_height, font_metrics, viewport)?;
                 offsets.push(length);
             } else if blur.is_none() {
                 if component.contains('%') {
                     return None;
                 }
-                blur = Some(parse_nonnegative_font_relative_length(
+                blur = Some(parse_nonnegative_font_relative_length_with_viewport(
                     component,
                     font_size,
                     line_height,
                     font_metrics,
+                    viewport,
                 )?);
             } else {
                 return None;
@@ -89,11 +93,18 @@ fn parse_shadow_length(
     font_size: f32,
     line_height: f32,
     font_metrics: ctml_css::FontRelativeUnits,
+    viewport: ctml_css::ViewportSize,
 ) -> Option<f32> {
     if value.contains('%') {
         return None;
     }
-    parse_signed_font_relative_length(value, font_size, line_height, font_metrics)
+    parse_signed_font_relative_length_with_viewport(
+        value,
+        font_size,
+        line_height,
+        font_metrics,
+        viewport,
+    )
 }
 
 fn split_top_level_commas(value: &str) -> Vec<&str> {
@@ -152,6 +163,7 @@ mod tests {
                 16.0,
                 19.2,
                 ctml_css::FontRelativeUnits::default(),
+                ctml_css::ViewportSize::default(),
                 [0; 4],
             ),
             Some(vec![
@@ -179,6 +191,7 @@ mod tests {
                 16.0,
                 24.0,
                 ctml_css::FontRelativeUnits::default(),
+                ctml_css::ViewportSize::default(),
                 [0; 4],
             ),
             Some(vec![crate::style::TextShadow {
@@ -205,6 +218,7 @@ mod tests {
                     16.0,
                     19.2,
                     ctml_css::FontRelativeUnits::default(),
+                    ctml_css::ViewportSize::default(),
                     [0; 4],
                 ),
                 None,

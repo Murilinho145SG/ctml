@@ -8,6 +8,12 @@ pub struct FontRelativeUnits {
     pub cap: f32,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ViewportSize {
+    pub width: f32,
+    pub height: f32,
+}
+
 impl Default for FontRelativeUnits {
     fn default() -> Self {
         Self {
@@ -111,6 +117,17 @@ pub fn parse_font_relative_length(
     parse_length_with_font_metrics(&value, relative_to, font_metrics)
 }
 
+pub fn parse_font_relative_length_with_viewport(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+    font_metrics: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> Option<f32> {
+    parse_viewport_relative_length(value, viewport)
+        .or_else(|| parse_font_relative_length(value, relative_to, line_height, font_metrics))
+}
+
 pub fn parse_nonnegative_length(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     if value.parse::<f32>().ok() == Some(0.0) {
@@ -179,6 +196,21 @@ pub fn parse_nonnegative_font_relative_length(
         }
     }
     parse_font_relative_length(&value, relative_to, line_height, font_metrics)
+}
+
+pub fn parse_nonnegative_font_relative_length_with_viewport(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+    font_metrics: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> Option<f32> {
+    let value = value.trim().to_ascii_lowercase();
+    parse_viewport_relative_length(&value, viewport)
+        .filter(|length| *length >= 0.0)
+        .or_else(|| {
+            parse_nonnegative_font_relative_length(&value, relative_to, line_height, font_metrics)
+        })
 }
 
 pub fn parse_signed_length_percentage(value: &str, relative_to: f32) -> Option<f32> {
@@ -278,12 +310,55 @@ pub fn parse_signed_font_relative_length(
     parse_signed_length_percentage(&value, relative_to)
 }
 
+pub fn parse_signed_font_relative_length_with_viewport(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+    font_metrics: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> Option<f32> {
+    parse_viewport_relative_length(value, viewport).or_else(|| {
+        parse_signed_font_relative_length(value, relative_to, line_height, font_metrics)
+    })
+}
+
+fn parse_viewport_relative_length(value: &str, viewport: ViewportSize) -> Option<f32> {
+    let value = value.trim().to_ascii_lowercase();
+    let (number, unit) = [
+        "svmin", "svmax", "lvmin", "lvmax", "dvmin", "dvmax", "svw", "svh", "svi", "svb", "lvw",
+        "lvh", "lvi", "lvb", "dvw", "dvh", "dvi", "dvb", "vmin", "vmax", "vw", "vh", "vi", "vb",
+    ]
+    .into_iter()
+    .find_map(|unit| value.strip_suffix(unit).map(|number| (number, unit)))?;
+    let number = number.trim().parse::<f32>().ok()?;
+    let base_unit = unit
+        .strip_prefix("sv")
+        .or_else(|| unit.strip_prefix("lv"))
+        .or_else(|| unit.strip_prefix("dv"))
+        .unwrap_or(unit);
+    let width = viewport.width.max(0.0);
+    let height = viewport.height.max(0.0);
+    let viewport_size = match base_unit {
+        "vw" | "vi" | "w" | "i" => width,
+        "vh" | "vb" | "h" | "b" => height,
+        "vmin" | "min" => width.min(height),
+        "vmax" | "max" => width.max(height),
+        _ => return None,
+    };
+    let length = number * viewport_size / 100.0;
+    (length.is_finite()).then_some(length)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        FontRelativeUnits, parse_font_relative_length, parse_length_with_line_height,
-        parse_nonnegative_font_relative_length, parse_nonnegative_length_with_line_height,
-        parse_signed_font_relative_length, parse_signed_length_percentage_with_line_height,
+        FontRelativeUnits, ViewportSize, parse_font_relative_length,
+        parse_font_relative_length_with_viewport, parse_length_with_line_height,
+        parse_nonnegative_font_relative_length,
+        parse_nonnegative_font_relative_length_with_viewport,
+        parse_nonnegative_length_with_line_height, parse_signed_font_relative_length,
+        parse_signed_font_relative_length_with_viewport,
+        parse_signed_length_percentage_with_line_height,
     };
 
     #[test]
@@ -339,6 +414,55 @@ mod tests {
         assert_eq!(
             parse_signed_font_relative_length("-0.5lh", 20.0, 24.0, metrics),
             Some(-12.0)
+        );
+    }
+
+    #[test]
+    fn parses_viewport_relative_lengths() {
+        let units = FontRelativeUnits::default();
+        let viewport = ViewportSize {
+            width: 800.0,
+            height: 600.0,
+        };
+        for unit in ["vw", "svw", "lvw", "dvw", "vi", "svi", "lvi", "dvi"] {
+            let value = format!("10{unit}");
+            assert_eq!(
+                parse_font_relative_length_with_viewport(&value, 16.0, 20.0, units, viewport),
+                Some(80.0),
+                "{unit}"
+            );
+        }
+        for unit in ["vh", "svh", "lvh", "dvh", "vb", "svb", "lvb", "dvb"] {
+            let value = format!("10{unit}");
+            assert_eq!(
+                parse_nonnegative_font_relative_length_with_viewport(
+                    &value, 16.0, 20.0, units, viewport
+                ),
+                Some(60.0),
+                "{unit}"
+            );
+        }
+        for unit in ["vmin", "svmin", "lvmin", "dvmin"] {
+            let value = format!("10{unit}");
+            assert_eq!(
+                parse_signed_font_relative_length_with_viewport(
+                    &value, 16.0, 20.0, units, viewport
+                ),
+                Some(60.0),
+                "{unit}"
+            );
+        }
+        for unit in ["vmax", "svmax", "lvmax", "dvmax"] {
+            let value = format!("10{unit}");
+            assert_eq!(
+                parse_font_relative_length_with_viewport(&value, 16.0, 20.0, units, viewport),
+                Some(80.0),
+                "{unit}"
+            );
+        }
+        assert_eq!(
+            parse_signed_font_relative_length_with_viewport("-5dvw", 16.0, 20.0, units, viewport),
+            Some(-40.0)
         );
     }
 }

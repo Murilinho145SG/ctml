@@ -2,7 +2,7 @@ use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
-use ctml_css::{parse_nonnegative_font_relative_length, parse_signed_font_relative_length};
+use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
@@ -24,6 +24,7 @@ use size::{
     apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
     apply_min_width, apply_width, inherit_width,
 };
+use spacing::apply_letter_spacing;
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_property, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -39,6 +40,7 @@ mod font;
 mod font_feature_settings;
 mod list_style;
 mod size;
+mod spacing;
 mod text_decoration;
 mod text_emphasis;
 mod text_shadow;
@@ -345,6 +347,7 @@ fn apply_declaration(
                 style.font_size,
                 parent_line_height,
                 parent_font_units,
+                style.viewport_size,
             ) {
                 style.font_size = size;
                 if let Some(multiplier) = style.line_height_multiplier {
@@ -360,11 +363,12 @@ fn apply_declaration(
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
                 style.line_height_normal = false;
-            } else if let Some(height) = parse_nonnegative_font_relative_length(
+            } else if let Some(height) = parse_nonnegative_font_relative_length_with_viewport(
                 value,
                 style.font_size,
                 parent_line_height,
                 style.font_relative_units,
+                style.viewport_size,
             ) {
                 style.line_height = height;
                 style.line_height_multiplier = None;
@@ -463,32 +467,5 @@ fn apply_declaration(
             }
         }
         _ => {}
-    }
-}
-
-fn apply_letter_spacing(style: &mut TextStyle, value: &str) {
-    if value.eq_ignore_ascii_case("normal") {
-        style.letter_spacing = 0.0;
-        style.letter_spacing_px = false;
-    } else if let Some(px) = value.strip_suffix("px")
-        && let Ok(px) = px.trim().parse::<f32>()
-    {
-        style.letter_spacing = px;
-        style.letter_spacing_px = true;
-    } else if let Some(em) = value.strip_suffix("em")
-        && let Ok(em) = em.trim().parse::<f32>()
-    {
-        style.letter_spacing = em;
-        style.letter_spacing_px = false;
-    } else if !value.contains('%')
-        && let Some(length) = parse_signed_font_relative_length(
-            value,
-            style.font_size,
-            style.line_height,
-            style.font_relative_units,
-        )
-    {
-        style.letter_spacing = length;
-        style.letter_spacing_px = true;
     }
 }

@@ -1,15 +1,16 @@
 use crate::style::TextStyle;
-use ctml_css::parse_nonnegative_font_relative_length;
+use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 
 pub(super) fn apply_width(style: &mut TextStyle, value: &str) {
     let value = value.trim();
     if value.eq_ignore_ascii_case("auto") {
         style.width = None;
-    } else if parse_nonnegative_font_relative_length(
+    } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     )
     .is_some()
     {
@@ -34,6 +35,7 @@ pub(super) fn apply_min_width(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     );
     apply_dimension_limit(&mut style.min_width, value, "auto", metrics);
 }
@@ -43,6 +45,7 @@ pub(super) fn apply_max_width(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     );
     apply_dimension_limit(&mut style.max_width, value, "none", metrics);
 }
@@ -52,6 +55,7 @@ pub(super) fn apply_height(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     );
     apply_dimension_limit(&mut style.height, value, "auto", metrics);
 }
@@ -61,6 +65,7 @@ pub(super) fn apply_min_height(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     );
     apply_dimension_limit(&mut style.min_height, value, "auto", metrics);
 }
@@ -70,6 +75,7 @@ pub(super) fn apply_max_height(style: &mut TextStyle, value: &str) {
         style.font_size,
         style.line_height,
         style.font_relative_units,
+        style.viewport_size,
     );
     apply_dimension_limit(&mut style.max_height, value, "none", metrics);
 }
@@ -78,16 +84,22 @@ fn apply_dimension_limit(
     target: &mut Option<String>,
     value: &str,
     reset_keyword: &str,
-    (font_size, line_height, font_relative_units): (f32, f32, ctml_css::FontRelativeUnits),
+    (font_size, line_height, font_relative_units, viewport_size): (
+        f32,
+        f32,
+        ctml_css::FontRelativeUnits,
+        ctml_css::ViewportSize,
+    ),
 ) {
     let value = value.trim();
     if value.eq_ignore_ascii_case(reset_keyword) {
         *target = None;
-    } else if parse_nonnegative_font_relative_length(
+    } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
         font_size,
         line_height,
         font_relative_units,
+        viewport_size,
     )
     .is_some()
     {
