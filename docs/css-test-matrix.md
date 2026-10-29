@@ -44,6 +44,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Local `@import` expands at its source position, tracks dependencies, and rejects cycles or root escapes | Native demo build script | Nested import order, dependency, cycle, and path validation tests |
 | UTF-8 encoding, optional BOM, and CSS comments | Native demo build script | BOM, comment, unterminated-comment, and invalid-UTF-8 tests |
 | CSS-tokenized declaration names and values; malformed declaration recovery | — | Escaped property, quoted punctuation, and invalid declaration tests |
+| File, line, and column diagnostics for malformed stylesheets and imports | — | Top-level, nested-import, and late-import diagnostic tests |
 
 ## Running the complete matrix
 

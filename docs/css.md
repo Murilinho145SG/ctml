@@ -23,6 +23,8 @@ Stylesheets can import local files with a quoted path or `url()`, for example `@
 
 Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments are discarded outside quoted strings, and an unterminated comment is an error. The legacy `@charset` rule does not change decoding and is unsupported.
 
+Malformed stylesheet syntax reports the source file, line, and column during the build. Invalid declarations are skipped so later declarations in the same rule can still apply.
+
 ```css
 body {
     font-family: sans-serif;

@@ -23,7 +23,8 @@ fn strips_css_comments_and_accepts_a_utf8_bom() {
         stylesheet.rules[0].declarations[1].value,
         "\"/* literal */\""
     );
-    assert!(parse_stylesheet("/* unterminated").is_err());
+    let comment_error = parse_stylesheet("p {}\n/* unterminated").unwrap_err();
+    assert!(comment_error.contains("line 2, column 1"));
 }
 
 #[test]
@@ -276,6 +277,41 @@ fn stylesheet_files_require_utf8_encoding() {
     let error = super::parse_stylesheet_file(root.join("invalid.css"), &root)
         .expect_err("non-UTF-8 stylesheet files should be rejected");
     assert!(error.contains("valid UTF-8"));
+    std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
+}
+
+#[test]
+fn reports_stylesheet_file_and_line_for_syntax_errors() {
+    let root = temporary_directory("source-locations");
+    std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
+    std::fs::write(root.join("broken.css"), "p { color: red; }\n@unsupported;")
+        .expect("malformed stylesheet should be written");
+
+    let error = super::parse_stylesheet_file(root.join("broken.css"), &root)
+        .expect_err("unsupported malformed rules should be reported");
+    assert!(error.contains("broken.css: line 2, column"), "{error}");
+
+    std::fs::write(
+        root.join("late-import.css"),
+        ".item {}\n@import \"missing.css\";",
+    )
+    .expect("late import stylesheet should be written");
+    let error = super::parse_stylesheet_file(root.join("late-import.css"), &root)
+        .expect_err("late imports should include a diagnostic location");
+    assert!(error.contains("late-import.css: line 2, column"), "{error}");
+
+    std::fs::create_dir_all(root.join("nested"))
+        .expect("nested stylesheet directory should be created");
+    std::fs::write(root.join("entry.css"), "@import \"nested/broken.css\";")
+        .expect("entry stylesheet should be written");
+    std::fs::write(root.join("nested/broken.css"), ".item {}\n@unsupported;")
+        .expect("nested malformed stylesheet should be written");
+    let error = super::parse_stylesheet_file(root.join("entry.css"), &root)
+        .expect_err("nested syntax errors should identify their source file");
+    assert!(
+        error.contains("nested/broken.css: line 2, column"),
+        "{error}"
+    );
     std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
 }
 

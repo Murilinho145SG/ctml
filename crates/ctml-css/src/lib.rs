@@ -39,6 +39,13 @@ pub struct CssDeclaration {
 /// Selectors and values are retained as source text for the native styling layer.
 /// At-rules are outside the initial CTML CSS subset.
 pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
+    parse_stylesheet_with_line_offset(source, 0)
+}
+
+pub(crate) fn parse_stylesheet_with_line_offset(
+    source: &str,
+    line_offset: u32,
+) -> Result<Stylesheet, String> {
     let source = comments::strip_utf8_bom_and_comments(source)?;
     let mut source = ParserInput::new(&source);
     let mut input = Parser::new(&mut source);
@@ -56,13 +63,29 @@ pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
                 while prelude.next_including_whitespace().is_ok() {}
                 Ok(prelude.slice(start..prelude.position()).trim().to_owned())
             })
-            .map_err(|error| format!("{error:?}"))?;
-        input
-            .expect_curly_bracket_block()
-            .map_err(|error| format!("{error:?}"))?;
+            .map_err(|error| {
+                located_error(
+                    error.location.line + line_offset,
+                    error.location.column,
+                    error,
+                )
+            })?;
+        input.expect_curly_bracket_block().map_err(|error| {
+            located_error(
+                error.location.line + line_offset,
+                error.location.column,
+                error,
+            )
+        })?;
         let declarations = input
             .parse_nested_block(parse_declarations)
-            .map_err(|error| format!("{error:?}"))?;
+            .map_err(|error| {
+                located_error(
+                    error.location.line + line_offset,
+                    error.location.column,
+                    error,
+                )
+            })?;
 
         let selectors = split_selector_list(&selector_text)
             .into_iter()
@@ -80,6 +103,10 @@ pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
     }
 
     Ok(Stylesheet { rules })
+}
+
+fn located_error(line: u32, column: u32, error: impl std::fmt::Debug) -> String {
+    format!("line {}, column {column}: {error:?}", line + 1)
 }
 
 fn split_selector_list(source: &str) -> Vec<&str> {

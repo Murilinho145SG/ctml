@@ -4,7 +4,11 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use crate::{Stylesheet, comments::strip_utf8_bom_and_comments, parse_stylesheet};
+use crate::{
+    CssRule, Stylesheet,
+    comments::{source_error, strip_utf8_bom_and_comments},
+    parse_stylesheet_with_line_offset,
+};
 
 /// Loads a local stylesheet and expands quoted, relative `@import` rules in place.
 ///
@@ -21,10 +25,8 @@ pub fn parse_stylesheet_file(
         .map_err(|error| format!("cannot resolve stylesheet root: {error}"))?;
     let mut dependencies = Vec::new();
     let mut stack = Vec::new();
-    let source = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
-    let stylesheet = parse_stylesheet(&source)
-        .map_err(|error| format!("{}: {error}", path.as_ref().display()))?;
-    Ok((stylesheet, dependencies))
+    let rules = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
+    Ok((Stylesheet { rules }, dependencies))
 }
 
 fn expand_file(
@@ -32,7 +34,7 @@ fn expand_file(
     root: &Path,
     stack: &mut Vec<PathBuf>,
     dependencies: &mut Vec<PathBuf>,
-) -> Result<String, String> {
+) -> Result<Vec<CssRule>, String> {
     let path = path
         .canonicalize()
         .map_err(|error| format!("cannot read stylesheet {}: {error}", path.display()))?;
@@ -62,19 +64,44 @@ fn expand_file(
     stack.push(path.clone());
 
     let imports = find_imports(&source).map_err(|error| format!("{}: {error}", path.display()))?;
-    let mut expanded = String::with_capacity(source.len());
+    let mut rules = Vec::new();
     let mut copied_until = 0;
     for import in imports {
-        expanded.push_str(&source[copied_until..import.range.start]);
+        let local_rules = parse_source_segment(
+            &source[copied_until..import.range.start],
+            &path,
+            line_offset(&source, copied_until),
+        )?;
+        rules.extend(local_rules);
         let relative = validate_import_path(&import.path)?;
         let imported_path = path.parent().unwrap_or(root).join(relative);
-        expanded.push_str(&expand_file(&imported_path, root, stack, dependencies)?);
-        expanded.push('\n');
+        rules.extend(expand_file(&imported_path, root, stack, dependencies)?);
         copied_until = import.range.end;
     }
-    expanded.push_str(&source[copied_until..]);
+    rules.extend(parse_source_segment(
+        &source[copied_until..],
+        &path,
+        line_offset(&source, copied_until),
+    )?);
     stack.pop();
-    Ok(expanded)
+    Ok(rules)
+}
+
+fn parse_source_segment(
+    source: &str,
+    path: &Path,
+    line_offset: u32,
+) -> Result<Vec<CssRule>, String> {
+    parse_stylesheet_with_line_offset(source, line_offset)
+        .map(|stylesheet| stylesheet.rules)
+        .map_err(|error| format!("{}: {error}", path.display()))
+}
+
+fn line_offset(source: &str, byte_offset: usize) -> u32 {
+    source[..byte_offset]
+        .bytes()
+        .filter(|byte| *byte == b'\n')
+        .count() as u32
 }
 
 struct Import {
@@ -108,10 +135,16 @@ fn find_imports(source: &str) -> Result<Vec<Import>, String> {
                 })
         {
             if saw_rule {
-                return Err("@import rules must precede qualified rules".to_owned());
+                return Err(source_error(
+                    source,
+                    index,
+                    "@import rules must precede qualified rules",
+                ));
             }
-            let end = find_import_end(source, index + "@import".len())?;
-            let path = parse_import_path(&source[index + "@import".len()..end])?;
+            let end = find_import_end(source, index + "@import".len())
+                .map_err(|error| source_error(source, index, &error))?;
+            let path = parse_import_path(&source[index + "@import".len()..end])
+                .map_err(|error| source_error(source, index, &error))?;
             imports.push(Import {
                 range: index..end + 1,
                 path,
@@ -138,7 +171,7 @@ fn skip_comment(source: &str, start: usize) -> Result<usize, String> {
     source[start + 2..]
         .find("*/")
         .map(|end| start + 2 + end + 2)
-        .ok_or_else(|| "unterminated CSS comment".to_owned())
+        .ok_or_else(|| source_error(source, start, "unterminated CSS comment"))
 }
 
 fn skip_string(source: &str, start: usize) -> Result<Option<usize>, String> {
@@ -166,7 +199,7 @@ fn skip_string(source: &str, start: usize) -> Result<Option<usize>, String> {
             index += character.len_utf8();
         }
     }
-    Err("unterminated CSS string".to_owned())
+    Err(source_error(source, start, "unterminated CSS string"))
 }
 
 fn find_import_end(source: &str, start: usize) -> Result<usize, String> {
