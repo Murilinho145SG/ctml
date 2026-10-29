@@ -5,8 +5,12 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "circle",
     "square",
     "decimal",
+    "decimal-leading-zero",
     "lower-alpha",
     "upper-alpha",
+    "lower-greek",
+    "lower-roman",
+    "upper-roman",
     "none",
 ];
 

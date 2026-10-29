@@ -137,7 +137,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: block` and `display: inline` override tag-based line separation for rendered text.
 - [x] `display: contents` removes tag-based line separation while preserving child text flow.
 - [x] `display: flow-root` and `display: inline-block` use block and inline text flow, respectively.
-- [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `lower-alpha`, and `upper-alpha`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
+- [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-greek`, `lower-roman`, and `upper-roman`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
 - [ ] Remaining `display` values and CSS formatting box generation.
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` map to these properties in horizontal writing mode.
 - [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; content-bearing block `height` and `min-height` reserve remaining space, and `max-height` caps the requested space when content fits. `block-size` and its min/max forms map to these properties in horizontal writing mode.
@@ -199,8 +199,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Keyword and single-grapheme string `text-emphasis` marks (`dot`, `circle`, `double-circle`, `triangle`, and `sesame`), filled/open styles, inherited color, and over/under position.
 - [ ] Vertical text-emphasis side placement.
 - [ ] Writing modes, direction, bidirectional isolation, and vertical text.
-- [x] Basic list markers and inherited list marker types.
-- [ ] List counters, custom markers, and remaining `list-style-type` values.
+- [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
+- [ ] CSS counters, custom markers, and other `list-style-type` values such as Hebrew, Armenian, and CJK styles.
 - [ ] Generated content with `content`, counters, and quotes.
 - [ ] Ruby annotations and other specialized typography where relevant.
 

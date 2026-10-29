@@ -11,19 +11,69 @@ pub(super) fn format_marker(
         "circle" => "◦ ".to_owned(),
         "square" => "▪ ".to_owned(),
         "decimal" => format!("{index}. "),
+        "decimal-leading-zero" => format!("{index:02}. "),
         "lower-alpha" => format!("{}. ", alphabetic_marker(index, false)),
         "upper-alpha" => format!("{}. ", alphabetic_marker(index, true)),
+        "lower-greek" => format!(
+            "{}. ",
+            alphabetic_marker_from(
+                index,
+                &[
+                    'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π',
+                    'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω',
+                ]
+            )
+        ),
+        "lower-roman" => format!("{}. ", roman_marker(index).to_ascii_lowercase()),
+        "upper-roman" => format!("{}. ", roman_marker(index)),
         _ => return None,
     })
 }
 
-fn alphabetic_marker(mut index: usize, uppercase: bool) -> String {
+fn alphabetic_marker(index: usize, uppercase: bool) -> String {
+    let alphabet = if uppercase {
+        ('A'..='Z').collect::<Vec<_>>()
+    } else {
+        ('a'..='z').collect::<Vec<_>>()
+    };
+    alphabetic_marker_from(index, &alphabet)
+}
+
+fn alphabetic_marker_from(mut index: usize, alphabet: &[char]) -> String {
     let mut marker = Vec::new();
     while index > 0 {
-        let digit = (index - 1) % 26;
-        let base = if uppercase { b'A' } else { b'a' };
-        marker.push((base + digit as u8) as char);
-        index = (index - 1) / 26;
+        let digit = (index - 1) % alphabet.len();
+        marker.push(alphabet[digit]);
+        index = (index - 1) / alphabet.len();
     }
     marker.iter().rev().collect()
+}
+
+fn roman_marker(index: usize) -> String {
+    if !(1..=3999).contains(&index) {
+        return index.to_string();
+    }
+    let mut value = index;
+    let mut marker = String::new();
+    for (amount, symbol) in [
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
+    ] {
+        while value >= amount {
+            marker.push_str(symbol);
+            value -= amount;
+        }
+    }
+    marker
 }

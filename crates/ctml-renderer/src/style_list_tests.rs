@@ -60,6 +60,41 @@ fn list_style_type_inherits_shapes_and_alphabetic_numbering() {
 }
 
 #[test]
+fn list_style_type_formats_roman_greek_and_leading_zero_markers() {
+    for (style_type, count, expected) in [
+        ("lower-roman", 4, "i. ii. iii. iv. "),
+        ("upper-roman", 4, "I. II. III. IV. "),
+        ("lower-greek", 3, "α. β. γ. "),
+        ("decimal-leading-zero", 3, "01. 02. 03. "),
+    ] {
+        let labels = (0..count)
+            .map(|index| format!("item{index}"))
+            .collect::<Vec<_>>();
+        let nodes = [list_container(
+            "ol",
+            &labels.iter().map(String::as_str).collect::<Vec<_>>(),
+        )];
+        let stylesheet = [StyleRule {
+            selectors: vec!["ol".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "list-style-type".to_owned(),
+                value: style_type.to_owned(),
+            }],
+        }];
+        let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+        let text = runs.iter().map(|run| run.text.as_str()).collect::<String>();
+        let expected_text = expected
+            .split_whitespace()
+            .zip(&labels)
+            .map(|(marker, label)| format!("{marker} {label}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert_eq!(text, expected_text, "unexpected {style_type} markers");
+    }
+}
+
+#[test]
 fn list_style_type_none_suppresses_markers_without_hiding_items() {
     let nodes = [list_container("ul", &["apple", "pear"])];
     let stylesheet = [StyleRule {
