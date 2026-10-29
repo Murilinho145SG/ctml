@@ -65,6 +65,7 @@ main .title {
 - `:focus` and `:focus-within` update when the user clicks text inside a link with `href` or an element with a numeric `tabindex`. CTML has no keyboard focus navigation or native form controls, so `:focus-visible` and form-state pseudo-classes are not supported.
 - Supported properties accept the CSS-wide keywords `inherit`, `initial`, `unset`, `revert`, and `revert-layer`. `revert` resets a supported declaration to the initial user-agent value modeled by CTML; `revert-layer` rolls back declarations in the current named layer.
 - The `all` shorthand accepts those CSS-wide keywords and applies them to every CSS property supported by the renderer.
+- Custom properties beginning with `--` inherit with case-sensitive names. `var()` substitutes them in supported property values, including nested fallbacks; cyclic custom properties become invalid and can use a fallback when referenced.
 - Text wraps to the available page width. Common block elements start a new line.
 - Text can be selected by dragging the left mouse button; double-clicking selects a word.
 

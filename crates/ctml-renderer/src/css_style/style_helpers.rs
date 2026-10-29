@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "color",
     "background-color",
@@ -33,6 +35,26 @@ pub(super) fn is_all_keyword(value: &str) -> bool {
         .any(|keyword| value.eq_ignore_ascii_case(keyword))
 }
 
+pub(super) fn is_custom_property(property: &str) -> bool {
+    property.starts_with("--")
+}
+
+pub(super) fn canonical_property_name(property: &str) -> String {
+    if is_custom_property(property) {
+        property.to_owned()
+    } else {
+        property.to_ascii_lowercase()
+    }
+}
+
+pub(super) fn property_names_equal(left: &str, right: &str) -> bool {
+    if is_custom_property(left) || is_custom_property(right) {
+        left == right
+    } else {
+        left.eq_ignore_ascii_case(right)
+    }
+}
+
 pub(super) fn layer_cascade_priority(layer: Option<usize>, important: bool) -> usize {
     match (important, layer) {
         (false, Some(layer)) => layer,
@@ -54,4 +76,61 @@ pub(super) fn declaration_value(value: &str) -> (&str, bool) {
     } else {
         (value, false)
     }
+}
+
+pub(super) fn reverted_layers(
+    matches: &[super::MatchedDeclaration<'_>],
+    property: &str,
+) -> Vec<(bool, Option<usize>)> {
+    let mut reverted = Vec::new();
+    for (important, _, layer, _, _, _, declaration) in matches
+        .iter()
+        .rev()
+        .filter(|entry| property_names_equal(&entry.6.property, property))
+    {
+        let layer_key = (*important, *layer);
+        if reverted.contains(&layer_key) {
+            continue;
+        }
+        let (value, _) = declaration_value(&declaration.value);
+        if value.eq_ignore_ascii_case("revert-layer") {
+            reverted.push(layer_key);
+        } else {
+            break;
+        }
+    }
+    reverted
+}
+
+pub(super) fn cascade_custom_properties(
+    inherited: &HashMap<String, String>,
+    matches: &[super::MatchedDeclaration<'_>],
+) -> HashMap<String, String> {
+    let mut raw_properties = inherited.clone();
+    for (important, _, layer, _, _, _, declaration) in matches
+        .iter()
+        .filter(|entry| is_custom_property(&entry.6.property))
+    {
+        let property = canonical_property_name(&declaration.property);
+        if reverted_layers(matches, &property).contains(&(*important, *layer)) {
+            continue;
+        }
+        let (value, _) = declaration_value(&declaration.value);
+        match value.trim().to_ascii_lowercase().as_str() {
+            "inherit" | "unset" => {
+                if let Some(inherited) = inherited.get(&property) {
+                    raw_properties.insert(property, inherited.clone());
+                } else {
+                    raw_properties.remove(&property);
+                }
+            }
+            "initial" | "revert" => {
+                raw_properties.remove(&property);
+            }
+            _ => {
+                raw_properties.insert(property, value.to_owned());
+            }
+        }
+    }
+    super::variables::resolve_custom_properties(&raw_properties)
 }

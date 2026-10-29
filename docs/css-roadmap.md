@@ -60,7 +60,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `all` shorthand for CSS-wide values across the properties supported by the renderer.
 - [ ] Remaining shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
-- [ ] Custom properties (`--name`) and `var()` substitution, including fallback and cycle handling.
+- [x] Custom properties (`--name`) and `var()` substitution, including inherited values, fallback handling, and cycle invalidation.
 - [ ] Define specified, computed, used, and actual value processing for supported properties.
 - [ ] Define style scoping and encapsulation rules for future CTML components.
 

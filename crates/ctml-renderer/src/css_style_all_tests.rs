@@ -67,6 +67,25 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(inherited_style.weight, inherited.weight);
     assert_eq!(inherited_style.background, inherited.background);
 
+    let variable_all = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "--reset".to_owned(),
+                value: "var(--missing, initial)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "all".to_owned(),
+                value: "var(--reset)".to_owned(),
+            },
+        ],
+    };
+    let initial = resolve_style(&inherited, &current, &[], &[variable_all]);
+    assert_eq!(initial.color, [0, 0, 0, 255]);
+    assert_eq!(initial.family, "serif");
+    assert_eq!(initial.background, [255, 255, 255]);
+
     let all_before_color = StyleRule {
         selectors: vec![".sample".to_owned()],
         layer: None,

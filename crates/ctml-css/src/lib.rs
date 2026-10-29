@@ -297,7 +297,12 @@ fn parse_declaration_block<'i, 't>(
             break;
         }
         let parsed = input.parse_until_after::<_, _, ()>(Delimiter::Semicolon, |declaration| {
-            let property = declaration.expect_ident()?.to_ascii_lowercase();
+            let property = declaration.expect_ident()?;
+            let property = if property.starts_with("--") {
+                property.to_string()
+            } else {
+                property.to_ascii_lowercase()
+            };
             declaration.expect_colon()?;
             declaration.skip_whitespace();
             let value_start = declaration.position();
@@ -309,7 +314,7 @@ fn parse_declaration_block<'i, 't>(
             Ok((property, value))
         });
         if let Ok((property, value)) = parsed
-            && !value.is_empty()
+            && (!value.is_empty() || property.starts_with("--"))
         {
             declarations.push(CssDeclaration { property, value });
         }

@@ -479,3 +479,5 @@ mod all;
 mod cascade;
 #[path = "css_style_decoration_matrix_tests.rs"]
 mod decoration;
+#[path = "css_style_variables_tests.rs"]
+mod variables;

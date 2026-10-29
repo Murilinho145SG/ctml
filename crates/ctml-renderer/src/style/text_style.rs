@@ -2,6 +2,7 @@ use cosmic_text::{
     Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
     Weight,
 };
+use std::collections::HashMap;
 use winit::window::CursorIcon;
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -42,6 +43,7 @@ pub(crate) struct TextStyle {
     pub(crate) overline: bool,
     pub(crate) strikethrough: bool,
     pub(crate) text_decoration_color: Option<[u8; 4]>,
+    pub(crate) custom_properties: HashMap<String, String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -129,6 +131,7 @@ impl Default for TextStyle {
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
+            custom_properties: HashMap::new(),
         }
     }
 }

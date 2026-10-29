@@ -26,7 +26,7 @@ pub(super) fn apply_color_declaration(
     style: &mut TextStyle,
     value: &str,
     inherited_color: ([u8; 4], f32),
-) {
+) -> bool {
     let value = value.trim();
     let color = if value.eq_ignore_ascii_case("currentcolor") {
         Some(inherited_color)
@@ -50,6 +50,9 @@ pub(super) fn apply_color_declaration(
     if let Some((color, opacity)) = color {
         style.color = color;
         style.color_opacity = opacity;
+        true
+    } else {
+        false
     }
 }
 

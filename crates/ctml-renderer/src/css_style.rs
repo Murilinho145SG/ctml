@@ -2,10 +2,13 @@ use std::collections::HashMap;
 
 mod font_variant;
 mod style_helpers;
+mod variables;
 
 use style_helpers::{
-    SUPPORTED_ALL_PROPERTIES, declaration_value, is_all_keyword, layer_cascade_priority,
+    SUPPORTED_ALL_PROPERTIES, canonical_property_name, cascade_custom_properties,
+    declaration_value, is_all_keyword, is_custom_property, layer_cascade_priority, reverted_layers,
 };
+use variables::{contains_var_function, substitute_vars};
 
 use crate::{StyleDeclaration, StyleRule, style::TextStyle};
 pub(super) use ctml_css::ElementIdentity;
@@ -332,6 +335,7 @@ fn apply_matching_styles_inner(
             )
         },
     );
+    let custom_properties = cascade_custom_properties(&inherited_style.custom_properties, &matches);
 
     let mut all_expansions = Vec::new();
     let expanded_matches = if matches
@@ -344,14 +348,17 @@ fn apply_matching_styles_inner(
                 continue;
             }
             let (value, _) = declaration_value(&entry.6.value);
-            if !is_all_keyword(value) {
+            let Some(value) = substitute_vars(value, &custom_properties) else {
+                continue;
+            };
+            if !is_all_keyword(&value) {
                 continue;
             }
             let start = all_expansions.len();
             all_expansions.extend(SUPPORTED_ALL_PROPERTIES.iter().map(|property| {
                 StyleDeclaration {
                     property: (*property).to_owned(),
-                    value: entry.6.value.clone(),
+                    value: value.clone(),
                 }
             }));
             expansion_ranges[index] = Some(start..all_expansions.len());
@@ -382,11 +389,13 @@ fn apply_matching_styles_inner(
 
     let mut rollback_layers = HashMap::new();
     for entry in matches {
-        let property = entry.6.property.to_ascii_lowercase();
+        let property = canonical_property_name(&entry.6.property);
         if !rollback_layers.contains_key(&property) {
             rollback_layers.insert(property.clone(), reverted_layers(matches, &property));
         }
     }
+    style.custom_properties = custom_properties;
+
     let inherited_color = (style.color, style.color_opacity);
     for (important, _, layer, _, _, _, declaration) in matches
         .iter()
@@ -399,45 +408,35 @@ fn apply_matching_styles_inner(
             continue;
         }
         let (value, _) = declaration_value(&declaration.value);
-        apply_color_declaration(style, value, inherited_color);
+        let Some(value) = substitute_vars(value, &style.custom_properties)
+            .filter(|value| !value.trim().is_empty())
+        else {
+            apply_color_declaration(style, "unset", inherited_color);
+            continue;
+        };
+        if !apply_color_declaration(style, &value, inherited_color)
+            && contains_var_function(declaration_value(&declaration.value).0)
+        {
+            apply_color_declaration(style, "unset", inherited_color);
+        }
     }
-    for (important, _, layer, _, _, _, declaration) in matches
-        .iter()
-        .filter(|(_, _, _, _, _, _, declaration)| declaration.property != "color")
+    for (important, _, layer, _, _, _, declaration) in
+        matches.iter().filter(|(_, _, _, _, _, _, declaration)| {
+            declaration.property != "color" && !is_custom_property(&declaration.property)
+        })
     {
         if rollback_layers
-            .get(&declaration.property.to_ascii_lowercase())
+            .get(&canonical_property_name(&declaration.property))
             .is_some_and(|layers| layers.contains(&(*important, *layer)))
         {
             continue;
         }
         let (value, _) = declaration_value(&declaration.value);
-        apply_declaration_with_inherited(style, &declaration.property, value, &inherited_style);
+        let value = substitute_vars(value, &style.custom_properties)
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "unset".to_owned());
+        apply_declaration_with_inherited(style, &declaration.property, &value, &inherited_style);
     }
-}
-
-fn reverted_layers(
-    matches: &[MatchedDeclaration<'_>],
-    property: &str,
-) -> Vec<(bool, Option<usize>)> {
-    let mut reverted = Vec::new();
-    for (important, _, layer, _, _, _, declaration) in matches
-        .iter()
-        .rev()
-        .filter(|entry| entry.6.property.eq_ignore_ascii_case(property))
-    {
-        let layer_key = (*important, *layer);
-        if reverted.contains(&layer_key) {
-            continue;
-        }
-        let (value, _) = declaration_value(&declaration.value);
-        if value.eq_ignore_ascii_case("revert-layer") {
-            reverted.push(layer_key);
-        } else {
-            break;
-        }
-    }
-    reverted
 }
 
 mod properties;
