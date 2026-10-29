@@ -1,4 +1,5 @@
 use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, Shaping, SwashCache};
+use ctml_css::parse_length;
 use winit::window::CursorIcon;
 
 use crate::{
@@ -19,6 +20,22 @@ mod interactions;
 mod pixel;
 
 const PAGE_PADDING: f32 = 8.0;
+
+fn resolve_body_width(value: &str, available_width: f32, font_size: f32) -> Option<f32> {
+    let value = value.trim();
+    if value == "0" {
+        return Some(0.0);
+    }
+    if let Some(percentage) = value.strip_suffix('%') {
+        return percentage
+            .trim()
+            .parse::<f32>()
+            .ok()
+            .map(|percentage| available_width * percentage / 100.0)
+            .filter(|width| width.is_finite() && *width >= 0.0);
+    }
+    parse_length(value, font_size)
+}
 
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
@@ -115,8 +132,16 @@ impl PageRasterizer {
 
     fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
+        let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
+        let content_width = self
+            .root_style
+            .width
+            .as_deref()
+            .and_then(|value| resolve_body_width(value, available_width, self.root_style.font_size))
+            .unwrap_or(available_width)
+            .max(1.0);
         self.buffer.set_size(
-            Some((width as f32 - PAGE_PADDING * 2.0).max(1.0)),
+            Some(content_width),
             Some((height as f32 - PAGE_PADDING * 2.0).max(1.0)),
         );
         let run_families = self

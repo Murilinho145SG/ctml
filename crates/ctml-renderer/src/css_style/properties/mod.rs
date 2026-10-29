@@ -15,9 +15,12 @@ pub(super) use color::apply_color_declaration;
 use cursor::parse_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
 pub(super) use font::parse_font_size;
-use font::{apply_font_shorthand, inherit_font, relative_font_weight, reset_font};
+use font::{
+    apply_font_shorthand, inherit_font, parse_font_stretch, relative_font_weight, reset_font,
+};
 use font_feature_settings::apply_font_feature_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
+use size::{apply_width, inherit_width};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -32,6 +35,7 @@ mod display;
 mod font;
 mod font_feature_settings;
 mod list_style;
+mod size;
 mod text_decoration;
 mod text_emphasis;
 mod text_shadow;
@@ -54,6 +58,8 @@ pub(super) fn apply_declaration_with_inherited(
         revert_display(style);
     } else if keyword == "revert" && matches!(property, "list-style" | "list-style-type") {
         style.list_style_type = None;
+    } else if keyword == "revert" && property == "width" {
+        style.width = None;
     } else {
         initial_property(style, property);
     }
@@ -107,6 +113,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background_color = inherited.background_color;
         }
         "display" => inherit_display(style, inherited),
+        "width" => inherit_width(style, inherited),
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -197,6 +204,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "display" => reset_display(style),
+        "width" => style.width = None,
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
@@ -279,6 +287,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "font" => apply_font_shorthand(style, value),
         "display" => apply_display(style, value),
+        "width" => apply_width(style, value),
         "list-style-type" => apply_list_style_type(style, value),
         "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),
@@ -434,47 +443,6 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         _ => {}
     }
-}
-
-fn parse_font_stretch(value: &str) -> Option<Stretch> {
-    let keyword = match value.to_ascii_lowercase().as_str() {
-        "ultra-condensed" => Some(Stretch::UltraCondensed),
-        "extra-condensed" => Some(Stretch::ExtraCondensed),
-        "condensed" => Some(Stretch::Condensed),
-        "semi-condensed" => Some(Stretch::SemiCondensed),
-        "normal" => Some(Stretch::Normal),
-        "semi-expanded" => Some(Stretch::SemiExpanded),
-        "expanded" => Some(Stretch::Expanded),
-        "extra-expanded" => Some(Stretch::ExtraExpanded),
-        "ultra-expanded" => Some(Stretch::UltraExpanded),
-        _ => None,
-    };
-    if keyword.is_some() {
-        return keyword;
-    }
-
-    let percentage = value.strip_suffix('%')?.trim().parse::<f32>().ok()?;
-    if !percentage.is_finite() || percentage < 0.0 {
-        return None;
-    }
-    [
-        (50.0, Stretch::UltraCondensed),
-        (62.5, Stretch::ExtraCondensed),
-        (75.0, Stretch::Condensed),
-        (87.5, Stretch::SemiCondensed),
-        (100.0, Stretch::Normal),
-        (112.5, Stretch::SemiExpanded),
-        (125.0, Stretch::Expanded),
-        (150.0, Stretch::ExtraExpanded),
-        (200.0, Stretch::UltraExpanded),
-    ]
-    .into_iter()
-    .min_by(|(left, _), (right, _)| {
-        (left - percentage)
-            .abs()
-            .total_cmp(&(right - percentage).abs())
-    })
-    .map(|(_, stretch)| stretch)
 }
 
 fn apply_letter_spacing(style: &mut TextStyle, value: &str) {

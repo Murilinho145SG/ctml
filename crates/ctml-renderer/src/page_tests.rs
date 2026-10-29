@@ -40,6 +40,8 @@ mod parity;
 mod pseudo;
 #[path = "page_tests/selection.rs"]
 mod selection;
+#[path = "page_tests/sizing.rs"]
+mod sizing;
 
 fn ui_node(node: &Node) -> UiNode {
     match node {

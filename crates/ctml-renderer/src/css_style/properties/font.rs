@@ -3,8 +3,6 @@ use cosmic_text::{Stretch, Style, Weight};
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
 use ctml_css::parse_length;
 
-use super::parse_font_stretch;
-
 pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
     let weight = inherited.0;
     let resolved = match (bolder, weight) {
@@ -22,6 +20,47 @@ pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
         (false, _) => 700,
     };
     Weight(resolved)
+}
+
+pub(super) fn parse_font_stretch(value: &str) -> Option<Stretch> {
+    let keyword = match value.to_ascii_lowercase().as_str() {
+        "ultra-condensed" => Some(Stretch::UltraCondensed),
+        "extra-condensed" => Some(Stretch::ExtraCondensed),
+        "condensed" => Some(Stretch::Condensed),
+        "semi-condensed" => Some(Stretch::SemiCondensed),
+        "normal" => Some(Stretch::Normal),
+        "semi-expanded" => Some(Stretch::SemiExpanded),
+        "expanded" => Some(Stretch::Expanded),
+        "extra-expanded" => Some(Stretch::ExtraExpanded),
+        "ultra-expanded" => Some(Stretch::UltraExpanded),
+        _ => None,
+    };
+    if keyword.is_some() {
+        return keyword;
+    }
+
+    let percentage = value.strip_suffix('%')?.trim().parse::<f32>().ok()?;
+    if !percentage.is_finite() || percentage < 0.0 {
+        return None;
+    }
+    [
+        (50.0, Stretch::UltraCondensed),
+        (62.5, Stretch::ExtraCondensed),
+        (75.0, Stretch::Condensed),
+        (87.5, Stretch::SemiCondensed),
+        (100.0, Stretch::Normal),
+        (112.5, Stretch::SemiExpanded),
+        (125.0, Stretch::Expanded),
+        (150.0, Stretch::ExtraExpanded),
+        (200.0, Stretch::UltraExpanded),
+    ]
+    .into_iter()
+    .min_by(|(left, _), (right, _)| {
+        (left - percentage)
+            .abs()
+            .total_cmp(&(right - percentage).abs())
+    })
+    .map(|(_, stretch)| stretch)
 }
 
 pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str) {

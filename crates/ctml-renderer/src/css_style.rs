@@ -429,6 +429,11 @@ fn apply_matching_styles_inner(
             declaration.property != "color" && !is_custom_property(&declaration.property)
         })
     {
+        if declaration.property.eq_ignore_ascii_case("width")
+            && !current.tag.eq_ignore_ascii_case("body")
+        {
+            continue;
+        }
         if rollback_layers
             .get(&canonical_property_name(&declaration.property))
             .is_some_and(|layers| layers.contains(&(*important, *layer)))
