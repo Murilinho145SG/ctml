@@ -77,6 +77,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `background` shorthand for standalone supported colors and `none`, including source-order conflicts with `background-color`.
 - [x] `list-style` shorthand for standalone supported marker types, including source-order conflicts with `list-style-type`.
 - [x] `text-emphasis` shorthand expansion to supported style and color longhands, including source-order conflicts.
+- [x] `font-variant` shorthand expansion to supported variants, including source-order conflicts with longhands.
 - [ ] Remaining shorthands for features not yet supported by the renderer, including their longhand conflict resolution.
 - [x] Inheritance and CSS-wide keyword resolution for every property currently supported by the renderer.
 - [x] Custom properties (`--name`) and `var()` substitution, including inherited values, fallback handling, and cycle invalidation.
