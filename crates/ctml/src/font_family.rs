@@ -20,9 +20,16 @@ pub(super) fn resolve_family_list(family_list: &str, font_system: &FontSystem) -
             return family;
         }
         #[cfg(target_os = "linux")]
-        if let Some(alias) = linux_font_alias(&lower) {
-            return alias.to_owned();
+        if linux_font_alias(&lower)
+            && let Some(alias) = crate::fontconfig::matched_family(&family)
+        {
+            return alias;
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    if let Some(alias) = crate::fontconfig::matched_family(&first) {
+        return alias;
     }
 
     first
@@ -75,13 +82,11 @@ fn is_generic_family(family: &str) -> bool {
 }
 
 #[cfg(target_os = "linux")]
-fn linux_font_alias(family: &str) -> Option<&'static str> {
-    match family {
-        "arial" | "helvetica" => Some("Liberation Sans"),
-        "times new roman" | "times" => Some("Liberation Serif"),
-        "courier new" | "courier" => Some("Liberation Mono"),
-        _ => None,
-    }
+fn linux_font_alias(family: &str) -> bool {
+    matches!(
+        family,
+        "arial" | "helvetica" | "times new roman" | "times" | "courier new" | "courier"
+    )
 }
 
 #[cfg(test)]
@@ -123,5 +128,15 @@ mod tests {
             resolve_family_list(&family_list, &font_system),
             installed_family
         );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn resolves_an_unavailable_named_family_through_fontconfig() {
+        let font_system = FontSystem::new();
+        let expected = crate::fontconfig::matched_family("Inter")
+            .expect("Fontconfig should provide a fallback for Inter");
+
+        assert_eq!(resolve_family_list("Inter", &font_system), expected);
     }
 }

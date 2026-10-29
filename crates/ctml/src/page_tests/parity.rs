@@ -105,6 +105,11 @@ parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_family_matches_chromium, "font-family", false);
 parity_test!(
+    inter_font_family_matches_chromium,
+    "font-family-inter",
+    false
+);
+parity_test!(
     font_family_fallback_matches_chromium,
     "font-family-fallback",
     false

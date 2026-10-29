@@ -6,11 +6,12 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     font_metrics::normal_line_height,
-    page::pixel::{PixelRenderer, blend_pixel, blend_pixel_rounded, fill_rect},
+    page::pixel::{PixelRenderer, fill_rect},
     style::{TextRun, TextStyle, compile_runs},
 };
 
 mod decorations;
+mod font_raster;
 mod pixel;
 
 const PAGE_PADDING: f32 = 8.0;
@@ -34,14 +35,17 @@ impl PageRasterizer {
         let cursor_spans = cursor_spans(&runs);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
-        // Match Chromium's Arial-compatible face for the generic sans-serif family.
-        font_system
-            .db_mut()
-            .set_sans_serif_family("Liberation Sans");
+        if let Some(family) = crate::fontconfig::matched_family("sans-serif") {
+            font_system.db_mut().set_sans_serif_family(family);
+        }
         #[cfg(target_os = "linux")]
-        font_system.db_mut().set_serif_family("Liberation Serif");
+        if let Some(family) = crate::fontconfig::matched_family("serif") {
+            font_system.db_mut().set_serif_family(family);
+        }
         #[cfg(target_os = "linux")]
-        font_system.db_mut().set_monospace_family("Liberation Mono");
+        if let Some(family) = crate::fontconfig::matched_family("monospace") {
+            font_system.db_mut().set_monospace_family(family);
+        }
         let buffer = Buffer::new(
             &mut font_system,
             Metrics::new(root_style.font_size, root_style.line_height),
@@ -285,21 +289,14 @@ impl PageRasterizer {
             cache,
             ..
         } = self;
+        font_raster::draw(font_system, buffer, &mut pixels, width, height);
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
         let mut all_ink_mask = vec![0; pixels.len() / 4];
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
                 let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
-                let color = glyph.color_opt.unwrap_or(default_color);
-                let base_alpha = color.a() as u16;
-                let blend = if base_alpha < 255 {
-                    blend_pixel_rounded
-                } else {
-                    blend_pixel
-                };
-                let mask_color = Color::rgba(color.r(), color.g(), color.b(), 255);
-                let pixel_buffer = &mut pixels;
+                let mask_color = Color::rgba(255, 255, 255, 255);
                 let auto_mask = &mut auto_ink_mask;
                 let all_mask = &mut all_ink_mask;
                 let has_descender = run.text[glyph.start..glyph.end]
@@ -310,7 +307,6 @@ impl PageRasterizer {
                     physical_glyph.cache_key,
                     mask_color,
                     |x, y, pixel_color| {
-                        let alpha = ((pixel_color.a() as u16 * base_alpha + 127) / 255) as u8;
                         let pixel_x = physical_glyph.x + x + PAGE_PADDING as i32;
                         let pixel_y = physical_glyph.y + y + PAGE_PADDING as i32;
                         if pixel_x >= 0
@@ -327,15 +323,6 @@ impl PageRasterizer {
                                 }
                             }
                         }
-                        blend(
-                            pixel_buffer,
-                            width,
-                            height,
-                            pixel_x,
-                            pixel_y,
-                            pixel_color,
-                            alpha,
-                        );
                     },
                 );
             }

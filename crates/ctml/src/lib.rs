@@ -3,6 +3,8 @@ mod css_selector;
 mod css_style;
 mod font_family;
 mod font_metrics;
+#[cfg(target_os = "linux")]
+mod fontconfig;
 mod page;
 mod renderer;
 mod style;
