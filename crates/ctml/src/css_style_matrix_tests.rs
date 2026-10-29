@@ -205,6 +205,34 @@ fn covers_every_text_decoration_skip_ink_value() {
 }
 
 #[test]
+fn covers_nonnegative_text_decoration_thickness_lengths() {
+    for (value, expected) in [
+        ("0", 0.0),
+        ("0px", 0.0),
+        ("2px", 2.0),
+        ("0.5em", 8.0),
+        ("25%", 4.0),
+    ] {
+        assert_eq!(
+            style_for("text-decoration-thickness", value).decoration_thickness,
+            Some(expected),
+            "{value}"
+        );
+    }
+    for value in ["auto", "from-font"] {
+        assert_eq!(
+            style_for("text-decoration-thickness", value).decoration_thickness,
+            None,
+            "{value}"
+        );
+    }
+    assert_eq!(
+        style_for("text-decoration-thickness", "-1px").decoration_thickness,
+        None
+    );
+}
+
+#[test]
 fn covers_every_font_feature_switch() {
     let none = style_for("font-variant-ligatures", "none");
     assert_eq!(none.common_ligatures, Some(false));

@@ -344,7 +344,9 @@ impl PageRasterizer {
             let use_custom_decorations = run.decorations.iter().any(|span| {
                 span.font_size >= 10.0
                     || run.glyphs.get(span.glyph_range.start).is_some_and(|glyph| {
-                        (glyph.metadata & 0b111) >= 2 || ((glyph.metadata >> 4) & 0b11) != 1
+                        (glyph.metadata & 0b111) >= 2
+                            || ((glyph.metadata >> 4) & 0b11) != 1
+                            || (glyph.metadata & (1 << 6)) != 0
                     })
             });
             let mut renderer = PixelRenderer {

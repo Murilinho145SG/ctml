@@ -60,16 +60,28 @@ fn render_span<R: Renderer>(
     let data = &span.data;
     let decoration = &data.text_decoration;
     let font_size = span.font_size;
-    let thickness = (data.underline_metrics.thickness * font_size)
-        .max(1.0)
-        .round() as u32;
+    let metadata = glyphs[0].metadata;
+    let has_custom_thickness = metadata & (1 << 6) != 0;
+    let thickness = if has_custom_thickness {
+        ((((metadata >> 8) & 0x00ff_ffff) as f32 / 256.0).round() as u32).max(1)
+    } else {
+        (data.underline_metrics.thickness * font_size)
+            .max(1.0)
+            .round() as u32
+    };
+    let thickness_offset = if has_custom_thickness {
+        ((thickness - 1) / 2) as i32
+    } else {
+        0
+    };
 
     if decoration.underline != UnderlineStyle::None {
         let color = decoration
             .underline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y = (run.line_y - data.underline_metrics.offset * font_size) as i32 + 1;
+        let y =
+            (run.line_y - data.underline_metrics.offset * font_size) as i32 + 1 + thickness_offset;
         let line_style = if decoration.underline == UnderlineStyle::Double {
             TextDecorationStyle::Double
         } else {
@@ -92,10 +104,9 @@ fn render_span<R: Renderer>(
             .strikethrough_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let thickness = (data.strikethrough_metrics.thickness * font_size)
-            .max(1.0)
-            .round() as u32;
-        let y = (run.line_y - data.strikethrough_metrics.offset * font_size) as i32 + 1;
+        let y = (run.line_y - data.strikethrough_metrics.offset * font_size) as i32
+            + 1
+            + thickness_offset;
         draw_line(
             renderer,
             x_min as i32,
@@ -113,7 +124,8 @@ fn render_span<R: Renderer>(
             .overline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y = (run.line_y - data.ascent * font_size).max(run.line_top) as i32 + 1;
+        let y =
+            (run.line_y - data.ascent * font_size).max(run.line_top) as i32 + 1 + thickness_offset;
         draw_line(
             renderer,
             x_min as i32,

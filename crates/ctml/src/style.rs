@@ -70,6 +70,7 @@ pub(super) struct TextStyle {
     pub(super) underline: bool,
     pub(super) decoration_style: TextDecorationStyle,
     pub(super) decoration_skip_ink: TextDecorationSkipInk,
+    pub(super) decoration_thickness: Option<f32>,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
     pub(super) text_decoration_color: Option<[u8; 4]>,
@@ -155,6 +156,7 @@ impl Default for TextStyle {
             underline: false,
             decoration_style: TextDecorationStyle::Solid,
             decoration_skip_ink: TextDecorationSkipInk::Auto,
+            decoration_thickness: None,
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
@@ -236,8 +238,14 @@ impl TextStyle {
             }
         }
         attrs = attrs.font_features(font_features);
-        attrs = attrs
-            .metadata(self.decoration_style as usize | ((self.decoration_skip_ink as usize) << 4));
+        let mut decoration_metadata =
+            self.decoration_style as usize | ((self.decoration_skip_ink as usize) << 4);
+        if let Some(thickness) = self.decoration_thickness {
+            let encoded_thickness = (thickness * 256.0).round().clamp(0.0, 0x00ff_ffff as f32);
+            decoration_metadata |= 1 << 6;
+            decoration_metadata |= (encoded_thickness as usize) << 8;
+        }
+        attrs = attrs.metadata(decoration_metadata);
         attrs = attrs.metrics(Metrics::new(
             self.font_size * self.font_scale,
             self.line_height,
