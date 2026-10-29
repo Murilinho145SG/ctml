@@ -322,7 +322,16 @@ impl PageRasterizer {
                     },
                 );
             }
-            decorations::render_patterned_decorations(&mut renderer, &run, default_color);
+            let has_patterned_decoration = run.decorations.iter().any(|span| {
+                run.glyphs
+                    .get(span.glyph_range.start)
+                    .is_some_and(|glyph| glyph.metadata >= 2)
+            });
+            if has_patterned_decoration {
+                decorations::render_patterned_decorations(&mut renderer, &run, default_color);
+            } else {
+                cosmic_text::render_decoration(&mut renderer, &run, default_color);
+            }
         }
         pixels
     }
