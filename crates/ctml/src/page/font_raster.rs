@@ -52,7 +52,7 @@ pub(super) fn draw(
             font.set_edging(Edging::AntiAlias);
             font.set_hinting(FontHinting::Slight);
             font.set_force_auto_hinting(false);
-            font.set_embedded_bitmaps(false);
+            font.set_embedded_bitmaps(true);
             font.set_subpixel(true);
             font.set_linear_metrics(false);
 
