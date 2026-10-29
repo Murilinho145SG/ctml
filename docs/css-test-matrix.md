@@ -1,6 +1,6 @@
 # CSS Test Matrix
 
-This matrix covers every CSS property and selector currently handled by the native CTML renderer. It does not mark the unchecked features in the [CSS roadmap](css-roadmap.md) as implemented. Each parity case has matching `native.ctml`, `browser.html`, and `style.css` files and runs as its own Rust test against Chromium. Chromium is a test-only reference; it is not shipped with or used by CTML applications.
+This matrix covers every CSS property and selector currently handled by the native CTML renderer. It does not mark the unchecked features in the [CSS roadmap](css-roadmap.md) as implemented. Each parity case has matching `native.ctml`, `browser.html`, and `style.css` files and runs as its own Rust test against Chromium 156.0.8078.47. Chromium is a test-only reference; it is not shipped with or used by CTML applications.
 
 ## Property coverage
 

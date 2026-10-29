@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chromiumoxide_fetcher::{BrowserFetcher, BrowserFetcherOptions, BrowserKind};
+use chromiumoxide_fetcher::{BrowserFetcher, BrowserFetcherOptions, BrowserKind, BrowserVersion};
 use ctml_compiler::{AttributeValue, Node};
 use url::Url;
 
@@ -21,6 +21,7 @@ const WIDTH: u32 = 640;
 const HEIGHT: u32 = 360;
 const CHANNEL_TOLERANCE: u8 = 16;
 const MAX_DIFFERING_PIXEL_RATIO: f32 = 0.0005;
+const CHROMIUM_VERSION: &str = "156.0.8078.47";
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -51,6 +52,11 @@ fn configured_browser() -> PathBuf {
         assert!(
             browser.exists(),
             "CTML_CSS_PARITY_BROWSER does not exist: {}",
+            browser.display()
+        );
+        assert!(
+            chromium_is_available(&browser),
+            "CTML_CSS_PARITY_BROWSER must be Chromium {CHROMIUM_VERSION}: {}",
             browser.display()
         );
         return browser;
@@ -89,7 +95,10 @@ fn chromium_is_available(browser: &Path) -> bool {
     Command::new(browser)
         .arg("--version")
         .output()
-        .is_ok_and(|output| output.status.success())
+        .is_ok_and(|output| {
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout).contains(CHROMIUM_VERSION)
+        })
 }
 
 fn download_chromium() -> PathBuf {
@@ -109,6 +118,11 @@ fn download_chromium() -> PathBuf {
     let options = BrowserFetcherOptions::builder()
         .with_path(cache_path)
         .with_kind(BrowserKind::ChromeHeadlessShell)
+        .with_version(
+            CHROMIUM_VERSION
+                .parse::<BrowserVersion>()
+                .expect("pinned Chromium version should be valid"),
+        )
         .build()
         .expect("configure Chromium test browser");
     let progress = ProgressBar::start("Preparing Chromium Headless Shell (downloading if needed)");
