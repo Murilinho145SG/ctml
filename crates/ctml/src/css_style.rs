@@ -103,7 +103,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             }
         }
         "font-size" => {
-            if let Some(size) = parse_length(value, style.font_size) {
+            if let Some(size) = parse_font_size(value, style.font_size) {
                 style.font_size = size;
                 if let Some(multiplier) = style.line_height_multiplier {
                     style.line_height = size * multiplier;
@@ -422,6 +422,21 @@ fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
         }
     }
     None
+}
+
+fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {
+    let absolute_size = match value.trim().to_ascii_lowercase().as_str() {
+        "xx-small" => Some(9.0),
+        "x-small" => Some(10.0),
+        "small" => Some(13.0),
+        "medium" => Some(16.0),
+        "large" => Some(18.0),
+        "x-large" => Some(24.0),
+        "xx-large" => Some(32.0),
+        "xxx-large" => Some(48.0),
+        _ => None,
+    };
+    absolute_size.or_else(|| parse_length(value, relative_to))
 }
 
 #[cfg(test)]

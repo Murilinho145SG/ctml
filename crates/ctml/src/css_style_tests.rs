@@ -207,6 +207,25 @@ fn resolves_absolute_css_font_size_units() {
 }
 
 #[test]
+fn resolves_absolute_font_size_keywords() {
+    let cases = [
+        ("xx-small", 9.0),
+        ("x-small", 10.0),
+        ("small", 13.0),
+        ("medium", 16.0),
+        ("large", 18.0),
+        ("x-large", 24.0),
+        ("xx-large", 32.0),
+        ("xxx-large", 48.0),
+    ];
+
+    for (keyword, expected_size) in cases {
+        let style = style_for_declarations(&[("font-size", keyword)]);
+        assert_eq!(style.font_size, expected_size, "font-size: {keyword}");
+    }
+}
+
+#[test]
 fn scales_inherited_unitless_line_height_with_font_size() {
     let inherited = TextStyle {
         font_size: 20.0,
