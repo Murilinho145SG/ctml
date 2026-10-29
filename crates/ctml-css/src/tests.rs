@@ -15,6 +15,30 @@ fn parses_rules_groups_declarations_and_important_values() {
 }
 
 #[test]
+fn parses_named_ordered_and_nested_layers() {
+    let stylesheet = parse_stylesheet(
+        "@layer base, theme; @layer components { p { color: red; } @layer buttons { p { color: blue; } } } @layer theme { p { color: green; } }",
+    )
+    .unwrap();
+
+    assert_eq!(
+        stylesheet.layers,
+        ["base", "theme", "components.buttons", "components"]
+    );
+    assert_eq!(stylesheet.rules.len(), 3);
+    assert_eq!(stylesheet.rules[0].layer, Some(3));
+    assert_eq!(stylesheet.rules[1].layer, Some(2));
+    assert_eq!(stylesheet.rules[2].layer, Some(1));
+}
+
+#[test]
+fn rejects_anonymous_layers_and_malformed_layer_statements() {
+    assert!(parse_stylesheet("@layer { p { color: red; } }").is_err());
+    assert!(parse_stylesheet("@layer first,,second;").is_err());
+    assert!(parse_stylesheet("@layer -1invalid;").is_err());
+}
+
+#[test]
 fn parses_inline_declaration_lists_without_a_selector_block() {
     let declarations =
         super::parse_declarations("color: red; font-weight: 700 !important;").unwrap();
@@ -840,6 +864,26 @@ fn expands_relative_imports_in_place_and_tracks_build_dependencies() {
         ["main.css", "base.css", "tokens.css"]
     );
     std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
+}
+
+#[test]
+fn merges_layer_order_across_imported_stylesheets() {
+    let root = temporary_directory("imported-layers");
+    std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
+    std::fs::write(root.join("theme.css"), "@layer theme { p { color: red; } }")
+        .expect("layered stylesheet should be written");
+    std::fs::write(
+        root.join("main.css"),
+        "@layer base; @import \"theme.css\"; @layer theme { p { color: blue; } }",
+    )
+    .expect("entry stylesheet should be written");
+
+    let (stylesheet, _) = super::parse_stylesheet_file(root.join("main.css"), &root).unwrap();
+
+    assert_eq!(stylesheet.layers, ["base", "theme"]);
+    assert_eq!(stylesheet.rules.len(), 2);
+    assert_eq!(stylesheet.rules[0].layer, Some(1));
+    assert_eq!(stylesheet.rules[1].layer, Some(1));
 }
 
 #[test]

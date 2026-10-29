@@ -250,6 +250,7 @@ fn transparent_nested_text_resolves_to_zero_alpha() {
     .into_iter()
     .map(|rule| StyleRule {
         selectors: rule.selectors,
+        layer: rule.layer,
         declarations: rule
             .declarations
             .into_iter()
@@ -350,6 +351,7 @@ fn run_parity_case_with_mode(
         .into_iter()
         .map(|rule| StyleRule {
             selectors: rule.selectors,
+            layer: rule.layer,
             declarations: rule
                 .declarations
                 .into_iter()

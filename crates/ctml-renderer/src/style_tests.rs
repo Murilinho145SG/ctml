@@ -113,6 +113,7 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["p::before".to_owned()],
+            layer: None,
             declarations: vec![
                 StyleDeclaration {
                     property: "content".to_owned(),
@@ -126,6 +127,7 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
         },
         StyleRule {
             selectors: vec!["p:after".to_owned()],
+            layer: None,
             declarations: vec![
                 StyleDeclaration {
                     property: "content".to_owned(),

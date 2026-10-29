@@ -10,6 +10,7 @@ use crate::{
 pub(super) fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: declarations
             .iter()
             .map(|(property, value)| StyleDeclaration {
@@ -57,6 +58,7 @@ fn resolves_relative_font_weight_keywords() {
 
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "font-weight".to_owned(),
             value: "lighter".to_owned(),
@@ -104,6 +106,7 @@ fn resolves_font_size_percentages_against_the_inherited_size() {
     };
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "font-size".to_owned(),
             value: "125%".to_owned(),
@@ -148,6 +151,7 @@ fn resolves_font_relative_em_and_rem_sizes() {
     let stylesheet = [
         StyleRule {
             selectors: vec![".em".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-size".to_owned(),
                 value: "1.5em".to_owned(),
@@ -155,6 +159,7 @@ fn resolves_font_relative_em_and_rem_sizes() {
         },
         StyleRule {
             selectors: vec![".rem".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-size".to_owned(),
                 value: "1.5rem".to_owned(),
@@ -249,6 +254,7 @@ fn scales_inherited_unitless_line_height_with_font_size() {
     };
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "font-size".to_owned(),
             value: "125%".to_owned(),
@@ -337,6 +343,7 @@ fn preserves_fractional_opacity_when_color_becomes_current_color() {
 fn current_color_for_color_uses_the_inherited_color() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "color".to_owned(),
             value: "currentColor".to_owned(),
@@ -463,6 +470,7 @@ fn applies_text_decoration_color_to_active_lines() {
 fn text_decoration_shorthand_resets_inherited_style_and_color() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "text-decoration".to_owned(),
             value: "overline".to_owned(),

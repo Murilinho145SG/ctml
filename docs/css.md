@@ -1,6 +1,6 @@
 # CTML CSS
 
-CTML uses regular `.css` files. One or more stylesheets can be declared in the CTML header and are parsed during the Rust build in header order. Their rules enter the cascade in that same order, so later sheets take precedence when specificity and importance are equal. The compiled application receives native style data, so it does not include a CSS parser or browser runtime.
+CTML uses regular `.css` files. One or more stylesheets can be declared in the CTML header and are parsed during the Rust build in header order. Their rules enter the cascade in that same order, so later sheets take precedence when layer, importance, and specificity are equal. The compiled application receives native style data, so it does not include a CSS parser or browser runtime.
 
 ```ctml
 <headers>
@@ -22,6 +22,8 @@ Each stylesheet path is relative to the Rust application's `src/` directory.
 Stylesheets can import local files with a quoted path or `url()`, for example `@import "shared/colors.css";`. Imported rules are expanded where the import appears, and nested imports resolve relative to their importing file. Imports cannot escape the application's `src/` directory or form cycles. Network URLs, import media qualifiers, and escaped import paths are currently rejected. Imported files are tracked as build dependencies so Cargo recompiles the application when they change.
 
 Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments are discarded outside quoted strings, and an unterminated comment is an error. The legacy `@charset` rule does not change decoding and is unsupported.
+
+Named `@layer` order statements and blocks are supported, including nested named layers. Normal declarations in later layers outrank earlier layers, while `!important` layer order is reversed; unlayered normal rules outrank layered normal rules, and layered important rules outrank unlayered important rules. Anonymous layers and escaped layer names are not supported.
 
 Malformed stylesheet syntax reports the source file, line, and column during the build. Invalid declarations are skipped so later declarations in the same rule can still apply.
 

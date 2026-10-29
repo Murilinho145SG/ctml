@@ -9,6 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(source_path)?;
     let document = parse(&source)?;
     let mut stylesheet = Vec::new();
+    let mut layers = Vec::new();
     for element in document.stylesheets() {
         let relative_path = string_attribute(element, "href")?
             .ok_or_else(|| invalid_data("<stylesheet> requires an href attribute"))?;
@@ -27,7 +28,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for dependency in dependencies {
             println!("cargo:rerun-if-changed={}", dependency.display());
         }
-        stylesheet.extend(parsed.rules);
+        for layer in &parsed.layers {
+            if !layers.contains(layer) {
+                let insertion = layer
+                    .rsplit_once('.')
+                    .and_then(|(parent, _)| layers.iter().position(|known| known == parent))
+                    .unwrap_or(layers.len());
+                layers.insert(insertion, layer.clone());
+            }
+        }
+        for mut rule in parsed.rules {
+            rule.layer = rule.layer.map(|index| {
+                let name = &parsed.layers[index];
+                layers
+                    .iter()
+                    .position(|layer| layer == name)
+                    .expect("merged cascade layer should be present")
+            });
+            stylesheet.push(rule);
+        }
     }
     let application = document
         .application()
@@ -114,7 +133,8 @@ fn rust_stylesheet(rules: &[CssRule]) -> String {
                 .collect::<Vec<_>>()
                 .join(", ");
             format!(
-                "ctml::StyleRule {{ selectors: vec![{selectors}], declarations: vec![{declarations}] }}"
+                "ctml::StyleRule {{ selectors: vec![{selectors}], declarations: vec![{declarations}], layer: {} }}",
+                rule.layer.map_or_else(|| "None".to_owned(), |layer| format!("Some({layer})"))
             )
         })
         .collect::<Vec<_>>()

@@ -17,6 +17,7 @@ use ctml_css::{SelectorPosition, SelectorSibling};
 fn style_for(property: &str, value: &str) -> TextStyle {
     let rule = StyleRule {
         selectors: vec![".case".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: property.to_owned(),
             value: value.to_owned(),
@@ -48,6 +49,7 @@ fn inline_style_uses_author_cascade_priority_and_importance() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["#target".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-family".to_owned(),
                 value: "monospace".to_owned(),
@@ -55,6 +57,7 @@ fn inline_style_uses_author_cascade_priority_and_importance() {
         },
         StyleRule {
             selectors: vec![".target".to_owned()],
+            layer: None,
             declarations: vec![
                 StyleDeclaration {
                     property: "color".to_owned(),
@@ -123,6 +126,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["div + p.target".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "red".to_owned(),
@@ -130,6 +134,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
         },
         StyleRule {
             selectors: vec!["h1 ~ p.target".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -169,6 +174,7 @@ fn inherited_language_and_direction_selectors_apply_styles() {
     };
     let stylesheet = [StyleRule {
         selectors: vec![":lang(en):dir(rtl)".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "color".to_owned(),
             value: "blue".to_owned(),
@@ -207,6 +213,7 @@ fn revert_uses_the_supported_initial_user_agent_values() {
     };
     let stylesheet = [StyleRule {
         selectors: vec![".reset".to_owned()],
+        layer: None,
         declarations: vec![
             StyleDeclaration {
                 property: "color".to_owned(),
@@ -247,6 +254,7 @@ fn structural_pseudo_classes_apply_styles_from_element_positions() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["p:nth-child(even)".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "red".to_owned(),
@@ -254,6 +262,7 @@ fn structural_pseudo_classes_apply_styles_from_element_positions() {
         },
         StyleRule {
             selectors: vec!["p:first-of-type:empty".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -298,6 +307,7 @@ fn hover_and_active_pseudo_classes_follow_pointer_state() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["p:hover".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "red".to_owned(),
@@ -305,6 +315,7 @@ fn hover_and_active_pseudo_classes_follow_pointer_state() {
         },
         StyleRule {
             selectors: vec!["p:active".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -690,6 +701,7 @@ fn cascade_uses_specificity_then_source_order_for_each_declaration() {
     ]
     .map(|(selector, value)| StyleRule {
         selectors: vec![selector.to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "color".to_owned(),
             value: value.to_owned(),
@@ -715,6 +727,7 @@ fn important_declarations_precede_specificity_and_source_order() {
     ]
     .map(|(selector, value)| StyleRule {
         selectors: vec![selector.to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "color".to_owned(),
             value: value.to_owned(),
@@ -728,6 +741,59 @@ fn important_declarations_precede_specificity_and_source_order() {
 }
 
 #[test]
+fn cascade_layers_order_normal_and_important_declarations() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: Some("target".to_owned()),
+    };
+    let stylesheet = ctml_css::parse_stylesheet(
+        "@layer low, high; @layer low { #target { color: red; } p { color: red !important; } } @layer high { p { color: blue; } #target { color: blue !important; } } p { color: green !important; }",
+    )
+    .unwrap();
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &stylesheet.rules);
+
+    assert_eq!(style.color, [255, 0, 0, 255]);
+}
+
+#[test]
+fn later_layers_outrank_earlier_layers_before_specificity() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: Some("target".to_owned()),
+    };
+    let stylesheet = ctml_css::parse_stylesheet(
+        "@layer low, high; @layer low { #target { color: red; } } @layer high { p { color: blue; } }",
+    )
+    .unwrap();
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &stylesheet.rules);
+
+    assert_eq!(style.color, [0, 0, 255, 255]);
+}
+
+#[test]
+fn unlayered_normal_rules_outrank_layered_normal_rules() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: Some("target".to_owned()),
+    };
+    let stylesheet =
+        ctml_css::parse_stylesheet("@layer theme { #target { color: red; } } p { color: blue; }")
+            .unwrap();
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &stylesheet.rules);
+
+    assert_eq!(style.color, [0, 0, 255, 255]);
+}
+
+#[test]
 fn attribute_selectors_apply_through_the_style_cascade() {
     let current = ElementIdentity {
         tag: "input".to_owned(),
@@ -738,6 +804,7 @@ fn attribute_selectors_apply_through_the_style_cascade() {
     let rules = [
         StyleRule {
             selectors: vec!["input[type=text i]".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "#008000".to_owned(),
@@ -745,6 +812,7 @@ fn attribute_selectors_apply_through_the_style_cascade() {
         },
         StyleRule {
             selectors: vec!["input[type=password]".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -769,6 +837,7 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
     let rules = [
         StyleRule {
             selectors: vec![".sample".to_owned()],
+            layer: None,
             declarations: vec![
                 StyleDeclaration {
                     property: "color".to_owned(),
@@ -794,6 +863,7 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
         },
         StyleRule {
             selectors: vec![".sample".to_owned()],
+            layer: None,
             declarations: vec![
                 StyleDeclaration {
                     property: "color".to_owned(),
@@ -883,6 +953,7 @@ fn selector_group_matches_the_most_specific_member_only_once() {
     };
     let rule = StyleRule {
         selectors: vec!["p".to_owned(), ".sample".to_owned(), "#target".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "font-weight".to_owned(),
             value: "700".to_owned(),

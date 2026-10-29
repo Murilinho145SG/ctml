@@ -50,7 +50,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Inheritance for supported text properties.
 - [ ] Complete origin and importance ordering, including user-agent, author, and user origins where applicable.
 - [x] `!important` declarations.
-- [ ] Cascade layers with `@layer`.
+- [x] Named cascade layers with `@layer` statements and blocks, including nested order and reversed `!important` precedence.
+- [ ] Anonymous cascade layers and escaped layer names.
 - [x] `inherit`, `initial`, and `unset` for supported properties.
 - [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
 - [ ] `revert-layer`; CSS cascade layers are not implemented.
@@ -206,7 +207,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [ ] `@charset` handling or explicit omission as obsolete stylesheet syntax.
 - [ ] `@import`.
-- [ ] `@media`, `@supports`, `@container`, and `@layer`.
+- [x] Named `@layer` statements and blocks.
+- [x] Local `@import` resolution and named `@layer` statements and blocks.
+- [ ] `@media`, `@supports`, `@container`, and other conditional at-rules.
 - [ ] `@font-face` and font feature/value rules.
 - [ ] `@keyframes`.
 - [ ] `@page` and margin at-rules for print output.

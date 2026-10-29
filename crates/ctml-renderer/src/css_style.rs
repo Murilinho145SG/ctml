@@ -290,6 +290,7 @@ fn apply_matching_styles_inner(
                 let (_, important) = declaration_value(&declaration.value);
                 matches.push((
                     important,
+                    layer_cascade_priority(rule.layer, important),
                     specificity,
                     rule_index,
                     declaration_index,
@@ -302,30 +303,48 @@ fn apply_matching_styles_inner(
         let (_, important) = declaration_value(&declaration.value);
         matches.push((
             important,
+            layer_cascade_priority(None, important),
             (usize::MAX, 0, 0),
             stylesheet.len(),
             declaration_index,
             declaration,
         ));
     }
-    matches.sort_by_key(|(important, specificity, rule, declaration, _)| {
-        (*important, *specificity, *rule, *declaration)
-    });
+    matches.sort_by_key(
+        |(important, layer_priority, specificity, rule, declaration, _)| {
+            (
+                *important,
+                *layer_priority,
+                *specificity,
+                *rule,
+                *declaration,
+            )
+        },
+    );
 
     let inherited_color = (style.color, style.color_opacity);
-    for (_, _, _, _, declaration) in matches
+    for (_, _, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, _, declaration)| declaration.property == "color")
+        .filter(|(_, _, _, _, _, declaration)| declaration.property == "color")
     {
         let (value, _) = declaration_value(&declaration.value);
         apply_color_declaration(style, value, inherited_color);
     }
-    for (_, _, _, _, declaration) in matches
+    for (_, _, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, _, declaration)| declaration.property != "color")
+        .filter(|(_, _, _, _, _, declaration)| declaration.property != "color")
     {
         let (value, _) = declaration_value(&declaration.value);
         apply_declaration_with_inherited(style, &declaration.property, value, &inherited_style);
+    }
+}
+
+fn layer_cascade_priority(layer: Option<usize>, important: bool) -> usize {
+    match (important, layer) {
+        (false, Some(layer)) => layer,
+        (false, None) => usize::MAX,
+        (true, Some(layer)) => usize::MAX - layer,
+        (true, None) => 0,
     }
 }
 

@@ -37,6 +37,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Focus pseudo-classes | — | `:focus`, `:focus-within`, focusable links and `tabindex` nodes, and clearing focus on an outside click |
 | Attribute selector presence, operators, and case flags | `attribute-selectors` | `ctml-css` selector tests and renderer cascade test |
 | Inline style attributes and importance ordering | `inline-style` | Declaration-list parser and renderer cascade tests |
+| Named cascade layers | — | layer statements, nested layers, normal and `!important` order, and unlayered declarations |
 | `:is()`, `:where()`, and `:not()` | — | `ctml-css` selector and specificity tests |
 | Relational `:has()` selectors | `has-selectors` | descendant, child, and adjacent-sibling relative matching |
 | Language and direction pseudo-classes | — | inherited language ranges, direction values, default direction, and renderer cascade |

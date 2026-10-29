@@ -61,6 +61,7 @@ pub(super) fn resolve_generated_content(
         pseudo_rules.push(StyleRule {
             selectors: base_selectors,
             declarations: rule.declarations.clone(),
+            layer: rule.layer,
         });
         for (declaration_index, declaration) in rule.declarations.iter().enumerate() {
             if !declaration.property.eq_ignore_ascii_case("content") {

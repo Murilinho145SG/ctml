@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    CssRule, Stylesheet,
+    Stylesheet,
     comments::{source_error, strip_utf8_bom_and_comments},
     parse_stylesheet_with_line_offset,
 };
@@ -25,8 +25,8 @@ pub fn parse_stylesheet_file(
         .map_err(|error| format!("cannot resolve stylesheet root: {error}"))?;
     let mut dependencies = Vec::new();
     let mut stack = Vec::new();
-    let rules = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
-    Ok((Stylesheet { rules }, dependencies))
+    let stylesheet = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
+    Ok((stylesheet, dependencies))
 }
 
 fn expand_file(
@@ -34,7 +34,7 @@ fn expand_file(
     root: &Path,
     stack: &mut Vec<PathBuf>,
     dependencies: &mut Vec<PathBuf>,
-) -> Result<Vec<CssRule>, String> {
+) -> Result<Stylesheet, String> {
     let path = path
         .canonicalize()
         .map_err(|error| format!("cannot read stylesheet {}: {error}", path.display()))?;
@@ -64,37 +64,64 @@ fn expand_file(
     stack.push(path.clone());
 
     let imports = find_imports(&source).map_err(|error| format!("{}: {error}", path.display()))?;
-    let mut rules = Vec::new();
+    let mut stylesheet = Stylesheet {
+        rules: Vec::new(),
+        layers: Vec::new(),
+    };
     let mut copied_until = 0;
     for import in imports {
-        let local_rules = parse_source_segment(
+        let local_stylesheet = parse_source_segment(
             &source[copied_until..import.range.start],
             &path,
             line_offset(&source, copied_until),
         )?;
-        rules.extend(local_rules);
+        merge_stylesheet(&mut stylesheet, local_stylesheet);
         let relative = validate_import_path(&import.path)?;
         let imported_path = path.parent().unwrap_or(root).join(relative);
-        rules.extend(expand_file(&imported_path, root, stack, dependencies)?);
+        merge_stylesheet(
+            &mut stylesheet,
+            expand_file(&imported_path, root, stack, dependencies)?,
+        );
         copied_until = import.range.end;
     }
-    rules.extend(parse_source_segment(
-        &source[copied_until..],
-        &path,
-        line_offset(&source, copied_until),
-    )?);
+    merge_stylesheet(
+        &mut stylesheet,
+        parse_source_segment(
+            &source[copied_until..],
+            &path,
+            line_offset(&source, copied_until),
+        )?,
+    );
     stack.pop();
-    Ok(rules)
+    Ok(stylesheet)
 }
 
-fn parse_source_segment(
-    source: &str,
-    path: &Path,
-    line_offset: u32,
-) -> Result<Vec<CssRule>, String> {
+fn parse_source_segment(source: &str, path: &Path, line_offset: u32) -> Result<Stylesheet, String> {
     parse_stylesheet_with_line_offset(source, line_offset)
-        .map(|stylesheet| stylesheet.rules)
         .map_err(|error| format!("{}: {error}", path.display()))
+}
+
+fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
+    for name in &source.layers {
+        if !target.layers.contains(name) {
+            let insertion = name
+                .rsplit_once('.')
+                .and_then(|(parent, _)| target.layers.iter().position(|layer| layer == parent))
+                .unwrap_or(target.layers.len());
+            target.layers.insert(insertion, name.clone());
+        }
+    }
+    for rule in &mut source.rules {
+        rule.layer = rule.layer.map(|index| {
+            let name = &source.layers[index];
+            target
+                .layers
+                .iter()
+                .position(|layer| layer == name)
+                .expect("merged layer should be present")
+        });
+    }
+    target.rules.extend(source.rules);
 }
 
 fn line_offset(source: &str, byte_offset: usize) -> u32 {
@@ -119,6 +146,19 @@ fn find_imports(source: &str) -> Result<Vec<Import>, String> {
             index = skip_comment(source, index)?;
         } else if let Some(end) = skip_string(source, index)? {
             index = end;
+        } else if block_depth == 0
+            && source[index..]
+                .get(.."@layer".len())
+                .is_some_and(|prefix| prefix.eq_ignore_ascii_case("@layer"))
+            && source[index + "@layer".len()..]
+                .chars()
+                .next()
+                .is_some_and(char::is_whitespace)
+            && is_layer_order_statement(source, index)
+        {
+            index = source[index..]
+                .find(';')
+                .map_or(source.len(), |end| index + end + 1);
         } else if block_depth == 0
             && source[index..]
                 .get(.."@import".len())
@@ -165,6 +205,16 @@ fn find_imports(source: &str) -> Result<Vec<Import>, String> {
         }
     }
     Ok(imports)
+}
+
+fn is_layer_order_statement(source: &str, start: usize) -> bool {
+    let Some(semicolon) = source[start..].find(';') else {
+        return false;
+    };
+    let Some(block) = source[start..].find('{') else {
+        return true;
+    };
+    semicolon < block
 }
 
 fn skip_comment(source: &str, start: usize) -> Result<usize, String> {

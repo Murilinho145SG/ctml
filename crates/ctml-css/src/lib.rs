@@ -22,12 +22,16 @@ mod tests;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
+    /// Layer names in normal cascade order, from lowest to highest priority.
+    pub layers: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CssRule {
     pub selectors: Vec<String>,
     pub declarations: Vec<CssDeclaration>,
+    /// Index into [`Stylesheet::layers`], or `None` for unlayered rules.
+    pub layer: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -36,10 +40,7 @@ pub struct CssDeclaration {
     pub value: String,
 }
 
-/// Parses a stylesheet's qualified rules and declarations.
-///
-/// Selectors and values are retained as source text for the native styling layer.
-/// At-rules are outside the initial CTML CSS subset.
+/// Parses qualified rules, declarations, and named cascade layers.
 pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, String> {
     parse_stylesheet_with_line_offset(source, 0)
 }
@@ -51,60 +52,195 @@ pub(crate) fn parse_stylesheet_with_line_offset(
     let source = comments::strip_utf8_bom_and_comments(source)?;
     let mut source = ParserInput::new(&source);
     let mut input = Parser::new(&mut source);
-    let mut rules = Vec::new();
+    let mut state = LayerParseState::default();
+    parse_rule_list(&mut input, &[], &mut state).map_err(|error| {
+        located_error(
+            error.location.line + line_offset,
+            error.location.column,
+            error,
+        )
+    })?;
+    let layers = state.ordered_layers();
+    let rules = state
+        .rules
+        .into_iter()
+        .map(|(layer_name, mut rule)| {
+            rule.layer = layer_name
+                .as_ref()
+                .and_then(|name| layers.iter().position(|layer| layer == name));
+            rule
+        })
+        .collect();
+    Ok(Stylesheet { rules, layers })
+}
 
+#[derive(Default)]
+struct LayerParseState {
+    roots: Vec<LayerNode>,
+    rules: Vec<(Option<String>, CssRule)>,
+}
+
+#[derive(Default)]
+struct LayerNode {
+    name: String,
+    path: String,
+    children: Vec<LayerNode>,
+}
+
+impl LayerParseState {
+    fn register(&mut self, parts: &[String]) -> String {
+        let mut siblings = &mut self.roots;
+        let mut path = Vec::new();
+        for part in parts {
+            path.push(part.as_str());
+            let full_path = path.join(".");
+            let index = siblings.iter().position(|layer| layer.name == *part);
+            let index = index.unwrap_or_else(|| {
+                siblings.push(LayerNode {
+                    name: part.clone(),
+                    path: full_path.clone(),
+                    children: Vec::new(),
+                });
+                siblings.len() - 1
+            });
+            siblings = &mut siblings[index].children;
+        }
+        path.join(".")
+    }
+
+    fn ordered_layers(&self) -> Vec<String> {
+        fn append(layers: &[LayerNode], output: &mut Vec<String>) {
+            for layer in layers {
+                append(&layer.children, output);
+                output.push(layer.path.clone());
+            }
+        }
+        let mut output = Vec::new();
+        append(&self.roots, &mut output);
+        output
+    }
+}
+
+fn parse_rule_list<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    current_layer: &[String],
+    state: &mut LayerParseState,
+) -> Result<(), cssparser::ParseError<'i, ()>> {
     while !input.is_exhausted() {
         input.skip_whitespace();
         if input.is_exhausted() {
             break;
         }
-
-        let selector_text = input
-            .parse_until_before::<_, _, ()>(Delimiter::CurlyBracketBlock, |prelude| {
+        let prelude = input.parse_until_before::<_, _, ()>(
+            Delimiter::CurlyBracketBlock | Delimiter::Semicolon,
+            |prelude| {
                 let start = prelude.position();
                 while prelude.next_including_whitespace().is_ok() {}
                 Ok(prelude.slice(start..prelude.position()).trim().to_owned())
-            })
-            .map_err(|error| {
-                located_error(
-                    error.location.line + line_offset,
-                    error.location.column,
-                    error,
-                )
-            })?;
-        input.expect_curly_bracket_block().map_err(|error| {
-            located_error(
-                error.location.line + line_offset,
-                error.location.column,
-                error,
-            )
-        })?;
-        let declarations = input
-            .parse_nested_block(parse_declaration_block)
-            .map_err(|error| {
-                located_error(
-                    error.location.line + line_offset,
-                    error.location.column,
-                    error,
-                )
-            })?;
-
-        let selectors = split_selector_list(&selector_text)
+            },
+        )?;
+        let statement = input.try_parse(|input| input.expect_semicolon()).is_ok();
+        if let Some(layer_header) = layer_at_rule(&prelude) {
+            let names = parse_layer_names(layer_header).map_err(|_| input.new_custom_error(()))?;
+            if statement {
+                for name in names {
+                    let path = current_layer
+                        .iter()
+                        .cloned()
+                        .chain(name)
+                        .collect::<Vec<_>>();
+                    state.register(&path);
+                }
+            } else {
+                if names.len() != 1 {
+                    return Err(input.new_custom_error(()));
+                }
+                let path = current_layer
+                    .iter()
+                    .cloned()
+                    .chain(names.into_iter().next().unwrap())
+                    .collect::<Vec<_>>();
+                state.register(&path);
+                input.expect_curly_bracket_block()?;
+                input.parse_nested_block(|nested| parse_rule_list(nested, &path, state))?;
+            }
+            continue;
+        }
+        if prelude.starts_with('@') || statement {
+            return Err(input.new_custom_error(()));
+        }
+        let selectors = split_selector_list(&prelude)
             .into_iter()
-            .map(|selector| selector.trim())
+            .map(str::trim)
             .filter(|selector| !selector.is_empty())
             .map(str::to_owned)
             .collect::<Vec<_>>();
         if selectors.is_empty() {
-            return Err("CSS rule is missing a selector".to_owned());
+            return Err(input.new_custom_error(()));
         }
-        rules.push(CssRule {
-            selectors,
-            declarations,
-        });
+        input.expect_curly_bracket_block()?;
+        let declarations = input.parse_nested_block(parse_declaration_block)?;
+        let layer_name = (!current_layer.is_empty()).then(|| current_layer.join("."));
+        state.rules.push((
+            layer_name,
+            CssRule {
+                selectors,
+                declarations,
+                layer: None,
+            },
+        ));
     }
+    Ok(())
+}
 
-    Ok(Stylesheet { rules })
+fn layer_at_rule(prelude: &str) -> Option<&str> {
+    let name = prelude.get(..6)?;
+    if !name.eq_ignore_ascii_case("@layer") {
+        return None;
+    }
+    let rest = &prelude[6..];
+    (rest.is_empty() || rest.starts_with(char::is_whitespace)).then_some(rest.trim())
+}
+
+fn parse_layer_names(header: &str) -> Result<Vec<Vec<String>>, ()> {
+    if header.is_empty() {
+        return Err(());
+    }
+    header
+        .split(',')
+        .map(|name| {
+            let parts = name.trim().split('.').map(str::trim).collect::<Vec<_>>();
+            if parts.is_empty() || parts.iter().any(|part| !is_layer_identifier(part)) {
+                return Err(());
+            }
+            Ok(parts.into_iter().map(str::to_owned).collect())
+        })
+        .collect()
+}
+
+fn is_layer_identifier(identifier: &str) -> bool {
+    let characters = identifier.chars().collect::<Vec<_>>();
+    let Some(first) = characters.first() else {
+        return false;
+    };
+    let starts_with_identifier = if *first == '-' {
+        characters
+            .get(1)
+            .is_some_and(|character| *character == '-' || is_layer_name_start(*character))
+    } else {
+        is_layer_name_start(*first)
+    };
+    starts_with_identifier
+        && characters.iter().skip(1).all(|character| {
+            *character == '_'
+                || *character == '-'
+                || character.is_alphanumeric()
+                || !character.is_ascii()
+        })
+}
+
+fn is_layer_name_start(character: char) -> bool {
+    character == '_' || character.is_alphabetic() || !character.is_ascii()
 }
 
 fn located_error(line: u32, column: u32, error: impl std::fmt::Debug) -> String {

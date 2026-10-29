@@ -13,6 +13,7 @@ fn pointer_hover_and_active_states_restyle_text_runs() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["p:hover".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "red".to_owned(),
@@ -20,6 +21,7 @@ fn pointer_hover_and_active_states_restyle_text_runs() {
         },
         StyleRule {
             selectors: vec!["p:active".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -59,6 +61,7 @@ fn focus_and_focus_within_restyle_clicked_links() {
     let stylesheet = [
         StyleRule {
             selectors: vec!["a:focus".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "color".to_owned(),
                 value: "red".to_owned(),
@@ -66,6 +69,7 @@ fn focus_and_focus_within_restyle_clicked_links() {
         },
         StyleRule {
             selectors: vec!["section:focus-within".to_owned()],
+            layer: None,
             declarations: vec![StyleDeclaration {
                 property: "font-weight".to_owned(),
                 value: "700".to_owned(),
@@ -93,6 +97,7 @@ fn numeric_tabindex_makes_generic_elements_focusable() {
     }];
     let stylesheet = [StyleRule {
         selectors: vec!["span:focus".to_owned()],
+        layer: None,
         declarations: vec![StyleDeclaration {
             property: "color".to_owned(),
             value: "red".to_owned(),
