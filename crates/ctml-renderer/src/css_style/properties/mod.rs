@@ -59,6 +59,7 @@ pub(super) fn apply_declaration_with_inherited(
             value,
             inherited.line_height,
             inherited.font_relative_units,
+            inherited.font_size,
         );
         return;
     };
@@ -339,6 +340,7 @@ fn apply_declaration(
     value: &str,
     parent_line_height: f32,
     parent_font_units: ctml_css::FontRelativeUnits,
+    parent_font_size: f32,
 ) {
     let value = value.trim();
     match property {
@@ -411,8 +413,16 @@ fn apply_declaration(
         "vertical-align" => {
             style.vertical_align_offset = match value.to_ascii_lowercase().as_str() {
                 "baseline" => 0.0,
-                "sub" => -style.font_size * 0.2,
-                "super" => style.font_size * 0.2,
+                "sub" => -parent_font_size * 0.2,
+                "super" => parent_font_size / 3.0,
+                "middle" => parent_font_units.ex * parent_font_size / 2.0,
+                "text-top" => {
+                    parent_font_units.cap * parent_font_size
+                        - style.font_relative_units.cap * style.font_size
+                }
+                "text-bottom" => (style.font_size - parent_font_size) * 0.2,
+                "top" => (parent_line_height - style.line_height) / 2.0,
+                "bottom" => (style.line_height - parent_line_height) / 2.0,
                 _ if value.ends_with('%') => value
                     .strip_suffix('%')
                     .and_then(|percent| percent.trim().parse::<f32>().ok())

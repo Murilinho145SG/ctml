@@ -57,7 +57,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Apply `line-height` from `::first-line` to the first line box.
 - [x] Apply inherited and overridden `word-spacing` to `::first-line` spaces during wrapping.
 - [x] Scale alpha for supported first-line and first-letter text, backgrounds, shadows, and decorations with pseudo-element `opacity`.
-- [x] Apply `vertical-align` values `baseline`, `sub`, `super`, signed lengths, and percentages of line height to `::first-line` and `::first-letter` glyphs.
+- [x] Apply `vertical-align` values `baseline`, `sub`, `super`, `middle`, `text-top`, `text-bottom`, `top`, `bottom`, signed lengths, and percentages of line height to `::first-line` and `::first-letter` glyphs.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
