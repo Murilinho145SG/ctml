@@ -10,9 +10,17 @@ pub(super) struct PixelRenderer<'a> {
 
 impl Renderer for PixelRenderer<'_> {
     fn rectangle(&mut self, x: i32, y: i32, width: u32, height: u32, color: Color) {
+        let blend = if color.a() < 255 {
+            blend_pixel_rounded
+        } else {
+            blend_pixel
+        };
         for offset_y in 0..height as i32 {
             for offset_x in 0..width as i32 {
-                self.blend(
+                blend(
+                    self.pixels,
+                    self.width,
+                    self.height,
                     x + offset_x + PAGE_PADDING as i32,
                     y + offset_y + PAGE_PADDING as i32,
                     color,
@@ -24,12 +32,6 @@ impl Renderer for PixelRenderer<'_> {
 
     fn glyph(&mut self, _glyph: cosmic_text::PhysicalGlyph, _color: Color) {
         unreachable!("glyphs are rasterized through the alpha-aware page renderer")
-    }
-}
-
-impl PixelRenderer<'_> {
-    fn blend(&mut self, x: i32, y: i32, color: Color, alpha: u8) {
-        blend_pixel(self.pixels, self.width, self.height, x, y, color, alpha);
     }
 }
 

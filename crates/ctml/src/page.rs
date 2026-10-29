@@ -322,12 +322,14 @@ impl PageRasterizer {
                     },
                 );
             }
-            let has_patterned_decoration = run.decorations.iter().any(|span| {
-                run.glyphs
-                    .get(span.glyph_range.start)
-                    .is_some_and(|glyph| glyph.metadata >= 2)
+            let use_custom_decorations = run.decorations.iter().any(|span| {
+                span.font_size >= 10.0
+                    || run
+                        .glyphs
+                        .get(span.glyph_range.start)
+                        .is_some_and(|glyph| glyph.metadata >= 2)
             });
-            if has_patterned_decoration {
+            if use_custom_decorations {
                 decorations::render_patterned_decorations(&mut renderer, &run, default_color);
             } else {
                 cosmic_text::render_decoration(&mut renderer, &run, default_color);
