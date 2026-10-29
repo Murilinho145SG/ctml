@@ -309,6 +309,15 @@ fn resolves_standard_named_css_colors() {
 }
 
 #[test]
+fn resolves_system_colors_for_text_and_backgrounds() {
+    let style =
+        style_for_declarations(&[("color", "CanvasText"), ("background-color", "Highlight")]);
+
+    assert_eq!(style.color, [0, 0, 0, 255]);
+    assert_eq!(style.background_color, Some([0, 76, 192, 255]));
+}
+
+#[test]
 fn resolves_alpha_text_color_and_blends_page_background_with_white() {
     let style = style_for_declarations(&[
         ("color", "#00000080"),

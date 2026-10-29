@@ -3,6 +3,7 @@ use cssparser::{Parser, ParserInput, Token};
 mod color4;
 mod mix;
 mod relative;
+mod system;
 
 pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
@@ -24,6 +25,10 @@ pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Optio
     if let Some(hex) = value.strip_prefix('#') {
         let (red, green, blue, alpha) = cssparser::color::parse_hash_color(hex.as_bytes()).ok()?;
         return Some(([red, green, blue], alpha));
+    }
+
+    if let Some(color) = system::parse_system_color(value) {
+        return Some((color, 1.0));
     }
 
     if let Ok((red, green, blue)) = cssparser::color::parse_named_color(&value.to_ascii_lowercase())
@@ -269,6 +274,72 @@ mod tests {
     fn parses_transparent_keyword() {
         assert_eq!(parse_color("transparent"), Some([0, 0, 0, 0]));
         assert_eq!(parse_color("TRANSPARENT"), Some([0, 0, 0, 0]));
+    }
+
+    #[test]
+    fn parses_standard_system_colors_with_fixed_light_palette() {
+        for (name, expected) in [
+            ("AccentColor", [0, 120, 212]),
+            ("AccentColorText", [255, 255, 255]),
+            ("ActiveText", [192, 0, 0]),
+            ("ButtonBorder", [118, 118, 118]),
+            ("ButtonFace", [240, 240, 240]),
+            ("ButtonText", [0, 0, 0]),
+            ("Canvas", [255, 255, 255]),
+            ("CanvasText", [0, 0, 0]),
+            ("Field", [255, 255, 255]),
+            ("FieldText", [0, 0, 0]),
+            ("GrayText", [109, 109, 109]),
+            ("Highlight", [0, 76, 192]),
+            ("HighlightText", [255, 255, 255]),
+            ("LinkText", [0, 0, 238]),
+            ("Mark", [255, 255, 0]),
+            ("MarkText", [0, 0, 0]),
+            ("SelectedItem", [0, 76, 192]),
+            ("SelectedItemText", [255, 255, 255]),
+            ("VisitedText", [85, 26, 139]),
+        ] {
+            assert_eq!(
+                parse_color(name),
+                Some([expected[0], expected[1], expected[2], 255])
+            );
+        }
+        assert_eq!(parse_color("cAnVaS"), Some([255, 255, 255, 255]));
+    }
+
+    #[test]
+    fn maps_deprecated_system_colors_to_current_keywords() {
+        for (deprecated, current) in [
+            ("ActiveBorder", "ButtonBorder"),
+            ("ActiveCaption", "Canvas"),
+            ("AppWorkspace", "Canvas"),
+            ("Background", "Canvas"),
+            ("ButtonHighlight", "ButtonFace"),
+            ("ButtonShadow", "ButtonFace"),
+            ("CaptionText", "CanvasText"),
+            ("InactiveBorder", "ButtonBorder"),
+            ("InactiveCaption", "Canvas"),
+            ("InactiveCaptionText", "GrayText"),
+            ("InfoBackground", "Canvas"),
+            ("InfoText", "CanvasText"),
+            ("Menu", "Canvas"),
+            ("MenuText", "CanvasText"),
+            ("Scrollbar", "Canvas"),
+            ("ThreeDDarkShadow", "ButtonBorder"),
+            ("ThreeDFace", "ButtonFace"),
+            ("ThreeDHighlight", "ButtonBorder"),
+            ("ThreeDLightShadow", "ButtonBorder"),
+            ("ThreeDShadow", "ButtonBorder"),
+            ("Window", "Canvas"),
+            ("WindowFrame", "ButtonBorder"),
+            ("WindowText", "CanvasText"),
+        ] {
+            assert_eq!(
+                parse_color(deprecated),
+                parse_color(current),
+                "{deprecated}"
+            );
+        }
     }
 
     #[test]
