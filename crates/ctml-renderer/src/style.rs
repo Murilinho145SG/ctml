@@ -5,6 +5,7 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement};
 
 mod collect;
+mod list_marker;
 mod pseudo;
 mod text_style;
 pub(super) use text_style::{

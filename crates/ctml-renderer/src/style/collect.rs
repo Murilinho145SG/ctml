@@ -5,7 +5,8 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
 use super::{
-    TextRun, TextStyle, append_text, is_block, pseudo, push_line_break, selector_sibling_contexts,
+    TextRun, TextStyle, append_text, is_block, list_marker::format_marker, pseudo, push_line_break,
+    selector_sibling_contexts,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -129,19 +130,20 @@ pub(super) fn collect_runs(
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
                 if list_item {
-                    let marker = if ordered_list_item {
-                        format!("{list_item_index}. ")
-                    } else {
-                        "• ".to_owned()
-                    };
-                    append_text(
-                        &marker,
-                        &style,
-                        element_path,
-                        output,
-                        last_was_space,
-                        capitalize_next,
-                    );
+                    if let Some(marker) = format_marker(
+                        style.list_style_type.as_deref(),
+                        ordered_list_item,
+                        list_item_index,
+                    ) {
+                        append_text(
+                            &marker,
+                            &style,
+                            element_path,
+                            output,
+                            last_was_space,
+                            capitalize_next,
+                        );
+                    }
                 }
                 if let Some(content) = &before_content {
                     append_text(

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "color",
     "display",
+    "list-style-type",
     "background-color",
     "font",
     "font-family",
