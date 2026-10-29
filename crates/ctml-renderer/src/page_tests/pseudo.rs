@@ -28,7 +28,7 @@ fn first_line_foreground_applies_only_to_the_first_line_of_a_block() {
                 value: "lime".to_owned(),
             },
             StyleDeclaration {
-                property: "background-color".to_owned(),
+                property: "background".to_owned(),
                 value: "yellow".to_owned(),
             },
             StyleDeclaration {
@@ -362,7 +362,7 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
                 value: "lime".to_owned(),
             },
             StyleDeclaration {
-                property: "background-color".to_owned(),
+                property: "background".to_owned(),
                 value: "yellow".to_owned(),
             },
             StyleDeclaration {

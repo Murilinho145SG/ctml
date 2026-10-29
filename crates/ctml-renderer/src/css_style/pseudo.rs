@@ -95,6 +95,7 @@ fn resolve_pseudo_style(
                     .filter(|declaration| {
                         [
                             "color",
+                            "background",
                             "background-color",
                             "font",
                             "font-family",
