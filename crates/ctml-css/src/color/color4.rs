@@ -30,11 +30,11 @@ fn parse_lab<'i, 't>(
     let lightness = parse_scaled_component(input, 100.0)?.clamp(0.0, 100.0);
     let second = parse_scaled_component(input, if cylindrical { 150.0 } else { 125.0 })?;
     let third = if cylindrical {
-        super::parse_hue(input)?
+        parse_color_hue(input)?
     } else {
         parse_scaled_component(input, 125.0)?
     };
-    let alpha = parse_alpha(input)?;
+    let alpha = parse_color_alpha(input)?;
     let lab = if cylindrical {
         let hue = third.to_radians();
         let chroma = second.max(0.0);
@@ -55,11 +55,11 @@ fn parse_oklab<'i, 't>(
     let lightness = parse_scaled_component(input, 1.0)?.clamp(0.0, 1.0);
     let second = parse_scaled_component(input, 0.4)?;
     let third = if cylindrical {
-        super::parse_hue(input)?
+        parse_color_hue(input)?
     } else {
         parse_scaled_component(input, 0.4)?
     };
-    let alpha = parse_alpha(input)?;
+    let alpha = parse_color_alpha(input)?;
     let lab = if cylindrical {
         let hue = third.to_radians();
         let chroma = second.max(0.0);
@@ -80,7 +80,7 @@ fn parse_color_space<'i, 't>(
     let red = parse_scaled_component(input, 1.0)?;
     let green = parse_scaled_component(input, 1.0)?;
     let blue = parse_scaled_component(input, 1.0)?;
-    let alpha = parse_alpha(input)?;
+    let alpha = parse_color_alpha(input)?;
     if !input.is_exhausted() {
         return Err(input.new_custom_error(()));
     }
@@ -115,16 +115,38 @@ fn parse_scaled_component<'i, 't>(
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => {
             Ok(*unit_value * percentage_scale)
         }
+        Token::Ident(value) if value.eq_ignore_ascii_case("none") => Ok(0.0),
         _ => Err(input.new_custom_error(())),
     }
 }
 
-fn parse_alpha<'i, 't>(input: &mut Parser<'i, 't>) -> Result<f32, cssparser::ParseError<'i, ()>> {
+fn parse_color_hue<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    if input
+        .try_parse(|input| input.expect_ident_matching("none"))
+        .is_ok()
+    {
+        Ok(0.0)
+    } else {
+        super::parse_hue(input)
+    }
+}
+
+fn parse_color_alpha<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
     if input.is_exhausted() {
         return Ok(1.0);
     }
     input.expect_delim('/')?;
-    super::parse_alpha(input)
+    let alpha = match input.next()? {
+        Token::Number { value, .. } if value.is_finite() => *value,
+        Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,
+        Token::Ident(value) if value.eq_ignore_ascii_case("none") => 0.0,
+        _ => return Err(input.new_custom_error(())),
+    };
+    Ok(alpha.clamp(0.0, 1.0))
 }
 
 pub(super) fn lab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {

@@ -355,6 +355,23 @@ mod tests {
     }
 
     #[test]
+    fn renders_missing_absolute_color_components_as_zero() {
+        assert_eq!(
+            parse_color("color(srgb none 0.5 0.5)"),
+            Some([0, 128, 128, 255])
+        );
+        assert_eq!(
+            parse_color("color(srgb 0.5 none 0.5)"),
+            Some([128, 0, 128, 255])
+        );
+        assert_eq!(
+            parse_color("color(srgb 1 0 0 / none)"),
+            Some([255, 0, 0, 0])
+        );
+        assert_eq!(parse_color("lch(50% 20 none)").unwrap()[3], 255);
+    }
+
+    #[test]
     fn converts_wide_gamut_rgb_profiles_to_srgb() {
         assert_eq!(
             parse_color("color(a98-rgb 0.5 0.5 0.5)"),
