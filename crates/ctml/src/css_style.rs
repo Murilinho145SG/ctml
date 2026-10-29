@@ -198,6 +198,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         "text-decoration" => {
             style.decoration_style = crate::style::TextDecorationStyle::Solid;
+            style.decoration_thickness = None;
             style.text_decoration_color = None;
             apply_text_decoration(style, value);
         }
