@@ -98,7 +98,7 @@ pub(super) fn collect_runs(
                 if let Some(font_metrics) = font_metrics {
                     inherited_style.font_relative_units = font_metrics.resolve(inherited);
                 }
-                let mut style = css_style::resolve_style_with_selector_tree_context(
+                let initial_style = css_style::resolve_style_with_selector_tree_context(
                     &inherited_style,
                     &identity,
                     path,
@@ -112,9 +112,24 @@ pub(super) fn collect_runs(
                     inline_style,
                     stylesheet,
                 );
-                if let Some(font_metrics) = font_metrics {
-                    style.font_relative_units = font_metrics.resolve(&style);
-                }
+                let local_font_units = font_metrics
+                    .map(|font_metrics| font_metrics.resolve(&initial_style))
+                    .unwrap_or(initial_style.font_relative_units);
+                let mut style = css_style::resolve_style_with_selector_tree_context_and_font_units(
+                    &inherited_style,
+                    &identity,
+                    path,
+                    attributes,
+                    path_attributes,
+                    &siblings[..element_index],
+                    path_siblings,
+                    position,
+                    path_positions,
+                    selector_tree,
+                    inline_style,
+                    stylesheet,
+                    local_font_units,
+                );
                 if style.display_none {
                     element_index += 1;
                     continue;
@@ -170,6 +185,9 @@ pub(super) fn collect_runs(
                         height: style.height.clone(),
                         min_height: style.min_height.clone(),
                         max_height: style.max_height.clone(),
+                        font_size: style.font_size,
+                        line_height: style.line_height,
+                        font_relative_units: style.font_relative_units,
                     });
                 }
                 if block {
@@ -232,6 +250,9 @@ pub(super) fn collect_runs(
                         height: style.height.clone(),
                         min_height: style.min_height.clone(),
                         max_height: style.max_height.clone(),
+                        font_size: style.font_size,
+                        line_height: style.line_height,
+                        font_relative_units: style.font_relative_units,
                     });
                     let last_was_space_before = *last_was_space;
                     let capitalize_next_before = *capitalize_next;

@@ -28,6 +28,8 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
                     height_size.max_height.as_deref(),
                     content_height,
                     style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
                 );
                 style.line_height_normal = false;
             }
@@ -77,7 +79,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
             continue;
         }
         let line_width = if has_custom_width {
-            resolve_layout_width(&sizes, content_width, metrics.font_size)
+            resolve_layout_width(&sizes, content_width)
         } else {
             content_width
         };

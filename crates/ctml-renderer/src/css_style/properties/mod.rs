@@ -2,7 +2,7 @@ use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
-use ctml_css::parse_nonnegative_length_with_line_height;
+use ctml_css::{parse_nonnegative_font_relative_length, parse_signed_font_relative_length};
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
@@ -360,10 +360,11 @@ fn apply_declaration(
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
                 style.line_height_normal = false;
-            } else if let Some(height) = parse_nonnegative_length_with_line_height(
+            } else if let Some(height) = parse_nonnegative_font_relative_length(
                 value,
                 style.font_size,
                 parent_line_height,
+                style.font_relative_units,
             ) {
                 style.line_height = height;
                 style.line_height_multiplier = None;
@@ -479,5 +480,15 @@ fn apply_letter_spacing(style: &mut TextStyle, value: &str) {
     {
         style.letter_spacing = em;
         style.letter_spacing_px = false;
+    } else if !value.contains('%')
+        && let Some(length) = parse_signed_font_relative_length(
+            value,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+        )
+    {
+        style.letter_spacing = length;
+        style.letter_spacing_px = true;
     }
 }

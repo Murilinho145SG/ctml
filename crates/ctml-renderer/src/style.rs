@@ -5,6 +5,7 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement};
 
 mod collect;
+mod font_units;
 mod list_marker;
 mod pseudo;
 mod text_style;
@@ -75,16 +76,14 @@ pub(super) fn compile_runs_with_font_system(
         keyboard_focus,
         &mut selector_tree,
     );
-    css_style::apply_matching_styles_with_selector_tree_position(
-        &mut root_style,
+    root_style = font_units::resolve_root_style(
+        &root_style,
         &body,
         root_position,
         &selector_tree,
         stylesheet,
+        font_metrics.as_ref(),
     );
-    if let Some(font_metrics) = &font_metrics {
-        root_style.font_relative_units = font_metrics.resolve(&root_style);
-    }
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];

@@ -1,7 +1,7 @@
 use crate::style::{TextShadow, TextStyle};
 use ctml_css::{
-    parse_color_with_opacity, parse_nonnegative_length_with_line_height,
-    parse_signed_length_percentage_with_line_height,
+    parse_color_with_opacity, parse_nonnegative_font_relative_length,
+    parse_signed_font_relative_length,
 };
 
 pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
@@ -9,8 +9,13 @@ pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
         style.text_shadows.clear();
         return;
     }
-    let Some(shadows) = parse_text_shadows(value, style.font_size, style.line_height, style.color)
-    else {
+    let Some(shadows) = parse_text_shadows(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.color,
+    ) else {
         return;
     };
     style.text_shadows = shadows;
@@ -20,6 +25,7 @@ fn parse_text_shadows(
     value: &str,
     font_size: f32,
     line_height: f32,
+    font_metrics: ctml_css::FontRelativeUnits,
     current_color: [u8; 4],
 ) -> Option<Vec<TextShadow>> {
     let mut shadows = Vec::new();
@@ -49,16 +55,17 @@ fn parse_text_shadows(
                     return None;
                 }
             } else if offsets.len() < 2 {
-                let length = parse_shadow_length(component, font_size, line_height)?;
+                let length = parse_shadow_length(component, font_size, line_height, font_metrics)?;
                 offsets.push(length);
             } else if blur.is_none() {
                 if component.contains('%') {
                     return None;
                 }
-                blur = Some(parse_nonnegative_length_with_line_height(
+                blur = Some(parse_nonnegative_font_relative_length(
                     component,
                     font_size,
                     line_height,
+                    font_metrics,
                 )?);
             } else {
                 return None;
@@ -77,11 +84,16 @@ fn parse_text_shadows(
     (!shadows.is_empty()).then_some(shadows)
 }
 
-fn parse_shadow_length(value: &str, font_size: f32, line_height: f32) -> Option<f32> {
+fn parse_shadow_length(
+    value: &str,
+    font_size: f32,
+    line_height: f32,
+    font_metrics: ctml_css::FontRelativeUnits,
+) -> Option<f32> {
     if value.contains('%') {
         return None;
     }
-    parse_signed_length_percentage_with_line_height(value, font_size, line_height)
+    parse_signed_font_relative_length(value, font_size, line_height, font_metrics)
 }
 
 fn split_top_level_commas(value: &str) -> Vec<&str> {
@@ -139,6 +151,7 @@ mod tests {
                 "1px -2px 3px rgb(255 0 0 / 50%), 0 1em blue",
                 16.0,
                 19.2,
+                ctml_css::FontRelativeUnits::default(),
                 [0; 4],
             ),
             Some(vec![
@@ -161,7 +174,13 @@ mod tests {
     #[test]
     fn resolves_lh_offsets_and_blurs_against_line_height() {
         assert_eq!(
-            parse_text_shadows("1lh -0.5lh 0.25lh red", 16.0, 24.0, [0; 4]),
+            parse_text_shadows(
+                "1lh -0.5lh 0.25lh red",
+                16.0,
+                24.0,
+                ctml_css::FontRelativeUnits::default(),
+                [0; 4],
+            ),
             Some(vec![crate::style::TextShadow {
                 offset_x: 24.0,
                 offset_y: -12.0,
@@ -181,7 +200,13 @@ mod tests {
             "1px 2px red,",
         ] {
             assert_eq!(
-                parse_text_shadows(value, 16.0, 19.2, [0; 4]),
+                parse_text_shadows(
+                    value,
+                    16.0,
+                    19.2,
+                    ctml_css::FontRelativeUnits::default(),
+                    [0; 4],
+                ),
                 None,
                 "{value}"
             );

@@ -1,10 +1,16 @@
 use cosmic_text::{Buffer, Cursor};
-use ctml_css::parse_length;
+use ctml_css::{FontRelativeUnits, parse_font_relative_length};
 use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun};
 
-pub(super) fn resolve_width(value: &str, available_width: f32, font_size: f32) -> Option<f32> {
+pub(super) fn resolve_width(
+    value: &str,
+    available_width: f32,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: FontRelativeUnits,
+) -> Option<f32> {
     let value = value.trim();
     if value == "0" {
         return Some(0.0);
@@ -17,28 +23,42 @@ pub(super) fn resolve_width(value: &str, available_width: f32, font_size: f32) -
             .map(|percentage| available_width * percentage / 100.0)
             .filter(|width| width.is_finite() && *width >= 0.0);
     }
-    parse_length(value, font_size)
+    parse_font_relative_length(value, font_size, line_height, font_relative_units)
 }
 
-pub(super) fn resolve_layout_width(
-    sizes: &[LayoutSize],
-    available_width: f32,
-    font_size: f32,
-) -> f32 {
+pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -> f32 {
     let mut content_width = available_width;
     for size in sizes {
-        let min_width = size
-            .min_width
-            .as_deref()
-            .and_then(|value| resolve_width(value, content_width, font_size));
-        let max_width = size
-            .max_width
-            .as_deref()
-            .and_then(|value| resolve_width(value, content_width, font_size));
+        let min_width = size.min_width.as_deref().and_then(|value| {
+            resolve_width(
+                value,
+                content_width,
+                size.font_size,
+                size.line_height,
+                size.font_relative_units,
+            )
+        });
+        let max_width = size.max_width.as_deref().and_then(|value| {
+            resolve_width(
+                value,
+                content_width,
+                size.font_size,
+                size.line_height,
+                size.font_relative_units,
+            )
+        });
         let specified_width = size
             .width
             .as_deref()
-            .and_then(|value| resolve_width(value, content_width, font_size))
+            .and_then(|value| {
+                resolve_width(
+                    value,
+                    content_width,
+                    size.font_size,
+                    size.line_height,
+                    size.font_relative_units,
+                )
+            })
             .unwrap_or(content_width);
         content_width = match (min_width, max_width) {
             (Some(min), Some(max)) if min > max => specified_width.max(min),
@@ -51,17 +71,62 @@ pub(super) fn resolve_layout_width(
     content_width.max(1.0)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::resolve_width;
+    use ctml_css::FontRelativeUnits;
+
+    #[test]
+    fn resolves_font_metric_units_for_box_dimensions() {
+        let units = FontRelativeUnits {
+            ex: 0.4,
+            ch: 0.55,
+            ic: 1.0,
+            cap: 0.7,
+        };
+        assert_eq!(resolve_width("2ch", 200.0, 20.0, 24.0, units), Some(22.0));
+        assert_eq!(resolve_width("0.5lh", 200.0, 20.0, 24.0, units), Some(12.0));
+        assert_eq!(resolve_width("25%", 200.0, 20.0, 24.0, units), Some(50.0));
+    }
+}
+
 pub(super) fn resolve_layout_height(
     height: Option<&str>,
     min_height: Option<&str>,
     max_height: Option<&str>,
     available_height: f32,
     font_size: f32,
+    line_height: f32,
+    font_relative_units: FontRelativeUnits,
 ) -> f32 {
-    let min_height = min_height.and_then(|value| resolve_width(value, available_height, font_size));
-    let max_height = max_height.and_then(|value| resolve_width(value, available_height, font_size));
+    let min_height = min_height.and_then(|value| {
+        resolve_width(
+            value,
+            available_height,
+            font_size,
+            line_height,
+            font_relative_units,
+        )
+    });
+    let max_height = max_height.and_then(|value| {
+        resolve_width(
+            value,
+            available_height,
+            font_size,
+            line_height,
+            font_relative_units,
+        )
+    });
     let specified_height = height
-        .and_then(|value| resolve_width(value, available_height, font_size))
+        .and_then(|value| {
+            resolve_width(
+                value,
+                available_height,
+                font_size,
+                line_height,
+                font_relative_units,
+            )
+        })
         .unwrap_or(0.0);
     match (min_height, max_height) {
         (Some(min), Some(max)) if min > max => specified_height.max(min),
@@ -146,7 +211,7 @@ pub(super) fn block_spacer_heights(
     line_sizes: &[Vec<LayoutSize>],
     buffer: &Buffer,
     available_height: f32,
-    font_size: f32,
+    _font_size: f32,
     default_line_height: f32,
 ) -> HashMap<usize, f32> {
     let mut content_heights = HashMap::<usize, f32>::new();
@@ -197,7 +262,9 @@ pub(super) fn block_spacer_heights(
             size.min_height.as_deref(),
             size.max_height.as_deref(),
             available_height,
-            font_size,
+            size.font_size,
+            size.line_height,
+            size.font_relative_units,
         );
         let extra_height = (requested_height - content_height).max(0.0);
         if extra_height <= 0.0 {

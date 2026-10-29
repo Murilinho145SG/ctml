@@ -154,14 +154,19 @@ pub(super) fn apply_font_shorthand(
                 family_index,
                 font_size,
                 parent_line_height,
+                parent_font_units,
             ) else {
                 return;
             };
             family_index = next_index;
             Some(line_height)
         } else {
-            let Some(line_height) = parse_line_height(inline_value, font_size, parent_line_height)
-            else {
+            let Some(line_height) = parse_line_height(
+                inline_value,
+                font_size,
+                parent_line_height,
+                parent_font_units,
+            ) else {
                 return;
             };
             Some(line_height)
@@ -177,6 +182,7 @@ pub(super) fn apply_font_shorthand(
                     family_index + 1,
                     font_size,
                     parent_line_height,
+                    parent_font_units,
                 ) else {
                     return;
                 };
@@ -185,7 +191,7 @@ pub(super) fn apply_font_shorthand(
             } else {
                 family_index += 1;
                 let Some(line_height) =
-                    parse_line_height(line_value, font_size, parent_line_height)
+                    parse_line_height(line_value, font_size, parent_line_height, parent_font_units)
                 else {
                     return;
                 };
@@ -276,15 +282,26 @@ fn parse_following_line_height(
     line_height_index: usize,
     font_size: f32,
     parent_line_height: f32,
+    font_metrics: FontRelativeUnits,
 ) -> Option<(Option<f32>, usize)> {
     let (start, end) = components.get(line_height_index).copied()?;
     Some((
-        parse_line_height(&source[start..end], font_size, parent_line_height)?,
+        parse_line_height(
+            &source[start..end],
+            font_size,
+            parent_line_height,
+            font_metrics,
+        )?,
         line_height_index + 1,
     ))
 }
 
-fn parse_line_height(value: &str, font_size: f32, parent_line_height: f32) -> Option<Option<f32>> {
+fn parse_line_height(
+    value: &str,
+    font_size: f32,
+    parent_line_height: f32,
+    font_metrics: FontRelativeUnits,
+) -> Option<Option<f32>> {
     if value.eq_ignore_ascii_case("normal") {
         return Some(None);
     }
@@ -292,8 +309,13 @@ fn parse_line_height(value: &str, font_size: f32, parent_line_height: f32) -> Op
         return (multiplier.is_finite() && multiplier >= 0.0)
             .then_some(Some(font_size * multiplier));
     }
-    ctml_css::parse_nonnegative_length_with_line_height(value, font_size, parent_line_height)
-        .map(Some)
+    ctml_css::parse_nonnegative_font_relative_length(
+        value,
+        font_size,
+        parent_line_height,
+        font_metrics,
+    )
+    .map(Some)
 }
 
 fn split_top_level_slash(value: &str) -> (&str, Option<&str>) {

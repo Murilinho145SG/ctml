@@ -151,6 +151,36 @@ pub fn parse_nonnegative_length_with_line_height(
     parse_nonnegative_length(&value, relative_to)
 }
 
+pub fn parse_nonnegative_font_relative_length(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+    font_metrics: FontRelativeUnits,
+) -> Option<f32> {
+    let value = value.trim().to_ascii_lowercase();
+    if value.parse::<f32>().ok() == Some(0.0) {
+        return Some(0.0);
+    }
+    if let Some(percentage) = value.strip_suffix('%') {
+        return percentage
+            .trim()
+            .parse::<f32>()
+            .ok()
+            .map(|percentage| relative_to * percentage / 100.0)
+            .filter(|length| length.is_finite() && *length >= 0.0);
+    }
+    for unit in [
+        "rem", "px", "in", "cm", "mm", "q", "pt", "pc", "em", "ex", "ch", "ic", "cap", "lh",
+    ] {
+        if let Some(number) = value.strip_suffix(unit)
+            && number.trim().parse::<f32>().ok() == Some(0.0)
+        {
+            return Some(0.0);
+        }
+    }
+    parse_font_relative_length(&value, relative_to, line_height, font_metrics)
+}
+
 pub fn parse_signed_length_percentage(value: &str, relative_to: f32) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     if value.parse::<f32>().ok() == Some(0.0) {
@@ -204,11 +234,56 @@ pub fn parse_signed_length_percentage_with_line_height(
     parse_signed_length_percentage(&value, relative_to)
 }
 
+pub fn parse_signed_font_relative_length(
+    value: &str,
+    relative_to: f32,
+    line_height: f32,
+    font_metrics: FontRelativeUnits,
+) -> Option<f32> {
+    let value = value.trim().to_ascii_lowercase();
+    if value.parse::<f32>().ok() == Some(0.0) {
+        return Some(0.0);
+    }
+    if let Some(percentage) = value.strip_suffix('%') {
+        return percentage
+            .trim()
+            .parse::<f32>()
+            .ok()
+            .map(|percentage| relative_to * percentage / 100.0)
+            .filter(|length| length.is_finite());
+    }
+    if let Some(number) = value.strip_suffix("lh") {
+        return number
+            .trim()
+            .parse::<f32>()
+            .ok()
+            .map(|number| number * line_height)
+            .filter(|length| length.is_finite());
+    }
+    for (unit, factor) in [
+        ("ex", font_metrics.ex),
+        ("ch", font_metrics.ch),
+        ("ic", font_metrics.ic),
+        ("cap", font_metrics.cap),
+    ] {
+        if let Some(number) = value.strip_suffix(unit) {
+            return number
+                .trim()
+                .parse::<f32>()
+                .ok()
+                .map(|number| number * factor * relative_to)
+                .filter(|length| length.is_finite());
+        }
+    }
+    parse_signed_length_percentage(&value, relative_to)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         FontRelativeUnits, parse_font_relative_length, parse_length_with_line_height,
-        parse_nonnegative_length_with_line_height, parse_signed_length_percentage_with_line_height,
+        parse_nonnegative_font_relative_length, parse_nonnegative_length_with_line_height,
+        parse_signed_font_relative_length, parse_signed_length_percentage_with_line_height,
     };
 
     #[test]
@@ -252,6 +327,18 @@ mod tests {
         assert_eq!(
             parse_font_relative_length("2lh", 20.0, 24.0, metrics),
             Some(48.0)
+        );
+        assert_eq!(
+            parse_nonnegative_font_relative_length("0.5cap", 20.0, 24.0, metrics),
+            Some(6.8)
+        );
+        assert_eq!(
+            parse_signed_font_relative_length("-2ch", 20.0, 24.0, metrics),
+            Some(-20.8)
+        );
+        assert_eq!(
+            parse_signed_font_relative_length("-0.5lh", 20.0, 24.0, metrics),
+            Some(-12.0)
         );
     }
 }

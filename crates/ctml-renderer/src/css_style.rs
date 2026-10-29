@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 
+mod font_units;
 mod font_variant;
 mod style_helpers;
 mod variables;
 
+pub(super) use font_units::{
+    resolve_style_with_selector_tree_context,
+    resolve_style_with_selector_tree_context_and_font_units,
+};
 use style_helpers::{
     SUPPORTED_ALL_PROPERTIES, canonical_property_name, cascade_custom_properties,
     declaration_value, is_all_keyword, is_custom_property, layer_cascade_priority, reverted_layers,
@@ -126,50 +131,6 @@ pub(super) fn resolve_style_with_tree_inline_context(
     )
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn resolve_style_with_selector_tree_context(
-    inherited: &TextStyle,
-    current: &ElementIdentity,
-    ancestors: &[ElementIdentity],
-    attributes: &[(String, Option<String>)],
-    ancestor_attributes: &[Vec<(String, Option<String>)>],
-    siblings_before_current: &[SelectorSibling],
-    siblings_before_ancestors: &[Vec<SelectorSibling>],
-    current_position: SelectorPosition,
-    ancestor_positions: &[SelectorPosition],
-    selector_tree: &[SelectorTreeElement],
-    inline_style: Option<&str>,
-    stylesheet: &[StyleRule],
-) -> TextStyle {
-    let mut style = inherited.clone();
-    style.width = None;
-    style.min_width = None;
-    style.max_width = None;
-    style.height = None;
-    style.min_height = None;
-    style.max_height = None;
-    style.border_box = false;
-    style.empty_block_height = None;
-    style.layout_end_sizes.clear();
-    style.flow_spacer = false;
-    apply_matching_styles_with_inline_context(
-        &mut style,
-        current,
-        ancestors,
-        attributes,
-        ancestor_attributes,
-        siblings_before_current,
-        siblings_before_ancestors,
-        current_position,
-        ancestor_positions,
-        selector_tree,
-        inline_style,
-        Some(inherited),
-        stylesheet,
-    );
-    style
-}
-
 #[cfg(test)]
 pub(super) fn apply_matching_styles(
     style: &mut TextStyle,
@@ -178,30 +139,6 @@ pub(super) fn apply_matching_styles(
     stylesheet: &[StyleRule],
 ) {
     apply_matching_styles_with_context(style, current, ancestors, &[], &[], stylesheet);
-}
-
-pub(super) fn apply_matching_styles_with_selector_tree_position(
-    style: &mut TextStyle,
-    current: &ElementIdentity,
-    position: SelectorPosition,
-    selector_tree: &[SelectorTreeElement],
-    stylesheet: &[StyleRule],
-) {
-    apply_matching_styles_inner(
-        style,
-        current,
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-        position,
-        &[],
-        selector_tree,
-        None,
-        None,
-        stylesheet,
-    );
 }
 
 #[cfg(test)]
@@ -230,7 +167,7 @@ pub(super) fn apply_matching_styles_with_context(
     );
 }
 
-fn apply_matching_styles_with_inline_context(
+pub(super) fn apply_matching_styles_with_inline_context(
     style: &mut TextStyle,
     current: &ElementIdentity,
     ancestors: &[ElementIdentity],

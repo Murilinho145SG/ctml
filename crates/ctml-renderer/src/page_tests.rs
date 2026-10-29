@@ -32,6 +32,8 @@ const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[path = "page_tests/backgrounds.rs"]
 mod backgrounds;
+#[path = "page_tests/font_relative_units.rs"]
+mod font_relative_units;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
 #[path = "page_tests/parity.rs"]

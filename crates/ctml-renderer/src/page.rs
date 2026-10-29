@@ -143,21 +143,37 @@ impl PageRasterizer {
             .map(|cursor| cursor_without_flow_spacers(cursor, &self.spacer_line_flags));
         let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
-        let min_width = self
-            .root_style
-            .min_width
-            .as_deref()
-            .and_then(|value| resolve_width(value, available_width, font_size));
-        let max_width = self
-            .root_style
-            .max_width
-            .as_deref()
-            .and_then(|value| resolve_width(value, available_width, font_size));
+        let min_width = self.root_style.min_width.as_deref().and_then(|value| {
+            resolve_width(
+                value,
+                available_width,
+                font_size,
+                self.root_style.line_height,
+                self.root_style.font_relative_units,
+            )
+        });
+        let max_width = self.root_style.max_width.as_deref().and_then(|value| {
+            resolve_width(
+                value,
+                available_width,
+                font_size,
+                self.root_style.line_height,
+                self.root_style.font_relative_units,
+            )
+        });
         let mut content_width = self
             .root_style
             .width
             .as_deref()
-            .and_then(|value| resolve_width(value, available_width, font_size))
+            .and_then(|value| {
+                resolve_width(
+                    value,
+                    available_width,
+                    font_size,
+                    self.root_style.line_height,
+                    self.root_style.font_relative_units,
+                )
+            })
             .unwrap_or(available_width);
         match (min_width, max_width) {
             (Some(min), Some(max)) if min > max => content_width = content_width.max(min),

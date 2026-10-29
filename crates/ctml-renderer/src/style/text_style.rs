@@ -72,7 +72,7 @@ pub(crate) struct TextStyle {
     pub(crate) custom_properties: HashMap<String, String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutSize {
     pub(crate) node_id: usize,
     pub(crate) width: Option<String>,
@@ -81,13 +81,19 @@ pub(crate) struct LayoutSize {
     pub(crate) height: Option<String>,
     pub(crate) min_height: Option<String>,
     pub(crate) max_height: Option<String>,
+    pub(crate) font_size: f32,
+    pub(crate) line_height: f32,
+    pub(crate) font_relative_units: FontRelativeUnits,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutHeight {
     pub(crate) height: Option<String>,
     pub(crate) min_height: Option<String>,
     pub(crate) max_height: Option<String>,
+    pub(crate) font_size: f32,
+    pub(crate) line_height: f32,
+    pub(crate) font_relative_units: FontRelativeUnits,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
