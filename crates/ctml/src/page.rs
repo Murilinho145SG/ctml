@@ -10,6 +10,7 @@ use crate::{
     style::{TextRun, TextStyle, compile_runs},
 };
 
+mod decorations;
 mod pixel;
 
 const PAGE_PADDING: f32 = 8.0;
@@ -321,7 +322,7 @@ impl PageRasterizer {
                     },
                 );
             }
-            cosmic_text::render_decoration(&mut renderer, &run, default_color);
+            decorations::render_patterned_decorations(&mut renderer, &run, default_color);
         }
         pixels
     }

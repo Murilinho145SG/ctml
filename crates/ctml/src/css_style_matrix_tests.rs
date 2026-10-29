@@ -1,10 +1,10 @@
-use cosmic_text::{Align, Stretch, Style, UnderlineStyle, Weight};
+use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use super::{ElementIdentity, apply_matching_styles, resolve_style};
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{FontVariantCaps, FontVariantPosition, TextStyle, TextTransform},
+    style::{FontVariantCaps, FontVariantPosition, TextDecorationStyle, TextStyle, TextTransform},
 };
 
 fn style_for(property: &str, value: &str) -> TextStyle {
@@ -171,14 +171,19 @@ fn covers_every_text_decoration_line_and_style() {
     assert!(!none.underline && !none.overline && !none.strikethrough);
     let all = style_for("text-decoration", "underline overline line-through");
     assert!(all.underline && all.overline && all.strikethrough);
-    assert_eq!(
-        style_for("text-decoration-style", "solid").underline_style,
-        UnderlineStyle::Single
-    );
-    assert_eq!(
-        style_for("text-decoration-style", "double").underline_style,
-        UnderlineStyle::Double
-    );
+    for (value, expected) in [
+        ("solid", TextDecorationStyle::Solid),
+        ("double", TextDecorationStyle::Double),
+        ("dotted", TextDecorationStyle::Dotted),
+        ("dashed", TextDecorationStyle::Dashed),
+        ("wavy", TextDecorationStyle::Wavy),
+    ] {
+        assert_eq!(
+            style_for("text-decoration-style", value).decoration_style,
+            expected,
+            "{value}"
+        );
+    }
 }
 
 #[test]

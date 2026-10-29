@@ -1,6 +1,6 @@
 use cosmic_text::{
     Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
-    UnderlineStyle, Weight,
+    Weight,
 };
 use winit::window::CursorIcon;
 
@@ -67,7 +67,7 @@ pub(super) struct TextStyle {
     pub(super) text_transform: TextTransform,
     pub(super) text_align: Align,
     pub(super) underline: bool,
-    pub(super) underline_style: UnderlineStyle,
+    pub(super) decoration_style: TextDecorationStyle,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
     pub(super) text_decoration_color: Option<[u8; 4]>,
@@ -102,6 +102,17 @@ pub(super) enum TextTransform {
     Capitalize,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[repr(usize)]
+pub(super) enum TextDecorationStyle {
+    #[default]
+    Solid,
+    Double,
+    Dotted,
+    Dashed,
+    Wavy,
+}
+
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
@@ -130,7 +141,7 @@ impl Default for TextStyle {
             text_transform: TextTransform::None,
             text_align: Align::Left,
             underline: false,
-            underline_style: UnderlineStyle::Single,
+            decoration_style: TextDecorationStyle::Solid,
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
@@ -212,6 +223,7 @@ impl TextStyle {
             }
         }
         attrs = attrs.font_features(font_features);
+        attrs = attrs.metadata(self.decoration_style as usize);
         attrs = attrs.metrics(Metrics::new(self.font_size, self.line_height));
         if self.letter_spacing != 0.0 {
             attrs = attrs.letter_spacing(if self.letter_spacing_px {
@@ -221,7 +233,10 @@ impl TextStyle {
             });
         }
         if self.underline {
-            attrs = attrs.underline(self.underline_style);
+            attrs = attrs.underline(match self.decoration_style {
+                TextDecorationStyle::Double => cosmic_text::UnderlineStyle::Double,
+                _ => cosmic_text::UnderlineStyle::Single,
+            });
         }
         if let Some(color) = self.text_decoration_color {
             let color = Color::rgba(color[0], color[1], color[2], color[3]);

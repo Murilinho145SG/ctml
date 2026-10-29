@@ -203,10 +203,13 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         }
         "text-decoration" | "text-decoration-line" => apply_text_decoration(style, value),
         "text-decoration-style" => {
-            style.underline_style = match value.to_ascii_lowercase().as_str() {
-                "solid" => cosmic_text::UnderlineStyle::Single,
-                "double" => cosmic_text::UnderlineStyle::Double,
-                _ => style.underline_style,
+            style.decoration_style = match value.to_ascii_lowercase().as_str() {
+                "solid" => crate::style::TextDecorationStyle::Solid,
+                "double" => crate::style::TextDecorationStyle::Double,
+                "dotted" => crate::style::TextDecorationStyle::Dotted,
+                "dashed" => crate::style::TextDecorationStyle::Dashed,
+                "wavy" => crate::style::TextDecorationStyle::Wavy,
+                _ => style.decoration_style,
             };
         }
         "text-decoration-color" => {
@@ -345,7 +348,7 @@ fn apply_text_decoration(style: &mut TextStyle, value: &str) {
         style.underline = false;
         style.overline = false;
         style.strikethrough = false;
-        style.underline_style = cosmic_text::UnderlineStyle::Single;
+        style.decoration_style = crate::style::TextDecorationStyle::Solid;
         return;
     }
     for decoration in value.split_ascii_whitespace() {
@@ -353,8 +356,11 @@ fn apply_text_decoration(style: &mut TextStyle, value: &str) {
             "underline" => style.underline = true,
             "overline" => style.overline = true,
             "line-through" => style.strikethrough = true,
-            "solid" => style.underline_style = cosmic_text::UnderlineStyle::Single,
-            "double" => style.underline_style = cosmic_text::UnderlineStyle::Double,
+            "solid" => style.decoration_style = crate::style::TextDecorationStyle::Solid,
+            "double" => style.decoration_style = crate::style::TextDecorationStyle::Double,
+            "dotted" => style.decoration_style = crate::style::TextDecorationStyle::Dotted,
+            "dashed" => style.decoration_style = crate::style::TextDecorationStyle::Dashed,
+            "wavy" => style.decoration_style = crate::style::TextDecorationStyle::Wavy,
             _ => {}
         }
     }

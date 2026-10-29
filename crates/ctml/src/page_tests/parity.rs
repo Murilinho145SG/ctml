@@ -139,6 +139,11 @@ parity_test!(additional_font_caps_match_chromium, "font-caps", false);
 parity_test!(font_positions_match_chromium, "font-position", false);
 parity_test!(text_decoration_matches_chromium, "text-decoration", false);
 parity_test!(
+    text_decoration_styles_match_chromium,
+    "text-decoration-style",
+    false
+);
+parity_test!(
     text_decoration_lines_match_chromium,
     "text-decoration-lines",
     false

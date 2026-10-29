@@ -406,14 +406,23 @@ fn resolves_supported_text_alignment_values() {
 }
 
 #[test]
-fn resolves_solid_and_double_underline_styles() {
+fn resolves_solid_double_and_patterned_text_decoration_styles() {
+    for (value, expected) in [
+        ("solid", super::super::style::TextDecorationStyle::Solid),
+        ("double", super::super::style::TextDecorationStyle::Double),
+        ("dotted", super::super::style::TextDecorationStyle::Dotted),
+        ("dashed", super::super::style::TextDecorationStyle::Dashed),
+        ("wavy", super::super::style::TextDecorationStyle::Wavy),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("text-decoration-style", value)]).decoration_style,
+            expected,
+            "{value}"
+        );
+    }
     assert_eq!(
-        style_for_declarations(&[("text-decoration-style", "double")]).underline_style,
-        cosmic_text::UnderlineStyle::Double
-    );
-    assert_eq!(
-        style_for_declarations(&[("text-decoration", "underline solid")]).underline_style,
-        cosmic_text::UnderlineStyle::Single
+        style_for_declarations(&[("text-decoration", "underline solid")]).decoration_style,
+        super::super::style::TextDecorationStyle::Solid
     );
 }
 
