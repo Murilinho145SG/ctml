@@ -1,17 +1,14 @@
-use cosmic_text::{
-    Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
-    Weight,
-};
-use winit::window::CursorIcon;
-
 use crate::{
     StyleRule, UiNode,
     css_style::{self, ElementIdentity},
 };
-use ctml_css::SelectorSibling;
+use ctml_css::{SelectorPosition, SelectorSibling};
 
-const DEFAULT_FONT_SIZE: f32 = 16.0;
-const DEFAULT_LINE_HEIGHT: f32 = 20.0;
+mod text_style;
+pub(super) use text_style::{
+    FontVariantCaps, FontVariantPosition, TextDecorationSkipInk, TextDecorationStyle, TextStyle,
+    TextTransform,
+};
 
 pub(super) fn compile_runs(
     nodes: &[UiNode],
@@ -23,11 +20,33 @@ pub(super) fn compile_runs(
         class: None,
         id: None,
     };
-    css_style::apply_matching_styles(&mut root_style, &body, &[], stylesheet);
+    css_style::apply_matching_styles_with_position(
+        &mut root_style,
+        &body,
+        SelectorPosition {
+            child_count: nodes
+                .iter()
+                .filter(|node| matches!(node, UiNode::Element { .. }))
+                .count(),
+            is_empty: nodes.is_empty(),
+            is_root: true,
+            ..SelectorPosition::default()
+        },
+        stylesheet,
+    );
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];
     let mut path_siblings = vec![Vec::new()];
+    let mut path_positions = vec![SelectorPosition {
+        child_count: nodes
+            .iter()
+            .filter(|node| matches!(node, UiNode::Element { .. }))
+            .count(),
+        is_empty: nodes.is_empty(),
+        is_root: true,
+        ..SelectorPosition::default()
+    }];
     let mut last_was_space = true;
     let mut capitalize_next = true;
     collect_runs(
@@ -36,6 +55,7 @@ pub(super) fn compile_runs(
         &mut path,
         &mut path_attributes,
         &mut path_siblings,
+        &mut path_positions,
         &root_style,
         &mut runs,
         &mut last_was_space,
@@ -43,267 +63,6 @@ pub(super) fn compile_runs(
     );
     trim_runs(&mut runs);
     (runs, root_style)
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct TextStyle {
-    pub(super) font_size: f32,
-    pub(super) font_scale: f32,
-    pub(super) line_height: f32,
-    pub(super) line_height_multiplier: Option<f32>,
-    pub(super) line_height_normal: bool,
-    pub(super) color: [u8; 4],
-    pub(super) color_opacity: f32,
-    pub(super) background: [u8; 3],
-    pub(super) family: String,
-    pub(super) weight: Weight,
-    pub(super) stretch: Stretch,
-    pub(super) kerning: Option<bool>,
-    pub(super) common_ligatures: Option<bool>,
-    pub(super) discretionary_ligatures: Option<bool>,
-    pub(super) historical_ligatures: Option<bool>,
-    pub(super) contextual_alternates: Option<bool>,
-    pub(super) font_style: Style,
-    pub(super) font_variant_caps: FontVariantCaps,
-    pub(super) font_variant_position: FontVariantPosition,
-    pub(super) cursor: CursorIcon,
-    pub(super) cursor_hidden: bool,
-    pub(super) letter_spacing: f32,
-    pub(super) letter_spacing_px: bool,
-    pub(super) text_transform: TextTransform,
-    pub(super) text_align: Align,
-    pub(super) underline: bool,
-    pub(super) decoration_style: TextDecorationStyle,
-    pub(super) decoration_skip_ink: TextDecorationSkipInk,
-    pub(super) decoration_thickness: Option<f32>,
-    pub(super) underline_offset: Option<f32>,
-    pub(super) overline: bool,
-    pub(super) strikethrough: bool,
-    pub(super) text_decoration_color: Option<[u8; 4]>,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) enum FontVariantCaps {
-    #[default]
-    Normal,
-    SmallCaps,
-    AllSmallCaps,
-    PetiteCaps,
-    AllPetiteCaps,
-    Unicase,
-    TitlingCaps,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) enum FontVariantPosition {
-    #[default]
-    Normal,
-    Sub,
-    Super,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) enum TextTransform {
-    #[default]
-    None,
-    Uppercase,
-    Lowercase,
-    Capitalize,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[repr(usize)]
-pub(super) enum TextDecorationStyle {
-    #[default]
-    Solid,
-    Double,
-    Dotted,
-    Dashed,
-    Wavy,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[repr(usize)]
-pub(super) enum TextDecorationSkipInk {
-    #[default]
-    Auto,
-    None,
-    All,
-}
-
-impl Default for TextStyle {
-    fn default() -> Self {
-        Self {
-            font_size: DEFAULT_FONT_SIZE,
-            font_scale: 1.0,
-            line_height: DEFAULT_LINE_HEIGHT,
-            line_height_multiplier: Some(DEFAULT_LINE_HEIGHT / DEFAULT_FONT_SIZE),
-            line_height_normal: true,
-            color: [0, 0, 0, 255],
-            color_opacity: 1.0,
-            background: [255, 255, 255],
-            family: "sans-serif".to_owned(),
-            weight: Weight::NORMAL,
-            stretch: Stretch::Normal,
-            kerning: None,
-            common_ligatures: None,
-            discretionary_ligatures: None,
-            historical_ligatures: None,
-            contextual_alternates: None,
-            font_style: Style::Normal,
-            font_variant_caps: FontVariantCaps::Normal,
-            font_variant_position: FontVariantPosition::Normal,
-            cursor: CursorIcon::Text,
-            cursor_hidden: false,
-            letter_spacing: 0.0,
-            letter_spacing_px: false,
-            text_transform: TextTransform::None,
-            text_align: Align::Left,
-            underline: false,
-            decoration_style: TextDecorationStyle::Solid,
-            decoration_skip_ink: TextDecorationSkipInk::Auto,
-            decoration_thickness: None,
-            underline_offset: None,
-            overline: false,
-            strikethrough: false,
-            text_decoration_color: None,
-        }
-    }
-}
-
-impl TextStyle {
-    pub(super) fn font_features(&self) -> FontFeatures {
-        let mut font_features = FontFeatures::new();
-        if let Some(kerning) = self.kerning {
-            font_features.set(FeatureTag::KERNING, u32::from(kerning));
-        }
-        if let Some(enabled) = self.common_ligatures {
-            font_features.set(FeatureTag::STANDARD_LIGATURES, u32::from(enabled));
-            font_features.set(FeatureTag::CONTEXTUAL_LIGATURES, u32::from(enabled));
-        }
-        if let Some(enabled) = self.discretionary_ligatures {
-            font_features.set(FeatureTag::DISCRETIONARY_LIGATURES, u32::from(enabled));
-        }
-        if let Some(enabled) = self.historical_ligatures {
-            font_features.set(FeatureTag::new(b"hlig"), u32::from(enabled));
-        }
-        if let Some(enabled) = self.contextual_alternates {
-            font_features.set(FeatureTag::CONTEXTUAL_ALTERNATES, u32::from(enabled));
-        }
-        match self.font_variant_caps {
-            FontVariantCaps::Normal => {}
-            FontVariantCaps::SmallCaps => {
-                font_features.enable(FeatureTag::SMALL_CAPS);
-            }
-            FontVariantCaps::AllSmallCaps => {
-                font_features
-                    .enable(FeatureTag::SMALL_CAPS)
-                    .enable(FeatureTag::ALL_SMALL_CAPS);
-            }
-            FontVariantCaps::PetiteCaps => {
-                font_features.enable(FeatureTag::new(b"pcap"));
-            }
-            FontVariantCaps::AllPetiteCaps => {
-                font_features
-                    .enable(FeatureTag::new(b"pcap"))
-                    .enable(FeatureTag::new(b"c2pc"));
-            }
-            FontVariantCaps::Unicase => {
-                font_features.enable(FeatureTag::new(b"unic"));
-            }
-            FontVariantCaps::TitlingCaps => {
-                font_features.enable(FeatureTag::new(b"titl"));
-            }
-        }
-        match self.font_variant_position {
-            FontVariantPosition::Normal => {}
-            FontVariantPosition::Sub => {
-                font_features.enable(FeatureTag::new(b"subs"));
-            }
-            FontVariantPosition::Super => {
-                font_features.enable(FeatureTag::new(b"sups"));
-            }
-        }
-        font_features
-    }
-
-    pub(super) fn to_attrs<'a>(&self, family_name: &'a str) -> Attrs<'a> {
-        let family = match family_name.to_ascii_lowercase().as_str() {
-            "serif" => Family::Serif,
-            "monospace" => Family::Monospace,
-            "cursive" => Family::Cursive,
-            "fantasy" => Family::Fantasy,
-            "sans-serif" => Family::SansSerif,
-            _ => Family::Name(family_name),
-        };
-        let mut attrs = Attrs::new()
-            .family(family)
-            .cache_key_flags(CacheKeyFlags::DISABLE_HINTING)
-            .color(Color::rgba(
-                self.color[0],
-                self.color[1],
-                self.color[2],
-                self.color[3],
-            ))
-            .weight(self.weight)
-            .stretch(self.stretch)
-            .style(self.font_style);
-        attrs = attrs.font_features(self.font_features());
-        let mut decoration_metadata =
-            (self.decoration_style as u64) | ((self.decoration_skip_ink as u64) << 4);
-        if let Some(thickness) = self.decoration_thickness {
-            let encoded_thickness = (thickness * 256.0).round().clamp(0.0, 0x00ff_ffff as f32);
-            decoration_metadata |= 1 << 6;
-            decoration_metadata |= (encoded_thickness as u64) << 8;
-        }
-        if let Some(offset) = self.underline_offset
-            && usize::BITS >= 64
-        {
-            let encoded_offset = (offset * 16.0)
-                .round()
-                .clamp(i16::MIN as f32, i16::MAX as f32) as i16
-                as u16;
-            decoration_metadata |= 1_u64 << 32;
-            decoration_metadata |= (encoded_offset as u64) << 33;
-        }
-        attrs = attrs.metadata(decoration_metadata as usize);
-        attrs = attrs.metrics(Metrics::new(
-            self.font_size * self.font_scale,
-            self.line_height,
-        ));
-        if self.letter_spacing != 0.0 {
-            attrs = attrs.letter_spacing(if self.letter_spacing_px {
-                self.letter_spacing / self.font_size
-            } else {
-                self.letter_spacing
-            });
-        }
-        if self.underline {
-            attrs = attrs.underline(match self.decoration_style {
-                TextDecorationStyle::Double => cosmic_text::UnderlineStyle::Double,
-                _ => cosmic_text::UnderlineStyle::Single,
-            });
-        }
-        if let Some(color) = self.text_decoration_color {
-            let color = Color::rgba(color[0], color[1], color[2], color[3]);
-            if self.underline {
-                attrs = attrs.underline_color(color);
-            }
-            if self.strikethrough {
-                attrs = attrs.strikethrough_color(color);
-            }
-            if self.overline {
-                attrs = attrs.overline_color(color);
-            }
-        }
-        if self.strikethrough {
-            attrs = attrs.strikethrough();
-        }
-        if self.overline {
-            attrs = attrs.overline();
-        }
-        attrs
-    }
 }
 
 pub(super) struct TextRun {
@@ -317,12 +76,14 @@ fn collect_runs(
     path: &mut Vec<ElementIdentity>,
     path_attributes: &mut Vec<Vec<(String, Option<String>)>>,
     path_siblings: &mut Vec<Vec<SelectorSibling>>,
+    path_positions: &mut Vec<SelectorPosition>,
     inherited: &TextStyle,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
-    let mut preceding_siblings = Vec::new();
+    let siblings = selector_sibling_contexts(nodes);
+    let mut element_index = 0;
     for node in nodes {
         match node {
             UiNode::Text(text) => {
@@ -335,6 +96,8 @@ fn collect_runs(
                 attributes,
                 children,
             } => {
+                let sibling = &siblings[element_index];
+                let position = sibling.position;
                 let identity = ElementIdentity {
                     tag: tag.clone(),
                     class: class.clone(),
@@ -350,8 +113,10 @@ fn collect_runs(
                     path,
                     attributes,
                     path_attributes,
-                    &preceding_siblings,
+                    &siblings[..element_index],
                     path_siblings,
+                    position,
+                    path_positions,
                     inline_style,
                     stylesheet,
                 );
@@ -362,13 +127,15 @@ fn collect_runs(
                 }
                 path.push(identity);
                 path_attributes.push(attributes.clone());
-                path_siblings.push(preceding_siblings.clone());
+                path_siblings.push(siblings[..element_index].to_vec());
+                path_positions.push(position);
                 collect_runs(
                     children,
                     stylesheet,
                     path,
                     path_attributes,
                     path_siblings,
+                    path_positions,
                     &style,
                     output,
                     last_was_space,
@@ -377,14 +144,8 @@ fn collect_runs(
                 path.pop();
                 path_attributes.pop();
                 path_siblings.pop();
-                preceding_siblings.push(SelectorSibling {
-                    element: ElementIdentity {
-                        tag: tag.clone(),
-                        class: class.clone(),
-                        id: id.clone(),
-                    },
-                    attributes: attributes.clone(),
-                });
+                path_positions.pop();
+                element_index += 1;
                 if block {
                     push_line_break(output, &style, last_was_space);
                     *capitalize_next = true;
@@ -392,6 +153,54 @@ fn collect_runs(
             }
         }
     }
+}
+
+fn selector_sibling_contexts(nodes: &[UiNode]) -> Vec<SelectorSibling> {
+    let elements = nodes
+        .iter()
+        .filter_map(|node| match node {
+            UiNode::Element {
+                tag,
+                class,
+                id,
+                attributes,
+                children,
+            } => Some((tag, class, id, attributes, children)),
+            UiNode::Text(_) => None,
+        })
+        .collect::<Vec<_>>();
+    elements
+        .iter()
+        .enumerate()
+        .map(|(index, (tag, class, id, attributes, children))| {
+            let type_index = elements[..=index]
+                .iter()
+                .filter(|(previous_tag, _, _, _, _)| previous_tag.eq_ignore_ascii_case(tag))
+                .count();
+            let type_count = elements
+                .iter()
+                .filter(|(other_tag, _, _, _, _)| other_tag.eq_ignore_ascii_case(tag))
+                .count();
+            SelectorSibling {
+                element: ElementIdentity {
+                    tag: (*tag).clone(),
+                    class: (*class).clone(),
+                    id: (*id).clone(),
+                },
+                attributes: attributes.to_vec(),
+                position: SelectorPosition {
+                    child_index: index + 1,
+                    child_count: elements.len(),
+                    type_index,
+                    type_count,
+                    is_empty: children
+                        .iter()
+                        .all(|child| matches!(child, UiNode::Text(text) if text.is_empty())),
+                    is_root: false,
+                },
+            }
+        })
+        .collect()
 }
 
 fn append_text(

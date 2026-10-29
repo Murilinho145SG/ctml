@@ -1,7 +1,6 @@
 mod list;
 mod specificity;
 
-use list::split_selector_list;
 pub use specificity::selector_specificity;
 
 #[derive(Clone)]
@@ -15,6 +14,17 @@ pub struct ElementIdentity {
 pub struct SelectorSibling {
     pub element: ElementIdentity,
     pub attributes: Vec<(String, Option<String>)>,
+    pub position: SelectorPosition,
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct SelectorPosition {
+    pub child_index: usize,
+    pub child_count: usize,
+    pub type_index: usize,
+    pub type_count: usize,
+    pub is_empty: bool,
+    pub is_root: bool,
 }
 
 pub fn selector_matches(
@@ -49,6 +59,8 @@ pub fn selector_matches_with_context(
         ancestor_attributes,
         &[],
         &[],
+        SelectorPosition::default(),
+        &[],
     )
 }
 
@@ -60,6 +72,8 @@ pub fn selector_matches_with_tree_context(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     siblings_before_current: &[SelectorSibling],
     siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
 ) -> bool {
     let Some(compounds) = selector_compounds(selector) else {
         return false;
@@ -73,6 +87,8 @@ pub fn selector_matches_with_tree_context(
         ancestor_attributes,
         siblings_before_current,
         siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
     )
 }
 
@@ -86,6 +102,8 @@ fn match_selector_chain(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     siblings_before_current: &[SelectorSibling],
     siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
 ) -> bool {
     let Some(index) = index else {
         return false;
@@ -98,6 +116,8 @@ fn match_selector_chain(
         ancestor_attributes,
         siblings_before_current,
         siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
     ) {
         return false;
     }
@@ -114,6 +134,8 @@ fn match_selector_chain(
             ancestor_attributes,
             prior,
             &siblings_before_ancestors[..ancestors.len().min(siblings_before_ancestors.len())],
+            candidate.position,
+            ancestor_positions,
         )
     };
     match compounds[index].1 {
@@ -131,6 +153,11 @@ fn match_selector_chain(
                     .get(parent_index)
                     .map_or(&[], Vec::as_slice),
                 &siblings_before_ancestors[..parent_index.min(siblings_before_ancestors.len())],
+                ancestor_positions
+                    .get(parent_index)
+                    .copied()
+                    .unwrap_or_default(),
+                &ancestor_positions[..parent_index.min(ancestor_positions.len())],
             )
         }),
         SelectorRelation::Descendant => (0..ancestors.len()).rev().any(|ancestor_index| {
@@ -147,6 +174,11 @@ fn match_selector_chain(
                     .get(ancestor_index)
                     .map_or(&[], Vec::as_slice),
                 &siblings_before_ancestors[..ancestor_index.min(siblings_before_ancestors.len())],
+                ancestor_positions
+                    .get(ancestor_index)
+                    .copied()
+                    .unwrap_or_default(),
+                &ancestor_positions[..ancestor_index.min(ancestor_positions.len())],
             )
         }),
         SelectorRelation::AdjacentSibling => {
@@ -238,239 +270,13 @@ pub(super) fn selector_compounds(selector: &str) -> Option<Vec<(String, Selector
     if let Some(compound_start) = start {
         compounds.push((selector[compound_start..].to_owned(), relation));
         Some(compounds)
+    } else if matches!(relation, SelectorRelation::Descendant) {
+        Some(compounds)
     } else {
         None
     }
 }
 
-fn compound_matches(
-    compound: &str,
-    element: &ElementIdentity,
-    attributes: &[(String, Option<String>)],
-    ancestors: &[ElementIdentity],
-    ancestor_attributes: &[Vec<(String, Option<String>)>],
-    siblings_before_current: &[SelectorSibling],
-    siblings_before_ancestors: &[Vec<SelectorSibling>],
-) -> bool {
-    if compound == "*" {
-        return true;
-    }
-    let mut cursor = 0;
-    let bytes = compound.as_bytes();
-    if bytes.first() == Some(&b'*') {
-        cursor = 1;
-    } else if bytes
-        .first()
-        .is_some_and(|byte| *byte != b'.' && *byte != b'#' && *byte != b'[' && *byte != b':')
-    {
-        let start = cursor;
-        while cursor < bytes.len()
-            && bytes[cursor] != b'.'
-            && bytes[cursor] != b'#'
-            && bytes[cursor] != b'['
-            && bytes[cursor] != b':'
-        {
-            cursor += 1;
-        }
-        if !compound[start..cursor].eq_ignore_ascii_case(&element.tag) {
-            return false;
-        }
-    }
-    while cursor < bytes.len() {
-        let marker = bytes[cursor];
-        if marker == b'[' {
-            let Some(end) = attribute_selector_end(compound, cursor) else {
-                return false;
-            };
-            if !attribute_matches(&compound[cursor + 1..end], attributes) {
-                return false;
-            }
-            cursor = end + 1;
-            continue;
-        }
-        if marker == b':' {
-            cursor += 1;
-            let name_start = cursor;
-            while cursor < bytes.len()
-                && bytes[cursor] != b'('
-                && bytes[cursor] != b'.'
-                && bytes[cursor] != b'#'
-                && bytes[cursor] != b'['
-                && bytes[cursor] != b':'
-                && bytes[cursor] != b':'
-            {
-                cursor += 1;
-            }
-            if name_start == cursor || bytes.get(cursor) != Some(&b'(') {
-                return false;
-            }
-            let Some(end) = function_selector_end(compound, cursor) else {
-                return false;
-            };
-            let argument = &compound[cursor + 1..end];
-            let matches = split_selector_list(argument)
-                .into_iter()
-                .map(str::trim)
-                .filter(|selector| !selector.is_empty())
-                .any(|selector| {
-                    selector_matches_with_tree_context(
-                        selector,
-                        element,
-                        ancestors,
-                        attributes,
-                        ancestor_attributes,
-                        siblings_before_current,
-                        siblings_before_ancestors,
-                    )
-                });
-            let pseudo_matches = match compound[name_start..cursor].to_ascii_lowercase().as_str() {
-                "is" | "where" => matches,
-                "not" => !matches,
-                _ => false,
-            };
-            if !pseudo_matches {
-                return false;
-            }
-            cursor = end + 1;
-            continue;
-        }
-        if marker != b'.' && marker != b'#' {
-            return false;
-        }
-        cursor += 1;
-        let start = cursor;
-        while cursor < bytes.len()
-            && bytes[cursor] != b'.'
-            && bytes[cursor] != b'#'
-            && bytes[cursor] != b'['
-        {
-            cursor += 1;
-        }
-        if start == cursor {
-            return false;
-        }
-        let name = &compound[start..cursor];
-        if marker == b'#' && element.id.as_deref() != Some(name) {
-            return false;
-        }
-        if marker == b'.'
-            && !element
-                .class
-                .as_deref()
-                .is_some_and(|classes| classes.split_ascii_whitespace().any(|class| class == name))
-        {
-            return false;
-        }
-    }
-    true
-}
+mod compound;
 
-pub(super) fn attribute_selector_end(selector: &str, start: usize) -> Option<usize> {
-    let mut quote = None;
-    for (offset, character) in selector[start + 1..].char_indices() {
-        match (quote, character) {
-            (Some(current), character) if current == character => quote = None,
-            (None, '"' | '\'') => quote = Some(character),
-            (None, ']') => return Some(start + 1 + offset),
-            _ => {}
-        }
-    }
-    None
-}
-
-pub(super) fn function_selector_end(selector: &str, start: usize) -> Option<usize> {
-    let mut depth = 0;
-    let mut quote = None;
-    for (offset, character) in selector[start..].char_indices() {
-        match (quote, character) {
-            (Some(current), character) if current == character => quote = None,
-            (None, '"' | '\'') => quote = Some(character),
-            (None, '(') => depth += 1,
-            (None, ')') => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(start + offset);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) -> bool {
-    let selector = selector.trim();
-    if selector.is_empty() {
-        return false;
-    }
-    let operator_start = selector.find(['=', '~', '|', '^', '$', '*']);
-    let (name, operator, value_and_flag) = if let Some(index) = operator_start {
-        let Some(operator) = (match selector.as_bytes().get(index..index + 2) {
-            Some(b"~=") => Some("~="),
-            Some(b"|=") => Some("|="),
-            Some(b"^=") => Some("^="),
-            Some(b"$=") => Some("$="),
-            Some(b"*=") => Some("*="),
-            _ if selector.as_bytes().get(index) == Some(&b'=') => Some("="),
-            _ => None,
-        }) else {
-            return false;
-        };
-        (
-            selector[..index].trim(),
-            Some(operator),
-            selector[index + operator.len()..].trim(),
-        )
-    } else {
-        (selector, None, "")
-    };
-    if name.is_empty() {
-        return false;
-    }
-    let attribute = attributes
-        .iter()
-        .find(|(attribute, _)| attribute.eq_ignore_ascii_case(name));
-    let Some((_, attribute_value)) = attribute else {
-        return false;
-    };
-    let Some(operator) = operator else {
-        return true;
-    };
-    let Some(attribute_value) = attribute_value.as_deref() else {
-        return false;
-    };
-
-    let (value, case_insensitive) = match value_and_flag.rsplit_once(char::is_whitespace) {
-        Some((value, flag)) if flag.trim().eq_ignore_ascii_case("i") => (value.trim(), true),
-        Some((value, flag)) if flag.trim().eq_ignore_ascii_case("s") => (value.trim(), false),
-        _ => (value_and_flag, false),
-    };
-    let value = value
-        .strip_prefix('"')
-        .and_then(|value| value.strip_suffix('"'))
-        .or_else(|| {
-            value
-                .strip_prefix('\'')
-                .and_then(|value| value.strip_suffix('\''))
-        })
-        .unwrap_or(value);
-    let (attribute_value, value) = if case_insensitive {
-        (
-            attribute_value.to_ascii_lowercase(),
-            value.to_ascii_lowercase(),
-        )
-    } else {
-        (attribute_value.to_owned(), value.to_owned())
-    };
-    match operator {
-        "=" => attribute_value == value,
-        "~=" => attribute_value
-            .split_ascii_whitespace()
-            .any(|item| item == value),
-        "|=" => attribute_value == value || attribute_value.starts_with(&format!("{value}-")),
-        "^=" => !value.is_empty() && attribute_value.starts_with(&value),
-        "$=" => !value.is_empty() && attribute_value.ends_with(&value),
-        "*=" => !value.is_empty() && attribute_value.contains(&value),
-        _ => false,
-    }
-}
+use compound::compound_matches;

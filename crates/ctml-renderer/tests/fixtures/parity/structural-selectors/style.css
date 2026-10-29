@@ -1,0 +1,6 @@
+:root { color: #222222; font-family: sans-serif; font-size: 8px; line-height: 10px; }
+p { margin: 0; font-weight: 400; }
+main > p:first-child { color: #cc3333; }
+main > p:nth-last-child(3) { color: #3366cc; }
+main > p:last-of-type { color: #33aa66; }
+div:empty { color: red; }

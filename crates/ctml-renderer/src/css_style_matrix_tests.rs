@@ -12,7 +12,7 @@ use crate::{
         TextStyle, TextTransform,
     },
 };
-use ctml_css::SelectorSibling;
+use ctml_css::{SelectorPosition, SelectorSibling};
 
 fn style_for(property: &str, value: &str) -> TextStyle {
     let rule = StyleRule {
@@ -106,6 +106,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
                 id: None,
             },
             attributes: Vec::new(),
+            position: SelectorPosition::default(),
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -114,6 +115,7 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
                 id: None,
             },
             attributes: Vec::new(),
+            position: SelectorPosition::default(),
         },
     ];
     let stylesheet = [
@@ -140,6 +142,58 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
         &[],
         &[],
         &previous,
+        &[],
+        SelectorPosition::default(),
+        &[],
+        None,
+        &stylesheet,
+    );
+
+    assert_eq!(style.color, [255, 0, 0, 255]);
+    assert_eq!(style.weight, Weight(700));
+}
+
+#[test]
+fn structural_pseudo_classes_apply_styles_from_element_positions() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let position = SelectorPosition {
+        child_index: 2,
+        child_count: 3,
+        type_index: 1,
+        type_count: 2,
+        is_empty: true,
+        is_root: false,
+    };
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p:nth-child(even)".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p:first-of-type:empty".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+
+    let style = resolve_style_with_tree_inline_context(
+        &TextStyle::default(),
+        &current,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        position,
         &[],
         None,
         &stylesheet,

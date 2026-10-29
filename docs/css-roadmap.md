@@ -23,10 +23,12 @@ Runtime stylesheet mutation is not needed by the current native renderer: it com
 
 - [x] Type, class, ID, universal (`*`), compound, descendant, direct child (`>`), and comma-separated selectors.
 - [ ] Namespace selectors.
+
+Namespace selectors do not apply to current CTML documents: tag names do not accept namespace prefixes, and compiled elements carry no namespace URI.
 - [x] Attribute selectors: presence, exact match, token, language, prefix, suffix, substring, and case flags.
 - [x] Child (`>`) combinator.
 - [x] Adjacent sibling (`+`) and general sibling (`~`) combinators.
-- [ ] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
+- [x] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [ ] Stateful pseudo-classes: `:hover`, `:active`, `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [ ] Relational selector `:has()`.

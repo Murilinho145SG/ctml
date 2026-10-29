@@ -1,0 +1,10 @@
+<headers><application name="Structural selector parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <main>
+        <p>A</p>
+        <span></span>
+        <p>B</p>
+        <p>C</p>
+        <div></div>
+    </main>
+</body>

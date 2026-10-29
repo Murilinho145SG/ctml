@@ -11,8 +11,9 @@ pub(super) use ctml_css::ElementIdentity;
 #[cfg(test)]
 pub(super) use ctml_css::selector_matches;
 use ctml_css::{
-    SelectorSibling, parse_color, parse_color_with_opacity, parse_length, parse_nonnegative_length,
-    parse_signed_length_percentage, selector_matches_with_tree_context, selector_specificity,
+    SelectorPosition, SelectorSibling, parse_color, parse_color_with_opacity, parse_length,
+    parse_nonnegative_length, parse_signed_length_percentage, selector_matches_with_tree_context,
+    selector_specificity,
 };
 use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
 
@@ -75,6 +76,8 @@ pub(super) fn resolve_style_with_inline_context(
         ancestor_attributes,
         &[],
         &[],
+        SelectorPosition::default(),
+        &[],
         inline_style,
         stylesheet,
     )
@@ -89,6 +92,8 @@ pub(super) fn resolve_style_with_tree_inline_context(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     siblings_before_current: &[SelectorSibling],
     siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) -> TextStyle {
@@ -101,6 +106,8 @@ pub(super) fn resolve_style_with_tree_inline_context(
         ancestor_attributes,
         siblings_before_current,
         siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
         inline_style,
         stylesheet,
     );
@@ -114,6 +121,27 @@ pub(super) fn apply_matching_styles(
     stylesheet: &[StyleRule],
 ) {
     apply_matching_styles_with_context(style, current, ancestors, &[], &[], stylesheet);
+}
+
+pub(super) fn apply_matching_styles_with_position(
+    style: &mut TextStyle,
+    current: &ElementIdentity,
+    position: SelectorPosition,
+    stylesheet: &[StyleRule],
+) {
+    apply_matching_styles_inner(
+        style,
+        current,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+        position,
+        &[],
+        None,
+        stylesheet,
+    );
 }
 
 pub(super) fn apply_matching_styles_with_context(
@@ -132,6 +160,8 @@ pub(super) fn apply_matching_styles_with_context(
         ancestor_attributes,
         &[],
         &[],
+        SelectorPosition::default(),
+        &[],
         None,
         stylesheet,
     );
@@ -145,6 +175,8 @@ fn apply_matching_styles_with_inline_context(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     siblings_before_current: &[SelectorSibling],
     siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) {
@@ -156,6 +188,8 @@ fn apply_matching_styles_with_inline_context(
         ancestor_attributes,
         siblings_before_current,
         siblings_before_ancestors,
+        current_position,
+        ancestor_positions,
         inline_style,
         stylesheet,
     );
@@ -180,6 +214,8 @@ fn apply_matching_styles_inner(
     ancestor_attributes: &[Vec<(String, Option<String>)>],
     siblings_before_current: &[SelectorSibling],
     siblings_before_ancestors: &[Vec<SelectorSibling>],
+    current_position: SelectorPosition,
+    ancestor_positions: &[SelectorPosition],
     inline_style: Option<&str>,
     stylesheet: &[StyleRule],
 ) {
@@ -201,6 +237,8 @@ fn apply_matching_styles_inner(
                     ancestor_attributes,
                     siblings_before_current,
                     siblings_before_ancestors,
+                    current_position,
+                    ancestor_positions,
                 )
             })
             .map(|selector| selector_specificity(selector))

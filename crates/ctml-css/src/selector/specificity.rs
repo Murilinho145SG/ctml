@@ -1,5 +1,7 @@
 use super::{
-    attribute_selector_end, function_selector_end, list::split_selector_list, selector_compounds,
+    compound::{attribute_selector_end, function_selector_end},
+    list::split_selector_list,
+    selector_compounds,
 };
 
 pub fn selector_specificity(selector: &str) -> (usize, usize, usize) {

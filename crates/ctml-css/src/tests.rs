@@ -1,5 +1,6 @@
 use super::{
-    ElementIdentity, SelectorSibling, parse_stylesheet, selector_matches, selector_specificity,
+    ElementIdentity, SelectorPosition, SelectorSibling, parse_stylesheet, selector_matches,
+    selector_specificity,
 };
 
 #[test]
@@ -197,6 +198,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
                 id: None,
             },
             attributes: Vec::new(),
+            position: SelectorPosition::default(),
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -205,6 +207,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
                 id: None,
             },
             attributes: Vec::new(),
+            position: SelectorPosition::default(),
         },
         SelectorSibling {
             element: ElementIdentity {
@@ -213,6 +216,7 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
                 id: None,
             },
             attributes: Vec::new(),
+            position: SelectorPosition::default(),
         },
     ];
     let current = ElementIdentity {
@@ -231,6 +235,8 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
                 &[],
                 &previous,
                 &[],
+                SelectorPosition::default(),
+                &[],
             ),
             "{selector}"
         );
@@ -243,6 +249,8 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
         &[],
         &previous,
         &[],
+        SelectorPosition::default(),
+        &[],
     ));
     assert!(!super::selector_matches_with_tree_context(
         "h1 ~ p.body + p",
@@ -252,6 +260,110 @@ fn matches_adjacent_and_general_sibling_combinators_with_chains() {
         &[],
         &previous,
         &[],
+        SelectorPosition::default(),
+        &[],
+    ));
+    assert!(!selector_matches("p +", &current, &[]));
+}
+
+#[test]
+fn matches_structural_pseudo_classes_for_children_and_types() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let position = SelectorPosition {
+        child_index: 4,
+        child_count: 4,
+        type_index: 2,
+        type_count: 2,
+        is_empty: true,
+        is_root: false,
+    };
+    assert!(!selector_matches(":last-child", &current, &[]));
+    assert!(!selector_matches(":nth-last-child(1)", &current, &[]));
+    for selector in [
+        ":last-child",
+        ":nth-child(even)",
+        ":nth-child(2n)",
+        ":nth-last-child(odd)",
+        ":nth-of-type(2)",
+        ":nth-last-of-type(-n+2)",
+        ":empty",
+        ":not(:first-child)",
+    ] {
+        assert!(
+            super::selector_matches_with_tree_context(
+                selector,
+                &current,
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                position,
+                &[],
+            ),
+            "{selector}"
+        );
+    }
+    for selector in [
+        ":first-child",
+        ":only-child",
+        ":only-of-type",
+        ":nth-child(2n+1)",
+        ":nth-of-type(odd)",
+    ] {
+        assert!(
+            !super::selector_matches_with_tree_context(
+                selector,
+                &current,
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                position,
+                &[],
+            ),
+            "{selector}"
+        );
+    }
+}
+
+#[test]
+fn matches_root_and_structural_pseudo_classes_on_ancestors() {
+    let root = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert!(super::selector_matches_with_tree_context(
+        ":root > p:first-child",
+        &current,
+        &[root],
+        &[],
+        &[],
+        &[],
+        &[Vec::new()],
+        SelectorPosition {
+            child_index: 1,
+            child_count: 2,
+            type_index: 1,
+            type_count: 2,
+            ..SelectorPosition::default()
+        },
+        &[SelectorPosition {
+            is_root: true,
+            child_count: 1,
+            ..SelectorPosition::default()
+        }],
     ));
 }
 
