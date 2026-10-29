@@ -9,6 +9,8 @@ use crate::{
     style::{FontVariantCaps, FontVariantPosition, TextStyle, TextTransform},
 };
 
+const ROOT_FONT_SIZE: f32 = 16.0;
+
 pub(super) fn resolve_style(
     inherited: &TextStyle,
     current: &ElementIdentity,
@@ -379,6 +381,7 @@ fn parse_length(value: &str, relative_to: f32) -> Option<f32> {
             .filter(|value| value.is_finite() && *value > 0.0);
     }
     for (unit, pixels_per_unit) in [
+        ("rem", ROOT_FONT_SIZE),
         ("px", 1.0),
         ("in", 96.0),
         ("cm", 96.0 / 2.54),

@@ -39,6 +39,11 @@ parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_size_percentages_match_chromium, "font-size", false);
 parity_test!(absolute_font_sizes_match_chromium, "font-size-units", false);
+parity_test!(
+    font_relative_sizes_match_chromium,
+    "font-relative-sizes",
+    false
+);
 parity_test!(font_features_match_chromium, "font-features", false);
 parity_test!(font_positions_match_chromium, "font-position", false);
 parity_test!(text_decoration_matches_chromium, "text-decoration", false);

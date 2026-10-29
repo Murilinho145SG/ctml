@@ -127,6 +127,66 @@ fn resolves_font_size_percentages_against_the_inherited_size() {
 }
 
 #[test]
+fn resolves_font_relative_em_and_rem_sizes() {
+    assert_eq!(super::parse_length("1.5em", 20.0), Some(30.0));
+    assert_eq!(super::parse_length("1.5rem", 20.0), Some(24.0));
+
+    let inherited = TextStyle {
+        font_size: 20.0,
+        ..TextStyle::default()
+    };
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("em".to_owned()),
+        id: None,
+    };
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".em".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "1.5em".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".rem".to_owned()],
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "1.5rem".to_owned(),
+            }],
+        },
+    ];
+
+    assert_eq!(
+        resolve_style(&inherited, &paragraph, &[body], &stylesheet).font_size,
+        30.0
+    );
+    let rem_paragraph = ElementIdentity {
+        class: Some("rem".to_owned()),
+        ..paragraph
+    };
+    assert_eq!(
+        resolve_style(
+            &inherited,
+            &rem_paragraph,
+            &[ElementIdentity {
+                tag: "body".to_owned(),
+                class: None,
+                id: None,
+            }],
+            &stylesheet
+        )
+        .font_size,
+        24.0
+    );
+}
+
+#[test]
 fn resolves_absolute_css_font_size_units() {
     for value in [
         "16px",
