@@ -128,6 +128,19 @@ fn tokenizes_escaped_property_names_strings_and_recovers_bad_declarations() {
 }
 
 #[test]
+fn decodes_escaped_identifiers_in_values_and_recovers_after_bad_strings() {
+    let stylesheet = parse_stylesheet(
+        "p { color: r\\65 d; content: \"broken\n; background-image: url(bad url); color: blue; }",
+    )
+    .expect("bad tokens should invalidate only their declarations");
+
+    assert_eq!(stylesheet.rules[0].declarations.len(), 2);
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "red");
+    assert_eq!(stylesheet.rules[0].declarations[1].property, "color");
+    assert_eq!(stylesheet.rules[0].declarations[1].value, "blue");
+}
+
+#[test]
 fn skips_malformed_declarations_and_preserves_unknown_properties() {
     let stylesheet =
         parse_stylesheet("p { color red; future-property: value; color: blue; }").unwrap();

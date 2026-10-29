@@ -1,4 +1,4 @@
-use cssparser::{Delimiter, Parser, ParserInput, serialize_identifier};
+use cssparser::{Delimiter, Parser, ParserInput, ToCss, Token, serialize_identifier};
 
 mod color;
 mod comments;
@@ -361,15 +361,20 @@ fn parse_declaration_block<'i, 't>(
             };
             declaration.expect_colon()?;
             declaration.skip_whitespace();
-            let value_start = declaration.position();
-            while declaration.next_including_whitespace().is_ok() {}
-            let value = declaration
-                .slice(value_start..declaration.position())
-                .trim()
-                .to_owned();
-            Ok((property, value))
+            let mut value = String::new();
+            let mut valid = true;
+            while let Ok(token) = declaration.next_including_whitespace() {
+                if matches!(token, Token::BadString(_) | Token::BadUrl(_)) {
+                    valid = false;
+                }
+                token
+                    .to_css(&mut value)
+                    .expect("writing CSS tokens into a String cannot fail");
+            }
+            Ok((property, value.trim().to_owned(), valid))
         });
-        if let Ok((property, value)) = parsed
+        if let Ok((property, value, valid)) = parsed
+            && valid
             && (!value.is_empty() || property.starts_with("--"))
         {
             declarations.push(CssDeclaration { property, value });

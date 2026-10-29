@@ -15,6 +15,10 @@ pub(crate) fn strip_utf8_bom_and_comments(source: &str) -> Result<String, String
                 let end = escape_end(source, index);
                 output.push_str(&source[index..end]);
                 index = end;
+            } else if matches!(character, '\n' | '\r' | '\u{000c}') {
+                output.push(character);
+                index += character.len_utf8();
+                quote = None;
             } else {
                 output.push(character);
                 index += character.len_utf8();
