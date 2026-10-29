@@ -507,6 +507,14 @@ mod tests {
             parse_color("rgb(from red clamp(0, r - 20, 255) g b)"),
             Some([235, 0, 0, 255])
         );
+        assert_eq!(
+            parse_color("rgb(from red r calc(50% - 10) b)"),
+            Some([255, 118, 0, 255])
+        );
+        assert_eq!(
+            parse_color("rgb(from red calc(-r + 100%) g b)"),
+            Some([0, 0, 0, 255])
+        );
     }
 
     #[test]
@@ -585,6 +593,10 @@ mod tests {
         assert_eq!(
             parse_color("color(from red srgb calc(r - 0.5) g b)"),
             Some([128, 0, 0, 255])
+        );
+        assert_eq!(
+            parse_color("color(from red srgb calc(50% - 0.25) g b)"),
+            Some([64, 0, 0, 255])
         );
     }
 
