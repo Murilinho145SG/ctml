@@ -63,7 +63,7 @@ main .title {
 - Cursor values include `auto`, `default`, `pointer`, `text`, `crosshair`, `move`, `wait`, `progress`, `help`, `not-allowed`, `no-drop`, `copy`, `alias`, `cell`, `all-scroll`, `grab`, `grabbing`, zoom cursors, and common resize cursors. The OS draws the native cursor icon.
 - The cascade follows `!important` priority, selector specificity, and source order. A CTML element may use a `style` attribute for inline declarations; normal inline declarations outrank stylesheet declarations, stylesheet `!important` declarations outrank normal inline declarations, and inline `!important` declarations outrank author stylesheet declarations of equal importance. Text properties inherit through child elements.
 - `:focus` and `:focus-within` update when the user clicks text inside a link with `href` or an element with a numeric `tabindex`. CTML has no keyboard focus navigation or native form controls, so `:focus-visible` and form-state pseudo-classes are not supported.
-- Supported properties accept the CSS-wide keywords `inherit`, `initial`, `unset`, and `revert`. `revert` resets a supported declaration to the initial user-agent value modeled by CTML.
+- Supported properties accept the CSS-wide keywords `inherit`, `initial`, `unset`, `revert`, and `revert-layer`. `revert` resets a supported declaration to the initial user-agent value modeled by CTML; `revert-layer` rolls back declarations in the current named layer.
 - Text wraps to the available page width. Common block elements start a new line.
 - Text can be selected by dragging the left mouse button; double-clicking selects a word.
 
@@ -81,7 +81,7 @@ Malformed declarations are skipped without a warning, and parsing continues with
 - `:dir(auto)` first-strong character detection; `:dir()` currently uses explicit inherited `dir="ltr|rtl"` values and defaults to `ltr`.
 - `:visited`, form and range state, and `:target`; CTML currently has no link history, form controls, or document navigation target.
 - `::first-line`, `::first-letter`, and `::selection`; CTML does not yet track line fragments or selection-aware shaping.
-- Cascade layers (`@layer`) and `revert-layer`.
+- Anonymous cascade layers and escaped layer names.
 
 ### Layout and sizing
 

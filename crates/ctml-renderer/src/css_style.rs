@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 mod font_variant;
 
 use crate::{
-    StyleRule,
+    StyleDeclaration, StyleRule,
     style::{FontVariantPosition, TextStyle, TextTransform},
 };
 pub(super) use ctml_css::ElementIdentity;
@@ -16,6 +18,16 @@ use ctml_css::{
     selector_matches_with_selector_tree_context, selector_specificity,
 };
 use font_variant::{apply_font_variant, apply_font_variant_caps, apply_font_variant_ligatures};
+
+type MatchedDeclaration<'a> = (
+    bool,
+    usize,
+    Option<usize>,
+    (usize, usize, usize),
+    usize,
+    usize,
+    &'a StyleDeclaration,
+);
 
 #[cfg(test)]
 pub(super) fn resolve_style(
@@ -261,7 +273,7 @@ fn apply_matching_styles_inner(
     stylesheet: &[StyleRule],
 ) {
     let inherited_style = style.clone();
-    let mut matches = Vec::new();
+    let mut matches: Vec<MatchedDeclaration<'_>> = Vec::new();
     let inline_declarations = inline_style
         .and_then(|inline_style| ctml_css::parse_declarations(inline_style).ok())
         .unwrap_or_default();
@@ -291,6 +303,7 @@ fn apply_matching_styles_inner(
                 matches.push((
                     important,
                     layer_cascade_priority(rule.layer, important),
+                    rule.layer,
                     specificity,
                     rule_index,
                     declaration_index,
@@ -304,6 +317,7 @@ fn apply_matching_styles_inner(
         matches.push((
             important,
             layer_cascade_priority(None, important),
+            None,
             (usize::MAX, 0, 0),
             stylesheet.len(),
             declaration_index,
@@ -311,7 +325,7 @@ fn apply_matching_styles_inner(
         ));
     }
     matches.sort_by_key(
-        |(important, layer_priority, specificity, rule, declaration, _)| {
+        |(important, layer_priority, _, specificity, rule, declaration, _)| {
             (
                 *important,
                 *layer_priority,
@@ -322,21 +336,64 @@ fn apply_matching_styles_inner(
         },
     );
 
+    let mut rollback_layers = HashMap::new();
+    for entry in &matches {
+        let property = entry.6.property.to_ascii_lowercase();
+        if !rollback_layers.contains_key(&property) {
+            rollback_layers.insert(property.clone(), reverted_layers(&matches, &property));
+        }
+    }
     let inherited_color = (style.color, style.color_opacity);
-    for (_, _, _, _, _, declaration) in matches
+    for (important, _, layer, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, _, _, declaration)| declaration.property == "color")
+        .filter(|(_, _, _, _, _, _, declaration)| declaration.property == "color")
     {
+        if rollback_layers
+            .get("color")
+            .is_some_and(|layers| layers.contains(&(*important, *layer)))
+        {
+            continue;
+        }
         let (value, _) = declaration_value(&declaration.value);
         apply_color_declaration(style, value, inherited_color);
     }
-    for (_, _, _, _, _, declaration) in matches
+    for (important, _, layer, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, _, _, declaration)| declaration.property != "color")
+        .filter(|(_, _, _, _, _, _, declaration)| declaration.property != "color")
     {
+        if rollback_layers
+            .get(&declaration.property.to_ascii_lowercase())
+            .is_some_and(|layers| layers.contains(&(*important, *layer)))
+        {
+            continue;
+        }
         let (value, _) = declaration_value(&declaration.value);
         apply_declaration_with_inherited(style, &declaration.property, value, &inherited_style);
     }
+}
+
+fn reverted_layers(
+    matches: &[MatchedDeclaration<'_>],
+    property: &str,
+) -> Vec<(bool, Option<usize>)> {
+    let mut reverted = Vec::new();
+    for (important, _, layer, _, _, _, declaration) in matches
+        .iter()
+        .rev()
+        .filter(|entry| entry.6.property.eq_ignore_ascii_case(property))
+    {
+        let layer_key = (*important, *layer);
+        if reverted.contains(&layer_key) {
+            continue;
+        }
+        let (value, _) = declaration_value(&declaration.value);
+        if value.eq_ignore_ascii_case("revert-layer") {
+            reverted.push(layer_key);
+        } else {
+            break;
+        }
+    }
+    reverted
 }
 
 fn layer_cascade_priority(layer: Option<usize>, important: bool) -> usize {

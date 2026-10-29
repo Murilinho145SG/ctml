@@ -54,7 +54,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Anonymous cascade layers and escaped layer names.
 - [x] `inherit`, `initial`, and `unset` for supported properties.
 - [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
-- [ ] `revert-layer`; CSS cascade layers are not implemented.
+- [x] `revert-layer` for supported declarations in named layers.
 - [ ] Shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
 - [ ] Custom properties (`--name`) and `var()` substitution, including fallback and cycle handling.

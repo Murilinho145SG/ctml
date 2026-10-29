@@ -794,6 +794,42 @@ fn unlayered_normal_rules_outrank_layered_normal_rules() {
 }
 
 #[test]
+fn revert_layer_uses_the_previous_layer_for_normal_and_important_rules() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let stylesheet = ctml_css::parse_stylesheet(
+        "@layer low, high; @layer low { p { color: red; color: red !important; } } @layer high { p { color: blue; color: revert-layer; color: blue !important; color: revert-layer !important; } }",
+    )
+    .unwrap();
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &stylesheet.rules);
+
+    assert_eq!(style.color, [255, 0, 0, 255]);
+}
+
+#[test]
+fn unlayered_revert_layer_falls_back_to_the_latest_named_layer() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let stylesheet = ctml_css::parse_stylesheet(
+        "@layer theme { p { color: red; } } p { color: blue; } p { color: revert-layer; }",
+    )
+    .unwrap();
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &stylesheet.rules);
+
+    assert_eq!(style.color, [255, 0, 0, 255]);
+}
+
+#[test]
 fn attribute_selectors_apply_through_the_style_cascade() {
     let current = ElementIdentity {
         tag: "input".to_owned(),
