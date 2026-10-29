@@ -209,6 +209,14 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
                     property: "text-decoration-line".to_owned(),
                     value: "underline".to_owned(),
                 },
+                StyleDeclaration {
+                    property: "text-decoration-color".to_owned(),
+                    value: "blue".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-thickness".to_owned(),
+                    value: "5px".to_owned(),
+                },
             ],
         },
         StyleRule {
@@ -235,6 +243,14 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
                     property: "text-decoration-line".to_owned(),
                     value: "unset".to_owned(),
                 },
+                StyleDeclaration {
+                    property: "text-decoration-color".to_owned(),
+                    value: "unset".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "text-decoration-thickness".to_owned(),
+                    value: "unset".to_owned(),
+                },
             ],
         },
     ];
@@ -243,6 +259,8 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
         weight: Weight(300),
         font_size: 24.0,
         background: [12, 34, 56],
+        text_decoration_color: Some([255, 0, 0, 255]),
+        decoration_thickness: Some(3.0),
         ..TextStyle::default()
     };
 
@@ -253,6 +271,69 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
     assert_eq!(style.font_size, 24.0);
     assert_eq!(style.background, [255, 255, 255]);
     assert!(!style.underline);
+    assert_eq!(style.text_decoration_color, None);
+    assert_eq!(style.decoration_thickness, None);
+}
+
+#[test]
+fn unset_on_font_shorthand_inherits_each_supported_font_component() {
+    let inherited = TextStyle {
+        family: "Open Sans".to_owned(),
+        font_size: 22.0,
+        font_scale: 0.9,
+        line_height: 31.0,
+        line_height_multiplier: Some(1.4),
+        line_height_normal: false,
+        weight: Weight(650),
+        font_style: Style::Italic,
+        stretch: Stretch::Condensed,
+        kerning: Some(false),
+        common_ligatures: Some(false),
+        discretionary_ligatures: Some(true),
+        historical_ligatures: Some(false),
+        contextual_alternates: Some(true),
+        font_variant_caps: FontVariantCaps::SmallCaps,
+        font_variant_position: FontVariantPosition::Super,
+        ..TextStyle::default()
+    };
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let rules = [StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "font".to_owned(),
+            value: "unset".to_owned(),
+        }],
+    }];
+
+    let style = resolve_style(&inherited, &current, &[], &rules);
+
+    assert_eq!(style.family, inherited.family);
+    assert_eq!(style.font_size, inherited.font_size);
+    assert_eq!(style.font_scale, inherited.font_scale);
+    assert_eq!(style.line_height, inherited.line_height);
+    assert_eq!(
+        style.line_height_multiplier,
+        inherited.line_height_multiplier
+    );
+    assert_eq!(style.line_height_normal, inherited.line_height_normal);
+    assert_eq!(style.weight, inherited.weight);
+    assert_eq!(style.font_style, inherited.font_style);
+    assert_eq!(style.stretch, inherited.stretch);
+    assert_eq!(style.kerning, inherited.kerning);
+    assert_eq!(style.common_ligatures, inherited.common_ligatures);
+    assert_eq!(
+        style.discretionary_ligatures,
+        inherited.discretionary_ligatures
+    );
+    assert_eq!(style.historical_ligatures, inherited.historical_ligatures);
+    assert_eq!(style.contextual_alternates, inherited.contextual_alternates);
+    assert_eq!(style.font_variant_caps, inherited.font_variant_caps);
+    assert_eq!(style.font_variant_position, inherited.font_variant_position);
 }
 
 #[test]

@@ -82,7 +82,8 @@ fn css_wide_keyword(value: &str) -> Option<&str> {
 fn is_inherited_property(property: &str) -> bool {
     matches!(
         property,
-        "font-family"
+        "font"
+            | "font-family"
             | "font-size"
             | "font-weight"
             | "font-style"
@@ -96,9 +97,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "letter-spacing"
             | "text-transform"
             | "text-align"
-            | "text-decoration-color"
             | "text-decoration-skip-ink"
-            | "text-decoration-thickness"
             | "text-underline-offset"
             | "cursor"
     )
