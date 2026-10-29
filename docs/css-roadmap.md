@@ -100,6 +100,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Font metric-relative units `ex`, `ch`, `ic`, and `cap` in `font-size` and the font-size component of `font`.
 - [x] Font metric-relative units in line-height, letter spacing, text effects, and box sizing.
 - [x] Viewport-relative units, including small, large, and dynamic variants, for supported font, text-effect, and box-size lengths.
+- [x] Evaluate `calc()`, `min()`, `max()`, and `clamp()` for supported length/percentage values, plus number expressions for opacity, line-height, and font weight.
 - [ ] Container query units, if container queries are implemented.
 - [ ] Angles, times, frequencies, and resolutions where relevant.
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.

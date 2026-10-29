@@ -344,15 +344,17 @@ fn apply_declaration(
     match property {
         "opacity" => {
             let value = value.trim();
-            let opacity = if let Some(percent) = value.strip_suffix('%') {
-                percent
-                    .trim()
-                    .parse::<f32>()
-                    .ok()
-                    .map(|value| value / 100.0)
-            } else {
-                value.parse::<f32>().ok()
-            };
+            let opacity = ctml_css::parse_math_number(value).or_else(|| {
+                if let Some(percent) = value.strip_suffix('%') {
+                    percent
+                        .trim()
+                        .parse::<f32>()
+                        .ok()
+                        .map(|value| value / 100.0)
+                } else {
+                    value.parse::<f32>().ok()
+                }
+            });
             if let Some(opacity) = opacity.filter(|opacity| opacity.is_finite()) {
                 style.opacity = opacity.clamp(0.0, 1.0);
             }
@@ -388,7 +390,9 @@ fn apply_declaration(
             if value.eq_ignore_ascii_case("normal") {
                 style.line_height_normal = true;
                 style.line_height_multiplier = None;
-            } else if let Ok(multiplier) = value.parse::<f32>() {
+            } else if let Some(multiplier) =
+                ctml_css::parse_math_number(value).or_else(|| value.parse::<f32>().ok())
+            {
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
                 style.line_height_normal = false;
@@ -435,9 +439,11 @@ fn apply_declaration(
                 "bold" => Weight::BOLD,
                 "bolder" => relative_font_weight(style.weight, true),
                 "lighter" => relative_font_weight(style.weight, false),
-                _ => value
-                    .parse::<u16>()
-                    .ok()
+                _ => ctml_css::parse_math_number(value)
+                    .filter(|number| (1.0..=1000.0).contains(number))
+                    .filter(|number| number.fract() == 0.0)
+                    .map(|number| number as u16)
+                    .or_else(|| value.parse::<u16>().ok())
                     .filter(|weight| (1..=1000).contains(weight))
                     .map_or(style.weight, Weight),
             };

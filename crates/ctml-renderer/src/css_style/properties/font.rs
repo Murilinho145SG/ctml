@@ -317,7 +317,9 @@ fn parse_line_height(
     if value.eq_ignore_ascii_case("normal") {
         return Some(None);
     }
-    if let Ok(multiplier) = value.parse::<f32>() {
+    if let Some(multiplier) =
+        ctml_css::parse_math_number(value).or_else(|| value.parse::<f32>().ok())
+    {
         return (multiplier.is_finite() && multiplier >= 0.0)
             .then_some(Some(font_size * multiplier));
     }

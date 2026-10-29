@@ -6,6 +6,7 @@ mod css_string;
 mod font_features;
 mod imports;
 mod length;
+mod math;
 mod selector;
 
 pub use color::{parse_color, parse_color_with_opacity};
@@ -21,6 +22,7 @@ pub use length::{
     parse_signed_font_relative_length_with_viewport, parse_signed_length_percentage,
     parse_signed_length_percentage_with_line_height,
 };
+pub use math::{parse_math_expression, parse_math_number};
 pub use selector::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement,
     selector_matches, selector_matches_with_attributes, selector_matches_with_context,

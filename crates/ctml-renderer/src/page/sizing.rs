@@ -1,5 +1,8 @@
 use cosmic_text::{Buffer, Cursor};
-use ctml_css::{FontRelativeUnits, ViewportSize, parse_font_relative_length_with_viewport};
+use ctml_css::{
+    FontRelativeUnits, ViewportSize, parse_font_relative_length_with_viewport,
+    parse_math_expression, parse_nonnegative_font_relative_length_with_viewport,
+};
 use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun};
@@ -13,6 +16,24 @@ pub(super) fn resolve_width(
     viewport_size: ViewportSize,
 ) -> Option<f32> {
     let value = value.trim();
+    if let Some(width) = parse_math_expression(value, |component| {
+        component
+            .strip_suffix('%')
+            .and_then(|percentage| percentage.trim().parse::<f32>().ok())
+            .map(|percentage| available_width * percentage / 100.0)
+            .filter(|width| width.is_finite())
+            .or_else(|| {
+                parse_nonnegative_font_relative_length_with_viewport(
+                    component,
+                    font_size,
+                    line_height,
+                    font_relative_units,
+                    viewport_size,
+                )
+            })
+    }) {
+        return (width >= 0.0).then_some(width);
+    }
     if value == "0" {
         return Some(0.0);
     }
@@ -113,6 +134,18 @@ mod tests {
         assert_eq!(
             resolve_width("10svw", 200.0, 20.0, 24.0, units, viewport),
             Some(80.0)
+        );
+        assert_eq!(
+            resolve_width("calc(50% - 10px)", 200.0, 20.0, 24.0, units, viewport),
+            Some(90.0)
+        );
+        assert_eq!(
+            resolve_width("min(25%, 60px)", 200.0, 20.0, 24.0, units, viewport),
+            Some(50.0)
+        );
+        assert_eq!(
+            resolve_width("clamp(10px, 25%, 50px)", 200.0, 20.0, 24.0, units, viewport),
+            Some(50.0)
         );
     }
 }
