@@ -47,8 +47,10 @@ fn normal_line_height_from_metrics(
     font_size: f32,
     units_per_em: u16,
 ) -> Option<f32> {
-    (units_per_em != 0)
-        .then(|| ((ascent + descent + leading) * font_size / f32::from(units_per_em)).ceil())
+    (units_per_em != 0).then(|| {
+        let scale = font_size / f32::from(units_per_em);
+        (ascent * scale).round() + (descent * scale).round() + (leading * scale).round()
+    })
 }
 
 #[cfg(test)]
@@ -62,5 +64,13 @@ mod tests {
 
         assert_eq!(line_height, 21.0);
         assert!(line_height < 18.0 * 1.2);
+    }
+
+    #[test]
+    fn rounds_each_font_metric_before_adding_line_height() {
+        let line_height = normal_line_height_from_metrics(1740.0, 375.0, 30.0, 12.0, 2048)
+            .expect("font metrics should have a nonzero units-per-em value");
+
+        assert_eq!(line_height, 12.0);
     }
 }
