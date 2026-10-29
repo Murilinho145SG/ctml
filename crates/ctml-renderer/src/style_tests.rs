@@ -72,6 +72,9 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
         element_path: Vec::new(),
         selection_background: Some([255, 0, 0, 255]),
         selection_foreground: Some([0, 255, 0, 255]),
+        first_line_block: Some(3),
+        first_line_foreground: Some([0, 0, 255, 255]),
+        first_line_background: Some([255, 255, 0, 255]),
     });
 
     assert_eq!(runs.len(), 2);
@@ -81,10 +84,16 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     assert_eq!(runs[0].style.line_height, 20.0);
     assert_eq!(runs[0].selection_background, Some([255, 0, 0, 255]));
     assert_eq!(runs[0].selection_foreground, Some([0, 255, 0, 255]));
+    assert_eq!(runs[0].first_line_block, Some(3));
+    assert_eq!(runs[0].first_line_foreground, Some([0, 0, 255, 255]));
+    assert_eq!(runs[0].first_line_background, Some([255, 255, 0, 255]));
     assert_eq!(runs[1].text, "B");
     assert_eq!(runs[1].style.font_scale, 1.0);
     assert_eq!(runs[1].selection_background, Some([255, 0, 0, 255]));
     assert_eq!(runs[1].selection_foreground, Some([0, 255, 0, 255]));
+    assert_eq!(runs[1].first_line_block, Some(3));
+    assert_eq!(runs[1].first_line_foreground, Some([0, 0, 255, 255]));
+    assert_eq!(runs[1].first_line_background, Some([255, 255, 0, 255]));
 }
 
 #[test]
@@ -101,6 +110,9 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
             element_path: Vec::new(),
             selection_background: None,
             selection_foreground: None,
+            first_line_block: None,
+            first_line_foreground: None,
+            first_line_background: None,
         });
 
         assert_eq!(runs.len(), 1);

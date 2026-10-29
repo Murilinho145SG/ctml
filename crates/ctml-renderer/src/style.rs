@@ -126,6 +126,28 @@ pub(super) fn compile_runs(
         run.selection_background = selected_style.background_color;
         run.selection_foreground =
             (selected_style.color != run.style.color).then_some(selected_style.color);
+        let block = run
+            .element_path
+            .iter()
+            .rev()
+            .filter_map(|node_id| {
+                selector_tree
+                    .iter()
+                    .find(|element| element.node_id == *node_id)
+            })
+            .find(|element| is_block(&element.element.tag));
+        if let Some(block) = block {
+            run.first_line_block = Some(block.node_id);
+            let first_line = css_style::first_line_style(
+                &run.style,
+                &block.element,
+                block.position,
+                &selector_tree,
+                stylesheet,
+            );
+            run.first_line_foreground = first_line.foreground;
+            run.first_line_background = first_line.background;
+        }
     }
     (runs, root_style)
 }
@@ -136,6 +158,9 @@ pub(super) struct TextRun {
     pub(super) element_path: Vec<usize>,
     pub(super) selection_background: Option<[u8; 4]>,
     pub(super) selection_foreground: Option<[u8; 4]>,
+    pub(super) first_line_block: Option<usize>,
+    pub(super) first_line_foreground: Option<[u8; 4]>,
+    pub(super) first_line_background: Option<[u8; 4]>,
 }
 
 fn selector_sibling_contexts(
@@ -342,6 +367,9 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
     for synthesized in &mut output {
         synthesized.selection_background = run.selection_background;
         synthesized.selection_foreground = run.selection_foreground;
+        synthesized.first_line_block = run.first_line_block;
+        synthesized.first_line_foreground = run.first_line_foreground;
+        synthesized.first_line_background = run.first_line_background;
     }
     output
 }
@@ -381,6 +409,9 @@ fn push_character(
             element_path: element_path.to_vec(),
             selection_background: None,
             selection_foreground: None,
+            first_line_block: None,
+            first_line_foreground: None,
+            first_line_background: None,
         });
     }
 }

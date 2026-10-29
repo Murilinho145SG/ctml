@@ -5,7 +5,7 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     font_metrics::normal_line_height,
-    page::pixel::{PixelRenderer, fill_rect_alpha},
+    page::pixel::PixelRenderer,
     style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
 };
 
@@ -14,6 +14,7 @@ mod decorations;
 mod focus;
 mod font_features;
 mod font_raster;
+mod highlights;
 mod interactions;
 mod pixel;
 
@@ -241,6 +242,7 @@ impl PageRasterizer {
             height,
             self.root_style.background_color.is_some(),
         );
+        self.draw_first_line_backgrounds(&mut pixels, width, height);
         self.draw_selection(&mut pixels, width, height);
         let selection = self.selection.map(|(first, second)| {
             if first <= second {
@@ -264,7 +266,8 @@ impl PageRasterizer {
             &mut pixels,
             width,
             height,
-            selection.map(|(start, end)| (start, end, cursor_spans.as_slice())),
+            selection,
+            cursor_spans,
         );
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
@@ -325,79 +328,6 @@ impl PageRasterizer {
         }
         pixels
     }
-
-    fn draw_selection(&self, pixels: &mut [u8], width: u32, height: u32) {
-        let Some((first, second)) = self.selection else {
-            return;
-        };
-        let (start, end) = if first <= second {
-            (first, second)
-        } else {
-            (second, first)
-        };
-        for run in self.buffer.layout_runs() {
-            if run.line_i < start.line || run.line_i > end.line {
-                continue;
-            }
-            let mut groups = Vec::new();
-            for span in self
-                .cursor_spans
-                .iter()
-                .filter(|span| span.line == run.line_i)
-            {
-                if (start.line == run.line_i && span.end <= start.index)
-                    || (end.line == run.line_i && span.start >= end.index)
-                {
-                    continue;
-                }
-                let span_start = if start.line == run.line_i {
-                    span.start.max(start.index)
-                } else {
-                    span.start
-                };
-                let span_end = if end.line == run.line_i {
-                    span.end.min(end.index)
-                } else {
-                    span.end
-                };
-                let background = span
-                    .selection_background
-                    .unwrap_or(self.selection_background_color);
-                if let Some((_, group_end, group_background)) = groups.last_mut()
-                    && *group_end == span_start
-                    && *group_background == background
-                {
-                    *group_end = span_end;
-                } else {
-                    groups.push((span_start, span_end, background));
-                }
-            }
-            for (group_start, group_end, background) in groups {
-                let highlight_start = Cursor {
-                    line: run.line_i,
-                    index: group_start,
-                    affinity: cosmic_text::Affinity::Before,
-                };
-                let highlight_end = Cursor {
-                    line: run.line_i,
-                    index: group_end,
-                    affinity: cosmic_text::Affinity::After,
-                };
-                for (left, span_width) in run.highlight(highlight_start, highlight_end) {
-                    fill_rect_alpha(
-                        pixels,
-                        width,
-                        height,
-                        left,
-                        run.line_top,
-                        span_width,
-                        run.line_height,
-                        background,
-                    );
-                }
-            }
-        }
-    }
 }
 
 fn is_underline_descender(character: char) -> bool {
@@ -427,9 +357,12 @@ pub(super) struct CursorSpan {
     pub(super) end: usize,
     icon: CursorIcon,
     hidden: bool,
-    element_path: Vec<usize>,
+    pub(super) element_path: Vec<usize>,
     pub(super) selection_background: Option<[u8; 4]>,
     pub(super) selection_foreground: Option<[u8; 4]>,
+    pub(super) first_line_block: Option<usize>,
+    pub(super) first_line_foreground: Option<[u8; 4]>,
+    pub(super) first_line_background: Option<[u8; 4]>,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -453,6 +386,9 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 element_path: run.element_path.clone(),
                 selection_background: run.selection_background,
                 selection_foreground: run.selection_foreground,
+                first_line_block: run.first_line_block,
+                first_line_foreground: run.first_line_foreground,
+                first_line_background: run.first_line_background,
             });
             index = end;
         }

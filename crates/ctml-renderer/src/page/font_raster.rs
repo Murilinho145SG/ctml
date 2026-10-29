@@ -14,6 +14,10 @@ use skia_safe::{
 use crate::page::{CursorSpan, PAGE_PADDING};
 use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextRun, TextStyle};
 
+mod highlight;
+
+use highlight::glyph_foreground;
+
 pub(super) fn draw(
     runs: &[TextRun],
     font_system: &FontSystem,
@@ -21,8 +25,10 @@ pub(super) fn draw(
     pixels: &mut [u8],
     width: u32,
     height: u32,
-    selection: Option<(Cursor, Cursor, &[CursorSpan])>,
+    selection: Option<(Cursor, Cursor)>,
+    cursor_spans: &[CursorSpan],
 ) {
+    let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let info = ImageInfo::new(
         (width as i32, height as i32),
         ColorType::RGBA8888,
@@ -55,20 +61,31 @@ pub(super) fn draw(
         let mut start = 0;
         while start < run.glyphs.len() {
             let first = &run.glyphs[start];
-            let color = selection_foreground(selection, run.line_i, first.start, first.end)
-                .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
-                .or(first.color_opt)
-                .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
+            let color = glyph_foreground(
+                selection,
+                cursor_spans,
+                &first_line_by_block,
+                run.line_i,
+                first.start,
+                first.end,
+            )
+            .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
+            .or(first.color_opt)
+            .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
             let style_index = style_index_at(&style_ranges, line_start + first.start);
             let mut end = start + 1;
             while end < run.glyphs.len() {
                 let glyph = &run.glyphs[end];
-                let glyph_color =
-                    selection_foreground(selection, run.line_i, glyph.start, glyph.end)
-                        .map(|color| {
-                            cosmic_text::Color::rgba(color[0], color[1], color[2], color[3])
-                        })
-                        .or(glyph.color_opt);
+                let glyph_color = glyph_foreground(
+                    selection,
+                    cursor_spans,
+                    &first_line_by_block,
+                    run.line_i,
+                    glyph.start,
+                    glyph.end,
+                )
+                .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
+                .or(glyph.color_opt);
                 if glyph.font_id != first.font_id
                     || glyph.font_size != first.font_size
                     || glyph.level != first.level
@@ -357,30 +374,6 @@ fn shape_group(
         &mut handler,
     );
     handler.make_blob()
-}
-
-fn selection_foreground(
-    selection: Option<(Cursor, Cursor, &[CursorSpan])>,
-    line: usize,
-    glyph_start: usize,
-    glyph_end: usize,
-) -> Option<[u8; 4]> {
-    let (start, end, spans) = selection?;
-    let (start, end) = if start <= end {
-        (start, end)
-    } else {
-        (end, start)
-    };
-    spans
-        .iter()
-        .find(|span| {
-            span.line == line
-                && span.end > glyph_start
-                && span.start < glyph_end
-                && (start.line != line || span.end > start.index)
-                && (end.line != line || span.start < end.index)
-        })
-        .and_then(|span| span.selection_foreground)
 }
 
 fn text_style_ranges(runs: &[TextRun]) -> Vec<std::ops::Range<usize>> {
