@@ -104,6 +104,11 @@ alpha_text_color_test!("color-alpha-text");
 parity_test!(transparent_colors_match_chromium, "transparent", false);
 parity_test!(font_weight_matches_chromium, "font-weight", false);
 parity_test!(font_family_matches_chromium, "font-family", false);
+parity_test!(
+    font_family_fallback_matches_chromium,
+    "font-family-fallback",
+    false
+);
 parity_test!(font_style_matches_chromium, "font-style", false);
 parity_test!(font_stretch_values_match_chromium, "font-stretch", false);
 parity_test!(line_height_values_match_chromium, "line-height", false);

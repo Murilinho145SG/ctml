@@ -226,6 +226,12 @@ fn resolves_absolute_font_size_keywords() {
 }
 
 #[test]
+fn preserves_the_font_family_fallback_list() {
+    let style = style_for_declarations(&[("font-family", "\"Missing Font\", serif")]);
+    assert_eq!(style.family, "\"Missing Font\", serif");
+}
+
+#[test]
 fn resolves_relative_font_size_keywords() {
     assert_eq!(super::parse_font_size("larger", 16.0), Some(19.2));
     assert_eq!(super::parse_font_size("smaller", 16.0), Some(16.0 / 1.2));

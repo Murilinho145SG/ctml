@@ -6,6 +6,7 @@ use winit::window::CursorIcon;
 
 use crate::{
     StyleRule, UiNode,
+    font_family::resolve_family_list,
     style::{TextRun, TextStyle, compile_runs},
 };
 
@@ -79,17 +80,25 @@ impl PageRasterizer {
             Some((width as f32 - PAGE_PADDING * 2.0).max(1.0)),
             Some((height as f32 - PAGE_PADDING * 2.0).max(1.0)),
         );
+        let run_families = self
+            .runs
+            .iter()
+            .map(|run| resolve_family_list(&run.style.family, &self.font_system))
+            .collect::<Vec<_>>();
         let attributes = self
             .runs
             .iter()
-            .map(|run| run.style.to_attrs())
+            .zip(&run_families)
+            .map(|(run, family)| run.style.to_attrs(family))
             .collect::<Vec<_>>();
+        let root_family = resolve_family_list(&self.root_style.family, &self.font_system);
+        let root_attributes = self.root_style.to_attrs(&root_family);
         self.buffer.set_rich_text(
             self.runs
                 .iter()
                 .zip(&attributes)
                 .map(|(run, attrs)| (run.text.as_str(), attrs.clone())),
-            &self.root_style.to_attrs(),
+            &root_attributes,
             Shaping::Advanced,
             Some(self.root_style.text_align),
         );

@@ -1,0 +1,10 @@
+body {
+    color: #222222;
+    font-size: 8px;
+    line-height: 10px;
+}
+
+p {
+    margin: 0;
+    font-family: "CTML Missing Family", "Liberation Serif", sans-serif;
+}

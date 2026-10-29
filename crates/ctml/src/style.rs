@@ -135,14 +135,14 @@ impl Default for TextStyle {
 }
 
 impl TextStyle {
-    pub(super) fn to_attrs(&self) -> Attrs<'_> {
-        let family = match self.family.to_ascii_lowercase().as_str() {
+    pub(super) fn to_attrs<'a>(&self, family_name: &'a str) -> Attrs<'a> {
+        let family = match family_name.to_ascii_lowercase().as_str() {
             "serif" => Family::Serif,
             "monospace" => Family::Monospace,
             "cursive" => Family::Cursive,
             "fantasy" => Family::Fantasy,
             "sans-serif" => Family::SansSerif,
-            _ => Family::Name(&self.family),
+            _ => Family::Name(family_name),
         };
         let mut attrs = Attrs::new()
             .family(family)

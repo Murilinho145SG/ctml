@@ -39,7 +39,7 @@ fn covers_font_family_first_choice_and_fallback_list() {
     assert_eq!(style_for("font-family", "serif").family, "serif");
     assert_eq!(
         style_for("font-family", "\"DejaVu Sans\", sans-serif").family,
-        "DejaVu Sans"
+        "\"DejaVu Sans\", sans-serif"
     );
 }
 

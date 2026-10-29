@@ -120,9 +120,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             }
         }
         "font-family" => {
-            if let Some(family) = value.split(',').next() {
-                style.family = family.trim().trim_matches(['\'', '"']).to_owned();
-            }
+            style.family = value.to_owned();
         }
         "font-weight" => {
             style.weight = match value.to_ascii_lowercase().as_str() {
