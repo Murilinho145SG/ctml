@@ -78,7 +78,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [ ] All standard CSS number, integer, percentage, dimension, string, URL, and identifier value forms.
 - [x] Absolute lengths: `px`, `cm`, `mm`, `Q`, `in`, `pt`, and `pc` for font sizes and line heights.
-- [ ] Font-relative lengths: `em` and `rem` for font sizes and line heights; remaining units `ex`, `ch`, `ic`, `cap`, and `lh`.
+- [x] Font-relative `em` and `rem` lengths for font sizes and line heights.
+- [ ] Remaining font-relative units: `ex`, `ch`, `ic`, `cap`, and `lh`.
 - [ ] Viewport-relative units, including small, large, and dynamic viewport variants.
 - [ ] Container query units, if container queries are implemented.
 - [ ] Angles, times, frequencies, and resolutions where relevant.
