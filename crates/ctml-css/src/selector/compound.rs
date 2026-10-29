@@ -3,6 +3,9 @@ use super::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeElement, selector_has_matches,
     selector_matches_with_selector_tree_context_and_scope,
 };
+mod identifiers;
+use identifiers::identifier_end;
+pub(super) use identifiers::{css_escape_end, decode_css_identifier};
 
 pub(super) fn compound_matches(
     compound: &str,
@@ -28,16 +31,14 @@ pub(super) fn compound_matches(
         .first()
         .is_some_and(|byte| *byte != b'.' && *byte != b'#' && *byte != b'[' && *byte != b':')
     {
-        let start = cursor;
-        while cursor < bytes.len()
-            && bytes[cursor] != b'.'
-            && bytes[cursor] != b'#'
-            && bytes[cursor] != b'['
-            && bytes[cursor] != b':'
-        {
-            cursor += 1;
-        }
-        if !compound[start..cursor].eq_ignore_ascii_case(&element.tag) {
+        let Some(end) = identifier_end(compound, cursor) else {
+            return false;
+        };
+        let Some(name) = decode_css_identifier(&compound[cursor..end]) else {
+            return false;
+        };
+        cursor = end;
+        if !name.eq_ignore_ascii_case(&element.tag) {
             return false;
         }
     }
@@ -56,19 +57,28 @@ pub(super) fn compound_matches(
         if marker == b':' {
             cursor += 1;
             let name_start = cursor;
-            while cursor < bytes.len()
-                && bytes[cursor] != b'('
-                && bytes[cursor] != b'.'
-                && bytes[cursor] != b'#'
-                && bytes[cursor] != b'['
-                && bytes[cursor] != b':'
-            {
-                cursor += 1;
+            while cursor < bytes.len() && bytes[cursor] != b'(' {
+                if bytes[cursor] == b'\\' {
+                    let Some(end) = css_escape_end(compound, cursor) else {
+                        return false;
+                    };
+                    cursor = end;
+                } else if matches!(bytes[cursor], b'.' | b'#' | b'[' | b':') {
+                    break;
+                } else {
+                    let Some(character) = compound[cursor..].chars().next() else {
+                        return false;
+                    };
+                    cursor += character.len_utf8();
+                }
             }
             if name_start == cursor {
                 return false;
             }
-            let name = compound[name_start..cursor].to_ascii_lowercase();
+            let Some(name) = decode_css_identifier(&compound[name_start..cursor]) else {
+                return false;
+            };
+            let name = name.to_ascii_lowercase();
             if bytes.get(cursor) != Some(&b'(') {
                 let matches = if name == "scope" {
                     scope_node_id == Some(position.node_id)
@@ -141,25 +151,25 @@ pub(super) fn compound_matches(
         }
         cursor += 1;
         let start = cursor;
-        while cursor < bytes.len()
-            && bytes[cursor] != b'.'
-            && bytes[cursor] != b'#'
-            && bytes[cursor] != b'['
-        {
-            cursor += 1;
-        }
+        let Some(end) = identifier_end(compound, cursor) else {
+            return false;
+        };
+        cursor = end;
         if start == cursor {
             return false;
         }
-        let name = &compound[start..cursor];
-        if marker == b'#' && element.id.as_deref() != Some(name) {
+        let Some(name) = decode_css_identifier(&compound[start..cursor]) else {
+            return false;
+        };
+        if marker == b'#' && element.id.as_deref() != Some(name.as_str()) {
             return false;
         }
         if marker == b'.'
-            && !element
-                .class
-                .as_deref()
-                .is_some_and(|classes| classes.split_ascii_whitespace().any(|class| class == name))
+            && !element.class.as_deref().is_some_and(|classes| {
+                classes
+                    .split_ascii_whitespace()
+                    .any(|class| class == name.as_str())
+            })
         {
             return false;
         }
@@ -330,7 +340,16 @@ fn nth_expression_matches(expression: &str, index: usize) -> bool {
 
 pub(super) fn attribute_selector_end(selector: &str, start: usize) -> Option<usize> {
     let mut quote = None;
+    let mut escaped_until = 0;
     for (offset, character) in selector[start + 1..].char_indices() {
+        let index = start + 1 + offset;
+        if index < escaped_until {
+            continue;
+        }
+        if character == '\\' {
+            escaped_until = css_escape_end(selector, index)?;
+            continue;
+        }
         match (quote, character) {
             (Some(current), character) if current == character => quote = None,
             (None, '"' | '\'') => quote = Some(character),
@@ -344,7 +363,16 @@ pub(super) fn attribute_selector_end(selector: &str, start: usize) -> Option<usi
 pub(super) fn function_selector_end(selector: &str, start: usize) -> Option<usize> {
     let mut depth = 0;
     let mut quote = None;
+    let mut escaped_until = 0;
     for (offset, character) in selector[start..].char_indices() {
+        let index = start + offset;
+        if index < escaped_until {
+            continue;
+        }
+        if character == '\\' {
+            escaped_until = css_escape_end(selector, index)?;
+            continue;
+        }
         match (quote, character) {
             (Some(current), character) if current == character => quote = None,
             (None, '"' | '\'') => quote = Some(character),
@@ -366,7 +394,7 @@ fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) ->
     if selector.is_empty() {
         return false;
     }
-    let operator_start = selector.find(['=', '~', '|', '^', '$', '*']);
+    let operator_start = find_attribute_operator(selector);
     let (name, operator, value_and_flag) = if let Some(index) = operator_start {
         let Some(operator) = (match selector.as_bytes().get(index..index + 2) {
             Some(b"~=") => Some("~="),
@@ -387,12 +415,15 @@ fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) ->
     } else {
         (selector, None, "")
     };
+    let Some(name) = decode_css_identifier(name) else {
+        return false;
+    };
     if name.is_empty() {
         return false;
     }
     let attribute = attributes
         .iter()
-        .find(|(attribute, _)| attribute.eq_ignore_ascii_case(name));
+        .find(|(attribute, _)| attribute.eq_ignore_ascii_case(&name));
     let Some((_, attribute_value)) = attribute else {
         return false;
     };
@@ -417,13 +448,16 @@ fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) ->
                 .and_then(|value| value.strip_suffix('\''))
         })
         .unwrap_or(value);
+    let Some(value) = decode_css_identifier(value) else {
+        return false;
+    };
     let (attribute_value, value) = if case_insensitive {
         (
             attribute_value.to_ascii_lowercase(),
             value.to_ascii_lowercase(),
         )
     } else {
-        (attribute_value.to_owned(), value.to_owned())
+        (attribute_value.to_owned(), value)
     };
     match operator {
         "=" => attribute_value == value,
@@ -436,4 +470,27 @@ fn attribute_matches(selector: &str, attributes: &[(String, Option<String>)]) ->
         "*=" => !value.is_empty() && attribute_value.contains(&value),
         _ => false,
     }
+}
+
+fn find_attribute_operator(selector: &str) -> Option<usize> {
+    let mut quote = None;
+    let mut cursor = 0;
+    while cursor < selector.len() {
+        let character = selector[cursor..].chars().next()?;
+        if character == '\\' {
+            cursor = css_escape_end(selector, cursor)?;
+            continue;
+        }
+        if let Some(current) = quote {
+            if current == character {
+                quote = None;
+            }
+        } else if matches!(character, '"' | '\'') {
+            quote = Some(character);
+        } else if matches!(character, '=' | '~' | '|' | '^' | '$' | '*') {
+            return Some(cursor);
+        }
+        cursor += character.len_utf8();
+    }
+    None
 }

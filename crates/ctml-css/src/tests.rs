@@ -117,6 +117,11 @@ fn computes_selector_specificity_by_id_class_and_type() {
     assert_eq!(selector_specificity("p"), (0, 0, 1));
     assert_eq!(selector_specificity("[data-label=\"#.value\"]"), (0, 1, 0));
     assert_eq!(selector_specificity("main:has(> p.active)"), (0, 1, 2));
+    assert_eq!(selector_specificity("p::before"), (0, 0, 2));
+    assert_eq!(
+        selector_specificity("li:nth-child(2n of .item, #target)"),
+        (1, 1, 1)
+    );
 }
 
 #[test]
@@ -283,6 +288,37 @@ fn matches_link_pseudo_classes_for_ctml_anchors() {
         &[],
         &href,
     ));
+}
+
+#[test]
+fn matches_escaped_selector_identifiers_and_attribute_values() {
+    let element = ElementIdentity {
+        tag: "my:element".to_owned(),
+        class: Some("foo:bar has,comma".to_owned()),
+        id: Some("123".to_owned()),
+    };
+    let attributes = [("data-name".to_owned(), Some("blue: green".to_owned()))];
+    for selector in [
+        r"my\:element.foo\:bar#\31 23",
+        r".has\,comma",
+        r#"[data\-name="blue\:\ green"]"#,
+    ] {
+        assert!(
+            super::selector_matches_with_attributes(selector, &element, &[], &attributes),
+            "{selector}"
+        );
+    }
+    assert_eq!(
+        selector_specificity(r"my\:element.foo\:bar#\31 23"),
+        (1, 1, 1)
+    );
+    assert_eq!(selector_specificity(r"p:n\6f t(.other)"), (0, 1, 1));
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert!(selector_matches(r"p:n\6f t(.other)", &paragraph, &[]));
 }
 
 #[test]

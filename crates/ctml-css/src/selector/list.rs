@@ -1,10 +1,22 @@
+use super::compound::css_escape_end;
+
 pub(super) fn split_selector_list(source: &str) -> Vec<&str> {
     let mut selectors = Vec::new();
     let mut start = 0;
     let mut bracket_depth = 0;
     let mut paren_depth = 0;
     let mut quote = None;
+    let mut escaped_until = 0;
     for (index, character) in source.char_indices() {
+        if index < escaped_until {
+            continue;
+        }
+        if character == '\\' {
+            if let Some(end) = css_escape_end(source, index) {
+                escaped_until = end;
+            }
+            continue;
+        }
         if quote.is_some() {
             if quote == Some(character) {
                 quote = None;

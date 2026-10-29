@@ -2,6 +2,7 @@ mod has;
 mod list;
 mod specificity;
 
+use compound::css_escape_end;
 use has::selector_has_matches;
 pub use specificity::selector_specificity;
 
@@ -309,7 +310,21 @@ pub(super) fn selector_compounds(selector: &str) -> Option<Vec<(String, Selector
     let mut bracket_depth = 0;
     let mut paren_depth = 0;
     let mut quote = None;
+    let mut escaped_until = 0;
     for (index, character) in selector.char_indices() {
+        if index < escaped_until {
+            continue;
+        }
+        if character == '\\' {
+            let Some(end) = css_escape_end(selector, index) else {
+                return None;
+            };
+            escaped_until = end;
+            if start.is_none() {
+                start = Some(index);
+            }
+            continue;
+        }
         if paren_depth > 0 {
             match (quote, character) {
                 (Some(current), character) if current == character => quote = None,

@@ -39,7 +39,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `::first-line`, `::first-letter`, and `::selection`; these need line layout or selection-aware shaping.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
-- [ ] Escaped identifiers and complete selector specificity calculation.
+- [x] CSS escapes in type, class, and ID identifiers, attribute names and values, plus specificity for the currently supported selector constructs.
+- [ ] Filtered `:nth-child(... of S)` matching and remaining specificity edge cases.
 
 ## Cascade, inheritance, and computed values
 
