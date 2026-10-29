@@ -10,6 +10,14 @@ pub(super) fn apply_width(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_box_sizing(style: &mut TextStyle, value: &str) {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "content-box" => style.border_box = false,
+        "border-box" => style.border_box = true,
+        _ => {}
+    }
+}
+
 pub(super) fn inherit_width(style: &mut TextStyle, inherited: &TextStyle) {
     style.width.clone_from(&inherited.width);
 }

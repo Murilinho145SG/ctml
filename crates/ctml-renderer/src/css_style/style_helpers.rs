@@ -10,6 +10,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "min-inline-size",
     "max-width",
     "max-inline-size",
+    "box-sizing",
     "height",
     "block-size",
     "min-height",

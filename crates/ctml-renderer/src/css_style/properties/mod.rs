@@ -21,8 +21,8 @@ use font::{
 use font_feature_settings::apply_font_feature_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
 use size::{
-    apply_height, apply_max_height, apply_max_width, apply_min_height, apply_min_width,
-    apply_width, inherit_width,
+    apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
+    apply_min_width, apply_width, inherit_width,
 };
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
@@ -127,6 +127,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         }
         "display" => inherit_display(style, inherited),
         "width" | "inline-size" => inherit_width(style, inherited),
+        "box-sizing" => style.border_box = inherited.border_box,
         "min-width" | "min-inline-size" => style.min_width.clone_from(&inherited.min_width),
         "max-width" | "max-inline-size" => style.max_width.clone_from(&inherited.max_width),
         "height" | "block-size" => style.height.clone_from(&inherited.height),
@@ -227,6 +228,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "display" => reset_display(style),
         "width" | "inline-size" => style.width = None,
+        "box-sizing" => style.border_box = false,
         "min-width" | "min-inline-size" => style.min_width = None,
         "max-width" | "max-inline-size" => style.max_width = None,
         "height" | "block-size" => style.height = None,
@@ -315,6 +317,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font" => apply_font_shorthand(style, value),
         "display" => apply_display(style, value),
         "width" | "inline-size" => apply_width(style, value),
+        "box-sizing" => apply_box_sizing(style, value),
         "min-width" | "min-inline-size" => apply_min_width(style, value),
         "max-width" | "max-inline-size" => apply_max_width(style, value),
         "height" | "block-size" => apply_height(style, value),

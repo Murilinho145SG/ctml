@@ -121,7 +121,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` map to these properties in horizontal writing mode.
 - [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; content-bearing block `height` and `min-height` reserve remaining space, and `max-height` caps the requested space when content fits. `block-size` and its min/max forms map to these properties in horizontal writing mode.
 - [ ] Fixed and maximum height overflow behavior for content-bearing blocks, and sizing behavior beyond text flow.
-- [ ] `box-sizing` and intrinsic sizing keywords.
+- [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.
+- [ ] Apply `border-box` to padding and borders; intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
 - [ ] Borders, per-side styles/colors/widths, and logical border properties.
 - [ ] `border-radius` and corner shaping.

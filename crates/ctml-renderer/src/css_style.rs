@@ -148,6 +148,7 @@ pub(super) fn resolve_style_with_selector_tree_context(
     style.height = None;
     style.min_height = None;
     style.max_height = None;
+    style.border_box = false;
     style.empty_block_height = None;
     style.layout_end_sizes.clear();
     style.flow_spacer = false;
@@ -163,6 +164,7 @@ pub(super) fn resolve_style_with_selector_tree_context(
         ancestor_positions,
         selector_tree,
         inline_style,
+        Some(inherited),
         stylesheet,
     );
     style
@@ -197,6 +199,7 @@ pub(super) fn apply_matching_styles_with_selector_tree_position(
         &[],
         selector_tree,
         None,
+        None,
         stylesheet,
     );
 }
@@ -222,6 +225,7 @@ pub(super) fn apply_matching_styles_with_context(
         &[],
         &[],
         None,
+        None,
         stylesheet,
     );
 }
@@ -238,6 +242,7 @@ fn apply_matching_styles_with_inline_context(
     ancestor_positions: &[SelectorPosition],
     selector_tree: &[SelectorTreeElement],
     inline_style: Option<&str>,
+    inherited_style: Option<&TextStyle>,
     stylesheet: &[StyleRule],
 ) {
     apply_matching_styles_inner(
@@ -252,6 +257,7 @@ fn apply_matching_styles_with_inline_context(
         ancestor_positions,
         selector_tree,
         inline_style,
+        inherited_style,
         stylesheet,
     );
 }
@@ -279,9 +285,10 @@ fn apply_matching_styles_inner(
     ancestor_positions: &[SelectorPosition],
     selector_tree: &[SelectorTreeElement],
     inline_style: Option<&str>,
+    inherited_style: Option<&TextStyle>,
     stylesheet: &[StyleRule],
 ) {
-    let inherited_style = style.clone();
+    let inherited_style = inherited_style.cloned().unwrap_or_else(|| style.clone());
     style.background_color = None;
     style.display_none = false;
     style.display_block = None;

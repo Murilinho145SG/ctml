@@ -24,6 +24,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         text_decoration_color: Some([255, 0, 0, 255]),
         decoration_thickness: Some(3.0),
         cursor: CursorIcon::Pointer,
+        border_box: true,
         ..TextStyle::default()
     };
     let current = ElementIdentity {
@@ -62,6 +63,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(reset.text_decoration_color, None);
     assert_eq!(reset.decoration_thickness, None);
     assert_eq!(reset.cursor, inherited.cursor);
+    assert!(!reset.border_box);
 
     let initial_rule = StyleRule {
         selectors: vec![".sample".to_owned()],
@@ -90,6 +92,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     );
     assert_eq!(initial.weight, Weight::NORMAL);
     assert_eq!(initial.background, [255, 255, 255]);
+    assert!(!initial.border_box);
 
     let inherit_rule = StyleRule {
         selectors: vec![".sample".to_owned()],
@@ -103,6 +106,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert_eq!(inherited_style.color, inherited.color);
     assert_eq!(inherited_style.family, inherited.family);
     assert_eq!(inherited_style.weight, inherited.weight);
+    assert!(inherited_style.border_box);
     assert_eq!(
         inherited_style.font_variant_numeric,
         inherited.font_variant_numeric
