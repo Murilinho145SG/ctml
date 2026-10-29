@@ -112,7 +112,7 @@ pub(super) fn draw(
                     first.level.number(),
                     Point::new(
                         anchor.x + anchor.x_offset * anchor.font_size + PAGE_PADDING,
-                        baseline + PAGE_PADDING,
+                        baseline + PAGE_PADDING + font.metrics().1.ascent,
                     ),
                 )
             });
@@ -217,7 +217,7 @@ fn configure_font(font: &mut Font) {
     font.set_force_auto_hinting(false);
     font.set_embedded_bitmaps(true);
     font.set_subpixel(true);
-    font.set_linear_metrics(false);
+    font.set_linear_metrics(true);
 }
 
 fn load_typeface(

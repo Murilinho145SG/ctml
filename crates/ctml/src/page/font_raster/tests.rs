@@ -261,7 +261,7 @@ fn configures_skia_font_to_match_chromium_parity_capture_flags() {
     assert!(!font.is_force_auto_hinting());
     assert!(font.is_embedded_bitmaps());
     assert!(font.is_subpixel());
-    assert!(!font.is_linear_metrics());
+    assert!(font.is_linear_metrics());
 }
 
 #[test]
