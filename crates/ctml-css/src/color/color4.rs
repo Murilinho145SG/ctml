@@ -136,19 +136,7 @@ pub(super) fn lab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {
 }
 
 pub(super) fn srgb_to_lab([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
-    let red = decode_srgb(red as f32 / 255.0);
-    let green = decode_srgb(green as f32 / 255.0);
-    let blue = decode_srgb(blue as f32 / 255.0);
-    let xyz_d65 = [
-        0.4123908 * red + 0.3575843 * green + 0.1804808 * blue,
-        0.2126390 * red + 0.7151687 * green + 0.0721923 * blue,
-        0.0193308 * red + 0.1191948 * green + 0.9505322 * blue,
-    ];
-    let [x, y, z] = [
-        1.0478112 * xyz_d65[0] + 0.0228866 * xyz_d65[1] - 0.0501270 * xyz_d65[2],
-        0.0295424 * xyz_d65[0] + 0.9904844 * xyz_d65[1] - 0.0170491 * xyz_d65[2],
-        -0.0092345 * xyz_d65[0] + 0.0150436 * xyz_d65[1] + 0.7521316 * xyz_d65[2],
-    ];
+    let [x, y, z] = srgb_to_xyz_d50([red, green, blue]);
     let fx = lab_forward(x / 0.96422);
     let fy = lab_forward(y);
     let fz = lab_forward(z / 0.82521);
@@ -198,7 +186,7 @@ pub(super) fn srgb_to_oklab([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
     )
 }
 
-fn xyz_d50_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
+pub(super) fn xyz_d50_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
     let xyz_d65 = [
         0.9555766 * x - 0.0230393 * y + 0.0631636 * z,
         -0.0282895 * x + 1.0099416 * y + 0.0210077 * z,
@@ -207,13 +195,33 @@ fn xyz_d50_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
     xyz_d65_to_srgb(xyz_d65)
 }
 
-fn xyz_d65_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
+pub(super) fn xyz_d65_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
     [
         3.2409699 * x - 1.5373832 * y - 0.4986108 * z,
         -0.9692436 * x + 1.8759675 * y + 0.0415551 * z,
         0.0556301 * x - 0.203977 * y + 1.0569715 * z,
     ]
     .map(encode_srgb)
+}
+
+pub(super) fn srgb_to_xyz_d65([red, green, blue]: [u8; 3]) -> [f32; 3] {
+    let red = decode_srgb(red as f32 / 255.0);
+    let green = decode_srgb(green as f32 / 255.0);
+    let blue = decode_srgb(blue as f32 / 255.0);
+    [
+        0.4123908 * red + 0.3575843 * green + 0.1804808 * blue,
+        0.2126390 * red + 0.7151687 * green + 0.0721923 * blue,
+        0.0193308 * red + 0.1191948 * green + 0.9505322 * blue,
+    ]
+}
+
+pub(super) fn srgb_to_xyz_d50(rgb: [u8; 3]) -> [f32; 3] {
+    let [x, y, z] = srgb_to_xyz_d65(rgb);
+    [
+        1.0478112 * x + 0.0228866 * y - 0.0501270 * z,
+        0.0295424 * x + 0.9904844 * y - 0.0170491 * z,
+        -0.0092345 * x + 0.0150436 * y + 0.7521316 * z,
+    ]
 }
 
 pub(super) fn encode_srgb(linear: f32) -> u8 {

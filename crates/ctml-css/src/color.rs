@@ -454,6 +454,17 @@ mod tests {
     }
 
     #[test]
+    fn parses_xyz_color_mixes_with_matching_white_points() {
+        for space in ["xyz", "xyz-d65", "xyz-d50"] {
+            assert_eq!(
+                parse_color(&format!("color-mix(in {space}, red, blue)")),
+                Some([188, 0, 188, 255]),
+                "unexpected XYZ mix in {space}"
+            );
+        }
+    }
+
+    #[test]
     fn parses_rgb_relative_colors_with_channel_and_alpha_references() {
         assert_eq!(parse_color("rgb(from red r g b)"), Some([255, 0, 0, 255]));
         assert_eq!(

@@ -22,6 +22,9 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let lch = interpolation_space.eq_ignore_ascii_case("lch");
             let oklab = interpolation_space.eq_ignore_ascii_case("oklab");
             let oklch = interpolation_space.eq_ignore_ascii_case("oklch");
+            let xyz_d50 = interpolation_space.eq_ignore_ascii_case("xyz-d50");
+            let xyz_d65 = interpolation_space.eq_ignore_ascii_case("xyz")
+                || interpolation_space.eq_ignore_ascii_case("xyz-d65");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
             if !interpolation_space.eq_ignore_ascii_case("srgb")
@@ -30,6 +33,8 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !lch
                 && !oklab
                 && !oklch
+                && !xyz_d50
+                && !xyz_d65
                 && !hsl
                 && !hwb
             {
@@ -65,6 +70,23 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
             let channels = if alpha == 0.0 {
                 [0; 3]
+            } else if xyz_d50 || xyz_d65 {
+                let convert = if xyz_d50 {
+                    super::color4::srgb_to_xyz_d50
+                } else {
+                    super::color4::srgb_to_xyz_d65
+                };
+                let first_xyz = convert(first.0);
+                let second_xyz = convert(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let mixed_xyz = std::array::from_fn(|index| {
+                    (first_xyz[index] * first_alpha + second_xyz[index] * second_alpha) / alpha_sum
+                });
+                if xyz_d50 {
+                    super::color4::xyz_d50_to_srgb(mixed_xyz)
+                } else {
+                    super::color4::xyz_d65_to_srgb(mixed_xyz)
+                }
             } else if lab {
                 let first_lab = super::color4::srgb_to_lab(first.0);
                 let second_lab = super::color4::srgb_to_lab(second.0);

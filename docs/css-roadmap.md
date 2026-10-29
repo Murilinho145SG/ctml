@@ -122,7 +122,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
 - [ ] Other predefined and custom color profiles, perceptual gamut mapping, and full CSS missing-component handling.
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
-- [x] `color-mix()` in `srgb`, `srgb-linear`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter-hue interpolation for polar spaces.
+- [x] `color-mix()` in `srgb`, `srgb-linear`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter-hue interpolation for polar spaces.
 - [ ] Other `color-mix()` interpolation spaces.
 - [x] Basic `rgb(from ...)` relative colors with `r`, `g`, `b`, and `alpha` references plus number and percentage channel values.
 - [ ] Other relative color functions, calculations, and missing-component behavior.

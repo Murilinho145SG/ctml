@@ -350,6 +350,9 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     assert_eq!(hwb_style.background, [255, 0, 255]);
 
     for (space, expected) in [
+        ("xyz", [188, 0, 188]),
+        ("xyz-d65", [188, 0, 188]),
+        ("xyz-d50", [188, 0, 188]),
         ("lab", [193, 0, 136]),
         ("lch", [245, 0, 134]),
         ("oklch", [186, 0, 194]),
