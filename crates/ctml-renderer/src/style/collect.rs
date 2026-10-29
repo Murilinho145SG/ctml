@@ -5,8 +5,8 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
 use super::{
-    LayoutSize, TextRun, TextStyle, append_text, is_block, list_marker::format_marker, pseudo,
-    push_line_break, selector_sibling_contexts,
+    LayoutHeight, LayoutSize, TextRun, TextStyle, append_text, is_block,
+    list_marker::format_marker, pseudo, push_line_break, selector_sibling_contexts,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -165,6 +165,32 @@ pub(super) fn collect_runs(
                         last_was_space,
                         capitalize_next,
                     );
+                }
+                if block
+                    && children.is_empty()
+                    && before_content.is_none()
+                    && after_content.is_none()
+                    && !list_item
+                    && (style.height.is_some() || style.min_height.is_some())
+                {
+                    let mut spacer_style = style.clone();
+                    spacer_style.empty_block_height = Some(LayoutHeight {
+                        height: style.height.clone(),
+                        min_height: style.min_height.clone(),
+                        max_height: style.max_height.clone(),
+                    });
+                    let last_was_space_before = *last_was_space;
+                    let capitalize_next_before = *capitalize_next;
+                    append_text(
+                        "\u{200b}",
+                        &spacer_style,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                    *last_was_space = last_was_space_before;
+                    *capitalize_next = capitalize_next_before;
                 }
                 collect_runs(
                     children,

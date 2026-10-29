@@ -1,6 +1,6 @@
 use ctml_css::parse_length;
 
-use crate::style::{LayoutSize, TextRun};
+use crate::style::{LayoutHeight, LayoutSize, TextRun};
 
 pub(super) fn resolve_width(value: &str, available_width: f32, font_size: f32) -> Option<f32> {
     let value = value.trim();
@@ -47,6 +47,33 @@ pub(super) fn resolve_layout_width(
         };
     }
     content_width.max(1.0)
+}
+
+pub(super) fn resolve_layout_height(
+    size: &LayoutHeight,
+    available_height: f32,
+    font_size: f32,
+) -> f32 {
+    let min_height = size
+        .min_height
+        .as_deref()
+        .and_then(|value| resolve_width(value, available_height, font_size));
+    let max_height = size
+        .max_height
+        .as_deref()
+        .and_then(|value| resolve_width(value, available_height, font_size));
+    let specified_height = size
+        .height
+        .as_deref()
+        .and_then(|value| resolve_width(value, available_height, font_size))
+        .unwrap_or(0.0);
+    match (min_height, max_height) {
+        (Some(min), Some(max)) if min > max => specified_height.max(min),
+        (Some(min), Some(max)) => specified_height.max(min).min(max),
+        (Some(min), None) => specified_height.max(min),
+        (None, Some(max)) => specified_height.min(max),
+        (None, None) => specified_height,
+    }
 }
 
 pub(super) fn line_layout_sizes(runs: &[TextRun], line_count: usize) -> Vec<Vec<LayoutSize>> {

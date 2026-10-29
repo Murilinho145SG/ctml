@@ -21,7 +21,7 @@ mod sizing;
 
 const PAGE_PADDING: f32 = 8.0;
 
-use sizing::{line_layout_sizes, resolve_layout_width, resolve_width};
+use sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width, resolve_width};
 
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
@@ -159,6 +159,14 @@ impl PageRasterizer {
             .zip(&run_families)
             .map(|(run, family)| {
                 let mut style = run.style.clone();
+                if let Some(height_size) = &style.empty_block_height {
+                    style.line_height = resolve_layout_height(
+                        height_size,
+                        (height as f32 - PAGE_PADDING * 2.0).max(1.0),
+                        style.font_size,
+                    );
+                    style.line_height_normal = false;
+                }
                 if style.line_height_normal {
                     style.line_height = normal_line_height(&mut self.font_system, &style, family)
                         .unwrap_or(style.font_size * 1.2);

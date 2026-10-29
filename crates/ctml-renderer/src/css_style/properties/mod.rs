@@ -20,7 +20,10 @@ use font::{
 };
 use font_feature_settings::apply_font_feature_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
-use size::{apply_max_width, apply_min_width, apply_width, inherit_width};
+use size::{
+    apply_height, apply_max_height, apply_max_width, apply_min_height, apply_min_width,
+    apply_width, inherit_width,
+};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -64,6 +67,12 @@ pub(super) fn apply_declaration_with_inherited(
         style.min_width = None;
     } else if keyword == "revert" && matches!(property, "max-width" | "max-inline-size") {
         style.max_width = None;
+    } else if keyword == "revert" && matches!(property, "height" | "block-size") {
+        style.height = None;
+    } else if keyword == "revert" && matches!(property, "min-height" | "min-block-size") {
+        style.min_height = None;
+    } else if keyword == "revert" && matches!(property, "max-height" | "max-block-size") {
+        style.max_height = None;
     } else {
         initial_property(style, property);
     }
@@ -120,6 +129,13 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "width" | "inline-size" => inherit_width(style, inherited),
         "min-width" | "min-inline-size" => style.min_width.clone_from(&inherited.min_width),
         "max-width" | "max-inline-size" => style.max_width.clone_from(&inherited.max_width),
+        "height" | "block-size" => style.height.clone_from(&inherited.height),
+        "min-height" | "min-block-size" => {
+            style.min_height.clone_from(&inherited.min_height);
+        }
+        "max-height" | "max-block-size" => {
+            style.max_height.clone_from(&inherited.max_height);
+        }
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -213,6 +229,9 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "width" | "inline-size" => style.width = None,
         "min-width" | "min-inline-size" => style.min_width = None,
         "max-width" | "max-inline-size" => style.max_width = None,
+        "height" | "block-size" => style.height = None,
+        "min-height" | "min-block-size" => style.min_height = None,
+        "max-height" | "max-block-size" => style.max_height = None,
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
@@ -298,6 +317,9 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "width" | "inline-size" => apply_width(style, value),
         "min-width" | "min-inline-size" => apply_min_width(style, value),
         "max-width" | "max-inline-size" => apply_max_width(style, value),
+        "height" | "block-size" => apply_height(style, value),
+        "min-height" | "min-block-size" => apply_min_height(style, value),
+        "max-height" | "max-block-size" => apply_max_height(style, value),
         "list-style-type" => apply_list_style_type(style, value),
         "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),

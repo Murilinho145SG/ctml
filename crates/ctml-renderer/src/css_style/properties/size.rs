@@ -15,14 +15,26 @@ pub(super) fn inherit_width(style: &mut TextStyle, inherited: &TextStyle) {
 }
 
 pub(super) fn apply_min_width(style: &mut TextStyle, value: &str) {
-    apply_width_limit(&mut style.min_width, value, "auto", style.font_size);
+    apply_dimension_limit(&mut style.min_width, value, "auto", style.font_size);
 }
 
 pub(super) fn apply_max_width(style: &mut TextStyle, value: &str) {
-    apply_width_limit(&mut style.max_width, value, "none", style.font_size);
+    apply_dimension_limit(&mut style.max_width, value, "none", style.font_size);
 }
 
-fn apply_width_limit(
+pub(super) fn apply_height(style: &mut TextStyle, value: &str) {
+    apply_dimension_limit(&mut style.height, value, "auto", style.font_size);
+}
+
+pub(super) fn apply_min_height(style: &mut TextStyle, value: &str) {
+    apply_dimension_limit(&mut style.min_height, value, "auto", style.font_size);
+}
+
+pub(super) fn apply_max_height(style: &mut TextStyle, value: &str) {
+    apply_dimension_limit(&mut style.max_height, value, "none", style.font_size);
+}
+
+fn apply_dimension_limit(
     target: &mut Option<String>,
     value: &str,
     reset_keyword: &str,

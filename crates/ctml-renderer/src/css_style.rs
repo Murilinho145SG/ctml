@@ -145,6 +145,10 @@ pub(super) fn resolve_style_with_selector_tree_context(
     style.width = None;
     style.min_width = None;
     style.max_width = None;
+    style.height = None;
+    style.min_height = None;
+    style.max_height = None;
+    style.empty_block_height = None;
     apply_matching_styles_with_inline_context(
         &mut style,
         current,

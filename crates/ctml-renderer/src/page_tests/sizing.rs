@@ -39,6 +39,93 @@ fn logical_inline_size_properties_use_the_horizontal_width_axis() {
 }
 
 #[test]
+fn empty_block_height_reserves_vertical_flow_space() {
+    let natural_after_y = empty_block_after_y(Vec::new());
+    let zero_height_after_y = empty_block_after_y(vec![StyleDeclaration {
+        property: "height".to_owned(),
+        value: "0".to_owned(),
+    }]);
+    assert!((zero_height_after_y - natural_after_y).abs() < 1.0);
+
+    for (property, value) in [
+        ("height", "100px"),
+        ("height", "25%"),
+        ("min-height", "100px"),
+        ("block-size", "100px"),
+        ("min-block-size", "100px"),
+    ] {
+        let sized_after_y = empty_block_after_y(vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }]);
+        assert!(
+            sized_after_y >= natural_after_y + 80.0,
+            "{property} should reserve the empty block height"
+        );
+    }
+
+    for property in ["max-height", "max-block-size"] {
+        let max_capped_after_y = empty_block_after_y(vec![
+            StyleDeclaration {
+                property: "height".to_owned(),
+                value: "100px".to_owned(),
+            },
+            StyleDeclaration {
+                property: property.to_owned(),
+                value: "40px".to_owned(),
+            },
+        ]);
+        assert!(max_capped_after_y >= natural_after_y + 20.0);
+        assert!(max_capped_after_y < natural_after_y + 60.0);
+    }
+}
+
+fn empty_block_after_y(declarations: Vec<StyleDeclaration>) -> f32 {
+    let nodes = [
+        text_paragraph("before"),
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        text_paragraph("after"),
+    ];
+    if declarations.is_empty() {
+        let mut page = PageRasterizer::new(&nodes, &[]);
+        page.prepare_layout(400, 400);
+        return text_line_y(&page, "after");
+    }
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations,
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(400, 400);
+    text_line_y(&page, "after")
+}
+
+fn text_paragraph(text: &str) -> UiNode {
+    UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(text.to_owned())],
+    }
+}
+
+fn text_line_y(page: &PageRasterizer, text: &str) -> f32 {
+    page.buffer
+        .layout_runs()
+        .find(|line| line.text.contains(text))
+        .expect("text line should be in layout")
+        .line_top
+}
+
+#[test]
 fn block_element_width_constrains_nested_text_wrapping() {
     let text = "words inside an inline child wrap to fit the parent block ".repeat(8);
     let nodes = [UiNode::Element {

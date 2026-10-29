@@ -119,7 +119,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `lower-alpha`, and `upper-alpha`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
 - [ ] Remaining `display` values and CSS formatting box generation.
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` map to these properties in horizontal writing mode.
-- [ ] Element `height`, `block-size`, and sizing behavior beyond text wrapping.
+- [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; `block-size`, `min-block-size`, and `max-block-size` map to them in horizontal writing mode.
+- [ ] Height sizing for blocks with content and sizing behavior beyond text flow.
 - [ ] `box-sizing` and intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
 - [ ] Borders, per-side styles/colors/widths, and logical border properties.
