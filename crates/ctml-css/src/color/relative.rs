@@ -7,9 +7,11 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
     let is_hsl = function == "hsl";
+    let is_lab = function == "lab";
+    let is_lch = function == "lch";
     let is_oklab = function == "oklab";
     let is_oklch = function == "oklch";
-    if function != "rgb" && !is_hsl && !is_oklab && !is_oklch {
+    if function != "rgb" && !is_hsl && !is_lab && !is_lch && !is_oklab && !is_oklch {
         return None;
     }
 
@@ -23,6 +25,24 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
                 let saturation = parse_hsl_unit_channel(input, source_hsl.1, "s")?;
                 let lightness = parse_hsl_unit_channel(input, source_hsl.2, "l")?;
                 super::hsl_to_rgb(hue, saturation, lightness)
+            } else if is_lab {
+                let source_lab = super::color4::srgb_to_lab(source_color.0);
+                let lightness = parse_relative_component(input, source_lab.0, "l", 100.0)?;
+                let a = parse_relative_component(input, source_lab.1, "a", 125.0)?;
+                let b = parse_relative_component(input, source_lab.2, "b", 125.0)?;
+                super::color4::lab_to_srgb((lightness, a, b))
+            } else if is_lch {
+                let source_lab = super::color4::srgb_to_lab(source_color.0);
+                let chroma = source_lab.1.hypot(source_lab.2);
+                let source_hue = source_lab
+                    .2
+                    .atan2(source_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let lightness = parse_relative_component(input, source_lab.0, "l", 100.0)?;
+                let chroma = parse_relative_component(input, chroma, "c", 150.0)?;
+                let hue = parse_hue_channel(input, source_hue)?.to_radians();
+                super::color4::lab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if is_oklab {
                 let source_lab = super::color4::srgb_to_oklab(source_color.0);
                 let lightness = parse_relative_component(input, source_lab.0, "l", 1.0)?;

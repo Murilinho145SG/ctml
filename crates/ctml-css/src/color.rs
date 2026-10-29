@@ -533,6 +533,21 @@ mod tests {
     }
 
     #[test]
+    fn parses_lab_relative_colors_and_channel_references() {
+        assert_eq!(parse_color("lab(from red l a b)"), Some([255, 0, 0, 255]));
+        assert_eq!(parse_color("lch(from red l c h)"), Some([255, 0, 0, 255]));
+        let source = parse_color("lab(50% 20 30 / 25%)");
+        assert_eq!(
+            parse_color("lab(from lab(50% 20 30 / 25%) l a b / alpha)"),
+            source
+        );
+        assert_ne!(
+            parse_color("lch(from red l c 240deg)"),
+            Some([255, 0, 0, 255])
+        );
+    }
+
+    #[test]
     fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
         assert_eq!(
             parse_color("color-mix(in srgb, transparent, red)"),

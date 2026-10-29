@@ -355,6 +355,9 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     let relative_oklab_style = style_for_declarations(&[("color", "oklab(from red l a b)")]);
     assert_eq!(relative_oklab_style.color, [255, 0, 0, 255]);
 
+    let relative_lab_style = style_for_declarations(&[("color", "lab(from red l a b)")]);
+    assert_eq!(relative_lab_style.color, [255, 0, 0, 255]);
+
     for (space, expected) in [
         ("display-p3", [188, 0, 188]),
         ("xyz", [188, 0, 188]),
