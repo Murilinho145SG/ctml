@@ -101,6 +101,15 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let first_weight = first_weight / weight_sum;
             let second_weight = second_weight / weight_sum;
             let (mut first, mut second) = (first, second);
+            match (first_missing[3], second_missing[3]) {
+                (true, true) => {
+                    first.1 = 0.0;
+                    second.1 = 0.0;
+                }
+                (true, false) => first.1 = second.1,
+                (false, true) => second.1 = first.1,
+                (false, false) => {}
+            }
             if srgb {
                 for index in 0..3 {
                     match (first_missing[index], second_missing[index]) {
@@ -112,15 +121,6 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                         (false, true) => second.0[index] = first.0[index],
                         (false, false) => {}
                     }
-                }
-                match (first_missing[3], second_missing[3]) {
-                    (true, true) => {
-                        first.1 = 0.0;
-                        second.1 = 0.0;
-                    }
-                    (true, false) => first.1 = second.1,
-                    (false, true) => second.1 = first.1,
-                    (false, false) => {}
                 }
             }
             let first_alpha = first.1 * first_weight;

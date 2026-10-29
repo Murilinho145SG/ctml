@@ -467,6 +467,19 @@ mod tests {
     }
 
     #[test]
+    fn color_mix_carries_forward_missing_alpha_in_other_spaces() {
+        for space in ["display-p3", "lab", "oklab", "hsl"] {
+            assert_eq!(
+                parse_color(&format!(
+                    "color-mix(in {space}, color(srgb 1 0 0 / none), blue)"
+                )),
+                parse_color(&format!("color-mix(in {space}, red, blue)")),
+                "missing alpha was not propagated in {space}"
+            );
+        }
+    }
+
+    #[test]
     fn converts_wide_gamut_rgb_profiles_to_srgb() {
         assert_eq!(
             parse_color("color(a98-rgb 0.5 0.5 0.5)"),
