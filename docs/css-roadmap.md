@@ -83,7 +83,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Legacy comma-separated `hsl()`/`hsla()` with degree, gradian, radian, or turn hue and alpha.
 - [x] Modern space-separated `rgb()`/`hsl()` syntax and slash alpha.
 - [x] `hwb()` colors with optional alpha.
-- [ ] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` functions.
+- [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
+- [ ] Other predefined and custom color profiles, perceptual gamut mapping, and full CSS missing-component handling.
 - [ ] Color profiles, wide-gamut spaces, and interpolation rules.
 - [ ] `color-mix()` and relative color syntax.
 - [ ] System colors and forced-color behavior where supported by the host OS.

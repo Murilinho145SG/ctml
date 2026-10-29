@@ -1,5 +1,7 @@
 use cssparser::{Parser, ParserInput, Token};
 
+mod color4;
+
 pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;
     Some([red, green, blue, (alpha * 255.0).round() as u8])
@@ -24,6 +26,9 @@ pub fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
 }
 
 fn parse_function_color(value: &str) -> Option<([u8; 3], f32)> {
+    if let Some(color) = color4::parse_color_function(value) {
+        return Some(color);
+    }
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
@@ -265,5 +270,34 @@ mod tests {
         assert_eq!(parse_color("hwb(120, 20%, 30%)"), None);
         assert_eq!(parse_color("rgb(10, nope, 20)"), None);
         assert_eq!(parse_color("rgb(10, 20 30)"), None);
+    }
+
+    #[test]
+    fn parses_lab_lch_oklab_oklch_and_color_functions() {
+        for color in [
+            "lab(54.2917% 80.8125 69.8851)",
+            "lch(54.2917% 106.839 40.853deg)",
+            "oklab(0.627955 0.224863 0.125846)",
+            "oklch(0.627955 0.257683 29.233deg)",
+            "color(srgb 1 0 0)",
+            "color(srgb-linear 1 0 0)",
+            "color(display-p3 1 0 0)",
+            "color(xyz 0.4123908 0.2126390 0.0193308)",
+            "color(xyz-d50 0.4360747 0.2225045 0.0139322)",
+            "color(xyz-d65 0.4123908 0.2126390 0.0193308)",
+        ] {
+            let Some([red, green, blue, alpha]) = parse_color(color) else {
+                panic!("failed to parse {color}");
+            };
+            assert!(red >= 250, "unexpected red channel for {color}: {red}");
+            assert!(green <= 5, "unexpected green channel for {color}: {green}");
+            assert!(blue <= 5, "unexpected blue channel for {color}: {blue}");
+            assert_eq!(alpha, 255);
+        }
+        assert_eq!(
+            parse_color("color(srgb 1 0 0 / 50%)"),
+            Some([255, 0, 0, 128])
+        );
+        assert_eq!(parse_color("lab(50% nope 0)"), None);
     }
 }
