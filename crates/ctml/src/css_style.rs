@@ -196,7 +196,12 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.text_align,
             };
         }
-        "text-decoration" | "text-decoration-line" => apply_text_decoration(style, value),
+        "text-decoration" => {
+            style.decoration_style = crate::style::TextDecorationStyle::Solid;
+            style.text_decoration_color = None;
+            apply_text_decoration(style, value);
+        }
+        "text-decoration-line" => apply_text_decoration(style, value),
         "text-decoration-style" => {
             style.decoration_style = match value.to_ascii_lowercase().as_str() {
                 "solid" => crate::style::TextDecorationStyle::Solid,

@@ -341,15 +341,7 @@ impl PageRasterizer {
             }
         }
         for run in buffer.layout_runs() {
-            let use_custom_decorations = run.decorations.iter().any(|span| {
-                span.font_size >= 10.0
-                    || run.glyphs.get(span.glyph_range.start).is_some_and(|glyph| {
-                        (glyph.metadata & 0b111) >= 2
-                            || ((glyph.metadata >> 4) & 0b11) != 1
-                            || (glyph.metadata & (1 << 6)) != 0
-                            || (glyph.metadata as u64 & (1_u64 << 32)) != 0
-                    })
-            });
+            let use_custom_decorations = !run.decorations.is_empty();
             let mut renderer = PixelRenderer {
                 pixels: &mut pixels,
                 width,

@@ -113,9 +113,8 @@ fn render_span<R: Renderer>(
             .strikethrough_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y = (run.line_y - data.strikethrough_metrics.offset * font_size) as i32
-            + 1
-            + thickness_offset;
+        let y =
+            (run.line_y - data.strikethrough_metrics.offset * font_size) as i32 + thickness_offset;
         draw_line(
             renderer,
             x_min as i32,
@@ -133,8 +132,8 @@ fn render_span<R: Renderer>(
             .overline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y =
-            (run.line_y - data.ascent * font_size).max(run.line_top) as i32 + 1 + thickness_offset;
+        let text_top = run.line_y - data.ascent * font_size;
+        let y = text_top as i32 - 2 + thickness_offset;
         draw_line(
             renderer,
             x_min as i32,
