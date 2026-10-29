@@ -308,7 +308,7 @@ impl PageRasterizer {
                     physical_glyph.cache_key,
                     color,
                     |x, y, pixel_color| {
-                        let alpha = (pixel_color.a() as u16 * base_alpha / 255) as u8;
+                        let alpha = ((pixel_color.a() as u16 * base_alpha + 127) / 255) as u8;
                         blend(
                             pixels,
                             width,
