@@ -8,27 +8,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let source = fs::read_to_string(source_path)?;
     let document = parse(&source)?;
-    let stylesheet = match document.stylesheet() {
-        Some(element) => {
-            let relative_path = string_attribute(element, "href")?
-                .ok_or_else(|| invalid_data("<stylesheet> requires an href attribute"))?;
-            let relative_path = PathBuf::from(relative_path);
-            if relative_path.is_absolute()
-                || relative_path
-                    .components()
-                    .any(|component| !matches!(component, std::path::Component::Normal(_)))
-            {
-                return Err(
-                    invalid_data("stylesheet href must be a relative path inside src/").into(),
-                );
-            }
-            let stylesheet_path = PathBuf::from("src").join(relative_path);
-            println!("cargo:rerun-if-changed={}", stylesheet_path.display());
-            let source = fs::read_to_string(stylesheet_path)?;
-            parse_stylesheet(&source).map_err(invalid_data)?.rules
+    let mut stylesheet = Vec::new();
+    for element in document.stylesheets() {
+        let relative_path = string_attribute(element, "href")?
+            .ok_or_else(|| invalid_data("<stylesheet> requires an href attribute"))?;
+        let relative_path = PathBuf::from(relative_path);
+        if relative_path.is_absolute()
+            || relative_path
+                .components()
+                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err(invalid_data("stylesheet href must be a relative path inside src/").into());
         }
-        None => Vec::new(),
-    };
+        let stylesheet_path = PathBuf::from("src").join(relative_path);
+        println!("cargo:rerun-if-changed={}", stylesheet_path.display());
+        let source = fs::read_to_string(stylesheet_path)?;
+        stylesheet.extend(parse_stylesheet(&source).map_err(invalid_data)?.rules);
+    }
     let application = document
         .application()
         .ok_or_else(|| invalid_data("<headers> must contain an <application> element"))?;

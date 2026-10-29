@@ -1,5 +1,6 @@
 <headers>
     <application name="CTML Native Demo" desktop width="960" height="640" />
+    <stylesheet href="base.css" />
     <stylesheet href="main.css" />
 </headers>
 

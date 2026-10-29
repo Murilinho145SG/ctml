@@ -8,7 +8,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 
 - [x] Load a linked `.css` stylesheet during the Rust build.
 - [x] Parse style rules and declarations at build time.
-- [ ] Parse multiple linked stylesheets and define their ordering.
+- [x] Parse multiple linked stylesheets in document header order.
 - [ ] Support `@import` with deterministic build-time resolution.
 - [ ] Define stylesheet encoding and comment handling behavior.
 - [ ] Implement complete CSS tokenization, escapes, strings, comments, and error recovery.

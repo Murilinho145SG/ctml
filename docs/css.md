@@ -1,10 +1,11 @@
 # CTML CSS
 
-CTML uses regular `.css` files. A stylesheet is declared in the CTML header and parsed during the Rust build. The compiled application receives native style data, so it does not include a CSS parser or browser runtime.
+CTML uses regular `.css` files. One or more stylesheets can be declared in the CTML header and are parsed during the Rust build in header order. Their rules enter the cascade in that same order, so later sheets take precedence when specificity and importance are equal. The compiled application receives native style data, so it does not include a CSS parser or browser runtime.
 
 ```ctml
 <headers>
     <application name="Example" desktop />
+    <stylesheet href="reset.css" />
     <stylesheet href="main.css" />
 </headers>
 
@@ -16,7 +17,7 @@ CTML uses regular `.css` files. A stylesheet is declared in the CTML header and 
 </body>
 ```
 
-The stylesheet path is relative to the Rust application's `src/` directory.
+Each stylesheet path is relative to the Rust application's `src/` directory.
 
 ```css
 body {

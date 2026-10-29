@@ -17,7 +17,11 @@ impl Document {
     }
 
     pub fn stylesheet(&self) -> Option<&Element> {
-        self.headers.iter().find_map(|node| match node {
+        self.stylesheets().next()
+    }
+
+    pub fn stylesheets(&self) -> impl Iterator<Item = &Element> {
+        self.headers.iter().filter_map(|node| match node {
             Node::Element(element) if element.name == "stylesheet" => Some(element),
             _ => None,
         })

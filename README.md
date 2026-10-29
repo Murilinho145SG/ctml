@@ -55,7 +55,7 @@ cargo build --workspace
 
 ## Native desktop window
 
-The first desktop feature exposes a native window through the Rust library. `Window::create` runs the application event loop until the window closes. The renderer presents a white page, wraps body text using a system sans-serif font at 16 px, reflows the text when the window is resized, supports word selection by double-click, and supports free text selection by dragging with the left mouse button. CSS `cursor` values map to native cursor icons. A small set of common block elements starts a new line. Link a regular `.css` file in `<headers>` to style the page. CTML compiles the markup and stylesheet into Rust data at build time; it does not ship a browser or parse them at runtime.
+The first desktop feature exposes a native window through the Rust library. `Window::create` runs the application event loop until the window closes. The renderer presents a white page, wraps body text using a system sans-serif font at 16 px, reflows the text when the window is resized, supports word selection by double-click, and supports free text selection by dragging with the left mouse button. CSS `cursor` values map to native cursor icons. A small set of common block elements starts a new line. Link one or more regular `.css` files in `<headers>` to style the page; rules follow header order. CTML compiles the markup and stylesheets into Rust data at build time; it does not ship a browser or parse them at runtime.
 
 ```rust
 use ctml::{Window, WindowConfig};
