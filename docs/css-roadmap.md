@@ -55,7 +55,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [x] Selector specificity and source order.
 - [x] Inheritance for supported text properties.
-- [ ] Complete origin and importance ordering, including user-agent, author, and user origins where applicable.
+- [x] Cascade ordering for author stylesheets and inline author styles, including `!important`; `revert` uses modeled user-agent initial values.
+- [ ] User-origin stylesheets; CTML does not currently expose a user-origin stylesheet source.
 - [x] `!important` declarations.
 - [x] Named cascade layers with `@layer` statements and blocks, including nested order and reversed `!important` precedence.
 - [x] Anonymous cascade layers.
