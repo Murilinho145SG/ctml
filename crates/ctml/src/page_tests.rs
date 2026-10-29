@@ -294,9 +294,10 @@ fn read_rgba_png(path: &Path) -> RgbaImage {
     }
 }
 
-fn compare_pixels(first: &[u8], second: &[u8]) -> (usize, Vec<u8>, u8) {
+fn compare_pixels(first: &[u8], second: &[u8]) -> (usize, usize, Vec<u8>, u8) {
     assert_eq!(first.len(), second.len(), "screenshot byte lengths");
     let mut differing_pixels = 0;
+    let mut exact_differences = 0;
     let mut diff_image = Vec::with_capacity(first.len());
     let mut max_delta = 0;
     for (first_pixel, second_pixel) in first.chunks_exact(4).zip(second.chunks_exact(4)) {
@@ -305,14 +306,17 @@ fn compare_pixels(first: &[u8], second: &[u8]) -> (usize, Vec<u8>, u8) {
             .max()
             .unwrap_or_default();
         max_delta = max_delta.max(delta);
-        if delta > CHANNEL_TOLERANCE {
-            differing_pixels += 1;
+        if delta > 0 {
+            exact_differences += 1;
             diff_image.extend_from_slice(&[delta, 0, 0, 255]);
         } else {
             diff_image.extend_from_slice(&[0, 0, 0, 255]);
         }
+        if delta > CHANNEL_TOLERANCE {
+            differing_pixels += 1;
+        }
     }
-    (differing_pixels, diff_image, max_delta)
+    (differing_pixels, exact_differences, diff_image, max_delta)
 }
 
 fn write_rgba_png(path: &Path, width: u32, height: u32, pixels: &[u8]) {

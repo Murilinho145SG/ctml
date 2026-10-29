@@ -197,7 +197,7 @@ fn run_parity_case(
         "Chromium image size: {name}"
     );
 
-    let (diff_pixels, diff_image_pixels, max_channel_delta) =
+    let (diff_pixels, exact_differences, diff_image_pixels, max_channel_delta) =
         compare_pixels(&native.pixels, &browser.pixels);
     write_rgba_png(&diff_image, WIDTH, HEIGHT, &diff_image_pixels);
     let pixel_count = (WIDTH * HEIGHT) as usize;
@@ -206,7 +206,7 @@ fn run_parity_case(
         "{}",
         colorize(
             &format!(
-                "CSS parity [{name}]: {diff_pixels}/{pixel_count} pixels differ ({:.3}%), max channel delta {max_channel_delta}. Artifacts: {}",
+                "CSS parity [{name}]: {exact_differences}/{pixel_count} pixels differ exactly; {diff_pixels} exceed channel tolerance ({:.3}%), max channel delta {max_channel_delta}. Artifacts: {}",
                 diff_ratio * 100.0,
                 artifact_dir.display()
             ),

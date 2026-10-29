@@ -49,4 +49,4 @@ Run every Chromium comparison serially:
 cargo test --offline -p ctml page::tests::parity -- --test-threads=1
 ```
 
-The Chromium suite compares native and browser screenshots with a 0.05% differing-pixel limit. This comparison helps identify rendering differences while the application stays fully native. Artifacts are written to `target/css-parity/<case>/`.
+The Chromium suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. The current pass limit is 0.05% of pixels above that tolerance. This comparison helps identify rendering differences while the application stays fully native. Artifacts are written to `target/css-parity/<case>/`.
