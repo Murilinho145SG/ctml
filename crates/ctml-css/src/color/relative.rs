@@ -2,6 +2,15 @@ use cssparser::{Parser, ParserInput, Token};
 
 use super::parse_color_with_opacity_depth;
 
+#[derive(Clone, Copy)]
+enum ColorSpace {
+    Srgb,
+    SrgbLinear,
+    DisplayP3,
+    XyzD50,
+    XyzD65,
+}
+
 pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
@@ -12,7 +21,16 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
     let is_lch = function == "lch";
     let is_oklab = function == "oklab";
     let is_oklch = function == "oklch";
-    if function != "rgb" && !is_hsl && !is_hwb && !is_lab && !is_lch && !is_oklab && !is_oklch {
+    let is_color = function == "color";
+    if function != "rgb"
+        && !is_hsl
+        && !is_hwb
+        && !is_lab
+        && !is_lch
+        && !is_oklab
+        && !is_oklch
+        && !is_color
+    {
         return None;
     }
 
@@ -20,6 +38,11 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
         .parse_nested_block(|input| {
             input.expect_ident_matching("from")?;
             let source_color = parse_source_color(input, depth)?;
+            let color_space = if is_color {
+                Some(parse_color_space(input)?)
+            } else {
+                None
+            };
             let channels = if is_hsl {
                 let source_hsl = super::rgb_to_hsl(source_color.0);
                 let hue = parse_hue_channel(input, source_hsl.0)?;
@@ -68,6 +91,18 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
                 let chroma = parse_relative_component(input, chroma, "c", 0.4)?;
                 let hue = parse_hue_channel(input, source_hue)?.to_radians();
                 super::color4::oklab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
+            } else if let Some(space) = color_space {
+                let source_components = convert_source_color(space, source_color.0);
+                let names = match space {
+                    ColorSpace::XyzD50 | ColorSpace::XyzD65 => ["x", "y", "z"],
+                    _ => ["r", "g", "b"],
+                };
+                let components = [
+                    parse_color_component(input, source_components, names)?,
+                    parse_color_component(input, source_components, names)?,
+                    parse_color_component(input, source_components, names)?,
+                ];
+                convert_color_space(space, components)
             } else {
                 [
                     parse_channel(input, source_color)?,
@@ -89,6 +124,65 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
         .ok()?;
 
     parser.is_exhausted().then_some(color)
+}
+
+fn parse_color_component<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    source_components: [f32; 3],
+    names: [&str; 3],
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    match input.next()? {
+        Token::Ident(name) => names
+            .iter()
+            .position(|component| name.eq_ignore_ascii_case(component))
+            .map(|index| source_components[index])
+            .ok_or_else(|| input.new_custom_error(())),
+        Token::Number { value, .. } if value.is_finite() => Ok(*value),
+        Token::Percentage { unit_value, .. } if unit_value.is_finite() => Ok(*unit_value),
+        _ => Err(input.new_custom_error(())),
+    }
+}
+
+fn parse_color_space<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<ColorSpace, cssparser::ParseError<'i, ()>> {
+    match input.expect_ident_cloned()?.to_ascii_lowercase().as_str() {
+        "srgb" => Ok(ColorSpace::Srgb),
+        "srgb-linear" => Ok(ColorSpace::SrgbLinear),
+        "display-p3" => Ok(ColorSpace::DisplayP3),
+        "xyz-d50" => Ok(ColorSpace::XyzD50),
+        "xyz" | "xyz-d65" => Ok(ColorSpace::XyzD65),
+        _ => Err(input.new_custom_error(())),
+    }
+}
+
+fn convert_source_color(space: ColorSpace, color: [u8; 3]) -> [f32; 3] {
+    match space {
+        ColorSpace::Srgb => color.map(|channel| channel as f32 / 255.0),
+        ColorSpace::SrgbLinear => {
+            color.map(|channel| super::color4::decode_srgb(channel as f32 / 255.0))
+        }
+        ColorSpace::DisplayP3 => super::color4::srgb_to_display_p3_linear(color)
+            .map(super::color4::encode_srgb)
+            .map(|channel| channel as f32 / 255.0),
+        ColorSpace::XyzD50 => super::color4::srgb_to_xyz_d50(color),
+        ColorSpace::XyzD65 => super::color4::srgb_to_xyz_d65(color),
+    }
+}
+
+fn convert_color_space(space: ColorSpace, components: [f32; 3]) -> [u8; 3] {
+    match space {
+        ColorSpace::Srgb => {
+            components.map(|channel| (channel.clamp(0.0, 1.0) * 255.0).round() as u8)
+        }
+        ColorSpace::SrgbLinear => components.map(super::color4::encode_srgb),
+        ColorSpace::DisplayP3 => {
+            let linear = components.map(super::color4::decode_srgb);
+            super::color4::display_p3_linear_to_srgb(linear)
+        }
+        ColorSpace::XyzD50 => super::color4::xyz_d50_to_srgb(components),
+        ColorSpace::XyzD65 => super::color4::xyz_d65_to_srgb(components),
+    }
 }
 
 fn parse_relative_component<'i, 't>(

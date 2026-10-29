@@ -544,6 +544,37 @@ mod tests {
     }
 
     #[test]
+    fn parses_color_function_relative_colors_in_supported_profiles() {
+        for profile in [
+            "srgb",
+            "srgb-linear",
+            "display-p3",
+            "xyz",
+            "xyz-d50",
+            "xyz-d65",
+        ] {
+            let names = if profile.starts_with("xyz") {
+                "x y z"
+            } else {
+                "r g b"
+            };
+            assert_eq!(
+                parse_color(&format!("color(from red {profile} {names})")),
+                Some([255, 0, 0, 255]),
+                "unexpected relative color in {profile}"
+            );
+        }
+        assert_eq!(
+            parse_color("color(from rgb(10 20 30 / 25%) srgb b g r / alpha)"),
+            Some([30, 20, 10, 64])
+        );
+        assert_eq!(
+            parse_color("color(from red srgb 0 1 0)"),
+            Some([0, 255, 0, 255])
+        );
+    }
+
+    #[test]
     fn parses_oklab_relative_colors_and_channel_references() {
         assert_eq!(parse_color("oklab(from red l a b)"), Some([255, 0, 0, 255]));
         assert_eq!(

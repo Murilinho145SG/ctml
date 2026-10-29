@@ -367,6 +367,9 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     let relative_hwb_style = style_for_declarations(&[("color", "hwb(from red 120deg w b)")]);
     assert_eq!(relative_hwb_style.color, [0, 255, 0, 255]);
 
+    let relative_color_style = style_for_declarations(&[("color", "color(from red srgb 0 1 0)")]);
+    assert_eq!(relative_color_style.color, [0, 255, 0, 255]);
+
     for (space, expected) in [
         ("display-p3", [188, 0, 188]),
         ("xyz", [188, 0, 188]),
