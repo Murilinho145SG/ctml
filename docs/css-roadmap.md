@@ -119,11 +119,10 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Legacy comma-separated `hsl()`/`hsla()` with degree, gradian, radian, or turn hue and alpha.
 - [x] Modern space-separated `rgb()`/`hsl()` syntax and slash alpha.
 - [x] `hwb()` colors with optional alpha.
-- [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
+- [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
 - [ ] Other predefined and custom color profiles, perceptual gamut mapping, and full CSS missing-component handling.
-- [ ] Perceptual gamut mapping and custom profile management.
-- [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
-- [ ] `display-p3-linear` and custom `color-mix()` interpolation spaces.
+- [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
+- [ ] Custom `color-mix()` interpolation spaces.
 - [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, `oklch(from ...)`, and `color(from ...)` relative colors in supported profiles with channel references, alpha preservation, supported numeric, percentage, and angle overrides, number, percentage, and angle calculations, and `none` components mapped to zero during conversion.
 - [ ] Additional profiles and propagation of missing components from source colors and through interpolation.
 - [ ] System colors and forced-color behavior where supported by the host OS.

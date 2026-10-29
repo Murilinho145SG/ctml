@@ -34,6 +34,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let xyz_d65 = interpolation_space.eq_ignore_ascii_case("xyz")
                 || interpolation_space.eq_ignore_ascii_case("xyz-d65");
             let display_p3 = interpolation_space.eq_ignore_ascii_case("display-p3");
+            let display_p3_linear = interpolation_space.eq_ignore_ascii_case("display-p3-linear");
             let a98_rgb = interpolation_space.eq_ignore_ascii_case("a98-rgb");
             let prophoto_rgb = interpolation_space.eq_ignore_ascii_case("prophoto-rgb");
             let rec2020 = interpolation_space.eq_ignore_ascii_case("rec2020");
@@ -48,6 +49,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !xyz_d50
                 && !xyz_d65
                 && !display_p3
+                && !display_p3_linear
                 && !a98_rgb
                 && !prophoto_rgb
                 && !rec2020
@@ -103,6 +105,14 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let channels = if alpha == 0.0 {
                 [0; 3]
             } else if display_p3 {
+                let first_p3 = super::color4::srgb_to_display_p3(first.0);
+                let second_p3 = super::color4::srgb_to_display_p3(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let mixed_p3 = std::array::from_fn(|index| {
+                    (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
+                });
+                super::color4::display_p3_to_srgb(mixed_p3)
+            } else if display_p3_linear {
                 let first_p3 = super::color4::srgb_to_display_p3_linear(first.0);
                 let second_p3 = super::color4::srgb_to_display_p3_linear(second.0);
                 let alpha_sum = first_alpha + second_alpha;

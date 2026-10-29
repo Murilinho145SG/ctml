@@ -87,6 +87,7 @@ fn parse_color_space<'i, 't>(
     let rgb = match space.as_str() {
         "srgb" => [red, green, blue].map(component_to_byte),
         "srgb-linear" => [red, green, blue].map(encode_srgb),
+        "display-p3-linear" => display_p3_linear_to_srgb([red, green, blue]),
         "display-p3" => {
             let [red, green, blue] = [red, green, blue].map(decode_srgb);
             xyz_d65_to_srgb([
@@ -237,6 +238,22 @@ pub(super) fn display_p3_linear_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3]
         0.22897456 * red + 0.69173852 * green + 0.07928691 * blue,
         0.04511338 * green + 1.04394437 * blue,
     ])
+}
+
+pub(super) fn srgb_to_display_p3(rgb: [u8; 3]) -> [f32; 3] {
+    srgb_to_display_p3_linear(rgb).map(encode_srgb_component)
+}
+
+pub(super) fn display_p3_to_srgb(components: [f32; 3]) -> [u8; 3] {
+    display_p3_linear_to_srgb(components.map(decode_srgb))
+}
+
+fn encode_srgb_component(linear: f32) -> f32 {
+    if linear <= 0.0031308 {
+        12.92 * linear
+    } else {
+        1.055 * linear.powf(1.0 / 2.4) - 0.055
+    }
 }
 
 pub(super) fn a98_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3] {

@@ -375,7 +375,8 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
     assert_eq!(calculated_relative_color_style.color, [235, 0, 0, 255]);
 
     for (space, expected) in [
-        ("display-p3", [188, 0, 188]),
+        ("display-p3", [128, 10, 145]),
+        ("display-p3-linear", [188, 0, 188]),
         ("xyz", [188, 0, 188]),
         ("xyz-d65", [188, 0, 188]),
         ("xyz-d50", [188, 0, 188]),

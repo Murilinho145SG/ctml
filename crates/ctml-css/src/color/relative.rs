@@ -7,6 +7,7 @@ enum ColorSpace {
     Srgb,
     SrgbLinear,
     DisplayP3,
+    DisplayP3Linear,
     A98Rgb,
     ProPhotoRgb,
     Rec2020,
@@ -165,6 +166,7 @@ fn parse_color_space<'i, 't>(
         "srgb" => Ok(ColorSpace::Srgb),
         "srgb-linear" => Ok(ColorSpace::SrgbLinear),
         "display-p3" => Ok(ColorSpace::DisplayP3),
+        "display-p3-linear" => Ok(ColorSpace::DisplayP3Linear),
         "a98-rgb" => Ok(ColorSpace::A98Rgb),
         "prophoto-rgb" => Ok(ColorSpace::ProPhotoRgb),
         "rec2020" => Ok(ColorSpace::Rec2020),
@@ -180,9 +182,8 @@ fn convert_source_color(space: ColorSpace, color: [u8; 3]) -> [f32; 3] {
         ColorSpace::SrgbLinear => {
             color.map(|channel| super::color4::decode_srgb(channel as f32 / 255.0))
         }
-        ColorSpace::DisplayP3 => super::color4::srgb_to_display_p3_linear(color)
-            .map(super::color4::encode_srgb)
-            .map(|channel| channel as f32 / 255.0),
+        ColorSpace::DisplayP3 => super::color4::srgb_to_display_p3(color),
+        ColorSpace::DisplayP3Linear => super::color4::srgb_to_display_p3_linear(color),
         ColorSpace::A98Rgb => super::color4::srgb_to_a98(color),
         ColorSpace::ProPhotoRgb => super::color4::srgb_to_prophoto(color),
         ColorSpace::Rec2020 => super::color4::srgb_to_rec2020(color),
@@ -197,10 +198,8 @@ fn convert_color_space(space: ColorSpace, components: [f32; 3]) -> [u8; 3] {
             components.map(|channel| (channel.clamp(0.0, 1.0) * 255.0).round() as u8)
         }
         ColorSpace::SrgbLinear => components.map(super::color4::encode_srgb),
-        ColorSpace::DisplayP3 => {
-            let linear = components.map(super::color4::decode_srgb);
-            super::color4::display_p3_linear_to_srgb(linear)
-        }
+        ColorSpace::DisplayP3 => super::color4::display_p3_to_srgb(components),
+        ColorSpace::DisplayP3Linear => super::color4::display_p3_linear_to_srgb(components),
         ColorSpace::A98Rgb => super::color4::a98_to_srgb(components),
         ColorSpace::ProPhotoRgb => super::color4::prophoto_to_srgb(components),
         ColorSpace::Rec2020 => super::color4::rec2020_to_srgb(components),

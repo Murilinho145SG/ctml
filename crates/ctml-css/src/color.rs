@@ -331,6 +331,7 @@ mod tests {
             "color(srgb 1 0 0)",
             "color(srgb-linear 1 0 0)",
             "color(display-p3 1 0 0)",
+            "color(display-p3-linear 1 0 0)",
             "color(a98-rgb 1 0 0)",
             "color(prophoto-rgb 1 0 0)",
             "color(rec2020 1 0 0)",
@@ -499,6 +500,10 @@ mod tests {
     fn parses_predefined_wide_gamut_color_mixes() {
         assert_eq!(
             parse_color("color-mix(in display-p3, red, blue)"),
+            Some([128, 10, 145, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in display-p3-linear, red, blue)"),
             Some([188, 0, 188, 255])
         );
         assert_eq!(
@@ -632,6 +637,7 @@ mod tests {
             "srgb",
             "srgb-linear",
             "display-p3",
+            "display-p3-linear",
             "a98-rgb",
             "prophoto-rgb",
             "rec2020",
