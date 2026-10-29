@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
-use cosmic_text::{Buffer, FontSystem};
+use cosmic_text::{Buffer, FontSystem, fontdb};
 use skia_safe::{
     AlphaType, Color, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId, ImageInfo, Paint,
-    Point, TextBlobBuilder, font::Edging, surfaces,
+    Point, TextBlobBuilder,
+    font::Edging,
+    font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
+    surfaces,
 };
 
 use crate::page::PAGE_PADDING;
@@ -46,14 +49,9 @@ pub(super) fn draw(
                 end += 1;
             }
 
-            let typeface = typefaces.entry(first.font_id).or_insert_with(|| {
-                font_system
-                    .db()
-                    .with_face_data(first.font_id, |data, index| {
-                        font_manager.new_from_bytes(data, Some(index))
-                    })
-                    .flatten()
-            });
+            let typeface = typefaces
+                .entry(first.font_id)
+                .or_insert_with(|| load_typeface(font_system, &font_manager, first.font_id));
             let typeface = typeface.clone();
             let Some(typeface) = typeface else {
                 start = end;
@@ -88,4 +86,40 @@ pub(super) fn draw(
             start = end;
         }
     }
+}
+
+fn load_typeface(
+    font_system: &FontSystem,
+    font_manager: &FontMgr,
+    font_id: fontdb::ID,
+) -> Option<skia_safe::Typeface> {
+    let matched = font_system.db().face(font_id).and_then(|face| {
+        let family = face.families.first()?.0.as_str();
+        let width = match face.stretch {
+            fontdb::Stretch::UltraCondensed => SkiaWidth::ULTRA_CONDENSED,
+            fontdb::Stretch::ExtraCondensed => SkiaWidth::EXTRA_CONDENSED,
+            fontdb::Stretch::Condensed => SkiaWidth::CONDENSED,
+            fontdb::Stretch::SemiCondensed => SkiaWidth::SEMI_CONDENSED,
+            fontdb::Stretch::Normal => SkiaWidth::NORMAL,
+            fontdb::Stretch::SemiExpanded => SkiaWidth::SEMI_EXPANDED,
+            fontdb::Stretch::Expanded => SkiaWidth::EXPANDED,
+            fontdb::Stretch::ExtraExpanded => SkiaWidth::EXTRA_EXPANDED,
+            fontdb::Stretch::UltraExpanded => SkiaWidth::ULTRA_EXPANDED,
+        };
+        let slant = match face.style {
+            fontdb::Style::Normal => Slant::Upright,
+            fontdb::Style::Italic => Slant::Italic,
+            fontdb::Style::Oblique => Slant::Oblique,
+        };
+        let style = SkiaFontStyle::new(SkiaWeight::from(i32::from(face.weight.0)), width, slant);
+        font_manager.match_family_style(family, style)
+    });
+    matched.or_else(|| {
+        font_system
+            .db()
+            .with_face_data(font_id, |data, index| {
+                font_manager.new_from_bytes(data, Some(index))
+            })
+            .flatten()
+    })
 }
