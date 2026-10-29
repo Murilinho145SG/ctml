@@ -447,3 +447,27 @@ fn selector_group_matches_the_most_specific_member_only_once() {
     let style = resolve_style(&TextStyle::default(), &current, &[], &[rule]);
     assert_eq!(style.weight, Weight::BOLD);
 }
+
+#[test]
+fn functional_pseudo_specificity_uses_the_most_specific_argument() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("active".to_owned()),
+        id: None,
+    };
+    let rules =
+        [(":is(.active, #not-present)", "blue"), (".active", "red")].map(|(selector, value)| {
+            StyleRule {
+                selectors: vec![selector.to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: value.to_owned(),
+                }],
+            }
+        });
+
+    let style = resolve_style(&TextStyle::default(), &current, &[], &rules);
+
+    assert_eq!(style.color, [0, 0, 255, 255]);
+}

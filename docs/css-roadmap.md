@@ -49,7 +49,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
 - [x] CSS escapes in type, class, and ID identifiers, attribute names and values, plus specificity for the currently supported selector constructs.
 - [x] Filtered `:nth-child(... of S)` and `:nth-last-child(... of S)` matching.
-- [ ] Remaining selector specificity edge cases.
+- [x] Remaining selector specificity edge cases: nested functional arguments, filtered nth selectors, escaped identifiers, and pseudo-element weight.
 
 ## Cascade, inheritance, and computed values
 

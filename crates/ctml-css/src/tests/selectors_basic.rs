@@ -59,6 +59,25 @@ fn computes_selector_specificity_by_id_class_and_type() {
 }
 
 #[test]
+fn computes_specificity_for_nested_functional_pseudos_and_escapes() {
+    assert_eq!(selector_specificity(":is(.active, #fallback)"), (1, 0, 0));
+    assert_eq!(
+        selector_specificity(":not(.disabled, #fallback)"),
+        (1, 0, 0)
+    );
+    assert_eq!(selector_specificity(":has(> section #target)"), (1, 0, 1));
+    assert_eq!(selector_specificity(":where(#target, .active)"), (0, 0, 0));
+    assert_eq!(
+        selector_specificity("li:nth-last-child(2n of :is(.item, #target))"),
+        (1, 1, 1)
+    );
+    assert_eq!(
+        selector_specificity(r"p:is(.active, #\74 arget)::before"),
+        (1, 0, 2)
+    );
+}
+
+#[test]
 fn matches_attribute_selector_operators_and_case_flags() {
     let element = ElementIdentity {
         tag: "input".to_owned(),
