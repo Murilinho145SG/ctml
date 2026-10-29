@@ -174,7 +174,7 @@ fn xyz_d65_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
     .map(encode_srgb)
 }
 
-fn encode_srgb(linear: f32) -> u8 {
+pub(super) fn encode_srgb(linear: f32) -> u8 {
     let linear = linear.clamp(0.0, 1.0);
     let encoded = if linear <= 0.0031308 {
         12.92 * linear
@@ -184,7 +184,7 @@ fn encode_srgb(linear: f32) -> u8 {
     (encoded * 255.0).round() as u8
 }
 
-fn decode_srgb(encoded: f32) -> f32 {
+pub(super) fn decode_srgb(encoded: f32) -> f32 {
     let encoded = encoded.clamp(0.0, 1.0);
     if encoded <= 0.04045 {
         encoded / 12.92

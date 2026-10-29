@@ -333,6 +333,18 @@ mod tests {
     }
 
     #[test]
+    fn parses_linear_srgb_color_mixes_in_linear_light() {
+        assert_eq!(
+            parse_color("color-mix(in srgb-linear, red, blue)"),
+            Some([188, 0, 188, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb-linear, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+    }
+
+    #[test]
     fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
         assert_eq!(
             parse_color("color-mix(in srgb, transparent, red)"),

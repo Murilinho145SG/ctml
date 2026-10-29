@@ -17,9 +17,13 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
         .parse_nested_block(|input| {
             input.expect_ident_matching("in")?;
             let interpolation_space = input.expect_ident_cloned()?;
-            if !interpolation_space.eq_ignore_ascii_case("srgb") {
+            let linear_srgb = if interpolation_space.eq_ignore_ascii_case("srgb") {
+                false
+            } else if interpolation_space.eq_ignore_ascii_case("srgb-linear") {
+                true
+            } else {
                 return Err(input.new_custom_error(()));
-            }
+            };
             input.expect_comma()?;
 
             let (first, first_percentage) = parse_mix_component(input, depth)?;
@@ -52,10 +56,21 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 [0; 3]
             } else {
                 std::array::from_fn(|index| {
-                    ((first.0[index] as f32 * first_alpha + second.0[index] as f32 * second_alpha)
-                        / (first_alpha + second_alpha))
-                        .round()
-                        .clamp(0.0, 255.0) as u8
+                    if linear_srgb {
+                        let first_channel =
+                            super::color4::decode_srgb(first.0[index] as f32 / 255.0);
+                        let second_channel =
+                            super::color4::decode_srgb(second.0[index] as f32 / 255.0);
+                        let channel = (first_channel * first_alpha + second_channel * second_alpha)
+                            / (first_alpha + second_alpha);
+                        super::color4::encode_srgb(channel)
+                    } else {
+                        ((first.0[index] as f32 * first_alpha
+                            + second.0[index] as f32 * second_alpha)
+                            / (first_alpha + second_alpha))
+                            .round()
+                            .clamp(0.0, 255.0) as u8
+                    }
                 })
             };
             Ok((channels, alpha.clamp(0.0, 1.0)))

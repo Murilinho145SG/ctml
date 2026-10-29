@@ -331,6 +331,10 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
 
     assert_eq!(style.color, [255, 0, 0, 128]);
     assert_eq!(style.background, [191, 191, 255]);
+
+    let linear_style =
+        style_for_declarations(&[("background-color", "color-mix(in srgb-linear, red, blue)")]);
+    assert_eq!(linear_style.background, [188, 0, 188]);
 }
 
 #[test]
