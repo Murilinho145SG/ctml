@@ -51,7 +51,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Complete origin and importance ordering, including user-agent, author, and user origins where applicable.
 - [x] `!important` declarations.
 - [x] Named cascade layers with `@layer` statements and blocks, including nested order and reversed `!important` precedence.
-- [ ] Anonymous cascade layers and escaped layer names.
+- [x] Anonymous cascade layers.
+- [ ] Escaped layer names.
 - [x] `inherit`, `initial`, and `unset` for supported properties.
 - [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
 - [x] `revert-layer` for supported declarations in named layers.

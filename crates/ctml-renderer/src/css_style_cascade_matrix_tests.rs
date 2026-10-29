@@ -73,6 +73,60 @@ fn cascade_layers_order_normal_and_important_declarations() {
 }
 
 #[test]
+fn anonymous_cascade_layers_apply_normal_and_important_order() {
+    let parsed = ctml_css::parse_stylesheet(
+        "@layer { .sample { color: red; } } @layer { .sample { color: blue; } }",
+    )
+    .expect("anonymous layer stylesheet should parse");
+    let rules = parsed
+        .rules
+        .into_iter()
+        .map(|rule| StyleRule {
+            selectors: rule.selectors,
+            declarations: rule
+                .declarations
+                .into_iter()
+                .map(|declaration| StyleDeclaration {
+                    property: declaration.property,
+                    value: declaration.value,
+                })
+                .collect(),
+            layer: rule.layer,
+        })
+        .collect::<Vec<_>>();
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+
+    let normal = resolve_style(&TextStyle::default(), &current, &[], &rules);
+    assert_eq!(normal.color, [0, 0, 255, 255]);
+
+    let important = ctml_css::parse_stylesheet(
+        "@layer { .sample { color: red !important; } } @layer { .sample { color: blue !important; } }",
+    )
+    .expect("important anonymous layer stylesheet should parse")
+    .rules
+    .into_iter()
+    .map(|rule| StyleRule {
+        selectors: rule.selectors,
+        declarations: rule
+            .declarations
+            .into_iter()
+            .map(|declaration| StyleDeclaration {
+                property: declaration.property,
+                value: declaration.value,
+            })
+            .collect(),
+        layer: rule.layer,
+    })
+    .collect::<Vec<_>>();
+    let important = resolve_style(&TextStyle::default(), &current, &[], &important);
+    assert_eq!(important.color, [255, 0, 0, 255]);
+}
+
+#[test]
 fn later_layers_outrank_earlier_layers_before_specificity() {
     let current = ElementIdentity {
         tag: "p".to_owned(),

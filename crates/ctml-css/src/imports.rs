@@ -102,7 +102,37 @@ fn parse_source_segment(source: &str, path: &Path, line_offset: u32) -> Result<S
 }
 
 fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
-    for name in &source.layers {
+    let mut anonymous_segments = std::collections::HashMap::new();
+    let mut next_anonymous = target
+        .layers
+        .iter()
+        .flat_map(|name| name.split('.'))
+        .filter(|name| is_anonymous_layer_segment(name))
+        .count();
+    let source_layers = source
+        .layers
+        .iter()
+        .map(|name| {
+            name.split('.')
+                .map(|segment| {
+                    if is_anonymous_layer_segment(segment) {
+                        anonymous_segments
+                            .entry(segment.to_owned())
+                            .or_insert_with(|| {
+                                let name = format!("<anonymous-layer-import-{next_anonymous}>");
+                                next_anonymous += 1;
+                                name
+                            })
+                            .clone()
+                    } else {
+                        segment.to_owned()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(".")
+        })
+        .collect::<Vec<_>>();
+    for name in &source_layers {
         if !target.layers.contains(name) {
             let insertion = name
                 .rsplit_once('.')
@@ -113,7 +143,7 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
     }
     for rule in &mut source.rules {
         rule.layer = rule.layer.map(|index| {
-            let name = &source.layers[index];
+            let name = &source_layers[index];
             target
                 .layers
                 .iter()
@@ -122,6 +152,10 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
         });
     }
     target.rules.extend(source.rules);
+}
+
+fn is_anonymous_layer_segment(name: &str) -> bool {
+    name.starts_with("<anonymous-layer-")
 }
 
 fn line_offset(source: &str, byte_offset: usize) -> u32 {

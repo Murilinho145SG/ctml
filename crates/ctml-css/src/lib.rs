@@ -78,6 +78,7 @@ pub(crate) fn parse_stylesheet_with_line_offset(
 struct LayerParseState {
     roots: Vec<LayerNode>,
     rules: Vec<(Option<String>, CssRule)>,
+    anonymous_layer_count: usize,
 }
 
 #[derive(Default)]
@@ -88,6 +89,14 @@ struct LayerNode {
 }
 
 impl LayerParseState {
+    fn register_anonymous(&mut self, current_layer: &[String]) -> String {
+        let name = format!("<anonymous-layer-{}>", self.anonymous_layer_count);
+        self.anonymous_layer_count += 1;
+        let mut path = current_layer.to_vec();
+        path.push(name);
+        self.register(&path)
+    }
+
     fn register(&mut self, parts: &[String]) -> String {
         let mut siblings = &mut self.roots;
         let mut path = Vec::new();
@@ -141,6 +150,16 @@ fn parse_rule_list<'i, 't>(
         )?;
         let statement = input.try_parse(|input| input.expect_semicolon()).is_ok();
         if let Some(layer_header) = layer_at_rule(&prelude) {
+            if layer_header.is_empty() {
+                if statement {
+                    return Err(input.new_custom_error(()));
+                }
+                let path = state.register_anonymous(current_layer);
+                let path = path.split('.').map(str::to_owned).collect::<Vec<_>>();
+                input.expect_curly_bracket_block()?;
+                input.parse_nested_block(|nested| parse_rule_list(nested, &path, state))?;
+                continue;
+            }
             let names = parse_layer_names(layer_header).map_err(|_| input.new_custom_error(()))?;
             if statement {
                 for name in names {

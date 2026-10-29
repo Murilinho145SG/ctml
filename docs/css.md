@@ -23,7 +23,7 @@ Stylesheets can import local files with a quoted path or `url()`, for example `@
 
 Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments are discarded outside quoted strings, and an unterminated comment is an error. The legacy `@charset` rule does not change decoding and is unsupported.
 
-Named `@layer` order statements and blocks are supported, including nested named layers. Normal declarations in later layers outrank earlier layers, while `!important` layer order is reversed; unlayered normal rules outrank layered normal rules, and layered important rules outrank unlayered important rules. Anonymous layers and escaped layer names are not supported.
+Named `@layer` order statements and blocks are supported, including nested named layers and anonymous blocks. Anonymous layers remain distinct across stylesheet imports. Normal declarations in later layers outrank earlier layers, while `!important` layer order is reversed; unlayered normal rules outrank layered normal rules, and layered important rules outrank unlayered important rules. Escaped layer names are not supported.
 
 Malformed stylesheet syntax reports the source file, line, and column during the build. Invalid declarations are skipped so later declarations in the same rule can still apply.
 
@@ -83,7 +83,7 @@ Malformed declarations are skipped without a warning, and parsing continues with
 - `:dir(auto)` first-strong character detection; `:dir()` currently uses explicit inherited `dir="ltr|rtl"` values and defaults to `ltr`.
 - `:visited`, form and range state, and `:target`; CTML currently has no link history, form controls, or document navigation target.
 - `::first-line`, `::first-letter`, and `::selection`; CTML does not yet track line fragments or selection-aware shaping.
-- Anonymous cascade layers and escaped layer names.
+- Escaped cascade layer names.
 
 ### Layout and sizing
 

@@ -28,8 +28,28 @@ fn parses_named_ordered_and_nested_layers() {
 }
 
 #[test]
-fn rejects_anonymous_layers_and_malformed_layer_statements() {
-    assert!(parse_stylesheet("@layer { p { color: red; } }").is_err());
+fn parses_anonymous_layers_in_source_order() {
+    let stylesheet = parse_stylesheet(
+        "@layer base; @layer { p { color: red; } @layer { p { color: blue; } } } @layer theme { p { color: green; } }",
+    )
+    .expect("anonymous layers should be supported");
+
+    assert_eq!(
+        stylesheet.layers,
+        [
+            "base",
+            "<anonymous-layer-0>.<anonymous-layer-1>",
+            "<anonymous-layer-0>",
+            "theme"
+        ]
+    );
+    assert_eq!(stylesheet.rules[0].layer, Some(2));
+    assert_eq!(stylesheet.rules[1].layer, Some(1));
+    assert_eq!(stylesheet.rules[2].layer, Some(3));
+}
+
+#[test]
+fn rejects_malformed_layer_statements() {
     assert!(parse_stylesheet("@layer first,,second;").is_err());
     assert!(parse_stylesheet("@layer -1invalid;").is_err());
 }
