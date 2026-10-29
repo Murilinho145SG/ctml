@@ -2,6 +2,8 @@ mod has;
 mod list;
 mod specificity;
 
+pub(super) use list::split_selector_list;
+
 use compound::css_escape_end;
 use has::selector_has_matches;
 pub use specificity::selector_specificity;
@@ -356,8 +358,14 @@ pub(super) fn selector_compounds(selector: &str) -> Option<Vec<(String, Selector
             continue;
         }
         if character == '(' {
+            if start.is_none() {
+                return None;
+            }
             paren_depth = 1;
             continue;
+        }
+        if matches!(character, ']' | ')' | '"' | '\'') {
+            return None;
         }
         if character.is_ascii_whitespace() || matches!(character, '>' | '+' | '~') {
             if let Some(compound_start) = start.take() {
@@ -377,6 +385,9 @@ pub(super) fn selector_compounds(selector: &str) -> Option<Vec<(String, Selector
         } else if start.is_none() {
             start = Some(index);
         }
+    }
+    if bracket_depth != 0 || paren_depth != 0 || quote.is_some() {
+        return None;
     }
     if let Some(compound_start) = start {
         compounds.push((selector[compound_start..].to_owned(), relation));

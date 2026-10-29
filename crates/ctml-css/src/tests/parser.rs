@@ -164,3 +164,37 @@ fn skips_malformed_declarations_and_preserves_unknown_properties() {
     assert_eq!(stylesheet.rules[0].declarations[1].property, "color");
     assert_eq!(stylesheet.rules[0].declarations[1].value, "blue");
 }
+
+#[test]
+fn skips_unsupported_at_rules_and_continues_parsing() {
+    let stylesheet = parse_stylesheet(
+        "@charset \"UTF-8\"; @media screen { p { color: red; } } @supports (display: grid) { p { color: blue; } } h1 { color: green; }",
+    )
+    .expect("unsupported at-rules should be skipped");
+
+    assert_eq!(stylesheet.rules.len(), 1);
+    assert_eq!(stylesheet.rules[0].selectors, ["h1"]);
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "green");
+}
+
+#[test]
+fn discards_malformed_selector_rules_and_recovers_at_the_next_rule() {
+    let stylesheet = parse_stylesheet(
+        "p, { color: red; } div > { color: blue; } p] { color: black; } h1 { color: green; }",
+    )
+    .expect("malformed selector rules should not abort the stylesheet");
+
+    assert_eq!(stylesheet.rules.len(), 1);
+    assert_eq!(stylesheet.rules[0].selectors, ["h1"]);
+}
+
+#[test]
+fn recovers_from_incomplete_rules_at_end_of_file() {
+    let stylesheet = parse_stylesheet("h1 { color: red;").expect("EOF should close a rule");
+
+    assert_eq!(stylesheet.rules.len(), 1);
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "red");
+    let stylesheet = parse_stylesheet("p { color: red; }\nunfinished-selector")
+        .expect("an unfinished selector prelude should be discarded at EOF");
+    assert_eq!(stylesheet.rules.len(), 1);
+}

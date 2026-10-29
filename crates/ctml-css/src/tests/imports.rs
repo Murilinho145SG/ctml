@@ -153,8 +153,11 @@ fn stylesheet_files_require_utf8_encoding() {
 fn reports_stylesheet_file_and_line_for_syntax_errors() {
     let root = temporary_directory("source-locations");
     std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
-    std::fs::write(root.join("broken.css"), "p { color: red; }\n@unsupported;")
-        .expect("malformed stylesheet should be written");
+    std::fs::write(
+        root.join("broken.css"),
+        "p { color: red; }\n@layer first,,second;",
+    )
+    .expect("malformed stylesheet should be written");
 
     let error = super::parse_stylesheet_file(root.join("broken.css"), &root)
         .expect_err("unsupported malformed rules should be reported");
@@ -173,8 +176,11 @@ fn reports_stylesheet_file_and_line_for_syntax_errors() {
         .expect("nested stylesheet directory should be created");
     std::fs::write(root.join("entry.css"), "@import \"nested/broken.css\";")
         .expect("entry stylesheet should be written");
-    std::fs::write(root.join("nested/broken.css"), ".item {}\n@unsupported;")
-        .expect("nested malformed stylesheet should be written");
+    std::fs::write(
+        root.join("nested/broken.css"),
+        ".item {}\n@layer first,,second;",
+    )
+    .expect("nested malformed stylesheet should be written");
     let error = super::parse_stylesheet_file(root.join("entry.css"), &root)
         .expect_err("nested syntax errors should identify their source file");
     assert!(

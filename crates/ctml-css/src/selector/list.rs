@@ -1,6 +1,6 @@
 use super::compound::css_escape_end;
 
-pub(super) fn split_selector_list(source: &str) -> Vec<&str> {
+pub(crate) fn split_selector_list(source: &str) -> Vec<&str> {
     let mut selectors = Vec::new();
     let mut start = 0;
     let mut bracket_depth = 0;

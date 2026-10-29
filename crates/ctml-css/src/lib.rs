@@ -195,19 +195,40 @@ fn parse_rule_list<'i, 't>(
             }
             continue;
         }
-        if prelude.starts_with('@') || statement {
-            return Err(input.new_custom_error(()));
+        if prelude.starts_with('@') {
+            if !statement && input.expect_curly_bracket_block().is_ok() {
+                input.parse_nested_block(|nested| {
+                    while nested.next_including_whitespace().is_ok() {}
+                    Ok(())
+                })?;
+            } else if !statement && !input.is_exhausted() {
+                let _ = input.next_including_whitespace();
+            }
+            continue;
         }
-        let selectors = split_selector_list(&prelude)
+        if statement || input.is_exhausted() {
+            continue;
+        }
+        if input.expect_curly_bracket_block().is_err() {
+            let _ = input.next_including_whitespace();
+            continue;
+        }
+        let selectors = selector::split_selector_list(&prelude)
             .into_iter()
             .map(str::trim)
-            .filter(|selector| !selector.is_empty())
             .map(str::to_owned)
             .collect::<Vec<_>>();
-        if selectors.is_empty() {
-            return Err(input.new_custom_error(()));
+        if selectors.is_empty()
+            || selectors.iter().any(|selector| {
+                selector.is_empty() || selector::selector_compounds(selector).is_none()
+            })
+        {
+            input.parse_nested_block(|nested| {
+                while nested.next_including_whitespace().is_ok() {}
+                Ok(())
+            })?;
+            continue;
         }
-        input.expect_curly_bracket_block()?;
         let declarations = input.parse_nested_block(parse_declaration_block)?;
         let layer_name = (!current_layer.is_empty()).then(|| canonical_layer_path(current_layer));
         state.rules.push((
@@ -311,36 +332,6 @@ pub fn parse_declarations(source: &str) -> Result<Vec<CssDeclaration>, String> {
     let mut input = Parser::new(&mut source);
     parse_declaration_block(&mut input)
         .map_err(|error| located_error(error.location.line, error.location.column, error))
-}
-
-fn split_selector_list(source: &str) -> Vec<&str> {
-    let mut selectors = Vec::new();
-    let mut start = 0;
-    let mut bracket_depth = 0;
-    let mut paren_depth = 0;
-    let mut quote = None;
-    for (index, character) in source.char_indices() {
-        if bracket_depth > 0 {
-            match (quote, character) {
-                (Some(current), character) if current == character => quote = None,
-                (None, '"' | '\'') => quote = Some(character),
-                (None, '[') => bracket_depth += 1,
-                (None, ']') => bracket_depth -= 1,
-                _ => {}
-            }
-        } else if character == '[' {
-            bracket_depth = 1;
-        } else if character == '(' {
-            paren_depth += 1;
-        } else if character == ')' {
-            paren_depth -= 1;
-        } else if character == ',' && paren_depth == 0 {
-            selectors.push(&source[start..index]);
-            start = index + character.len_utf8();
-        }
-    }
-    selectors.push(&source[start..]);
-    selectors
 }
 
 fn parse_declaration_block<'i, 't>(

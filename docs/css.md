@@ -25,7 +25,7 @@ Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments a
 
 Named `@layer` order statements and blocks are supported, including escaped identifiers, nested named layers, and anonymous blocks. Anonymous layers remain distinct across stylesheet imports. Normal declarations in later layers outrank earlier layers, while `!important` layer order is reversed; unlayered normal rules outrank layered normal rules, and layered important rules outrank unlayered important rules.
 
-Malformed stylesheet syntax reports the source file, line, and column during the build. Invalid declarations are skipped so later declarations in the same rule can still apply.
+Malformed layer declarations and unterminated comments report the source file, line, and column during the build. Incomplete rules at end of file, malformed selector rules, and unsupported at-rules are discarded so later rules can still apply. Invalid declarations are skipped so later declarations in the same rule can still apply.
 
 ```css
 body {
@@ -74,7 +74,7 @@ main .title {
 
 For a broader implementation checklist covering CSS feature areas, see the [CSS feature checklist](css-roadmap.md).
 
-Malformed declarations are skipped without a warning, and parsing continues with later declarations. Unknown property names are retained by the stylesheet parser; properties the renderer does not support are ignored without a warning. Unsupported selectors are also ignored without a warning. Malformed stylesheet structure fails the build with a file, line, and column diagnostic.
+Malformed declarations and selector rules are skipped without a warning, and parsing continues with later declarations and rules. Unknown at-rules are skipped. Unknown property names are retained by the stylesheet parser; properties the renderer does not support are ignored without a warning. Unsupported selectors are also ignored without a warning. Malformed layer declarations and unterminated comments fail the build with a file, line, and column diagnostic.
 
 ### Selectors and cascade
 
