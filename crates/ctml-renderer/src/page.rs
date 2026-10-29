@@ -323,17 +323,62 @@ impl PageRasterizer {
             if run.line_i < start.line || run.line_i > end.line {
                 continue;
             }
-            for (left, span_width) in run.highlight(start, end) {
-                fill_rect_alpha(
-                    pixels,
-                    width,
-                    height,
-                    left,
-                    run.line_top,
-                    span_width,
-                    run.line_height,
-                    self.selection_background_color,
-                );
+            let mut groups = Vec::new();
+            for span in self
+                .cursor_spans
+                .iter()
+                .filter(|span| span.line == run.line_i)
+            {
+                if (start.line == run.line_i && span.end <= start.index)
+                    || (end.line == run.line_i && span.start >= end.index)
+                {
+                    continue;
+                }
+                let span_start = if start.line == run.line_i {
+                    span.start.max(start.index)
+                } else {
+                    span.start
+                };
+                let span_end = if end.line == run.line_i {
+                    span.end.min(end.index)
+                } else {
+                    span.end
+                };
+                let background = span
+                    .selection_background
+                    .unwrap_or(self.selection_background_color);
+                if let Some((_, group_end, group_background)) = groups.last_mut()
+                    && *group_end == span_start
+                    && *group_background == background
+                {
+                    *group_end = span_end;
+                } else {
+                    groups.push((span_start, span_end, background));
+                }
+            }
+            for (group_start, group_end, background) in groups {
+                let highlight_start = Cursor {
+                    line: run.line_i,
+                    index: group_start,
+                    affinity: cosmic_text::Affinity::Before,
+                };
+                let highlight_end = Cursor {
+                    line: run.line_i,
+                    index: group_end,
+                    affinity: cosmic_text::Affinity::After,
+                };
+                for (left, span_width) in run.highlight(highlight_start, highlight_end) {
+                    fill_rect_alpha(
+                        pixels,
+                        width,
+                        height,
+                        left,
+                        run.line_top,
+                        span_width,
+                        run.line_height,
+                        background,
+                    );
+                }
             }
         }
     }
@@ -367,6 +412,7 @@ struct CursorSpan {
     icon: CursorIcon,
     hidden: bool,
     element_path: Vec<usize>,
+    selection_background: Option<[u8; 4]>,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -388,6 +434,7 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 icon: run.style.cursor,
                 hidden: run.style.cursor_hidden,
                 element_path: run.element_path.clone(),
+                selection_background: run.selection_background,
             });
             index = end;
         }

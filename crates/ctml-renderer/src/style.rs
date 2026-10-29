@@ -104,6 +104,27 @@ pub(super) fn compile_runs(
         &mut capitalize_next,
     );
     trim_runs(&mut runs);
+    let selection_background = css_style::selection_background_color(stylesheet);
+    for run in &mut runs {
+        let Some(node_id) = run.element_path.last() else {
+            continue;
+        };
+        let Some(element) = selector_tree
+            .iter()
+            .find(|element| element.node_id == *node_id)
+        else {
+            continue;
+        };
+        let selected_style = css_style::resolve_selection_style(
+            &run.style,
+            &element.element,
+            element.position,
+            &selector_tree,
+            stylesheet,
+            selection_background,
+        );
+        run.selection_background = selected_style.background_color;
+    }
     (runs, root_style)
 }
 
@@ -111,6 +132,7 @@ pub(super) struct TextRun {
     pub(super) text: String,
     pub(super) style: TextStyle,
     pub(super) element_path: Vec<usize>,
+    pub(super) selection_background: Option<[u8; 4]>,
 }
 
 fn selector_sibling_contexts(
@@ -314,6 +336,9 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
             push_character(character, &style, &run.element_path, &mut output);
         }
     }
+    for synthesized in &mut output {
+        synthesized.selection_background = run.selection_background;
+    }
     output
 }
 
@@ -350,6 +375,7 @@ fn push_character(
             text: character.to_string(),
             style: style.clone(),
             element_path: element_path.to_vec(),
+            selection_background: None,
         });
     }
 }

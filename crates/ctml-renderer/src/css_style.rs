@@ -448,7 +448,7 @@ mod selection;
 #[cfg(test)]
 pub(super) use ctml_css::parse_length;
 use properties::{apply_color_declaration, apply_declaration_with_inherited};
-pub(super) use selection::selection_background_color;
+pub(super) use selection::{resolve_selection_style, selection_background_color};
 
 #[cfg(test)]
 #[path = "css_style_tests.rs"]

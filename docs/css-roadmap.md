@@ -40,7 +40,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Form, range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
 - [x] `::before` and `::after` generated text from quoted `content` strings, with supported text properties.
 - [x] Global `::selection` background color, including alpha compositing.
-- [ ] Element-scoped `::selection` styling, selection foreground colors, `::first-line`, and `::first-letter`.
+- [x] Element-scoped `::selection` background colors.
+- [ ] Selection foreground colors, `::first-line`, and `::first-letter`.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
 - [x] CSS escapes in type, class, and ID identifiers, attribute names and values, plus specificity for the currently supported selector constructs.
