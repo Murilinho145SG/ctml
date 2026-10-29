@@ -43,7 +43,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Comma-separated selector groups | `selector-matrix` | group matching and specificity |
 | Escaped selector identifiers | — | type, class, ID, attribute names and values, and escaped selector-list commas |
 | `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |
-| `inherit`, `initial`, and `unset` | — | supported property cascade keyword unit test |
+| `inherit`, `initial`, `unset`, and `revert` | — | supported property cascade keyword unit tests |
 
 ## Stylesheet processing coverage
 

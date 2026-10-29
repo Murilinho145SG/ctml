@@ -51,7 +51,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `!important` declarations.
 - [ ] Cascade layers with `@layer`.
 - [x] `inherit`, `initial`, and `unset` for supported properties.
-- [ ] `revert` and `revert-layer` keywords.
+- [x] `revert` to reset supported declarations to CTML's modeled initial user-agent values.
+- [ ] `revert-layer`; CSS cascade layers are not implemented.
 - [ ] Shorthand and longhand expansion, including conflict resolution.
 - [ ] Complete inheritance rules per property.
 - [ ] Custom properties (`--name`) and `var()` substitution, including fallback and cycle handling.

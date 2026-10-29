@@ -347,7 +347,7 @@ fn apply_color_declaration(style: &mut TextStyle, value: &str, inherited_color: 
     let value = value.trim();
     let color = if value.eq_ignore_ascii_case("currentcolor") {
         Some(inherited_color)
-    } else if value.eq_ignore_ascii_case("initial") {
+    } else if matches!(value.to_ascii_lowercase().as_str(), "initial" | "revert") {
         Some(([0, 0, 0, 255], 1.0))
     } else if matches!(value.to_ascii_lowercase().as_str(), "inherit" | "unset") {
         Some(inherited_color)
@@ -391,7 +391,7 @@ fn apply_declaration_with_inherited(
 
 fn css_wide_keyword(value: &str) -> Option<&str> {
     let value = value.trim();
-    ["inherit", "initial", "unset"]
+    ["inherit", "initial", "unset", "revert"]
         .into_iter()
         .find(|keyword| value.eq_ignore_ascii_case(keyword))
 }

@@ -195,6 +195,40 @@ fn inherited_language_and_direction_selectors_apply_styles() {
 }
 
 #[test]
+fn revert_uses_the_supported_initial_user_agent_values() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("reset".to_owned()),
+        id: None,
+    };
+    let inherited = TextStyle {
+        weight: Weight::BOLD,
+        ..TextStyle::default()
+    };
+    let stylesheet = [StyleRule {
+        selectors: vec![".reset".to_owned()],
+        declarations: vec![
+            StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            },
+            StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "revert".to_owned(),
+            },
+            StyleDeclaration {
+                property: "color".to_owned(),
+                value: "revert".to_owned(),
+            },
+        ],
+    }];
+    let style = resolve_style(&inherited, &current, &[], &stylesheet);
+
+    assert_eq!(style.color, [0, 0, 0, 255]);
+    assert_eq!(style.weight, Weight::NORMAL);
+}
+
+#[test]
 fn structural_pseudo_classes_apply_styles_from_element_positions() {
     let current = ElementIdentity {
         tag: "p".to_owned(),
