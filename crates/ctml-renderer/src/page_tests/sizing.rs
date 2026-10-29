@@ -101,6 +101,32 @@ fn content_block_min_height_reserves_remaining_vertical_space() {
 }
 
 #[test]
+fn content_block_height_reserves_space_and_max_height_caps_it() {
+    let natural_after_y = content_block_after_y(Vec::new());
+    let height_after_y = content_block_after_y(vec![StyleDeclaration {
+        property: "height".to_owned(),
+        value: "140px".to_owned(),
+    }]);
+    assert!(height_after_y >= natural_after_y + 100.0);
+
+    let capped_height_after_y = content_block_after_y(vec![
+        StyleDeclaration {
+            property: "height".to_owned(),
+            value: "200px".to_owned(),
+        },
+        StyleDeclaration {
+            property: "max-height".to_owned(),
+            value: "100px".to_owned(),
+        },
+    ]);
+    let max_height_only_after_y = content_block_after_y(vec![StyleDeclaration {
+        property: "height".to_owned(),
+        value: "100px".to_owned(),
+    }]);
+    assert!((capped_height_after_y - max_height_only_after_y).abs() < 1.0);
+}
+
+#[test]
 fn nested_content_block_min_heights_compose_in_flow() {
     let inner = UiNode::Element {
         tag: "section".to_owned(),
