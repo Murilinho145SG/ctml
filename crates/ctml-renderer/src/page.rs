@@ -5,7 +5,7 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     page::pixel::PixelRenderer,
-    style::{TextRun, TextStyle, compile_runs, synthesize_font_variant_caps},
+    style::{TextRun, TextStyle, compile_runs_with_font_system, synthesize_font_variant_caps},
 };
 
 mod backgrounds;
@@ -50,9 +50,6 @@ pub(crate) struct PageRasterizer {
 
 impl PageRasterizer {
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
-        let (compiled_runs, root_style) = compile_runs(nodes, stylesheet, &[], &[], &[], false);
-        let focus_manager = focus::FocusManager::new(nodes);
-        let selection_background_color = crate::css_style::selection_background_color(stylesheet);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
@@ -66,6 +63,17 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
+        let (compiled_runs, root_style) = compile_runs_with_font_system(
+            nodes,
+            stylesheet,
+            &[],
+            &[],
+            &[],
+            false,
+            Some(&font_system),
+        );
+        let focus_manager = focus::FocusManager::new(nodes);
+        let selection_background_color = crate::css_style::selection_background_color(stylesheet);
         let runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
@@ -197,13 +205,14 @@ impl PageRasterizer {
     }
 
     fn rebuild_interaction_styles(&mut self) {
-        let (compiled_runs, root_style) = compile_runs(
+        let (compiled_runs, root_style) = compile_runs_with_font_system(
             &self.nodes,
             &self.stylesheet,
             &self.hovered_path,
             &self.active_path,
             &self.focused_path,
             self.keyboard_focus,
+            Some(&self.font_system),
         );
         self.runs = compiled_runs
             .into_iter()

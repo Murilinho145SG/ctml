@@ -13,7 +13,8 @@ pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
 pub use imports::parse_stylesheet_file;
 pub use length::{
-    parse_length, parse_length_with_line_height, parse_nonnegative_length,
+    FontRelativeUnits, parse_font_relative_length, parse_length, parse_length_with_font_metrics,
+    parse_length_with_line_height, parse_nonnegative_length,
     parse_nonnegative_length_with_line_height, parse_signed_length_percentage,
     parse_signed_length_percentage_with_line_height,
 };

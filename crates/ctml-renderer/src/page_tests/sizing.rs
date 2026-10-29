@@ -57,6 +57,105 @@ fn lh_unit_resolves_against_inherited_line_height() {
 }
 
 #[test]
+fn font_size_metric_units_use_the_parent_typeface() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Metric sized text".to_owned())],
+    }];
+    for unit in ["ex", "ch", "ic", "cap"] {
+        let stylesheet = [
+            StyleRule {
+                selectors: vec!["body".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "font-size".to_owned(),
+                    value: "20px".to_owned(),
+                }],
+            },
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "font-size".to_owned(),
+                    value: format!("2{unit}"),
+                }],
+            },
+        ];
+        let page = PageRasterizer::new(&nodes, &stylesheet);
+        let metrics = page.root_style.font_relative_units;
+        let factor = match unit {
+            "ex" => metrics.ex,
+            "ch" => metrics.ch,
+            "ic" => metrics.ic,
+            "cap" => metrics.cap,
+            _ => unreachable!(),
+        };
+        let expected_size = 40.0 * factor;
+        assert!(
+            (page.runs[0].style.font_size - expected_size).abs() < 0.01,
+            "{unit} should resolve using parent font metrics"
+        );
+    }
+}
+
+#[test]
+fn font_shorthand_resolves_metric_sized_font_from_parent_typeface() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Metric shorthand".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "20px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font".to_owned(),
+                value: "2ch serif".to_owned(),
+            }],
+        },
+    ];
+    let page = PageRasterizer::new(&nodes, &stylesheet);
+    let expected_size = 40.0 * page.root_style.font_relative_units.ch;
+    assert!((page.runs[0].style.font_size - expected_size).abs() < 0.01);
+}
+
+#[test]
+fn first_letter_font_size_metric_units_use_the_originating_font() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Metric first letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "font-size".to_owned(),
+            value: "2ex".to_owned(),
+        }],
+    }];
+    let page = PageRasterizer::new(&nodes, &stylesheet);
+    let expected_size = 32.0 * page.runs[0].style.font_relative_units.ex;
+    assert!((page.runs[0].style.font_size - expected_size).abs() < 0.01);
+}
+
+#[test]
 fn body_min_and_max_width_constrain_text_wrapping() {
     let text = "words that wrap when the body width is constrained ".repeat(8);
     let min_width_lines = line_count_with_rule("min-width", "800px", text.clone(), 160);

@@ -1,7 +1,7 @@
 use cosmic_text::{Stretch, Style, Weight};
 
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
-use ctml_css::parse_length_with_line_height;
+use ctml_css::{FontRelativeUnits, parse_font_relative_length};
 
 pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
     let weight = inherited.0;
@@ -63,12 +63,23 @@ pub(super) fn parse_font_stretch(value: &str) -> Option<Stretch> {
     .map(|(_, stretch)| stretch)
 }
 
-pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str, parent_line_height: f32) {
+pub(super) fn apply_font_shorthand(
+    style: &mut TextStyle,
+    value: &str,
+    parent_line_height: f32,
+    parent_font_units: FontRelativeUnits,
+) {
     let components = split_components(value);
     let Some(size_index) = components.iter().position(|(start, end)| {
         let component = &value[*start..*end];
         let (size, _) = component.split_once('/').unwrap_or((component, ""));
-        parse_font_size_with_line_height(size, style.font_size, parent_line_height).is_some()
+        parse_font_size_with_font_units(
+            size,
+            style.font_size,
+            parent_line_height,
+            parent_font_units,
+        )
+        .is_some()
     }) else {
         return;
     };
@@ -125,9 +136,12 @@ pub(super) fn apply_font_shorthand(style: &mut TextStyle, value: &str, parent_li
     let (size_start, size_end) = components[size_index];
     let size_component = &value[size_start..size_end];
     let (size_value, inline_line_height) = split_top_level_slash(size_component);
-    let Some(font_size) =
-        parse_font_size_with_line_height(size_value, style.font_size, parent_line_height)
-    else {
+    let Some(font_size) = parse_font_size_with_font_units(
+        size_value,
+        style.font_size,
+        parent_line_height,
+        parent_font_units,
+    ) else {
         return;
     };
     let mut family_index = size_index + 1;
@@ -348,13 +362,19 @@ fn split_components(value: &str) -> Vec<(usize, usize)> {
 
 #[cfg(test)]
 pub(in crate::css_style) fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {
-    parse_font_size_with_line_height(value, relative_to, relative_to)
+    parse_font_size_with_font_units(
+        value,
+        relative_to,
+        relative_to,
+        FontRelativeUnits::default(),
+    )
 }
 
-pub(in crate::css_style) fn parse_font_size_with_line_height(
+pub(in crate::css_style) fn parse_font_size_with_font_units(
     value: &str,
     relative_to: f32,
     line_height: f32,
+    font_units: FontRelativeUnits,
 ) -> Option<f32> {
     let absolute_size = match value.trim().to_ascii_lowercase().as_str() {
         "xx-small" => Some(9.0),
@@ -369,5 +389,6 @@ pub(in crate::css_style) fn parse_font_size_with_line_height(
         "smaller" => Some(relative_to / 1.2),
         _ => None,
     };
-    absolute_size.or_else(|| parse_length_with_line_height(value, relative_to, line_height))
+    absolute_size
+        .or_else(|| parse_font_relative_length(value, relative_to, line_height, font_units))
 }

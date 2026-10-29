@@ -2,6 +2,7 @@ use cosmic_text::{
     Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
     Weight,
 };
+use ctml_css::FontRelativeUnits;
 use std::collections::HashMap;
 use winit::window::CursorIcon;
 
@@ -10,6 +11,7 @@ const DEFAULT_LINE_HEIGHT: f32 = 20.0;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
+    pub(crate) font_relative_units: FontRelativeUnits,
     pub(crate) font_size: f32,
     pub(crate) font_scale: f32,
     pub(crate) line_height: f32,
@@ -172,6 +174,7 @@ pub(crate) enum TextDecorationSkipInk {
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
+            font_relative_units: FontRelativeUnits::default(),
             font_size: DEFAULT_FONT_SIZE,
             font_scale: 1.0,
             line_height: DEFAULT_LINE_HEIGHT,

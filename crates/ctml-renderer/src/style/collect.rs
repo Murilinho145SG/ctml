@@ -51,6 +51,7 @@ pub(super) fn collect_runs(
     keyboard_focus: bool,
     selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
+    font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
@@ -93,8 +94,12 @@ pub(super) fn collect_runs(
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case("style"))
                     .and_then(|(_, value)| value.as_deref());
+                let mut inherited_style = inherited.clone();
+                if let Some(font_metrics) = font_metrics {
+                    inherited_style.font_relative_units = font_metrics.resolve(inherited);
+                }
                 let mut style = css_style::resolve_style_with_selector_tree_context(
-                    inherited,
+                    &inherited_style,
                     &identity,
                     path,
                     attributes,
@@ -107,6 +112,9 @@ pub(super) fn collect_runs(
                     inline_style,
                     stylesheet,
                 );
+                if let Some(font_metrics) = font_metrics {
+                    style.font_relative_units = font_metrics.resolve(&style);
+                }
                 if style.display_none {
                     element_index += 1;
                     continue;
@@ -253,6 +261,7 @@ pub(super) fn collect_runs(
                     keyboard_focus,
                     selector_tree,
                     &style,
+                    font_metrics,
                     output,
                     last_was_space,
                     capitalize_next,

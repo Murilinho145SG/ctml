@@ -1,7 +1,27 @@
 use super::{
-    FontVariantCaps, TextRun, TextStyle, append_text, compile_runs, synthesize_font_variant_caps,
+    FontVariantCaps, TextRun, TextStyle, append_text, compile_runs_with_font_system,
+    synthesize_font_variant_caps,
 };
 use crate::{StyleDeclaration, StyleRule, UiNode};
+
+fn compile_runs(
+    nodes: &[UiNode],
+    stylesheet: &[StyleRule],
+    hovered_path: &[usize],
+    active_path: &[usize],
+    focused_path: &[usize],
+    keyboard_focus: bool,
+) -> (Vec<TextRun>, TextStyle) {
+    compile_runs_with_font_system(
+        nodes,
+        stylesheet,
+        hovered_path,
+        active_path,
+        focused_path,
+        keyboard_focus,
+        None,
+    )
+}
 
 #[test]
 fn preserves_small_caps_for_font_feature_shaping() {

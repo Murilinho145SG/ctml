@@ -14,14 +14,16 @@ pub(super) use text_style::{
     TextTransform,
 };
 
-pub(super) fn compile_runs(
+pub(super) fn compile_runs_with_font_system(
     nodes: &[UiNode],
     stylesheet: &[StyleRule],
     hovered_path: &[usize],
     active_path: &[usize],
     focused_path: &[usize],
     keyboard_focus: bool,
+    font_system: Option<&cosmic_text::FontSystem>,
 ) -> (Vec<TextRun>, TextStyle) {
+    let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
         node_id: 0,
         child_count: nodes
@@ -37,6 +39,9 @@ pub(super) fn compile_runs(
         ..SelectorPosition::default()
     };
     let mut root_style = TextStyle::default();
+    if let Some(font_metrics) = &font_metrics {
+        root_style.font_relative_units = font_metrics.resolve(&root_style);
+    }
     let body = ElementIdentity {
         tag: "body".to_owned(),
         class: None,
@@ -77,6 +82,9 @@ pub(super) fn compile_runs(
         &selector_tree,
         stylesheet,
     );
+    if let Some(font_metrics) = &font_metrics {
+        root_style.font_relative_units = font_metrics.resolve(&root_style);
+    }
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];
@@ -102,6 +110,7 @@ pub(super) fn compile_runs(
             keyboard_focus,
             &selector_tree,
             &root_style,
+            font_metrics.as_ref(),
             &mut runs,
             &mut last_was_space,
             &mut capitalize_next,

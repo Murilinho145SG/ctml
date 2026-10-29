@@ -1,5 +1,24 @@
-use super::compile_runs;
+use super::compile_runs_with_font_system;
 use crate::{StyleDeclaration, StyleRule, UiNode};
+
+fn compile_runs(
+    nodes: &[UiNode],
+    stylesheet: &[StyleRule],
+    hovered_path: &[usize],
+    active_path: &[usize],
+    focused_path: &[usize],
+    keyboard_focus: bool,
+) -> (Vec<super::TextRun>, super::TextStyle) {
+    compile_runs_with_font_system(
+        nodes,
+        stylesheet,
+        hovered_path,
+        active_path,
+        focused_path,
+        keyboard_focus,
+        None,
+    )
+}
 
 #[test]
 fn list_items_render_bullets_and_ordered_numbers() {

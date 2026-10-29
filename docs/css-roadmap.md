@@ -90,7 +90,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Absolute lengths: `px`, `cm`, `mm`, `Q`, `in`, `pt`, and `pc` for font sizes and line heights.
 - [x] Font-relative `em` and `rem` lengths for font sizes and line heights.
 - [x] `lh` font-relative unit for `font-size`, `line-height`, `font` shorthand line height, text-shadow lengths, and text-decoration lengths.
-- [ ] Font metric-relative units `ex`, `ch`, `ic`, and `cap`.
+- [x] Font metric-relative units `ex`, `ch`, `ic`, and `cap` in `font-size` and the font-size component of `font`.
+- [ ] Font metric-relative units in line-height and other length-valued properties.
 - [ ] Viewport-relative units, including small, large, and dynamic viewport variants.
 - [ ] Container query units, if container queries are implemented.
 - [ ] Angles, times, frequencies, and resolutions where relevant.

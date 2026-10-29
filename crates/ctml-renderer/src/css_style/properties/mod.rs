@@ -15,7 +15,7 @@ use display::{apply_display, inherit_display, reset_display, revert_display};
 #[cfg(test)]
 pub(super) use font::parse_font_size;
 use font::{
-    apply_font_shorthand, inherit_font, parse_font_size_with_line_height, parse_font_stretch,
+    apply_font_shorthand, inherit_font, parse_font_size_with_font_units, parse_font_stretch,
     relative_font_weight, reset_font,
 };
 use font_feature_settings::apply_font_feature_settings;
@@ -50,7 +50,13 @@ pub(super) fn apply_declaration_with_inherited(
     inherited: &TextStyle,
 ) {
     let Some(keyword) = css_wide_keyword(value) else {
-        apply_declaration(style, property, value, inherited.line_height);
+        apply_declaration(
+            style,
+            property,
+            value,
+            inherited.line_height,
+            inherited.font_relative_units,
+        );
         return;
     };
     let inherit_value =
@@ -311,10 +317,16 @@ fn initial_property(style: &mut TextStyle, property: &str) {
     }
 }
 
-fn apply_declaration(style: &mut TextStyle, property: &str, value: &str, parent_line_height: f32) {
+fn apply_declaration(
+    style: &mut TextStyle,
+    property: &str,
+    value: &str,
+    parent_line_height: f32,
+    parent_font_units: ctml_css::FontRelativeUnits,
+) {
     let value = value.trim();
     match property {
-        "font" => apply_font_shorthand(style, value, parent_line_height),
+        "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),
         "display" => apply_display(style, value),
         "width" | "inline-size" => apply_width(style, value),
         "box-sizing" => apply_box_sizing(style, value),
@@ -328,9 +340,12 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str, parent_
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "font-size" => {
-            if let Some(size) =
-                parse_font_size_with_line_height(value, style.font_size, parent_line_height)
-            {
+            if let Some(size) = parse_font_size_with_font_units(
+                value,
+                style.font_size,
+                parent_line_height,
+                parent_font_units,
+            ) {
                 style.font_size = size;
                 if let Some(multiplier) = style.line_height_multiplier {
                     style.line_height = size * multiplier;
