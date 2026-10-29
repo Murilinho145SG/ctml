@@ -277,7 +277,10 @@ fn draw_decoration(
             continue;
         }
         for (enabled, y) in [
-            (decoration.underline, run.line_y + 1.0),
+            (
+                decoration.underline,
+                run.line_y + 1.0 + decoration.underline_offset.unwrap_or(0.0),
+            ),
             (decoration.overline, run.line_y - run.line_height * 0.8),
             (decoration.line_through, run.line_y - run.line_height * 0.3),
         ] {

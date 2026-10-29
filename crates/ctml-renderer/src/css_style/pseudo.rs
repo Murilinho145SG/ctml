@@ -19,6 +19,7 @@ pub(crate) struct PseudoDecoration {
     pub(crate) thickness: f32,
     pub(crate) style: crate::style::TextDecorationStyle,
     pub(crate) skip_ink: crate::style::TextDecorationSkipInk,
+    pub(crate) underline_offset: Option<f32>,
 }
 
 pub(crate) fn first_line_style(
@@ -122,6 +123,7 @@ fn resolve_pseudo_style(
                             "text-decoration-thickness",
                             "text-decoration-style",
                             "text-decoration-skip-ink",
+                            "text-underline-offset",
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -159,6 +161,7 @@ fn resolve_pseudo_style(
                     "text-decoration-thickness",
                     "text-decoration-style",
                     "text-decoration-skip-ink",
+                    "text-underline-offset",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -203,6 +206,7 @@ fn resolve_pseudo_style(
             thickness: resolved.decoration_thickness.unwrap_or(1.0),
             style: resolved.decoration_style,
             skip_ink: resolved.decoration_skip_ink,
+            underline_offset: resolved.underline_offset,
         });
     PseudoStyle {
         foreground: (resolved.color != inherited.color).then_some(resolved.color),

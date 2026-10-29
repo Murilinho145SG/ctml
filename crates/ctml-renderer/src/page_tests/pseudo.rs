@@ -202,6 +202,55 @@ fn first_letter_decoration_skip_ink_changes_underline_pixels() {
 }
 
 #[test]
+fn first_line_underline_offset_moves_decoration() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Underline offset".to_owned())],
+    }];
+    let make_page = |offset: Option<&str>| {
+        let mut declarations = vec![
+            StyleDeclaration {
+                property: "text-decoration-line".to_owned(),
+                value: "underline".to_owned(),
+            },
+            StyleDeclaration {
+                property: "text-decoration-color".to_owned(),
+                value: "red".to_owned(),
+            },
+        ];
+        if let Some(offset) = offset {
+            declarations.push(StyleDeclaration {
+                property: "text-underline-offset".to_owned(),
+                value: offset.to_owned(),
+            });
+        }
+        let stylesheet = [StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations,
+        }];
+        PageRasterizer::new(&nodes, &stylesheet)
+    };
+    let red_rows = |pixels: Vec<u8>| {
+        pixels
+            .chunks_exact(4)
+            .enumerate()
+            .filter(|(_, pixel)| pixel[..3] == [255, 0, 0])
+            .map(|(index, _)| index / 180)
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let mut default_page = make_page(None);
+    let mut offset_page = make_page(Some("8px"));
+    assert_ne!(
+        red_rows(default_page.snapshot_pixels(180, 70)),
+        red_rows(offset_page.snapshot_pixels(180, 70))
+    );
+}
+
+#[test]
 fn first_letter_foreground_and_background_apply_to_one_character() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
