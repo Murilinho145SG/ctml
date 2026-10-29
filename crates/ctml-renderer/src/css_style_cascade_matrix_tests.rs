@@ -120,6 +120,42 @@ fn background_none_resets_a_prior_background_color() {
 }
 
 #[test]
+fn unset_inherits_cursor_and_text_decoration_skip_ink() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let inherited = TextStyle {
+        cursor: CursorIcon::Help,
+        decoration_skip_ink: crate::style::TextDecorationSkipInk::All,
+        ..TextStyle::default()
+    };
+    let rule = StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "cursor".to_owned(),
+                value: "unset".to_owned(),
+            },
+            StyleDeclaration {
+                property: "text-decoration-skip-ink".to_owned(),
+                value: "unset".to_owned(),
+            },
+        ],
+    };
+
+    let style = resolve_style(&inherited, &current, &[], &[rule]);
+
+    assert_eq!(style.cursor, CursorIcon::Help);
+    assert_eq!(
+        style.decoration_skip_ink,
+        crate::style::TextDecorationSkipInk::All
+    );
+}
+
+#[test]
 fn cascade_layers_order_normal_and_important_declarations() {
     let current = ElementIdentity {
         tag: "p".to_owned(),
