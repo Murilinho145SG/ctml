@@ -13,6 +13,7 @@ use super::font_variant::{
 use background::{apply_background_color, apply_background_shorthand};
 pub(super) use color::apply_color_declaration;
 use cursor::parse_cursor;
+use display::{apply_display, inherit_display, reset_display, revert_display};
 pub(super) use font::parse_font_size;
 use font::{apply_font_shorthand, inherit_font, relative_font_weight, reset_font};
 use font_feature_settings::apply_font_feature_settings;
@@ -26,6 +27,7 @@ use text_shadow::apply_text_shadow;
 mod background;
 mod color;
 mod cursor;
+mod display;
 mod font;
 mod font_feature_settings;
 mod text_decoration;
@@ -46,6 +48,8 @@ pub(super) fn apply_declaration_with_inherited(
         keyword == "inherit" || (keyword == "unset" && is_inherited_property(property));
     if inherit_value {
         inherit_property(style, inherited, property);
+    } else if keyword == "revert" && property == "display" {
+        revert_display(style);
     } else {
         initial_property(style, property);
     }
@@ -96,7 +100,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background = inherited.background;
             style.background_color = inherited.background_color;
         }
-        "display" => style.display_none = inherited.display_none,
+        "display" => inherit_display(style, inherited),
         "background" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -183,7 +187,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background = [255, 255, 255];
             style.background_color = None;
         }
-        "display" => style.display_none = false,
+        "display" => reset_display(style),
         "background" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -264,7 +268,7 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     let value = value.trim();
     match property {
         "font" => apply_font_shorthand(style, value),
-        "display" => style.display_none = value.eq_ignore_ascii_case("none"),
+        "display" => apply_display(style, value),
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "font-size" => {

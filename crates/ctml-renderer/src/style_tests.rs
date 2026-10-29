@@ -243,3 +243,62 @@ fn display_none_on_body_hides_all_rendered_content() {
 
     assert!(runs.is_empty());
 }
+
+#[test]
+fn display_block_and_inline_override_default_text_flow() {
+    let nodes = [
+        UiNode::Text("before".to_owned()),
+        UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("block".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("middle".to_owned())],
+        },
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec![".block".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "block".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "before\nmiddle"
+    );
+}
+
+#[test]
+fn display_inline_overrides_block_tag_line_separation() {
+    let nodes = [
+        UiNode::Text("before".to_owned()),
+        UiNode::Element {
+            tag: "p".to_owned(),
+            class: Some("inline".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("middle".to_owned())],
+        },
+        UiNode::Text("after".to_owned()),
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec![".inline".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "inline".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "beforemiddleafter"
+    );
+}

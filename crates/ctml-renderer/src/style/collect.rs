@@ -111,7 +111,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                 );
-                let block = is_block(tag);
+                let block = style.display_block.unwrap_or_else(|| is_block(tag));
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
