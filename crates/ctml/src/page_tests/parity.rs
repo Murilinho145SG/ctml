@@ -215,7 +215,7 @@ fn run_parity_case(
         browser_markup,
         css,
         expect_hidden_cursor,
-        false,
+        true,
     );
 }
 
