@@ -11,6 +11,7 @@ use crate::{
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
 const DEFAULT_LINE_HEIGHT: f32 = 20.0;
+const SYNTHETIC_SMALL_CAP_SCALE: f32 = 2.0 / 3.0;
 
 pub(super) fn compile_runs(
     nodes: &[UiNode],
@@ -394,8 +395,8 @@ fn append_text(
 
 fn push_variant_character(character: char, style: &TextStyle, output: &mut Vec<TextRun>) {
     let scale = match style.font_variant_caps {
-        FontVariantCaps::SmallCaps if character.is_lowercase() => 0.8,
-        FontVariantCaps::AllSmallCaps if character.is_alphabetic() => 0.8,
+        FontVariantCaps::SmallCaps if character.is_lowercase() => SYNTHETIC_SMALL_CAP_SCALE,
+        FontVariantCaps::AllSmallCaps if character.is_alphabetic() => SYNTHETIC_SMALL_CAP_SCALE,
         FontVariantCaps::PetiteCaps if character.is_lowercase() => 0.7,
         FontVariantCaps::AllPetiteCaps if character.is_alphabetic() => 0.7,
         _ => 1.0,
