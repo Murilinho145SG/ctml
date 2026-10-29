@@ -70,6 +70,7 @@ pub(super) fn draw(
             font.set_embedded_bitmaps(true);
             font.set_subpixel(true);
             font.set_linear_metrics(false);
+            let baseline = run.line_y - 0.4;
 
             let group = &run.glyphs[start..end];
             let mut builder = TextBlobBuilder::new();
@@ -78,7 +79,7 @@ pub(super) fn draw(
                 glyph_ids[index] = GlyphId::from(glyph.glyph_id);
                 positions[index] = Point::new(
                     glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
-                    run.line_y + PAGE_PADDING - 1.0 - glyph.y_offset * glyph.font_size,
+                    baseline + PAGE_PADDING - glyph.y_offset * glyph.font_size,
                 );
             }
             if let Some(blob) = builder.make() {
