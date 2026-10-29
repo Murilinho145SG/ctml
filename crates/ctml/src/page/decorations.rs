@@ -185,24 +185,7 @@ fn draw_line<R: Renderer>(
             );
         }
         TextDecorationStyle::Dashed => {
-            let dash = thickness.saturating_mul(3).max(1);
-            let step = dash.saturating_add(thickness.saturating_mul(2)).max(1);
-            let edge_color = with_alpha(color, 64);
-            let mut offset = 0;
-            while offset + thickness < width {
-                let length = dash.min(width - offset);
-                rectangle(renderer, x + offset as i32, y, length, thickness, color);
-                rectangle(renderer, x + offset as i32, y - 1, length, 1, edge_color);
-                rectangle(
-                    renderer,
-                    x + offset as i32,
-                    y + thickness as i32,
-                    length,
-                    1,
-                    edge_color,
-                );
-                offset += step;
-            }
+            draw_dashed_line(renderer, x, y, width, thickness, color);
         }
         TextDecorationStyle::Dotted => {
             let step = thickness.saturating_mul(2).max(1);
@@ -218,8 +201,9 @@ fn draw_line<R: Renderer>(
         }
         TextDecorationStyle::Wavy => {
             const SAMPLE_GRID: u32 = 8;
-            let period = 7.0;
-            let amplitude = 1.36;
+            const WAVELENGTH: f32 = 7.0;
+            const CONTROL_POINT_DISTANCE: f32 = 3.0;
+            const WAVE_OFFSET: f32 = 2.4;
             let half_thickness = 1.0;
             for offset in 0..width {
                 for row in y - 1..=y + 6 {
@@ -227,8 +211,11 @@ fn draw_line<R: Renderer>(
                     for sample_x in 0..SAMPLE_GRID {
                         let x_position =
                             offset as f32 + (sample_x as f32 + 0.5) / SAMPLE_GRID as f32;
-                        let phase = (x_position - 3.5) * std::f32::consts::TAU / period;
-                        let center_y = y as f32 + 2.52 - amplitude * phase.sin();
+                        let t = (x_position / WAVELENGTH).fract();
+                        let one_minus_t = 1.0 - t;
+                        let wave_y = 3.0 * one_minus_t.powi(2) * t * CONTROL_POINT_DISTANCE
+                            - 3.0 * one_minus_t * t.powi(2) * CONTROL_POINT_DISTANCE;
+                        let center_y = y as f32 + WAVE_OFFSET + wave_y;
                         for sample_y in 0..SAMPLE_GRID {
                             let y_position =
                                 row as f32 + (sample_y as f32 + 0.5) / SAMPLE_GRID as f32;
@@ -251,6 +238,78 @@ fn draw_line<R: Renderer>(
                 }
             }
         }
+    }
+}
+
+fn draw_dashed_line<R: Renderer>(
+    renderer: &mut R,
+    x: i32,
+    y: i32,
+    width: u32,
+    thickness: u32,
+    color: Color,
+) {
+    let dash = thickness.saturating_mul(3).max(1) as f32;
+    let base_gap = thickness.saturating_mul(2).max(1) as f32;
+    let gap = adjusted_dash_gap(width as f32, dash, base_gap);
+    let step = dash + gap;
+    let edge_alpha = 65.0;
+    let mut start = 0.0;
+    while start < width as f32 {
+        let end = (start + dash).min(width as f32);
+        for pixel in start.floor() as i32..end.ceil() as i32 {
+            let coverage = ((end.min(pixel as f32 + 1.0) - start.max(pixel as f32)).clamp(0.0, 1.0)
+                * 255.0)
+                .ceil() as u8;
+            if coverage == 0 {
+                continue;
+            }
+            let pixel_x = x + pixel;
+            rectangle(
+                renderer,
+                pixel_x,
+                y,
+                1,
+                thickness,
+                with_alpha(color, coverage),
+            );
+            let edge_coverage = (edge_alpha * f32::from(coverage) / 255.0).round() as u8;
+            let edge_color = with_alpha(color, edge_coverage);
+            rectangle(renderer, pixel_x, y - 1, 1, 1, edge_color);
+            rectangle(renderer, pixel_x, y + thickness as i32, 1, 1, edge_color);
+        }
+        start += step;
+    }
+}
+
+fn adjusted_dash_gap(path_length: f32, dash_length: f32, gap_length: f32) -> f32 {
+    let min_dashes = ((path_length + gap_length) / (dash_length + gap_length)).floor();
+    if min_dashes < 2.0 {
+        return gap_length;
+    }
+    let max_dashes = min_dashes + 1.0;
+    let min_gaps = min_dashes - 1.0;
+    let max_gaps = max_dashes - 1.0;
+    let min_gap = (path_length - min_dashes * dash_length) / min_gaps;
+    let max_gap = (path_length - max_dashes * dash_length) / max_gaps;
+    if max_gap <= 0.0 || (min_gap - gap_length).abs() < (max_gap - gap_length).abs() {
+        min_gap
+    } else {
+        max_gap
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::adjusted_dash_gap;
+
+    #[test]
+    fn adjusts_dash_gaps_to_fit_the_decoration_length() {
+        let gap = adjusted_dash_gap(101.0, 3.0, 2.0);
+        assert!((gap - 1.9).abs() < f32::EPSILON);
+
+        let gap = adjusted_dash_gap(114.0, 3.0, 2.0);
+        assert!((gap - (45.0 / 22.0)).abs() < f32::EPSILON);
     }
 }
 
