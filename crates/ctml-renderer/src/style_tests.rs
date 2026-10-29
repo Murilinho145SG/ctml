@@ -125,7 +125,7 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
             ],
         },
         StyleRule {
-            selectors: vec!["p::after".to_owned()],
+            selectors: vec!["p:after".to_owned()],
             declarations: vec![
                 StyleDeclaration {
                     property: "content".to_owned(),

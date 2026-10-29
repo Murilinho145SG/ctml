@@ -101,11 +101,23 @@ pub(super) fn resolve_generated_content(
 fn strip_pseudo_element(selector: &str, pseudo_element: &str) -> Option<String> {
     let selector = selector.trim_end();
     let expected_suffix = format!("::{pseudo_element}");
-    let base = selector.get(..selector.len().checked_sub(expected_suffix.len())?)?;
-    if !selector
-        .get(base.len()..)?
-        .eq_ignore_ascii_case(&expected_suffix)
-    {
+    let legacy_suffix = format!(":{pseudo_element}");
+    let suffix = [expected_suffix.as_str(), legacy_suffix.as_str()]
+        .into_iter()
+        .find(|suffix| selector.to_ascii_lowercase().ends_with(suffix))?;
+    let suffix_start = selector.len().checked_sub(suffix.len())?;
+    let escaped_colon = selector[..suffix_start]
+        .bytes()
+        .rev()
+        .take_while(|byte| *byte == b'\\')
+        .count()
+        % 2
+        == 1;
+    if escaped_colon {
+        return None;
+    }
+    let base = selector.get(..suffix_start)?;
+    if !selector.get(base.len()..)?.eq_ignore_ascii_case(suffix) {
         return None;
     }
     let trimmed_base = base.trim_end();

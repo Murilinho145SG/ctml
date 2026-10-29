@@ -76,6 +76,10 @@ pub fn selector_specificity(selector: &str) -> (usize, usize, usize) {
                     break;
                 };
                 let name = name.to_ascii_lowercase();
+                let legacy_pseudo_element = matches!(
+                    name.as_str(),
+                    "before" | "after" | "first-line" | "first-letter"
+                );
                 if cursor < compound.len() && compound.as_bytes()[cursor] == b'(' {
                     if let Some(end) = function_selector_end(&compound, cursor) {
                         let arguments = split_selector_list(&compound[cursor + 1..end]);
@@ -118,7 +122,11 @@ pub fn selector_specificity(selector: &str) -> (usize, usize, usize) {
                         continue;
                     }
                 }
-                classes += 1;
+                if legacy_pseudo_element {
+                    tags += 1;
+                } else {
+                    classes += 1;
+                }
                 continue;
             }
             match character {

@@ -118,6 +118,10 @@ fn computes_selector_specificity_by_id_class_and_type() {
     assert_eq!(selector_specificity("[data-label=\"#.value\"]"), (0, 1, 0));
     assert_eq!(selector_specificity("main:has(> p.active)"), (0, 1, 2));
     assert_eq!(selector_specificity("p::before"), (0, 0, 2));
+    assert_eq!(selector_specificity("p:before"), (0, 0, 2));
+    assert_eq!(selector_specificity("p:after"), (0, 0, 2));
+    assert_eq!(selector_specificity("p:first-line"), (0, 0, 2));
+    assert_eq!(selector_specificity("p:first-letter"), (0, 0, 2));
     assert_eq!(
         selector_specificity("li:nth-child(2n of .item, #target)"),
         (1, 1, 1)
