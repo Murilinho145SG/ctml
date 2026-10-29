@@ -52,6 +52,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Pseudo-element text decorations honor `text-decoration-skip-ink` values `auto`, `none`, and `all`.
 - [x] `text-underline-offset` moves underlines on `::first-line` and `::first-letter`.
 - [x] Apply the supported color-only `background` shorthand to `::first-line` and `::first-letter`.
+- [x] Apply inherited and overridden `text-transform` to the `::first-letter` source character, including case expansion.
+- [ ] Apply `text-transform` to `::first-line` text during line formation.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.

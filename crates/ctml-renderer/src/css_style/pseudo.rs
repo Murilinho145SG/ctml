@@ -128,6 +128,8 @@ fn resolve_pseudo_style(
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
+                            || (pseudo_element.eq_ignore_ascii_case("first-letter")
+                                && declaration.property.eq_ignore_ascii_case("text-transform"))
                     })
                     .cloned()
                     .collect(),

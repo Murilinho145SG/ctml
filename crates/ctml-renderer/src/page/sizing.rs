@@ -337,6 +337,7 @@ pub(super) fn insert_block_spacers(
             style.flow_spacer = true;
             output.push(TextRun {
                 text: "\u{200b}\n".to_owned(),
+                source_first_non_whitespace: None,
                 style,
                 element_path: Vec::new(),
                 selection_background: None,

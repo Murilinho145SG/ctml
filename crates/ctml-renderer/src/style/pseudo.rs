@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::style::TextTransform;
 use crate::{StyleDeclaration, StyleRule, css_style, style::TextStyle};
 use ctml_css::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeElement,
@@ -31,15 +32,28 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
             output.push(run);
             continue;
         };
-        let end = start + character.len_utf8();
+        let source_character = run.source_first_non_whitespace.unwrap_or(character);
+        let original_transform = apply_text_transform(source_character, run.style.text_transform);
+        let selected_character_count = original_transform.chars().count().max(1);
+        let end = run.text[start..]
+            .char_indices()
+            .nth(selected_character_count)
+            .map_or(run.text.len(), |(offset, _)| start + offset);
         if start > 0 {
             let mut prefix = run.clone();
             prefix.text = run.text[..start].to_owned();
+            prefix.source_first_non_whitespace = None;
             prefix.first_letter_font_style = None;
             output.push(prefix);
         }
         let mut first_letter = run.clone();
-        first_letter.text = run.text[start..end].to_owned();
+        first_letter.text = apply_text_transform(
+            source_character,
+            run.first_letter_font_style
+                .as_ref()
+                .map_or(run.style.text_transform, |style| style.text_transform),
+        );
+        first_letter.source_first_non_whitespace = Some(source_character);
         if let Some(pseudo_style) = &run.first_letter_font_style {
             first_letter.style.family.clone_from(&pseudo_style.family);
             first_letter.style.font_size = pseudo_style.font_size;
@@ -93,6 +107,14 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
         styled_blocks.insert(block);
     }
     *runs = output;
+}
+
+fn apply_text_transform(character: char, transform: TextTransform) -> String {
+    match transform {
+        TextTransform::Uppercase | TextTransform::Capitalize => character.to_uppercase().collect(),
+        TextTransform::Lowercase => character.to_lowercase().collect(),
+        TextTransform::None => character.to_string(),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
