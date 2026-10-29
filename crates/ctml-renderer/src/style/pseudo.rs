@@ -47,6 +47,40 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
             first_letter.style.weight = pseudo_style.weight;
             first_letter.style.font_style = pseudo_style.font_style;
             first_letter.style.stretch = pseudo_style.stretch;
+            first_letter.style.kerning = pseudo_style.kerning;
+            first_letter.style.common_ligatures = pseudo_style.common_ligatures;
+            first_letter.style.discretionary_ligatures = pseudo_style.discretionary_ligatures;
+            first_letter.style.historical_ligatures = pseudo_style.historical_ligatures;
+            first_letter.style.contextual_alternates = pseudo_style.contextual_alternates;
+            first_letter.style.font_variant_caps = pseudo_style.font_variant_caps;
+            first_letter.style.font_variant_position = pseudo_style.font_variant_position;
+            first_letter
+                .style
+                .font_variant_numeric
+                .clone_from(&pseudo_style.font_variant_numeric);
+            first_letter
+                .style
+                .font_variant_east_asian
+                .clone_from(&pseudo_style.font_variant_east_asian);
+            first_letter
+                .style
+                .font_feature_settings
+                .clone_from(&pseudo_style.font_feature_settings);
+            first_letter.style.line_height = pseudo_style.line_height;
+            first_letter.style.line_height_multiplier = pseudo_style.line_height_multiplier;
+            first_letter.style.line_height_normal = pseudo_style.line_height_normal;
+            first_letter.style.letter_spacing = pseudo_style.letter_spacing;
+            first_letter.style.letter_spacing_px = pseudo_style.letter_spacing_px;
+            first_letter
+                .style
+                .text_shadows
+                .clone_from(&pseudo_style.text_shadows);
+            first_letter
+                .style
+                .text_emphasis_style
+                .clone_from(&pseudo_style.text_emphasis_style);
+            first_letter.style.text_emphasis_color = pseudo_style.text_emphasis_color;
+            first_letter.style.text_emphasis_position = pseudo_style.text_emphasis_position;
         }
         first_letter.first_letter_font_style = None;
         output.push(first_letter);

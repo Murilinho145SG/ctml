@@ -120,6 +120,56 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
 }
 
 #[test]
+fn first_letter_text_shadow_is_rasterized() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-shadow".to_owned(),
+            value: "3px 0px red".to_owned(),
+        }],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    assert_eq!(page.runs[0].style.text_shadows.len(), 1);
+    let shadowed_pixels = page.snapshot_pixels(140, 70);
+    let mut plain_page = PageRasterizer::new(&nodes, &[]);
+    assert_ne!(shadowed_pixels, plain_page.snapshot_pixels(140, 70));
+}
+
+#[test]
+fn first_letter_text_emphasis_is_rendered() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-emphasis".to_owned(),
+            value: "filled dot red".to_owned(),
+        }],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(140, 70);
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0])
+    );
+}
+
+#[test]
 fn first_letter_font_styles_apply_to_the_first_non_whitespace_character() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
