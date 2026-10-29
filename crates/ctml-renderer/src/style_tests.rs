@@ -332,3 +332,42 @@ fn display_contents_removes_tag_line_separation_but_keeps_children() {
         "beforemiddleafter"
     );
 }
+
+#[test]
+fn display_flow_root_uses_block_text_flow() {
+    assert_display_flow("span", "flow-root", "before\nmiddle\nafter");
+}
+
+#[test]
+fn display_inline_block_uses_inline_text_flow() {
+    assert_display_flow("p", "inline-block", "beforemiddleafter");
+}
+
+fn assert_display_flow(tag: &str, display: &str, expected: &str) {
+    let nodes = [
+        UiNode::Text("before".to_owned()),
+        UiNode::Element {
+            tag: tag.to_owned(),
+            class: Some("target".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("middle".to_owned())],
+        },
+        UiNode::Text("after".to_owned()),
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec![".target".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: display.to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        expected
+    );
+}
