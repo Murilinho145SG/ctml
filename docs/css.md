@@ -50,7 +50,7 @@ main .title {
 - Colors support standard named colors, `transparent`, `currentColor` for text and page backgrounds, `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, comma-separated `rgb()`/`rgba()` and `hsl()`/`hsla()` syntax, modern space-separated `rgb()`/`hsl()` syntax, and `hwb()` with optional slash alpha. RGB channels accept numbers or percentages; hue accepts degrees, gradians, radians, or turns. Alpha is supported for text and the page background; translucent page backgrounds are composited over white.
 - Small/petite caps are synthesized with uppercase glyphs at a reduced size; unicase, titling caps, subscript, and superscript use the selected font's OpenType features. A font without a requested OpenType feature may render the text without that glyph variant.
 - Cursor values include `auto`, `default`, `pointer`, `text`, `crosshair`, `move`, `wait`, `progress`, `help`, `not-allowed`, `no-drop`, `copy`, `alias`, `cell`, `all-scroll`, `grab`, `grabbing`, zoom cursors, and common resize cursors. The OS draws the native cursor icon.
-- The cascade follows selector specificity and source order. Text properties inherit through child elements.
+- The cascade follows `!important` priority, selector specificity, and source order. Text properties inherit through child elements.
 - Text wraps to the available page width. Common block elements start a new line.
 - Text can be selected by dragging the left mouse button; double-clicking selects a word.
 
@@ -66,7 +66,7 @@ Unsupported CSS selectors and properties are currently ignored. They do not prod
 - Attribute selectors, such as `[disabled]` and `[type="text"]`.
 - Adjacent-sibling and general-sibling combinators: `+` and `~`.
 - Selector namespaces and escaped identifiers.
-- `!important` priority and cascade layers.
+- Cascade layers (`@layer`).
 
 ### Layout and sizing
 

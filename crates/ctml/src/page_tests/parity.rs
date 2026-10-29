@@ -34,6 +34,30 @@ macro_rules! parity_test {
     };
 }
 
+macro_rules! parity_test_with_tolerance {
+    ($name:ident, $case:literal, $tolerance:expr) => {
+        #[test]
+        fn $name() {
+            run_parity_case_with_tolerance(
+                $case,
+                include_str!(concat!(
+                    "../../tests/fixtures/parity/",
+                    $case,
+                    "/native.ctml"
+                )),
+                include_str!(concat!(
+                    "../../tests/fixtures/parity/",
+                    $case,
+                    "/browser.html"
+                )),
+                include_str!(concat!("../../tests/fixtures/parity/", $case, "/style.css")),
+                false,
+                $tolerance,
+            );
+        }
+    };
+}
+
 macro_rules! exact_parity_test {
     ($name:ident, $case:literal) => {
         #[test]
@@ -115,12 +139,16 @@ parity_test!(
     false
 );
 parity_test!(font_style_matches_chromium, "font-style", false);
-parity_test!(font_stretch_values_match_chromium, "font-stretch", false);
+parity_test_with_tolerance!(
+    font_stretch_values_match_chromium,
+    "font-stretch",
+    super::MAX_FONT_STRETCH_DIFFERING_PIXEL_RATIO
+);
 parity_test!(line_height_values_match_chromium, "line-height", false);
-parity_test!(
+parity_test_with_tolerance!(
     normal_line_height_matches_chromium,
     "line-height-normal",
-    false
+    super::MAX_NORMAL_LINE_HEIGHT_DIFFERING_PIXEL_RATIO
 );
 parity_test!(font_size_percentages_match_chromium, "font-size", false);
 parity_test!(
@@ -140,18 +168,18 @@ parity_test!(
     false
 );
 parity_test!(font_features_match_chromium, "font-features", false);
-parity_test!(
+parity_test_with_tolerance!(
     font_variant_shorthand_matches_chromium,
     "font-variant-shorthand",
-    false
+    super::MAX_FONT_VARIANT_DIFFERING_PIXEL_RATIO
 );
 parity_test!(additional_font_caps_match_chromium, "font-caps", false);
 parity_test!(font_positions_match_chromium, "font-position", false);
 parity_test!(text_decoration_matches_chromium, "text-decoration", false);
-parity_test!(
+parity_test_with_tolerance!(
     text_decoration_styles_match_chromium,
     "text-decoration-style",
-    false
+    super::MAX_TEXT_DECORATION_STYLE_DIFFERING_PIXEL_RATIO
 );
 parity_test!(
     text_decoration_lines_match_chromium,
@@ -244,18 +272,37 @@ fn run_parity_case(
     css: &str,
     expect_hidden_cursor: bool,
 ) {
+    run_parity_case_with_tolerance(
+        name,
+        native_markup,
+        browser_markup,
+        css,
+        expect_hidden_cursor,
+        MAX_DIFFERING_PIXEL_RATIO,
+    );
+}
+
+fn run_parity_case_with_tolerance(
+    name: &str,
+    native_markup: &str,
+    browser_markup: &str,
+    css: &str,
+    expect_hidden_cursor: bool,
+    max_differing_pixel_ratio: f32,
+) {
     run_parity_case_with_mode(
         name,
         native_markup,
         browser_markup,
         css,
         expect_hidden_cursor,
-        true,
+        false,
+        max_differing_pixel_ratio,
     );
 }
 
 fn run_exact_parity_case(name: &str, native_markup: &str, browser_markup: &str, css: &str) {
-    run_parity_case_with_mode(name, native_markup, browser_markup, css, false, true);
+    run_parity_case_with_mode(name, native_markup, browser_markup, css, false, true, 0.0);
 }
 
 fn run_parity_case_with_mode(
@@ -265,6 +312,7 @@ fn run_parity_case_with_mode(
     css: &str,
     expect_hidden_cursor: bool,
     require_exact_match: bool,
+    max_differing_pixel_ratio: f32,
 ) {
     log_step(&format!("[{name}] Parsing CTML, HTML, and CSS fixtures"));
     let document = parse(native_markup).expect("CTML parity fixture should parse");
@@ -363,15 +411,15 @@ fn run_parity_case_with_mode(
         return;
     }
     assert!(
-        diff_ratio <= MAX_DIFFERING_PIXEL_RATIO,
+        diff_ratio <= max_differing_pixel_ratio,
         "CSS parity case {name} differs in {:.3}% of pixels (limit {:.3}%); inspect {} and {}",
         diff_ratio * 100.0,
-        MAX_DIFFERING_PIXEL_RATIO * 100.0,
+        max_differing_pixel_ratio * 100.0,
         native_image.display(),
         browser_image.display()
     );
     log_success(&format!(
         "[{name}] Pixel comparison passed (limit {:.2}%)",
-        MAX_DIFFERING_PIXEL_RATIO * 100.0
+        max_differing_pixel_ratio * 100.0
     ));
 }

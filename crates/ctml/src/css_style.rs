@@ -43,24 +43,49 @@ pub(super) fn apply_matching_styles(
             .max();
         if let Some(specificity) = specificity {
             for (declaration_index, declaration) in rule.declarations.iter().enumerate() {
-                matches.push((specificity, rule_index, declaration_index, declaration));
+                let (_, important) = declaration_value(&declaration.value);
+                matches.push((
+                    important,
+                    specificity,
+                    rule_index,
+                    declaration_index,
+                    declaration,
+                ));
             }
         }
     }
-    matches.sort_by_key(|(specificity, rule, declaration, _)| (*specificity, *rule, *declaration));
+    matches.sort_by_key(|(important, specificity, rule, declaration, _)| {
+        (*important, *specificity, *rule, *declaration)
+    });
 
     let inherited_color = (style.color, style.color_opacity);
-    for (_, _, _, declaration) in matches
+    for (_, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, declaration)| declaration.property == "color")
+        .filter(|(_, _, _, _, declaration)| declaration.property == "color")
     {
-        apply_color_declaration(style, &declaration.value, inherited_color);
+        let (value, _) = declaration_value(&declaration.value);
+        apply_color_declaration(style, value, inherited_color);
     }
-    for (_, _, _, declaration) in matches
+    for (_, _, _, _, declaration) in matches
         .iter()
-        .filter(|(_, _, _, declaration)| declaration.property != "color")
+        .filter(|(_, _, _, _, declaration)| declaration.property != "color")
     {
-        apply_declaration(style, &declaration.property, &declaration.value);
+        let (value, _) = declaration_value(&declaration.value);
+        apply_declaration(style, &declaration.property, value);
+    }
+}
+
+fn declaration_value(value: &str) -> (&str, bool) {
+    let value = value.trim_end();
+    let Some(value_without_priority) = value.get(..value.len().saturating_sub("!important".len()))
+    else {
+        return (value, false);
+    };
+    let priority = value[value_without_priority.len()..].trim();
+    if priority.eq_ignore_ascii_case("!important") {
+        (value_without_priority.trim_end(), true)
+    } else {
+        (value, false)
     }
 }
 

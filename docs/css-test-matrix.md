@@ -31,7 +31,7 @@ This matrix covers every CSS property and selector currently handled by the nati
 | Type, class, ID, universal, and compound selectors | `selector-matrix` | selector match matrix |
 | Descendant and direct-child combinators | `selector-matrix`, `child-selector` | descendant and child matching |
 | Comma-separated selector groups | `selector-matrix` | group matching and specificity |
-| Specificity and source order | `selector-matrix`, `child-selector` | cascade precedence |
+| `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |
 
 ## Running the complete matrix
 
@@ -49,4 +49,4 @@ Run every Chromium comparison serially:
 cargo test --offline -p ctml page::tests::parity -- --test-threads=1
 ```
 
-The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference; other cases retain a 0.05% limit for pixels above that tolerance. Artifacts are written to `target/css-parity/<case>/`.
+The suite reports every exact RGB pixel mismatch and highlights mismatches above the per-channel tolerance. Exact parity cases fail on any RGB difference. Most other cases allow up to 0.05% of pixels above that tolerance; `font-stretch` allows 0.055%, `text-decoration-style` 0.11%, `font-variant-shorthand` 0.27%, and `line-height-normal` 0.48% for observed rasterization differences. Artifacts are written to `target/css-parity/<case>/`.

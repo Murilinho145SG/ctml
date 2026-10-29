@@ -382,6 +382,33 @@ fn cascade_uses_specificity_then_source_order_for_each_declaration() {
 }
 
 #[test]
+fn important_declarations_precede_specificity_and_source_order() {
+    let current = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: Some("target".to_owned()),
+    };
+    let rules = [
+        ("#target", "#ff0000"),
+        ("p", "#0000ff !IMPORTANT"),
+        ("#target", "#008000"),
+        (".sample", "#ffffff !important"),
+    ]
+    .map(|(selector, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        declarations: vec![StyleDeclaration {
+            property: "color".to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+    let mut style = TextStyle::default();
+
+    apply_matching_styles(&mut style, &current, &[], &rules);
+
+    assert_eq!(style.color, [255, 255, 255, 255]);
+}
+
+#[test]
 fn selector_matrix_covers_type_class_id_universal_compound_and_descendant() {
     use super::selector_matches;
 

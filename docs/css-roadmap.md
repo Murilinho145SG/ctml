@@ -38,7 +38,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [x] Selector specificity and source order.
 - [x] Inheritance for supported text properties.
 - [ ] Complete origin and importance ordering, including user-agent, author, and user origins where applicable.
-- [ ] `!important` declarations.
+- [x] `!important` declarations.
 - [ ] Cascade layers with `@layer`.
 - [ ] `inherit`, `initial`, `unset`, `revert`, and `revert-layer` keywords.
 - [ ] Shorthand and longhand expansion, including conflict resolution.
