@@ -31,9 +31,35 @@ pub(crate) fn normal_line_height(
     })?;
     let font = font_system.get_font(id, style.weight)?;
     let metrics = font.as_swash().metrics(&[]);
-    (metrics.units_per_em != 0).then(|| {
-        let font_metrics = (metrics.ascent - metrics.descent + metrics.leading) * style.font_size
-            / f32::from(metrics.units_per_em);
-        font_metrics.max(style.font_size * 1.2)
-    })
+    normal_line_height_from_metrics(
+        metrics.ascent,
+        metrics.descent,
+        metrics.leading,
+        style.font_size,
+        metrics.units_per_em,
+    )
+}
+
+fn normal_line_height_from_metrics(
+    ascent: f32,
+    descent: f32,
+    leading: f32,
+    font_size: f32,
+    units_per_em: u16,
+) -> Option<f32> {
+    (units_per_em != 0).then(|| (ascent + descent + leading) * font_size / f32::from(units_per_em))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normal_line_height_from_metrics;
+
+    #[test]
+    fn scales_positive_font_metrics_without_a_fixed_line_height_floor() {
+        let line_height = normal_line_height_from_metrics(1854.0, 434.0, 67.0, 18.0, 2048)
+            .expect("font metrics should have a nonzero units-per-em value");
+
+        assert!((line_height - 20.69824).abs() < 0.001);
+        assert!(line_height < 18.0 * 1.2);
+    }
 }
