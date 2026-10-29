@@ -519,6 +519,20 @@ mod tests {
     }
 
     #[test]
+    fn parses_oklab_relative_colors_and_channel_references() {
+        assert_eq!(parse_color("oklab(from red l a b)"), Some([255, 0, 0, 255]));
+        assert_eq!(
+            parse_color("oklab(from oklab(0.5 0.1 0.2 / 25%) l a b / alpha)"),
+            parse_color("oklab(0.5 0.1 0.2 / 25%)")
+        );
+        assert_eq!(parse_color("oklch(from red l c h)"), Some([255, 0, 0, 255]));
+        assert_ne!(
+            parse_color("oklch(from red l c 240deg)"),
+            Some([255, 0, 0, 255])
+        );
+    }
+
+    #[test]
     fn color_mixes_premultiply_alpha_and_allow_nested_color_values() {
         assert_eq!(
             parse_color("color-mix(in srgb, transparent, red)"),

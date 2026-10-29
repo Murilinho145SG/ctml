@@ -7,7 +7,9 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
     let is_hsl = function == "hsl";
-    if function != "rgb" && !is_hsl {
+    let is_oklab = function == "oklab";
+    let is_oklch = function == "oklch";
+    if function != "rgb" && !is_hsl && !is_oklab && !is_oklch {
         return None;
     }
 
@@ -21,6 +23,24 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
                 let saturation = parse_hsl_unit_channel(input, source_hsl.1, "s")?;
                 let lightness = parse_hsl_unit_channel(input, source_hsl.2, "l")?;
                 super::hsl_to_rgb(hue, saturation, lightness)
+            } else if is_oklab {
+                let source_lab = super::color4::srgb_to_oklab(source_color.0);
+                let lightness = parse_relative_component(input, source_lab.0, "l", 1.0)?;
+                let a = parse_relative_component(input, source_lab.1, "a", 0.4)?;
+                let b = parse_relative_component(input, source_lab.2, "b", 0.4)?;
+                super::color4::oklab_to_srgb((lightness, a, b))
+            } else if is_oklch {
+                let source_lab = super::color4::srgb_to_oklab(source_color.0);
+                let chroma = source_lab.1.hypot(source_lab.2);
+                let source_hue = source_lab
+                    .2
+                    .atan2(source_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let lightness = parse_relative_component(input, source_lab.0, "l", 1.0)?;
+                let chroma = parse_relative_component(input, chroma, "c", 0.4)?;
+                let hue = parse_hue_channel(input, source_hue)?.to_radians();
+                super::color4::oklab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else {
                 [
                     parse_channel(input, source_color)?,
@@ -42,6 +62,22 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
         .ok()?;
 
     parser.is_exhausted().then_some(color)
+}
+
+fn parse_relative_component<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    source_value: f32,
+    name: &str,
+    percentage_scale: f32,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
+    match input.next()? {
+        Token::Ident(value) if value.eq_ignore_ascii_case(name) => Ok(source_value),
+        Token::Number { value, .. } if value.is_finite() => Ok(*value),
+        Token::Percentage { unit_value, .. } if unit_value.is_finite() => {
+            Ok(*unit_value * percentage_scale)
+        }
+        _ => Err(input.new_custom_error(())),
+    }
 }
 
 fn parse_hue_channel<'i, 't>(
