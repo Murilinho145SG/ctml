@@ -124,6 +124,8 @@ pub(super) fn compile_runs(
             selection_background,
         );
         run.selection_background = selected_style.background_color;
+        run.selection_foreground =
+            (selected_style.color != run.style.color).then_some(selected_style.color);
     }
     (runs, root_style)
 }
@@ -133,6 +135,7 @@ pub(super) struct TextRun {
     pub(super) style: TextStyle,
     pub(super) element_path: Vec<usize>,
     pub(super) selection_background: Option<[u8; 4]>,
+    pub(super) selection_foreground: Option<[u8; 4]>,
 }
 
 fn selector_sibling_contexts(
@@ -338,6 +341,7 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
     }
     for synthesized in &mut output {
         synthesized.selection_background = run.selection_background;
+        synthesized.selection_foreground = run.selection_foreground;
     }
     output
 }
@@ -376,6 +380,7 @@ fn push_character(
             style: style.clone(),
             element_path: element_path.to_vec(),
             selection_background: None,
+            selection_foreground: None,
         });
     }
 }

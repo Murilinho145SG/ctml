@@ -242,14 +242,30 @@ impl PageRasterizer {
             self.root_style.background_color.is_some(),
         );
         self.draw_selection(&mut pixels, width, height);
+        let selection = self.selection.map(|(first, second)| {
+            if first <= second {
+                (first, second)
+            } else {
+                (second, first)
+            }
+        });
         let Self {
             runs,
             buffer,
             font_system,
             cache,
+            cursor_spans,
             ..
         } = self;
-        font_raster::draw(runs, font_system, buffer, &mut pixels, width, height);
+        font_raster::draw(
+            runs,
+            font_system,
+            buffer,
+            &mut pixels,
+            width,
+            height,
+            selection.map(|(start, end)| (start, end, cursor_spans.as_slice())),
+        );
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
         let mut all_ink_mask = vec![0; pixels.len() / 4];
@@ -405,14 +421,15 @@ fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
     alignments
 }
 
-struct CursorSpan {
-    line: usize,
-    start: usize,
-    end: usize,
+pub(super) struct CursorSpan {
+    pub(super) line: usize,
+    pub(super) start: usize,
+    pub(super) end: usize,
     icon: CursorIcon,
     hidden: bool,
     element_path: Vec<usize>,
-    selection_background: Option<[u8; 4]>,
+    pub(super) selection_background: Option<[u8; 4]>,
+    pub(super) selection_foreground: Option<[u8; 4]>,
 }
 
 fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
@@ -435,6 +452,7 @@ fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 hidden: run.style.cursor_hidden,
                 element_path: run.element_path.clone(),
                 selection_background: run.selection_background,
+                selection_foreground: run.selection_foreground,
             });
             index = end;
         }

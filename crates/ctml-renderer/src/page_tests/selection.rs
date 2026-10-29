@@ -13,10 +13,16 @@ fn selection_pseudo_element_sets_highlight_background_color() {
     let stylesheet = [StyleRule {
         selectors: vec!["::selection".to_owned()],
         layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "background-color".to_owned(),
-            value: "red".to_owned(),
-        }],
+        declarations: vec![
+            StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            },
+            StyleDeclaration {
+                property: "color".to_owned(),
+                value: "lime".to_owned(),
+            },
+        ],
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
     let _baseline = page.snapshot_pixels(120, 50);
@@ -29,6 +35,11 @@ fn selection_pseudo_element_sets_highlight_background_color() {
         pixels
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [255, 0, 0])
+    );
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [0, 255, 0])
     );
 }
 
@@ -82,10 +93,16 @@ fn element_scoped_selection_styles_apply_only_to_matching_text() {
     let stylesheet = [StyleRule {
         selectors: vec!["p::selection".to_owned()],
         layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "background-color".to_owned(),
-            value: "red".to_owned(),
-        }],
+        declarations: vec![
+            StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            },
+            StyleDeclaration {
+                property: "color".to_owned(),
+                value: "lime".to_owned(),
+            },
+        ],
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
     let _baseline = page.snapshot_pixels(140, 70);
@@ -103,5 +120,10 @@ fn element_scoped_selection_styles_apply_only_to_matching_text() {
         !pixels
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [173, 216, 230])
+    );
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [0, 255, 0])
     );
 }

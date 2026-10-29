@@ -71,6 +71,7 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
         style,
         element_path: Vec::new(),
         selection_background: Some([255, 0, 0, 255]),
+        selection_foreground: Some([0, 255, 0, 255]),
     });
 
     assert_eq!(runs.len(), 2);
@@ -79,9 +80,11 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     assert_eq!(runs[0].style.font_variant_caps, FontVariantCaps::Normal);
     assert_eq!(runs[0].style.line_height, 20.0);
     assert_eq!(runs[0].selection_background, Some([255, 0, 0, 255]));
+    assert_eq!(runs[0].selection_foreground, Some([0, 255, 0, 255]));
     assert_eq!(runs[1].text, "B");
     assert_eq!(runs[1].style.font_scale, 1.0);
     assert_eq!(runs[1].selection_background, Some([255, 0, 0, 255]));
+    assert_eq!(runs[1].selection_foreground, Some([0, 255, 0, 255]));
 }
 
 #[test]
@@ -97,6 +100,7 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
             style,
             element_path: Vec::new(),
             selection_background: None,
+            selection_foreground: None,
         });
 
         assert_eq!(runs.len(), 1);
