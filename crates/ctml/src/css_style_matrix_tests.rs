@@ -4,7 +4,10 @@ use winit::window::CursorIcon;
 use super::{ElementIdentity, apply_matching_styles, resolve_style};
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{FontVariantCaps, FontVariantPosition, TextDecorationStyle, TextStyle, TextTransform},
+    style::{
+        FontVariantCaps, FontVariantPosition, TextDecorationSkipInk, TextDecorationStyle,
+        TextStyle, TextTransform,
+    },
 };
 
 fn style_for(property: &str, value: &str) -> TextStyle {
@@ -180,6 +183,21 @@ fn covers_every_text_decoration_line_and_style() {
     ] {
         assert_eq!(
             style_for("text-decoration-style", value).decoration_style,
+            expected,
+            "{value}"
+        );
+    }
+}
+
+#[test]
+fn covers_every_text_decoration_skip_ink_value() {
+    for (value, expected) in [
+        ("auto", TextDecorationSkipInk::Auto),
+        ("none", TextDecorationSkipInk::None),
+        ("all", TextDecorationSkipInk::All),
+    ] {
+        assert_eq!(
+            style_for("text-decoration-skip-ink", value).decoration_skip_ink,
             expected,
             "{value}"
         );

@@ -69,6 +69,7 @@ pub(super) struct TextStyle {
     pub(super) text_align: Align,
     pub(super) underline: bool,
     pub(super) decoration_style: TextDecorationStyle,
+    pub(super) decoration_skip_ink: TextDecorationSkipInk,
     pub(super) overline: bool,
     pub(super) strikethrough: bool,
     pub(super) text_decoration_color: Option<[u8; 4]>,
@@ -114,6 +115,15 @@ pub(super) enum TextDecorationStyle {
     Wavy,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[repr(usize)]
+pub(super) enum TextDecorationSkipInk {
+    #[default]
+    Auto,
+    None,
+    All,
+}
+
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
@@ -144,6 +154,7 @@ impl Default for TextStyle {
             text_align: Align::Left,
             underline: false,
             decoration_style: TextDecorationStyle::Solid,
+            decoration_skip_ink: TextDecorationSkipInk::Auto,
             overline: false,
             strikethrough: false,
             text_decoration_color: None,
@@ -225,7 +236,8 @@ impl TextStyle {
             }
         }
         attrs = attrs.font_features(font_features);
-        attrs = attrs.metadata(self.decoration_style as usize);
+        attrs = attrs
+            .metadata(self.decoration_style as usize | ((self.decoration_skip_ink as usize) << 4));
         attrs = attrs.metrics(Metrics::new(
             self.font_size * self.font_scale,
             self.line_height,

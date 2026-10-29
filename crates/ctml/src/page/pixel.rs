@@ -6,6 +6,7 @@ pub(super) struct PixelRenderer<'a> {
     pub(super) pixels: &'a mut [u8],
     pub(super) width: u32,
     pub(super) height: u32,
+    pub(super) skip_ink_mask: Option<&'a [u8]>,
 }
 
 impl Renderer for PixelRenderer<'_> {
@@ -17,12 +18,33 @@ impl Renderer for PixelRenderer<'_> {
         };
         for offset_y in 0..height as i32 {
             for offset_x in 0..width as i32 {
+                let pixel_x = x + offset_x + PAGE_PADDING as i32;
+                let pixel_y = y + offset_y + PAGE_PADDING as i32;
+                if let Some(mask) = self.skip_ink_mask
+                    && pixel_x >= 0
+                    && pixel_y >= 0
+                    && pixel_x < self.width as i32
+                    && pixel_y < self.height as i32
+                    && (0..=4).any(|offset_y| {
+                        (-1..=1).any(|offset_x| {
+                            let mask_x = pixel_x + offset_x;
+                            let mask_y = pixel_y + offset_y;
+                            mask_x >= 0
+                                && mask_y >= 0
+                                && mask_x < self.width as i32
+                                && mask_y < self.height as i32
+                                && mask[mask_y as usize * self.width as usize + mask_x as usize] > 0
+                        })
+                    })
+                {
+                    continue;
+                }
                 blend(
                     self.pixels,
                     self.width,
                     self.height,
-                    x + offset_x + PAGE_PADDING as i32,
-                    y + offset_y + PAGE_PADDING as i32,
+                    pixel_x,
+                    pixel_y,
                     color,
                     color.a(),
                 );
@@ -32,6 +54,12 @@ impl Renderer for PixelRenderer<'_> {
 
     fn glyph(&mut self, _glyph: cosmic_text::PhysicalGlyph, _color: Color) {
         unreachable!("glyphs are rasterized through the alpha-aware page renderer")
+    }
+}
+
+impl<'a> PixelRenderer<'a> {
+    pub(super) fn set_skip_ink_mask(&mut self, mask: Option<&'a [u8]>) {
+        self.skip_ink_mask = mask;
     }
 }
 

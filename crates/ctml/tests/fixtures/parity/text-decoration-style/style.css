@@ -10,6 +10,7 @@ p {
     color: transparent;
     text-decoration-line: underline;
     text-decoration-color: #3366cc;
+    text-decoration-skip-ink: none;
 }
 
 .solid { text-decoration-style: solid; }

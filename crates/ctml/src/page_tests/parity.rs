@@ -153,6 +153,11 @@ parity_test!(
     "text-decoration-lines",
     false
 );
+parity_test!(
+    text_decoration_skip_ink_matches_chromium,
+    "text-decoration-skip-ink",
+    false
+);
 parity_test!(child_selector_matches_chromium, "child-selector", false);
 parity_test!(selector_matrix_matches_chromium, "selector-matrix", false);
 parity_test!(text_alignment_matches_chromium, "text-alignment", false);

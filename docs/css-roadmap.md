@@ -129,7 +129,8 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [ ] Word spacing, text rendering, and text orientation.
 - [x] `text-decoration-color` for underline, overline, and line-through.
 - [x] Solid, double, dotted, dashed, and wavy text decoration styles.
-- [ ] Custom decoration thickness and offset, skip ink, and emphasis marks.
+- [x] `text-decoration-skip-ink` values `auto`, `none`, and `all`.
+- [ ] Custom decoration thickness and offset, and emphasis marks.
 - [ ] Text shadows and `text-emphasis`.
 - [ ] Writing modes, direction, bidirectional isolation, and vertical text.
 - [ ] List markers and counters.

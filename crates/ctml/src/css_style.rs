@@ -205,6 +205,14 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
                 _ => style.decoration_style,
             };
         }
+        "text-decoration-skip-ink" => {
+            style.decoration_skip_ink = match value.to_ascii_lowercase().as_str() {
+                "auto" => crate::style::TextDecorationSkipInk::Auto,
+                "none" => crate::style::TextDecorationSkipInk::None,
+                "all" => crate::style::TextDecorationSkipInk::All,
+                _ => style.decoration_skip_ink,
+            };
+        }
         "text-decoration-color" => {
             style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
                 None

@@ -1,13 +1,27 @@
 use cosmic_text::{Color, DecorationSpan, LayoutRun, Renderer, UnderlineStyle};
 
-use crate::style::TextDecorationStyle;
+use crate::style::{TextDecorationSkipInk, TextDecorationStyle};
 
-pub(super) fn render_patterned_decorations<R: Renderer>(
-    renderer: &mut R,
+use super::pixel::PixelRenderer;
+
+pub(super) fn render_patterned_decorations<'a>(
+    renderer: &mut PixelRenderer<'a>,
     run: &LayoutRun<'_>,
     default_color: Color,
+    auto_ink_mask: &'a [u8],
+    all_ink_mask: &'a [u8],
 ) {
     for span in run.decorations {
+        let metadata = run
+            .glyphs
+            .get(span.glyph_range.start)
+            .map_or(0, |glyph| glyph.metadata);
+        let skip_ink = (metadata >> 4) & 0b11;
+        renderer.set_skip_ink_mask(match skip_ink {
+            value if value == TextDecorationSkipInk::None as usize => None,
+            value if value == TextDecorationSkipInk::All as usize => Some(all_ink_mask),
+            _ => Some(auto_ink_mask),
+        });
         render_span(renderer, run, span, default_color);
     }
 }
@@ -36,7 +50,7 @@ fn render_span<R: Renderer>(
         return;
     }
 
-    let style = match glyphs[0].metadata {
+    let style = match glyphs[0].metadata & 0b111 {
         1 => TextDecorationStyle::Double,
         2 => TextDecorationStyle::Dotted,
         3 => TextDecorationStyle::Dashed,

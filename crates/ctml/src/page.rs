@@ -285,12 +285,9 @@ impl PageRasterizer {
             cache,
             ..
         } = self;
-        let mut renderer = PixelRenderer {
-            pixels: &mut pixels,
-            width,
-            height,
-        };
         let default_color = Color::rgb(0, 0, 0);
+        let mut auto_ink_mask = vec![0; pixels.len() / 4];
+        let mut all_ink_mask = vec![0; pixels.len() / 4];
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
                 let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
@@ -301,36 +298,69 @@ impl PageRasterizer {
                 } else {
                     blend_pixel
                 };
-                let pixels = &mut *renderer.pixels;
-                let width = renderer.width;
-                let height = renderer.height;
+                let mask_color = Color::rgba(color.r(), color.g(), color.b(), 255);
+                let pixel_buffer = &mut pixels;
+                let auto_mask = &mut auto_ink_mask;
+                let all_mask = &mut all_ink_mask;
+                let has_descender = run.text[glyph.start..glyph.end]
+                    .chars()
+                    .any(is_underline_descender);
                 cache.with_pixels(
                     font_system,
                     physical_glyph.cache_key,
-                    color,
+                    mask_color,
                     |x, y, pixel_color| {
                         let alpha = ((pixel_color.a() as u16 * base_alpha + 127) / 255) as u8;
+                        let pixel_x = physical_glyph.x + x + PAGE_PADDING as i32;
+                        let pixel_y = physical_glyph.y + y + PAGE_PADDING as i32;
+                        if pixel_x >= 0
+                            && pixel_y >= 0
+                            && pixel_x < width as i32
+                            && pixel_y < height as i32
+                        {
+                            let mask_index = pixel_y as usize * width as usize + pixel_x as usize;
+                            if pixel_color.a() > 0 {
+                                all_mask[mask_index] = all_mask[mask_index].max(pixel_color.a());
+                                if has_descender {
+                                    auto_mask[mask_index] =
+                                        auto_mask[mask_index].max(pixel_color.a());
+                                }
+                            }
+                        }
                         blend(
-                            pixels,
+                            pixel_buffer,
                             width,
                             height,
-                            physical_glyph.x + x + PAGE_PADDING as i32,
-                            physical_glyph.y + y + PAGE_PADDING as i32,
+                            pixel_x,
+                            pixel_y,
                             pixel_color,
                             alpha,
                         );
                     },
                 );
             }
+        }
+        for run in buffer.layout_runs() {
             let use_custom_decorations = run.decorations.iter().any(|span| {
                 span.font_size >= 10.0
-                    || run
-                        .glyphs
-                        .get(span.glyph_range.start)
-                        .is_some_and(|glyph| glyph.metadata >= 2)
+                    || run.glyphs.get(span.glyph_range.start).is_some_and(|glyph| {
+                        (glyph.metadata & 0b111) >= 2 || ((glyph.metadata >> 4) & 0b11) != 1
+                    })
             });
+            let mut renderer = PixelRenderer {
+                pixels: &mut pixels,
+                width,
+                height,
+                skip_ink_mask: None,
+            };
             if use_custom_decorations {
-                decorations::render_patterned_decorations(&mut renderer, &run, default_color);
+                decorations::render_patterned_decorations(
+                    &mut renderer,
+                    &run,
+                    default_color,
+                    &auto_ink_mask,
+                    &all_ink_mask,
+                );
             } else {
                 cosmic_text::render_decoration(&mut renderer, &run, default_color);
             }
@@ -365,6 +395,10 @@ impl PageRasterizer {
             }
         }
     }
+}
+
+fn is_underline_descender(character: char) -> bool {
+    matches!(character, 'g' | 'j' | 'p' | 'q' | 'y')
 }
 
 fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
