@@ -36,6 +36,13 @@ This matrix covers every CSS property and selector currently handled by the nati
 | `!important`, specificity, and source order | `selector-matrix`, `child-selector` | cascade precedence and important priority |
 | `inherit`, `initial`, and `unset` | — | supported property cascade keyword unit test |
 
+## Stylesheet processing coverage
+
+| Feature | Integration coverage | Unit coverage |
+| --- | --- | --- |
+| Multiple linked stylesheets preserve header order | Native demo build script | Compiler document stylesheet-order test |
+| Local `@import` expands at its source position, tracks dependencies, and rejects cycles or root escapes | Native demo build script | Nested import order, dependency, cycle, and path validation tests |
+
 ## Running the complete matrix
 
 Run unit coverage without Chromium:

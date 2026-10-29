@@ -1,6 +1,6 @@
 use std::{env, fs, io, path::PathBuf};
 
-use ctml_compiler::{AttributeValue, CssRule, Element, Node, parse, parse_stylesheet};
+use ctml_compiler::{AttributeValue, CssRule, Element, Node, parse, parse_stylesheet_file};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_path = "src/main.ctml";
@@ -20,10 +20,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             return Err(invalid_data("stylesheet href must be a relative path inside src/").into());
         }
-        let stylesheet_path = PathBuf::from("src").join(relative_path);
-        println!("cargo:rerun-if-changed={}", stylesheet_path.display());
-        let source = fs::read_to_string(stylesheet_path)?;
-        stylesheet.extend(parse_stylesheet(&source).map_err(invalid_data)?.rules);
+        let source_root = PathBuf::from("src");
+        let stylesheet_path = source_root.join(relative_path);
+        let (parsed, dependencies) =
+            parse_stylesheet_file(&stylesheet_path, &source_root).map_err(invalid_data)?;
+        for dependency in dependencies {
+            println!("cargo:rerun-if-changed={}", dependency.display());
+        }
+        stylesheet.extend(parsed.rules);
     }
     let application = document
         .application()

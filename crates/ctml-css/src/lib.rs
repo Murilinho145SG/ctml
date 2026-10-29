@@ -1,10 +1,12 @@
 use cssparser::{Delimiter, Parser, ParserInput};
 
 mod color;
+mod imports;
 mod length;
 mod selector;
 
 pub use color::{parse_color, parse_color_with_opacity};
+pub use imports::parse_stylesheet_file;
 pub use length::{parse_length, parse_nonnegative_length, parse_signed_length_percentage};
 pub use selector::{
     ElementIdentity, selector_matches, selector_matches_with_attributes,
