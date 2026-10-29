@@ -29,6 +29,10 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-decoration-thickness",
     "text-underline-offset",
     "text-shadow",
+    "text-emphasis",
+    "text-emphasis-style",
+    "text-emphasis-color",
+    "text-emphasis-position",
     "cursor",
 ];
 

@@ -47,6 +47,9 @@ pub(crate) struct TextStyle {
     pub(crate) strikethrough: bool,
     pub(crate) text_decoration_color: Option<[u8; 4]>,
     pub(crate) text_shadows: Vec<TextShadow>,
+    pub(crate) text_emphasis_style: TextEmphasisStyle,
+    pub(crate) text_emphasis_color: Option<[u8; 4]>,
+    pub(crate) text_emphasis_position: TextEmphasisPosition,
     pub(crate) custom_properties: HashMap<String, String>,
 }
 
@@ -56,6 +59,29 @@ pub(crate) struct TextShadow {
     pub(crate) offset_y: f32,
     pub(crate) blur: f32,
     pub(crate) color: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextEmphasisStyle {
+    #[default]
+    None,
+    FilledDot,
+    OpenDot,
+    FilledCircle,
+    OpenCircle,
+    FilledDoubleCircle,
+    OpenDoubleCircle,
+    FilledTriangle,
+    OpenTriangle,
+    FilledSesame,
+    OpenSesame,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextEmphasisPosition {
+    #[default]
+    Over,
+    Under,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -147,6 +173,9 @@ impl Default for TextStyle {
             strikethrough: false,
             text_decoration_color: None,
             text_shadows: Vec::new(),
+            text_emphasis_style: TextEmphasisStyle::None,
+            text_emphasis_color: None,
+            text_emphasis_position: TextEmphasisPosition::Over,
             custom_properties: HashMap::new(),
         }
     }

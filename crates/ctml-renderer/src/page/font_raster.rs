@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem, fontdb};
 use skia_safe::{
     AlphaType, Canvas, Color, Color4f, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId,
-    ImageInfo, Paint, PixelGeometry, Point, Shaper, SurfaceProps, SurfacePropsFlags, TextBlob,
-    TextBlobBuilder,
+    ImageInfo, Paint, PaintStyle, Path, PathBuilder, PathFillType, PixelGeometry, Point, Rect,
+    Shaper, SurfaceProps, SurfacePropsFlags, TextBlob, TextBlobBuilder,
     font::Edging,
     font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
     shaper::{Feature as SkiaFeature, TextBlobBuilderRunHandler},
@@ -12,7 +12,7 @@ use skia_safe::{
 };
 
 use crate::page::PAGE_PADDING;
-use crate::style::{TextRun, TextStyle};
+use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextRun, TextStyle};
 
 pub(super) fn draw(
     runs: &[TextRun],
@@ -125,6 +125,9 @@ pub(super) fn draw(
                     draw_text_shadows(canvas, &blob, style);
                 }
                 canvas.draw_text_blob(blob, Point::default(), &paint);
+                if let Some(style) = text_style {
+                    draw_text_emphasis(canvas, &run, group, style);
+                }
             } else {
                 let mut builder = TextBlobBuilder::new();
                 let (glyph_ids, positions) = builder.alloc_run_pos(&font, group.len(), None);
@@ -140,6 +143,9 @@ pub(super) fn draw(
                         draw_text_shadows(canvas, &blob, style);
                     }
                     canvas.draw_text_blob(blob, Point::default(), &paint);
+                    if let Some(style) = text_style {
+                        draw_text_emphasis(canvas, &run, group, style);
+                    }
                 }
             }
             start = end;
@@ -170,6 +176,116 @@ fn draw_text_shadows(canvas: &Canvas, blob: &TextBlob, style: &TextStyle) {
         paint.set_color(Color::WHITE);
         paint.set_image_filter(filter);
         canvas.draw_text_blob(blob, Point::default(), &paint);
+    }
+}
+
+fn draw_text_emphasis(
+    canvas: &Canvas,
+    line: &cosmic_text::LayoutRun<'_>,
+    glyphs: &[cosmic_text::LayoutGlyph],
+    style: &TextStyle,
+) {
+    if style.text_emphasis_style == TextEmphasisStyle::None {
+        return;
+    }
+    let color = style.text_emphasis_color.unwrap_or(style.color);
+    let mut paint = Paint::default();
+    paint.set_color(Color::from_argb(color[3], color[0], color[1], color[2]));
+    let mut seen = std::collections::HashSet::new();
+    for glyph in glyphs {
+        if !seen.insert((glyph.start, glyph.end))
+            || line
+                .text
+                .get(glyph.start..glyph.end)
+                .is_none_or(|text| text.chars().all(char::is_whitespace))
+        {
+            continue;
+        }
+        let radius = (glyph.font_size * 0.14).clamp(1.0, 2.5);
+        let center = Point::new(
+            glyph.x + glyph.w * 0.5 + PAGE_PADDING,
+            match style.text_emphasis_position {
+                TextEmphasisPosition::Over => line.line_top + radius + PAGE_PADDING,
+                TextEmphasisPosition::Under => {
+                    line.line_top + line.line_height - radius - 1.0 + PAGE_PADDING
+                }
+            },
+        );
+        draw_emphasis_mark(
+            canvas,
+            center,
+            radius,
+            style.text_emphasis_style,
+            &mut paint,
+        );
+    }
+}
+
+fn draw_emphasis_mark(
+    canvas: &Canvas,
+    center: Point,
+    radius: f32,
+    style: TextEmphasisStyle,
+    paint: &mut Paint,
+) {
+    let open = matches!(
+        style,
+        TextEmphasisStyle::OpenDot
+            | TextEmphasisStyle::OpenCircle
+            | TextEmphasisStyle::OpenDoubleCircle
+            | TextEmphasisStyle::OpenTriangle
+            | TextEmphasisStyle::OpenSesame
+    );
+    paint.set_style(if open {
+        PaintStyle::Stroke
+    } else {
+        PaintStyle::Fill
+    });
+    paint.set_stroke_width((radius * 0.4).max(0.7));
+    match style {
+        TextEmphasisStyle::FilledDot | TextEmphasisStyle::OpenDot => {
+            canvas.draw_circle(center, radius * 0.58, paint);
+        }
+        TextEmphasisStyle::FilledCircle | TextEmphasisStyle::OpenCircle => {
+            canvas.draw_circle(center, radius, paint);
+        }
+        TextEmphasisStyle::FilledDoubleCircle => {
+            let mut rings = PathBuilder::new();
+            rings.set_fill_type(PathFillType::EvenOdd);
+            rings.add_circle(center, radius, None);
+            rings.add_circle(center, radius * 0.55, None);
+            let rings = Path::from(rings);
+            canvas.draw_path(&rings, paint);
+            canvas.draw_circle(center, radius * 0.2, paint);
+        }
+        TextEmphasisStyle::OpenDoubleCircle => {
+            paint.set_style(PaintStyle::Stroke);
+            canvas.draw_circle(center, radius, paint);
+            canvas.draw_circle(center, radius * 0.52, paint);
+        }
+        TextEmphasisStyle::FilledTriangle | TextEmphasisStyle::OpenTriangle => {
+            let path = Path::polygon(
+                &[
+                    Point::new(center.x, center.y - radius),
+                    Point::new(center.x + radius, center.y + radius * 0.8),
+                    Point::new(center.x - radius, center.y + radius * 0.8),
+                ],
+                true,
+                None,
+                None,
+            );
+            canvas.draw_path(&path, paint);
+        }
+        TextEmphasisStyle::FilledSesame | TextEmphasisStyle::OpenSesame => {
+            let bounds = Rect::from_xywh(
+                center.x - radius * 0.65,
+                center.y - radius,
+                radius * 1.3,
+                radius * 2.0,
+            );
+            canvas.draw_oval(bounds, paint);
+        }
+        TextEmphasisStyle::None => {}
     }
 }
 

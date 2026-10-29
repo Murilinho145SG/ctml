@@ -137,3 +137,60 @@ fn text_shadow_is_rasterized_behind_text() {
             .any(|pixel| u16::from(pixel[0]) > u16::from(pixel[1]) + 32)
     );
 }
+
+#[test]
+fn text_emphasis_draws_marks_on_non_whitespace_glyphs() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("A B".to_owned())],
+    }];
+    let baseline = PageRasterizer::new(&nodes, &[]).snapshot_pixels(100, 50);
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-emphasis".to_owned(),
+            value: "filled dot red".to_owned(),
+        }],
+    }];
+    let emphasized = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 50);
+
+    assert_ne!(baseline, emphasized);
+    let red_rows = |pixels: &[u8]| {
+        pixels
+            .chunks_exact(100 * 4)
+            .enumerate()
+            .filter(|(_, row)| {
+                row.chunks_exact(4).any(|pixel| {
+                    u16::from(pixel[0]) > u16::from(pixel[1]) + 32
+                        && u16::from(pixel[0]) > u16::from(pixel[2]) + 32
+                })
+            })
+            .map(|(row, _)| row)
+            .collect::<Vec<_>>()
+    };
+    let over_rows = red_rows(&emphasized);
+    assert!(!over_rows.is_empty());
+
+    let under_stylesheet = [
+        stylesheet[0].clone(),
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-emphasis-position".to_owned(),
+                value: "under".to_owned(),
+            }],
+        },
+    ];
+    let under = PageRasterizer::new(&nodes, &under_stylesheet).snapshot_pixels(100, 50);
+    let under_rows = red_rows(&under);
+    assert!(!under_rows.is_empty());
+    assert!(
+        over_rows.iter().max().unwrap() < under_rows.iter().min().unwrap(),
+        "over marks should appear above under marks"
+    );
+}

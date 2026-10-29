@@ -16,6 +16,9 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
             blur: 3.0,
             color: [10, 20, 30, 255],
         }],
+        text_emphasis_style: crate::style::TextEmphasisStyle::OpenSesame,
+        text_emphasis_color: Some([90, 80, 70, 255]),
+        text_emphasis_position: crate::style::TextEmphasisPosition::Under,
         color: [0, 0, 255, 255],
         background: [12, 34, 56],
         text_decoration_color: Some([255, 0, 0, 255]),
@@ -47,6 +50,12 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     );
     assert_eq!(reset.font_feature_settings, inherited.font_feature_settings);
     assert_eq!(reset.text_shadows, inherited.text_shadows);
+    assert_eq!(reset.text_emphasis_style, inherited.text_emphasis_style);
+    assert_eq!(reset.text_emphasis_color, inherited.text_emphasis_color);
+    assert_eq!(
+        reset.text_emphasis_position,
+        inherited.text_emphasis_position
+    );
     assert_eq!(reset.weight, inherited.weight);
     assert_eq!(reset.font_style, inherited.font_style);
     assert_eq!(reset.background, [255, 255, 255]);
@@ -70,6 +79,15 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     assert!(initial.font_variant_east_asian.is_empty());
     assert!(initial.font_feature_settings.is_empty());
     assert!(initial.text_shadows.is_empty());
+    assert_eq!(
+        initial.text_emphasis_style,
+        crate::style::TextEmphasisStyle::None
+    );
+    assert_eq!(initial.text_emphasis_color, None);
+    assert_eq!(
+        initial.text_emphasis_position,
+        crate::style::TextEmphasisPosition::Over
+    );
     assert_eq!(initial.weight, Weight::NORMAL);
     assert_eq!(initial.background, [255, 255, 255]);
 
@@ -99,6 +117,18 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
     );
     assert_eq!(inherited_style.background, inherited.background);
     assert_eq!(inherited_style.text_shadows, inherited.text_shadows);
+    assert_eq!(
+        inherited_style.text_emphasis_style,
+        inherited.text_emphasis_style
+    );
+    assert_eq!(
+        inherited_style.text_emphasis_color,
+        inherited.text_emphasis_color
+    );
+    assert_eq!(
+        inherited_style.text_emphasis_position,
+        inherited.text_emphasis_position
+    );
 
     let variable_all = StyleRule {
         selectors: vec![".sample".to_owned()],

@@ -20,6 +20,7 @@ use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_shorthand, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
 };
+use text_emphasis::{apply_text_emphasis_property, inherit_text_emphasis, reset_text_emphasis};
 use text_shadow::apply_text_shadow;
 
 mod color;
@@ -27,6 +28,7 @@ mod cursor;
 mod font;
 mod font_feature_settings;
 mod text_decoration;
+mod text_emphasis;
 mod text_shadow;
 
 pub(super) fn apply_declaration_with_inherited(
@@ -73,6 +75,10 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-east-asian"
             | "font-feature-settings"
             | "text-shadow"
+            | "text-emphasis"
+            | "text-emphasis-style"
+            | "text-emphasis-color"
+            | "text-emphasis-position"
             | "line-height"
             | "letter-spacing"
             | "text-transform"
@@ -131,6 +137,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             .font_feature_settings
             .clone_from(&inherited.font_feature_settings),
         "text-shadow" => style.text_shadows.clone_from(&inherited.text_shadows),
+        "text-emphasis"
+        | "text-emphasis-style"
+        | "text-emphasis-color"
+        | "text-emphasis-position" => inherit_text_emphasis(style, inherited, property),
         "line-height" => {
             style.line_height = inherited.line_height;
             style.line_height_multiplier = inherited.line_height_multiplier;
@@ -195,6 +205,10 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "font-variant-east-asian" => style.font_variant_east_asian.clear(),
         "font-feature-settings" => style.font_feature_settings.clear(),
         "text-shadow" => style.text_shadows.clear(),
+        "text-emphasis"
+        | "text-emphasis-style"
+        | "text-emphasis-color"
+        | "text-emphasis-position" => reset_text_emphasis(style, property),
         "line-height" => {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
@@ -315,6 +329,10 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
         "font-variant-east-asian" => apply_font_variant_east_asian(style, value),
         "font-feature-settings" => apply_font_feature_settings(style, value),
         "text-shadow" => apply_text_shadow(style, value),
+        "text-emphasis"
+        | "text-emphasis-style"
+        | "text-emphasis-color"
+        | "text-emphasis-position" => apply_text_emphasis_property(style, property, value),
         "font-variant-position" => {
             style.font_variant_position = match value.to_ascii_lowercase().as_str() {
                 "normal" => FontVariantPosition::Normal,
