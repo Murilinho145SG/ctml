@@ -40,6 +40,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let rec2020 = interpolation_space.eq_ignore_ascii_case("rec2020");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
+            let srgb = interpolation_space.eq_ignore_ascii_case("srgb");
             if !interpolation_space.eq_ignore_ascii_case("srgb")
                 && !linear_srgb
                 && !lab
@@ -76,9 +77,9 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             };
             input.expect_comma()?;
 
-            let (first, first_percentage) = parse_mix_component(input, depth)?;
+            let (first, first_percentage, first_missing) = parse_mix_component(input, depth)?;
             input.expect_comma()?;
-            let (second, second_percentage) = parse_mix_component(input, depth)?;
+            let (second, second_percentage, second_missing) = parse_mix_component(input, depth)?;
             if !input.is_exhausted() {
                 return Err(input.new_custom_error(()));
             }
@@ -99,6 +100,29 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
 
             let first_weight = first_weight / weight_sum;
             let second_weight = second_weight / weight_sum;
+            let (mut first, mut second) = (first, second);
+            if srgb {
+                for index in 0..3 {
+                    match (first_missing[index], second_missing[index]) {
+                        (true, true) => {
+                            first.0[index] = 0;
+                            second.0[index] = 0;
+                        }
+                        (true, false) => first.0[index] = second.0[index],
+                        (false, true) => second.0[index] = first.0[index],
+                        (false, false) => {}
+                    }
+                }
+                match (first_missing[3], second_missing[3]) {
+                    (true, true) => {
+                        first.1 = 0.0;
+                        second.1 = 0.0;
+                    }
+                    (true, false) => first.1 = second.1,
+                    (false, true) => second.1 = first.1,
+                    (false, false) => {}
+                }
+            }
             let first_alpha = first.1 * first_weight;
             let second_alpha = second.1 * second_weight;
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
@@ -354,7 +378,7 @@ fn interpolate_hue(
 fn parse_mix_component<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
-) -> Result<(([u8; 3], f32), Option<f32>), cssparser::ParseError<'i, ()>> {
+) -> Result<(([u8; 3], f32), Option<f32>, [bool; 4]), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
         Token::Function(_) => input.parse_nested_block(|nested| consume_all_tokens(nested, 0))?,
@@ -364,8 +388,10 @@ fn parse_mix_component<'i, 't>(
         _ => {}
     }
     let color_end = input.position();
-    let color = parse_color_with_opacity_depth(input.slice(start..color_end).trim(), depth + 1)
+    let color_value = input.slice(start..color_end).trim();
+    let color = parse_color_with_opacity_depth(color_value, depth + 1)
         .ok_or_else(|| input.new_custom_error(()))?;
+    let missing = parse_srgb_missing_components(color_value);
     let percentage = input
         .try_parse(|input| input.expect_percentage())
         .ok()
@@ -373,7 +399,47 @@ fn parse_mix_component<'i, 't>(
     if percentage.is_some_and(|percentage| !percentage.is_finite() || percentage < 0.0) {
         return Err(input.new_custom_error(()));
     }
-    Ok((color, percentage))
+    Ok((color, percentage, missing))
+}
+
+fn parse_srgb_missing_components(value: &str) -> [bool; 4] {
+    let mut source = ParserInput::new(value);
+    let mut parser = Parser::new(&mut source);
+    if !parser
+        .expect_function()
+        .ok()
+        .is_some_and(|name| name.eq_ignore_ascii_case("color"))
+    {
+        return [false; 4];
+    }
+    parser
+        .parse_nested_block(|input| -> Result<_, cssparser::ParseError<'_, ()>> {
+            input.expect_ident_matching("srgb")?;
+            let mut missing = [false; 4];
+            for component in &mut missing[..3] {
+                *component = input
+                    .try_parse(|input| input.expect_ident_matching("none"))
+                    .is_ok();
+                if !*component {
+                    input.next()?;
+                }
+            }
+            if input.is_exhausted() {
+                return Ok(missing);
+            }
+            input.expect_delim('/')?;
+            missing[3] = input
+                .try_parse(|input| input.expect_ident_matching("none"))
+                .is_ok();
+            if !missing[3] {
+                input.next()?;
+            }
+            if !input.is_exhausted() {
+                return Err(input.new_custom_error(()));
+            }
+            Ok(missing)
+        })
+        .unwrap_or([false; 4])
 }
 
 fn consume_all_tokens<'i, 't>(

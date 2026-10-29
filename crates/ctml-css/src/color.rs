@@ -372,6 +372,22 @@ mod tests {
     }
 
     #[test]
+    fn color_mix_carries_forward_matching_missing_srgb_components() {
+        assert_eq!(
+            parse_color("color-mix(in srgb, color(srgb none 0 0), color(srgb none 1 1))"),
+            Some([0, 128, 128, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb, color(srgb none 0 0), color(srgb 1 0 0))"),
+            Some([255, 0, 0, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in srgb, color(srgb 1 0 0 / none), color(srgb 0 0 1))"),
+            Some([128, 0, 128, 255])
+        );
+    }
+
+    #[test]
     fn converts_wide_gamut_rgb_profiles_to_srgb() {
         assert_eq!(
             parse_color("color(a98-rgb 0.5 0.5 0.5)"),
