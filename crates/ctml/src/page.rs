@@ -296,12 +296,13 @@ impl PageRasterizer {
         }
         self.draw_selection(&mut pixels, width, height);
         let Self {
+            runs,
             buffer,
             font_system,
             cache,
             ..
         } = self;
-        font_raster::draw(font_system, buffer, &mut pixels, width, height);
+        font_raster::draw(runs, font_system, buffer, &mut pixels, width, height);
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
         let mut all_ink_mask = vec![0; pixels.len() / 4];

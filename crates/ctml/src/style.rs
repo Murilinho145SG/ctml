@@ -167,27 +167,7 @@ impl Default for TextStyle {
 }
 
 impl TextStyle {
-    pub(super) fn to_attrs<'a>(&self, family_name: &'a str) -> Attrs<'a> {
-        let family = match family_name.to_ascii_lowercase().as_str() {
-            "serif" => Family::Serif,
-            "monospace" => Family::Monospace,
-            "cursive" => Family::Cursive,
-            "fantasy" => Family::Fantasy,
-            "sans-serif" => Family::SansSerif,
-            _ => Family::Name(family_name),
-        };
-        let mut attrs = Attrs::new()
-            .family(family)
-            .cache_key_flags(CacheKeyFlags::DISABLE_HINTING)
-            .color(Color::rgba(
-                self.color[0],
-                self.color[1],
-                self.color[2],
-                self.color[3],
-            ))
-            .weight(self.weight)
-            .stretch(self.stretch)
-            .style(self.font_style);
+    pub(super) fn font_features(&self) -> FontFeatures {
         let mut font_features = FontFeatures::new();
         if let Some(kerning) = self.kerning {
             font_features.set(FeatureTag::KERNING, u32::from(kerning));
@@ -239,7 +219,31 @@ impl TextStyle {
                 font_features.enable(FeatureTag::new(b"sups"));
             }
         }
-        attrs = attrs.font_features(font_features);
+        font_features
+    }
+
+    pub(super) fn to_attrs<'a>(&self, family_name: &'a str) -> Attrs<'a> {
+        let family = match family_name.to_ascii_lowercase().as_str() {
+            "serif" => Family::Serif,
+            "monospace" => Family::Monospace,
+            "cursive" => Family::Cursive,
+            "fantasy" => Family::Fantasy,
+            "sans-serif" => Family::SansSerif,
+            _ => Family::Name(family_name),
+        };
+        let mut attrs = Attrs::new()
+            .family(family)
+            .cache_key_flags(CacheKeyFlags::DISABLE_HINTING)
+            .color(Color::rgba(
+                self.color[0],
+                self.color[1],
+                self.color[2],
+                self.color[3],
+            ))
+            .weight(self.weight)
+            .stretch(self.stretch)
+            .style(self.font_style);
+        attrs = attrs.font_features(self.font_features());
         let mut decoration_metadata =
             (self.decoration_style as u64) | ((self.decoration_skip_ink as u64) << 4);
         if let Some(thickness) = self.decoration_thickness {

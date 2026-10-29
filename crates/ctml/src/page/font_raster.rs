@@ -3,15 +3,18 @@ use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem, fontdb};
 use skia_safe::{
     AlphaType, Color, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId, ImageInfo, Paint,
-    PixelGeometry, Point, SurfaceProps, SurfacePropsFlags, TextBlobBuilder,
+    PixelGeometry, Point, Shaper, SurfaceProps, SurfacePropsFlags, TextBlobBuilder,
     font::Edging,
     font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
+    shaper::{Feature as SkiaFeature, TextBlobBuilderRunHandler},
     surfaces,
 };
 
 use crate::page::PAGE_PADDING;
+use crate::style::{TextRun, TextStyle};
 
 pub(super) fn draw(
+    runs: &[TextRun],
     font_system: &FontSystem,
     buffer: &Buffer,
     pixels: &mut [u8],
@@ -41,17 +44,24 @@ pub(super) fn draw(
 
     let font_manager = FontMgr::new();
     let mut typefaces = HashMap::new();
+    let style_ranges = text_style_ranges(runs);
+    let line_starts = text_line_starts(runs);
+    let shaper = skia_safe::shapers::hb::shape_dont_wrap_or_reorder(None::<FontMgr>);
     let canvas = surface.canvas();
     for run in buffer.layout_runs() {
+        let line_start = line_starts.get(run.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < run.glyphs.len() {
             let first = &run.glyphs[start];
             let color = first.color_opt.unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
+            let style_index = style_index_at(&style_ranges, line_start + first.start);
             let mut end = start + 1;
             while end < run.glyphs.len() {
                 let glyph = &run.glyphs[end];
                 if glyph.font_id != first.font_id
                     || glyph.font_size != first.font_size
+                    || glyph.level != first.level
+                    || style_index_at(&style_ranges, line_start + glyph.start) != style_index
                     || glyph.color_opt.unwrap_or(cosmic_text::Color::rgb(0, 0, 0)) != color
                 {
                     break;
@@ -76,21 +86,129 @@ pub(super) fn draw(
             let baseline = run.line_y - 0.4;
 
             let group = &run.glyphs[start..end];
-            let mut builder = TextBlobBuilder::new();
-            let (glyph_ids, positions) = builder.alloc_run_pos(&font, group.len(), None);
-            for (index, glyph) in group.iter().enumerate() {
-                glyph_ids[index] = GlyphId::from(glyph.glyph_id);
-                positions[index] = Point::new(
-                    glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
-                    baseline + PAGE_PADDING - glyph.y_offset * glyph.font_size,
-                );
-            }
-            if let Some(blob) = builder.make() {
-                canvas.draw_text_blob(blob, Point::new(0.0, 0.0), &paint);
+            let text_start = group.iter().map(|glyph| glyph.start).min().unwrap_or(0);
+            let text_end = group
+                .iter()
+                .map(|glyph| glyph.end)
+                .max()
+                .unwrap_or(text_start);
+            let group_text = run.text.get(text_start..text_end);
+            let style = style_index
+                .and_then(|index| runs.get(index))
+                .map(|run| &run.style);
+            let anchor = if first.level.number() % 2 == 0 {
+                group.first().unwrap_or(first)
+            } else {
+                group.last().unwrap_or(first)
+            };
+            let blob = shaper.as_ref().and_then(|shaper| {
+                let style = style?;
+                let text = group_text?;
+                shape_group(
+                    shaper,
+                    text,
+                    &font,
+                    style,
+                    first.level.number(),
+                    Point::new(
+                        anchor.x + anchor.x_offset * anchor.font_size + PAGE_PADDING,
+                        baseline + PAGE_PADDING,
+                    ),
+                )
+            });
+            if let Some(blob) = blob {
+                canvas.draw_text_blob(blob, Point::default(), &paint);
+            } else {
+                let mut builder = TextBlobBuilder::new();
+                let (glyph_ids, positions) = builder.alloc_run_pos(&font, group.len(), None);
+                for (index, glyph) in group.iter().enumerate() {
+                    glyph_ids[index] = GlyphId::from(glyph.glyph_id);
+                    positions[index] = Point::new(
+                        glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
+                        baseline + PAGE_PADDING - glyph.y_offset * glyph.font_size,
+                    );
+                }
+                if let Some(blob) = builder.make() {
+                    canvas.draw_text_blob(blob, Point::default(), &paint);
+                }
             }
             start = end;
         }
     }
+}
+
+fn shape_group(
+    shaper: &Shaper,
+    text: &str,
+    font: &Font,
+    style: &TextStyle,
+    bidi_level: u8,
+    offset: Point,
+) -> Option<skia_safe::TextBlob> {
+    let mut font_runs = Shaper::new_trivial_font_run_iterator(font, text.len());
+    let mut bidi_runs = Shaper::new_bidi_run_iterator(text, bidi_level)?;
+    let mut script_runs = Shaper::new_hb_icu_script_run_iterator(text);
+    let mut language_runs = Shaper::new_std_language_run_iterator(text)?;
+    let features = style
+        .font_features()
+        .features
+        .into_iter()
+        .map(|feature| SkiaFeature {
+            tag: u32::from_be_bytes(*feature.tag.as_bytes()),
+            value: feature.value,
+            start: 0,
+            end: text.len(),
+        })
+        .collect::<Vec<_>>();
+    let tracking = if style.letter_spacing_px {
+        style.letter_spacing / style.font_size
+    } else {
+        style.letter_spacing
+    };
+    let mut handler = TextBlobBuilderRunHandler::new(text, offset);
+    shaper.shape_with_iterators_and_features_and_options(
+        text,
+        &mut font_runs,
+        &mut bidi_runs,
+        &mut script_runs,
+        &mut language_runs,
+        &features,
+        f32::MAX,
+        tracking,
+        &mut handler,
+    );
+    handler.make_blob()
+}
+
+fn text_style_ranges(runs: &[TextRun]) -> Vec<std::ops::Range<usize>> {
+    let mut offset = 0;
+    runs.iter()
+        .map(|run| {
+            let range = offset..offset + run.text.len();
+            offset = range.end;
+            range
+        })
+        .collect()
+}
+
+fn style_index_at(ranges: &[std::ops::Range<usize>], offset: usize) -> Option<usize> {
+    ranges
+        .iter()
+        .position(|range| range.start <= offset && offset < range.end)
+}
+
+fn text_line_starts(runs: &[TextRun]) -> Vec<usize> {
+    let mut starts = vec![0];
+    let mut offset = 0;
+    for run in runs {
+        for (index, character) in run.text.char_indices() {
+            if character == '\n' {
+                starts.push(offset + index + character.len_utf8());
+            }
+        }
+        offset += run.text.len();
+    }
+    starts
 }
 
 fn configure_font(font: &mut Font) {
@@ -142,50 +260,5 @@ fn load_typeface(
 }
 
 #[cfg(test)]
-mod tests {
-    use cosmic_text::FontSystem;
-    use skia_safe::FontMgr;
-
-    use super::configure_font;
-    use super::load_typeface;
-
-    #[test]
-    fn configures_skia_font_to_match_chromium_parity_capture_flags() {
-        let mut font = skia_safe::Font::default();
-
-        configure_font(&mut font);
-
-        assert_eq!(font.edging(), skia_safe::font::Edging::AntiAlias);
-        assert_eq!(font.hinting(), skia_safe::FontHinting::None);
-        assert!(!font.is_force_auto_hinting());
-        assert!(font.is_embedded_bitmaps());
-        assert!(font.is_subpixel());
-        assert!(!font.is_linear_metrics());
-    }
-
-    #[test]
-    fn loaded_typeface_preserves_the_selected_font_face() {
-        let font_system = FontSystem::new();
-        let font_manager = FontMgr::new();
-        let (font_id, expected_post_script_name) = font_system
-            .db()
-            .faces()
-            .find(|face| {
-                !face.post_script_name.is_empty()
-                    && font_system
-                        .db()
-                        .with_face_data(face.id, |_, _| ())
-                        .is_some()
-            })
-            .map(|face| (face.id, face.post_script_name.clone()))
-            .expect("system font database should contain a readable face");
-
-        let typeface = load_typeface(&font_system, &font_manager, font_id)
-            .expect("Skia should load the selected font face");
-
-        assert_eq!(
-            typeface.post_script_name().as_deref(),
-            Some(expected_post_script_name.as_str())
-        );
-    }
-}
+#[path = "font_raster/tests.rs"]
+mod tests;
