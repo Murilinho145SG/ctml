@@ -251,6 +251,51 @@ fn first_line_underline_offset_moves_decoration() {
 }
 
 #[test]
+fn text_emphasis_shorthand_respects_source_order_with_longhands() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Marked".to_owned())],
+    }];
+    let make_page = |shorthand_first: bool| {
+        let shorthand = StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-emphasis".to_owned(),
+                value: "filled dot red".to_owned(),
+            }],
+        };
+        let longhand = StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-emphasis-color".to_owned(),
+                value: "blue".to_owned(),
+            }],
+        };
+        let stylesheet = if shorthand_first {
+            vec![shorthand, longhand]
+        } else {
+            vec![longhand, shorthand]
+        };
+        PageRasterizer::new(&nodes, &stylesheet)
+    };
+    let shorthand_then_longhand = make_page(true);
+    let longhand_then_shorthand = make_page(false);
+    assert_eq!(
+        shorthand_then_longhand.runs[0].style.text_emphasis_color,
+        Some([0, 0, 255, 255])
+    );
+    assert_eq!(
+        longhand_then_shorthand.runs[0].style.text_emphasis_color,
+        Some([255, 0, 0, 255])
+    );
+}
+
+#[test]
 fn first_letter_foreground_and_background_apply_to_one_character() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
