@@ -25,6 +25,42 @@ pub(super) fn first_line_style_at<'a>(
         })
 }
 
+pub(super) fn pseudo_opacity_at(
+    spans: &[CursorSpan],
+    first_line_by_block: &HashMap<usize, (usize, usize)>,
+    first_letters: &HashMap<usize, (usize, usize, usize)>,
+    line: usize,
+    index: usize,
+) -> f32 {
+    let first_span =
+        spans.partition_point(|span| span.line < line || (span.line == line && span.end <= index));
+    let mut opacity = 1.0;
+    for span in spans[first_span..]
+        .iter()
+        .take_while(|span| span.line == line && span.start <= index)
+    {
+        if let Some(value) = span.first_line_opacity
+            && span
+                .first_line_block
+                .and_then(|block| first_line_by_block.get(&block))
+                .is_some_and(|(first_line, end)| *first_line == line && index < *end)
+        {
+            opacity *= value;
+        }
+        if let Some(value) = span.first_letter_opacity
+            && span
+                .first_letter_block
+                .and_then(|block| first_letters.get(&block))
+                .is_some_and(|(letter_line, start, end)| {
+                    *letter_line == line && *start <= index && index < *end
+                })
+        {
+            opacity *= value;
+        }
+    }
+    opacity
+}
+
 pub(super) fn glyph_foreground(
     selection: Option<(Cursor, Cursor)>,
     spans: &[CursorSpan],

@@ -7,6 +7,7 @@ pub(crate) struct PseudoStyle {
     pub(crate) background: Option<[u8; 4]>,
     pub(crate) resolved: TextStyle,
     pub(crate) decoration: Option<PseudoDecoration>,
+    pub(crate) opacity: Option<f32>,
     pub(crate) has_rendered_text_style: bool,
 }
 
@@ -95,6 +96,7 @@ fn resolve_pseudo_style(
                     .filter(|declaration| {
                         [
                             "color",
+                            "opacity",
                             "background",
                             "background-color",
                             "font",
@@ -198,17 +200,30 @@ fn resolve_pseudo_style(
                     "text-emphasis-color",
                     "text-emphasis-position",
                     "text-transform",
+                    "opacity",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))
             });
+    let has_opacity_declaration = rules
+        .iter()
+        .flat_map(|rule| &rule.declarations)
+        .any(|declaration| declaration.property.eq_ignore_ascii_case("opacity"));
+    let pseudo_opacity = if has_opacity_declaration {
+        resolved.opacity
+    } else {
+        1.0
+    };
     let decoration = (has_decoration_declaration
         && (resolved.underline || resolved.overline || resolved.strikethrough))
         .then_some(PseudoDecoration {
             underline: resolved.underline,
             overline: resolved.overline,
             line_through: resolved.strikethrough,
-            color: resolved.text_decoration_color.unwrap_or(resolved.color),
+            color: scale_alpha(
+                resolved.text_decoration_color.unwrap_or(resolved.color),
+                pseudo_opacity,
+            ),
             thickness: resolved.decoration_thickness.unwrap_or(1.0),
             style: resolved.decoration_style,
             skip_ink: resolved.decoration_skip_ink,
@@ -216,9 +231,17 @@ fn resolve_pseudo_style(
         });
     PseudoStyle {
         foreground: (resolved.color != inherited.color).then_some(resolved.color),
-        background: resolved.background_color,
+        background: resolved
+            .background_color
+            .map(|color| scale_alpha(color, pseudo_opacity)),
+        opacity: has_opacity_declaration.then_some(pseudo_opacity),
         resolved,
         decoration,
         has_rendered_text_style,
     }
+}
+
+fn scale_alpha(mut color: [u8; 4], opacity: f32) -> [u8; 4] {
+    color[3] = (f32::from(color[3]) * opacity).round().clamp(0.0, 255.0) as u8;
+    color
 }

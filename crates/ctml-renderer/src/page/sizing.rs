@@ -346,11 +346,13 @@ pub(super) fn insert_block_spacers(
                 first_line_foreground: None,
                 first_line_background: None,
                 first_line_decoration: None,
+                first_line_opacity: None,
                 first_line_font_style: None,
                 first_letter_block: None,
                 first_letter_foreground: None,
                 first_letter_background: None,
                 first_letter_decoration: None,
+                first_letter_opacity: None,
                 first_letter_font_style: None,
             });
             inserted = true;

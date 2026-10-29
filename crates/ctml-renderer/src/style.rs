@@ -161,6 +161,7 @@ pub(super) fn compile_runs_with_font_system(
             run.first_line_foreground = first_line.foreground;
             run.first_line_background = first_line.background;
             run.first_line_decoration = first_line.decoration;
+            run.first_line_opacity = first_line.opacity;
             run.first_line_font_style = first_line
                 .has_rendered_text_style
                 .then_some(first_line.resolved);
@@ -175,6 +176,7 @@ pub(super) fn compile_runs_with_font_system(
             run.first_letter_foreground = first_letter.foreground;
             run.first_letter_background = first_letter.background;
             run.first_letter_decoration = first_letter.decoration;
+            run.first_letter_opacity = first_letter.opacity;
             run.first_letter_font_style = Some(first_letter.resolved);
         }
     }
@@ -194,11 +196,13 @@ pub(super) struct TextRun {
     pub(super) first_line_foreground: Option<[u8; 4]>,
     pub(super) first_line_background: Option<[u8; 4]>,
     pub(super) first_line_decoration: Option<crate::css_style::PseudoDecoration>,
+    pub(super) first_line_opacity: Option<f32>,
     pub(super) first_line_font_style: Option<TextStyle>,
     pub(super) first_letter_block: Option<usize>,
     pub(super) first_letter_foreground: Option<[u8; 4]>,
     pub(super) first_letter_background: Option<[u8; 4]>,
     pub(super) first_letter_decoration: Option<crate::css_style::PseudoDecoration>,
+    pub(super) first_letter_opacity: Option<f32>,
     pub(super) first_letter_font_style: Option<TextStyle>,
 }
 

@@ -44,6 +44,8 @@ mod interactions;
 mod parity;
 #[path = "page_tests/pseudo.rs"]
 mod pseudo;
+#[path = "page_tests/pseudo_opacity.rs"]
+mod pseudo_opacity;
 #[path = "page_tests/selection.rs"]
 mod selection;
 #[path = "page_tests/sizing.rs"]

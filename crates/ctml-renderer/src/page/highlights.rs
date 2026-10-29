@@ -311,6 +311,7 @@ pub(super) fn first_formatted_letters(
         if span.first_letter_foreground.is_none()
             && span.first_letter_background.is_none()
             && span.first_letter_decoration.is_none()
+            && span.first_letter_opacity.is_none()
         {
             continue;
         }

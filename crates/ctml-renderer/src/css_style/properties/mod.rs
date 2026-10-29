@@ -130,6 +130,7 @@ fn is_inherited_property(property: &str) -> bool {
 
 fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
+        "opacity" => style.opacity = inherited.opacity,
         "background-color" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -235,6 +236,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
 
 fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
+        "opacity" => style.opacity = 1.0,
         "background-color" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -337,6 +339,21 @@ fn apply_declaration(
 ) {
     let value = value.trim();
     match property {
+        "opacity" => {
+            let value = value.trim();
+            let opacity = if let Some(percent) = value.strip_suffix('%') {
+                percent
+                    .trim()
+                    .parse::<f32>()
+                    .ok()
+                    .map(|value| value / 100.0)
+            } else {
+                value.parse::<f32>().ok()
+            };
+            if let Some(opacity) = opacity.filter(|opacity| opacity.is_finite()) {
+                style.opacity = opacity.clamp(0.0, 1.0);
+            }
+        }
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),
         "display" => apply_display(style, value),
         "width" | "inline-size" => apply_width(style, value),

@@ -98,11 +98,13 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
         first_line_foreground: Some([0, 0, 255, 255]),
         first_line_background: Some([255, 255, 0, 255]),
         first_line_decoration: None,
+        first_line_opacity: None,
         first_line_font_style: None,
         first_letter_block: Some(3),
         first_letter_foreground: Some([255, 0, 255, 255]),
         first_letter_background: Some([0, 255, 255, 255]),
         first_letter_decoration: None,
+        first_letter_opacity: None,
         first_letter_font_style: None,
     });
 
@@ -150,11 +152,13 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
             first_line_foreground: None,
             first_line_background: None,
             first_line_decoration: None,
+            first_line_opacity: None,
             first_line_font_style: None,
             first_letter_block: None,
             first_letter_foreground: None,
             first_letter_background: None,
             first_letter_decoration: None,
+            first_letter_opacity: None,
             first_letter_font_style: None,
         });
 

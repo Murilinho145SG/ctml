@@ -55,6 +55,7 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
         );
         first_letter.source_first_non_whitespace = Some(source_character);
         if let Some(pseudo_style) = &run.first_letter_font_style {
+            first_letter.style.opacity = pseudo_style.opacity;
             first_letter.style.family.clone_from(&pseudo_style.family);
             first_letter.style.font_size = pseudo_style.font_size;
             first_letter.style.font_scale = pseudo_style.font_scale;
