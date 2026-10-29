@@ -248,6 +248,7 @@ pub(super) fn insert_block_spacers(
                 first_letter_block: None,
                 first_letter_foreground: None,
                 first_letter_background: None,
+                first_letter_font_style: None,
             });
             inserted = true;
         }

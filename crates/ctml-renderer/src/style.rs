@@ -139,7 +139,7 @@ pub(super) fn compile_runs(
                     .iter()
                     .find(|element| element.node_id == *node_id)
             })
-            .find(|element| is_block(&element.element.tag));
+            .find(|element| collect::is_block(&element.element.tag));
         if let Some(block) = block {
             run.first_line_block = Some(block.node_id);
             let first_line = css_style::first_line_style(
@@ -161,8 +161,10 @@ pub(super) fn compile_runs(
             );
             run.first_letter_foreground = first_letter.foreground;
             run.first_letter_background = first_letter.background;
+            run.first_letter_font_style = Some(first_letter.resolved);
         }
     }
+    pseudo::style_first_letters(&mut runs);
     (runs, root_style)
 }
 
@@ -179,6 +181,7 @@ pub(super) struct TextRun {
     pub(super) first_letter_block: Option<usize>,
     pub(super) first_letter_foreground: Option<[u8; 4]>,
     pub(super) first_letter_background: Option<[u8; 4]>,
+    pub(super) first_letter_font_style: Option<TextStyle>,
 }
 
 fn selector_sibling_contexts(
@@ -391,6 +394,7 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
         synthesized.first_letter_block = run.first_letter_block;
         synthesized.first_letter_foreground = run.first_letter_foreground;
         synthesized.first_letter_background = run.first_letter_background;
+        synthesized.first_letter_font_style = run.first_letter_font_style.clone();
     }
     output
 }
@@ -436,6 +440,7 @@ fn push_character(
             first_letter_block: None,
             first_letter_foreground: None,
             first_letter_background: None,
+            first_letter_font_style: None,
         });
     }
 }
@@ -458,32 +463,6 @@ fn trim_runs(runs: &mut Vec<TextRun>) {
         last.text = trimmed;
     }
     runs.retain(|run| !run.text.is_empty());
-}
-
-fn is_block(tag: &str) -> bool {
-    matches!(
-        tag,
-        "address"
-            | "article"
-            | "aside"
-            | "blockquote"
-            | "div"
-            | "footer"
-            | "h1"
-            | "h2"
-            | "h3"
-            | "h4"
-            | "h5"
-            | "h6"
-            | "header"
-            | "li"
-            | "main"
-            | "nav"
-            | "ol"
-            | "p"
-            | "section"
-            | "ul"
-    )
 }
 
 #[cfg(test)]

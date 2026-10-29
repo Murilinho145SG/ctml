@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{StyleDeclaration, StyleRule, css_style, style::TextStyle};
 use ctml_css::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeElement,
@@ -7,6 +9,56 @@ use ctml_css::{
 pub(super) struct GeneratedContent {
     pub(super) text: String,
     pub(super) style: TextStyle,
+}
+
+pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
+    let mut styled_blocks = HashSet::new();
+    let mut output = Vec::with_capacity(runs.len());
+    for run in runs.drain(..) {
+        let Some(block) = run.first_letter_block else {
+            output.push(run);
+            continue;
+        };
+        if styled_blocks.contains(&block) {
+            output.push(run);
+            continue;
+        }
+        let Some((start, character)) = run
+            .text
+            .char_indices()
+            .find(|(_, character)| !character.is_whitespace())
+        else {
+            output.push(run);
+            continue;
+        };
+        let end = start + character.len_utf8();
+        if start > 0 {
+            let mut prefix = run.clone();
+            prefix.text = run.text[..start].to_owned();
+            prefix.first_letter_font_style = None;
+            output.push(prefix);
+        }
+        let mut first_letter = run.clone();
+        first_letter.text = run.text[start..end].to_owned();
+        if let Some(pseudo_style) = &run.first_letter_font_style {
+            first_letter.style.family.clone_from(&pseudo_style.family);
+            first_letter.style.font_size = pseudo_style.font_size;
+            first_letter.style.font_scale = pseudo_style.font_scale;
+            first_letter.style.weight = pseudo_style.weight;
+            first_letter.style.font_style = pseudo_style.font_style;
+            first_letter.style.stretch = pseudo_style.stretch;
+        }
+        first_letter.first_letter_font_style = None;
+        output.push(first_letter);
+        if end < run.text.len() {
+            let mut suffix = run.clone();
+            suffix.text = run.text[end..].to_owned();
+            suffix.first_letter_font_style = None;
+            output.push(suffix);
+        }
+        styled_blocks.insert(block);
+    }
+    *runs = output;
 }
 
 #[allow(clippy::too_many_arguments)]

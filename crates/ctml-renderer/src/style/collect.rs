@@ -5,9 +5,35 @@ use crate::{
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
 use super::{
-    LayoutHeight, LayoutSize, TextRun, TextStyle, append_text, is_block,
-    list_marker::format_marker, pseudo, push_line_break, selector_sibling_contexts,
+    LayoutHeight, LayoutSize, TextRun, TextStyle, append_text, list_marker::format_marker, pseudo,
+    push_line_break, selector_sibling_contexts,
 };
+
+pub(super) fn is_block(tag: &str) -> bool {
+    matches!(
+        tag,
+        "address"
+            | "article"
+            | "aside"
+            | "blockquote"
+            | "div"
+            | "footer"
+            | "h1"
+            | "h2"
+            | "h3"
+            | "h4"
+            | "h5"
+            | "h6"
+            | "header"
+            | "li"
+            | "main"
+            | "nav"
+            | "ol"
+            | "p"
+            | "section"
+            | "ul"
+    )
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn collect_runs(

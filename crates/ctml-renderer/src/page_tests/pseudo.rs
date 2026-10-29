@@ -86,3 +86,44 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
     );
     assert!(pixels.chunks_exact(4).any(|pixel| pixel[..3] == [0, 0, 0]));
 }
+
+#[test]
+fn first_letter_font_styles_apply_to_the_first_non_whitespace_character() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: [
+            ("font-family", "monospace"),
+            ("font-size", "30px"),
+            ("font-weight", "700"),
+            ("font-style", "italic"),
+            ("font-stretch", "condensed"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let page = PageRasterizer::new(&nodes, &stylesheet);
+    let first = page.runs.iter().find(|run| run.text == "F").unwrap();
+    let following = page
+        .runs
+        .iter()
+        .find(|run| run.text.starts_with('i'))
+        .unwrap();
+    assert_eq!(first.style.font_size, 30.0);
+    assert_eq!(first.style.family, "monospace");
+    assert_eq!(first.style.weight, cosmic_text::Weight(700));
+    assert_eq!(first.style.font_style, cosmic_text::Style::Italic);
+    assert_eq!(first.style.stretch, cosmic_text::Stretch::Condensed);
+    assert_eq!(following.style.font_size, 16.0);
+}

@@ -5,6 +5,7 @@ use crate::{StyleRule, css_style::ElementIdentity, style::TextStyle};
 pub(crate) struct PseudoStyle {
     pub(crate) foreground: Option<[u8; 4]>,
     pub(crate) background: Option<[u8; 4]>,
+    pub(crate) resolved: TextStyle,
 }
 
 pub(crate) fn first_line_style(
@@ -78,10 +79,18 @@ fn resolve_pseudo_style(
                     .declarations
                     .iter()
                     .filter(|declaration| {
-                        declaration.property.eq_ignore_ascii_case("color")
-                            || declaration
-                                .property
-                                .eq_ignore_ascii_case("background-color")
+                        [
+                            "color",
+                            "background-color",
+                            "font",
+                            "font-family",
+                            "font-size",
+                            "font-weight",
+                            "font-style",
+                            "font-stretch",
+                        ]
+                        .iter()
+                        .any(|property| declaration.property.eq_ignore_ascii_case(property))
                     })
                     .cloned()
                     .collect(),
@@ -107,5 +116,6 @@ fn resolve_pseudo_style(
     PseudoStyle {
         foreground: (resolved.color != inherited.color).then_some(resolved.color),
         background: resolved.background_color,
+        resolved,
     }
 }

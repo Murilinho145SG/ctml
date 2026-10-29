@@ -78,6 +78,7 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
         first_letter_block: Some(3),
         first_letter_foreground: Some([255, 0, 255, 255]),
         first_letter_background: Some([0, 255, 255, 255]),
+        first_letter_font_style: None,
     });
 
     assert_eq!(runs.len(), 2);
@@ -125,6 +126,7 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
             first_letter_block: None,
             first_letter_foreground: None,
             first_letter_background: None,
+            first_letter_font_style: None,
         });
 
         assert_eq!(runs.len(), 1);
@@ -179,7 +181,14 @@ fn generates_before_and_after_text_with_pseudo_element_styles() {
         "beforebodyafter"
     );
     assert_eq!(runs[0].style.color, [0, 0, 255, 255]);
-    assert_eq!(runs[2].style.weight, cosmic_text::Weight(700));
+    assert_eq!(
+        runs.iter()
+            .find(|run| run.text == "after")
+            .unwrap()
+            .style
+            .weight,
+        cosmic_text::Weight(700)
+    );
 }
 
 #[test]
