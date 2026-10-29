@@ -95,6 +95,9 @@ fn parse_color_space<'i, 't>(
                 0.04511338 * green + 1.04394437 * blue,
             ])
         }
+        "a98-rgb" => a98_to_srgb([red, green, blue]),
+        "prophoto-rgb" => prophoto_to_srgb([red, green, blue]),
+        "rec2020" => rec2020_to_srgb([red, green, blue]),
         "xyz" | "xyz-d65" => xyz_d65_to_srgb([red, green, blue]),
         "xyz-d50" => xyz_d50_to_srgb([red, green, blue]),
         _ => return Err(input.new_custom_error(())),
@@ -187,12 +190,12 @@ pub(super) fn srgb_to_oklab([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
 }
 
 pub(super) fn xyz_d50_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
-    let xyz_d65 = [
-        0.9555766 * x - 0.0230393 * y + 0.0631636 * z,
-        -0.0282895 * x + 1.0099416 * y + 0.0210077 * z,
-        0.0122982 * x - 0.020483 * y + 1.3299098 * z,
+    let [x, y, z] = [
+        0.955473421488075 * x - 0.02309845494876471 * y + 0.06325924320057072 * z,
+        -0.0283697093338637 * x + 1.0099953980813041 * y + 0.021041441191917323 * z,
+        0.012314014864481998 * x - 0.020507649298898964 * y + 1.330365926242124 * z,
     ];
-    xyz_d65_to_srgb(xyz_d65)
+    xyz_d65_to_srgb([x, y, z])
 }
 
 pub(super) fn xyz_d65_to_srgb([x, y, z]: [f32; 3]) -> [u8; 3] {
@@ -216,12 +219,7 @@ pub(super) fn srgb_to_xyz_d65([red, green, blue]: [u8; 3]) -> [f32; 3] {
 }
 
 pub(super) fn srgb_to_xyz_d50(rgb: [u8; 3]) -> [f32; 3] {
-    let [x, y, z] = srgb_to_xyz_d65(rgb);
-    [
-        1.0478112 * x + 0.0228866 * y - 0.0501270 * z,
-        0.0295424 * x + 0.9904844 * y - 0.0170491 * z,
-        -0.0092345 * x + 0.0150436 * y + 0.7521316 * z,
-    ]
+    xyz_d65_to_d50(srgb_to_xyz_d65(rgb))
 }
 
 pub(super) fn srgb_to_display_p3_linear(rgb: [u8; 3]) -> [f32; 3] {
@@ -239,6 +237,104 @@ pub(super) fn display_p3_linear_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3]
         0.22897456 * red + 0.69173852 * green + 0.07928691 * blue,
         0.04511338 * green + 1.04394437 * blue,
     ])
+}
+
+pub(super) fn a98_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3] {
+    let linear = [red, green, blue].map(|value| signed_pow(value, 563.0 / 256.0));
+    let [red, green, blue] = linear;
+    xyz_d65_to_srgb([
+        (573536.0 / 994567.0) * red + (263643.0 / 1420810.0) * green + (187206.0 / 994567.0) * blue,
+        (591459.0 / 1989134.0) * red
+            + (6239551.0 / 9945670.0) * green
+            + (374412.0 / 4972835.0) * blue,
+        (53769.0 / 1989134.0) * red
+            + (351524.0 / 4972835.0) * green
+            + (4929758.0 / 4972835.0) * blue,
+    ])
+}
+
+pub(super) fn prophoto_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3] {
+    let linear = [red, green, blue].map(decode_prophoto);
+    let [red, green, blue] = linear;
+    xyz_d50_to_srgb([
+        0.79776664490064230 * red + 0.13518129740053308 * green + 0.03134773412839220 * blue,
+        0.28807482881940130 * red + 0.71183523424187300 * green + 0.00008993693872564 * blue,
+        0.82510460251046020 * blue,
+    ])
+}
+
+pub(super) fn rec2020_to_srgb([red, green, blue]: [f32; 3]) -> [u8; 3] {
+    let linear = [red, green, blue].map(|value| signed_pow(value, 2.4));
+    let [red, green, blue] = linear;
+    xyz_d65_to_srgb([
+        (63426534.0 / 99577255.0) * red
+            + (20160776.0 / 139408157.0) * green
+            + (47086771.0 / 278816314.0) * blue,
+        (26158966.0 / 99577255.0) * red
+            + (472592308.0 / 697040785.0) * green
+            + (8267143.0 / 139408157.0) * blue,
+        (19567812.0 / 697040785.0) * green + (295819943.0 / 278816314.0) * blue,
+    ])
+}
+
+pub(super) fn srgb_to_a98(rgb: [u8; 3]) -> [f32; 3] {
+    let [x, y, z] = srgb_to_xyz_d65(rgb);
+    [
+        (1829569.0 / 896150.0) * x - (506331.0 / 896150.0) * y - (308931.0 / 896150.0) * z,
+        -(851781.0 / 878810.0) * x + (1648619.0 / 878810.0) * y + (36519.0 / 878810.0) * z,
+        (16779.0 / 1248040.0) * x - (147721.0 / 1248040.0) * y + (1266979.0 / 1248040.0) * z,
+    ]
+    .map(|value| signed_pow(value, 256.0 / 563.0))
+}
+
+pub(super) fn srgb_to_prophoto(rgb: [u8; 3]) -> [f32; 3] {
+    let [x, y, z] = xyz_d65_to_d50(srgb_to_xyz_d65(rgb));
+    [
+        1.3457868816471583 * x - 0.25557208737979464 * y - 0.05110186497554526 * z,
+        -0.5446307051249019 * x + 1.5082477428451468 * y + 0.02052744743642139 * z,
+        1.2119675456389452 * z,
+    ]
+    .map(encode_prophoto)
+}
+
+pub(super) fn srgb_to_rec2020(rgb: [u8; 3]) -> [f32; 3] {
+    let [x, y, z] = srgb_to_xyz_d65(rgb);
+    [
+        (30757411.0 / 17917100.0) * x - (6372589.0 / 17917100.0) * y - (4539589.0 / 17917100.0) * z,
+        -(19765991.0 / 29648200.0) * x
+            + (47925759.0 / 29648200.0) * y
+            + (467509.0 / 29648200.0) * z,
+        (792561.0 / 44930125.0) * x - (1921689.0 / 44930125.0) * y + (42328811.0 / 44930125.0) * z,
+    ]
+    .map(|value| signed_pow(value, 1.0 / 2.4))
+}
+
+fn xyz_d65_to_d50([x, y, z]: [f32; 3]) -> [f32; 3] {
+    [
+        1.0479297925449969 * x + 0.022946870601609652 * y - 0.05019226628920524 * z,
+        0.02962780877005599 * x + 0.9904344267538799 * y - 0.017073799063418826 * z,
+        -0.009243040646204504 * x + 0.015055191490298152 * y + 0.7518742814281371 * z,
+    ]
+}
+
+fn decode_prophoto(value: f32) -> f32 {
+    if value.abs() <= 16.0 / 512.0 {
+        value / 16.0
+    } else {
+        signed_pow(value, 1.8)
+    }
+}
+
+fn encode_prophoto(value: f32) -> f32 {
+    if value.abs() < 1.0 / 512.0 {
+        value * 16.0
+    } else {
+        signed_pow(value, 1.0 / 1.8)
+    }
+}
+
+fn signed_pow(value: f32, exponent: f32) -> f32 {
+    value.signum() * value.abs().powf(exponent)
 }
 
 pub(super) fn encode_srgb(linear: f32) -> u8 {

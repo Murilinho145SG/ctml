@@ -34,6 +34,9 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let xyz_d65 = interpolation_space.eq_ignore_ascii_case("xyz")
                 || interpolation_space.eq_ignore_ascii_case("xyz-d65");
             let display_p3 = interpolation_space.eq_ignore_ascii_case("display-p3");
+            let a98_rgb = interpolation_space.eq_ignore_ascii_case("a98-rgb");
+            let prophoto_rgb = interpolation_space.eq_ignore_ascii_case("prophoto-rgb");
+            let rec2020 = interpolation_space.eq_ignore_ascii_case("rec2020");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
             if !interpolation_space.eq_ignore_ascii_case("srgb")
@@ -45,6 +48,9 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !xyz_d50
                 && !xyz_d65
                 && !display_p3
+                && !a98_rgb
+                && !prophoto_rgb
+                && !rec2020
                 && !hsl
                 && !hwb
             {
@@ -104,6 +110,29 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
                 });
                 super::color4::display_p3_linear_to_srgb(mixed_p3)
+            } else if a98_rgb || prophoto_rgb || rec2020 {
+                let (convert, to_srgb): (fn([u8; 3]) -> [f32; 3], fn([f32; 3]) -> [u8; 3]) =
+                    if a98_rgb {
+                        (super::color4::srgb_to_a98, super::color4::a98_to_srgb)
+                    } else if prophoto_rgb {
+                        (
+                            super::color4::srgb_to_prophoto,
+                            super::color4::prophoto_to_srgb,
+                        )
+                    } else {
+                        (
+                            super::color4::srgb_to_rec2020,
+                            super::color4::rec2020_to_srgb,
+                        )
+                    };
+                let first_channels = convert(first.0);
+                let second_channels = convert(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let mixed = std::array::from_fn(|index| {
+                    (first_channels[index] * first_alpha + second_channels[index] * second_alpha)
+                        / alpha_sum
+                });
+                to_srgb(mixed)
             } else if xyz_d50 || xyz_d65 {
                 let convert = if xyz_d50 {
                     super::color4::srgb_to_xyz_d50

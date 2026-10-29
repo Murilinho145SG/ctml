@@ -331,6 +331,9 @@ mod tests {
             "color(srgb 1 0 0)",
             "color(srgb-linear 1 0 0)",
             "color(display-p3 1 0 0)",
+            "color(a98-rgb 1 0 0)",
+            "color(prophoto-rgb 1 0 0)",
+            "color(rec2020 1 0 0)",
             "color(xyz 0.4123908 0.2126390 0.0193308)",
             "color(xyz-d50 0.4360747 0.2225045 0.0139322)",
             "color(xyz-d65 0.4123908 0.2126390 0.0193308)",
@@ -348,6 +351,22 @@ mod tests {
             Some([255, 0, 0, 128])
         );
         assert_eq!(parse_color("lab(50% nope 0)"), None);
+    }
+
+    #[test]
+    fn converts_wide_gamut_rgb_profiles_to_srgb() {
+        assert_eq!(
+            parse_color("color(a98-rgb 0.5 0.5 0.5)"),
+            Some([129, 129, 129, 255])
+        );
+        assert_eq!(
+            parse_color("color(prophoto-rgb 0.5 0.5 0.5)"),
+            Some([146, 146, 146, 255])
+        );
+        assert_eq!(
+            parse_color("color(rec2020 0.5 0.5 0.5)"),
+            Some([120, 120, 120, 255])
+        );
     }
 
     #[test]
@@ -477,7 +496,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_display_p3_color_mixes_from_supported_srgb_colors() {
+    fn parses_predefined_wide_gamut_color_mixes() {
         assert_eq!(
             parse_color("color-mix(in display-p3, red, blue)"),
             Some([188, 0, 188, 255])
@@ -486,6 +505,13 @@ mod tests {
             parse_color("color-mix(in display-p3, transparent, red)"),
             Some([255, 0, 0, 128])
         );
+        for (space, expected_gray) in [("a98-rgb", 129), ("prophoto-rgb", 146), ("rec2020", 120)] {
+            assert_eq!(
+                parse_color(&format!("color-mix(in {space}, black, white)")),
+                Some([expected_gray, expected_gray, expected_gray, 255]),
+                "unexpected interpolation in {space}"
+            );
+        }
     }
 
     #[test]
@@ -606,6 +632,9 @@ mod tests {
             "srgb",
             "srgb-linear",
             "display-p3",
+            "a98-rgb",
+            "prophoto-rgb",
+            "rec2020",
             "xyz",
             "xyz-d50",
             "xyz-d65",
@@ -619,6 +648,11 @@ mod tests {
                 parse_color(&format!("color(from red {profile} {names})")),
                 Some([255, 0, 0, 255]),
                 "unexpected relative color in {profile}"
+            );
+            assert_eq!(
+                parse_color(&format!("color(from gray {profile} {names})")),
+                Some([128, 128, 128, 255]),
+                "unexpected gray conversion in {profile}"
             );
         }
         assert_eq!(

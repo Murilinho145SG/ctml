@@ -7,6 +7,9 @@ enum ColorSpace {
     Srgb,
     SrgbLinear,
     DisplayP3,
+    A98Rgb,
+    ProPhotoRgb,
+    Rec2020,
     XyzD50,
     XyzD65,
 }
@@ -162,6 +165,9 @@ fn parse_color_space<'i, 't>(
         "srgb" => Ok(ColorSpace::Srgb),
         "srgb-linear" => Ok(ColorSpace::SrgbLinear),
         "display-p3" => Ok(ColorSpace::DisplayP3),
+        "a98-rgb" => Ok(ColorSpace::A98Rgb),
+        "prophoto-rgb" => Ok(ColorSpace::ProPhotoRgb),
+        "rec2020" => Ok(ColorSpace::Rec2020),
         "xyz-d50" => Ok(ColorSpace::XyzD50),
         "xyz" | "xyz-d65" => Ok(ColorSpace::XyzD65),
         _ => Err(input.new_custom_error(())),
@@ -177,6 +183,9 @@ fn convert_source_color(space: ColorSpace, color: [u8; 3]) -> [f32; 3] {
         ColorSpace::DisplayP3 => super::color4::srgb_to_display_p3_linear(color)
             .map(super::color4::encode_srgb)
             .map(|channel| channel as f32 / 255.0),
+        ColorSpace::A98Rgb => super::color4::srgb_to_a98(color),
+        ColorSpace::ProPhotoRgb => super::color4::srgb_to_prophoto(color),
+        ColorSpace::Rec2020 => super::color4::srgb_to_rec2020(color),
         ColorSpace::XyzD50 => super::color4::srgb_to_xyz_d50(color),
         ColorSpace::XyzD65 => super::color4::srgb_to_xyz_d65(color),
     }
@@ -192,6 +201,9 @@ fn convert_color_space(space: ColorSpace, components: [f32; 3]) -> [u8; 3] {
             let linear = components.map(super::color4::decode_srgb);
             super::color4::display_p3_linear_to_srgb(linear)
         }
+        ColorSpace::A98Rgb => super::color4::a98_to_srgb(components),
+        ColorSpace::ProPhotoRgb => super::color4::prophoto_to_srgb(components),
+        ColorSpace::Rec2020 => super::color4::rec2020_to_srgb(components),
         ColorSpace::XyzD50 => super::color4::xyz_d50_to_srgb(components),
         ColorSpace::XyzD65 => super::color4::xyz_d65_to_srgb(components),
     }
