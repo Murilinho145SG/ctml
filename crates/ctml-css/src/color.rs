@@ -190,7 +190,7 @@ fn component_to_byte(component: f32) -> u8 {
     component.clamp(0.0, 255.0).round() as u8
 }
 
-fn hsl_to_rgb(hue: f32, saturation: f32, lightness: f32) -> [u8; 3] {
+pub(super) fn hsl_to_rgb(hue: f32, saturation: f32, lightness: f32) -> [u8; 3] {
     let hue = hue.rem_euclid(360.0) / 60.0;
     let saturation = saturation.clamp(0.0, 1.0);
     let lightness = lightness.clamp(0.0, 1.0);
@@ -206,6 +206,28 @@ fn hsl_to_rgb(hue: f32, saturation: f32, lightness: f32) -> [u8; 3] {
         _ => [chroma, 0.0, secondary],
     };
     channels.map(|channel| ((channel + offset) * 255.0).round() as u8)
+}
+
+pub(super) fn rgb_to_hsl([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
+    let red = red as f32 / 255.0;
+    let green = green as f32 / 255.0;
+    let blue = blue as f32 / 255.0;
+    let maximum = red.max(green).max(blue);
+    let minimum = red.min(green).min(blue);
+    let delta = maximum - minimum;
+    let lightness = (maximum + minimum) / 2.0;
+    if delta == 0.0 {
+        return (0.0, 0.0, lightness);
+    }
+    let saturation = delta / (1.0 - (2.0 * lightness - 1.0).abs());
+    let hue = if maximum == red {
+        60.0 * ((green - blue) / delta).rem_euclid(6.0)
+    } else if maximum == green {
+        60.0 * ((blue - red) / delta + 2.0)
+    } else {
+        60.0 * ((red - green) / delta + 4.0)
+    };
+    (hue, saturation, lightness)
 }
 
 fn hwb_to_rgb(hue: f32, whiteness: f32, blackness: f32) -> [u8; 3] {
@@ -357,6 +379,22 @@ mod tests {
         assert_eq!(
             parse_color("color-mix(in oklab, transparent, red)"),
             Some([255, 0, 0, 128])
+        );
+    }
+
+    #[test]
+    fn parses_hsl_color_mixes_with_shorter_hue_interpolation() {
+        assert_eq!(
+            parse_color("color-mix(in hsl, red, blue)"),
+            Some([255, 0, 255, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hsl, transparent, red)"),
+            Some([255, 0, 0, 128])
+        );
+        assert_eq!(
+            parse_color("color-mix(in hsl, red 25%, blue)"),
+            Some([128, 0, 255, 255])
         );
     }
 

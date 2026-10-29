@@ -19,7 +19,8 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let interpolation_space = input.expect_ident_cloned()?;
             let linear_srgb = interpolation_space.eq_ignore_ascii_case("srgb-linear");
             let oklab = interpolation_space.eq_ignore_ascii_case("oklab");
-            if !interpolation_space.eq_ignore_ascii_case("srgb") && !linear_srgb && !oklab {
+            let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
+            if !interpolation_space.eq_ignore_ascii_case("srgb") && !linear_srgb && !oklab && !hsl {
                 return Err(input.new_custom_error(()));
             }
             input.expect_comma()?;
@@ -61,6 +62,27 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
                     (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
                 ))
+            } else if hsl {
+                let first_hsl = super::rgb_to_hsl(first.0);
+                let second_hsl = super::rgb_to_hsl(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let first_hue = if first_hsl.1 == 0.0 || first_alpha == 0.0 {
+                    second_hsl.0
+                } else {
+                    first_hsl.0
+                };
+                let second_hue = if second_hsl.1 == 0.0 || second_alpha == 0.0 {
+                    first_hue
+                } else {
+                    second_hsl.0
+                };
+                let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
+                let hue = (first_hue + hue_delta * (second_alpha / alpha_sum)).rem_euclid(360.0);
+                let saturation =
+                    (first_hsl.1 * first_alpha + second_hsl.1 * second_alpha) / alpha_sum;
+                let lightness =
+                    (first_hsl.2 * first_alpha + second_hsl.2 * second_alpha) / alpha_sum;
+                super::hsl_to_rgb(hue, saturation, lightness)
             } else {
                 std::array::from_fn(|index| {
                     if linear_srgb {

@@ -342,6 +342,9 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
 
     let relative_style = style_for_declarations(&[("color", "rgb(from #102030 b g r / 50%)")]);
     assert_eq!(relative_style.color, [48, 32, 16, 128]);
+
+    let hsl_style = style_for_declarations(&[("background-color", "color-mix(in hsl, red, blue)")]);
+    assert_eq!(hsl_style.background, [255, 0, 255]);
 }
 
 #[test]
