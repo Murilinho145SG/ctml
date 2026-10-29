@@ -1,0 +1,39 @@
+use cosmic_text::{
+    FontSystem,
+    fontdb::{Family as DatabaseFamily, Query as FontQuery},
+};
+
+use crate::style::TextStyle;
+
+pub(crate) fn normal_line_height(
+    font_system: &mut FontSystem,
+    style: &TextStyle,
+    family: &str,
+) -> Option<f32> {
+    let family = match family.to_ascii_lowercase().as_str() {
+        "serif" => DatabaseFamily::Serif,
+        "sans-serif" => DatabaseFamily::SansSerif,
+        "monospace" => DatabaseFamily::Monospace,
+        "cursive" => DatabaseFamily::Cursive,
+        "fantasy" => DatabaseFamily::Fantasy,
+        _ => DatabaseFamily::Name(family),
+    };
+    let families = [family];
+    let id = font_system.db().query(&FontQuery {
+        families: &families,
+        weight: style.weight,
+        stretch: style.stretch,
+        style: match style.font_style {
+            cosmic_text::Style::Normal => cosmic_text::fontdb::Style::Normal,
+            cosmic_text::Style::Italic => cosmic_text::fontdb::Style::Italic,
+            cosmic_text::Style::Oblique => cosmic_text::fontdb::Style::Oblique,
+        },
+    })?;
+    let font = font_system.get_font(id, style.weight)?;
+    let metrics = font.as_swash().metrics(&[]);
+    (metrics.units_per_em != 0).then(|| {
+        let font_metrics = (metrics.ascent - metrics.descent + metrics.leading) * style.font_size
+            / f32::from(metrics.units_per_em);
+        font_metrics.max(style.font_size * 1.2)
+    })
+}

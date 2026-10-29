@@ -119,6 +119,9 @@ fn covers_line_height_number_percentage_and_length_values() {
         assert_eq!(style.line_height, expected_height, "{value}");
         assert_eq!(style.line_height_multiplier, expected_multiplier, "{value}");
     }
+    let normal = style_for("line-height", "normal");
+    assert!(normal.line_height_normal);
+    assert_eq!(normal.line_height_multiplier, None);
 }
 
 #[test]

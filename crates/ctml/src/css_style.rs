@@ -111,12 +111,17 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
             }
         }
         "line-height" => {
-            if let Ok(multiplier) = value.parse::<f32>() {
+            if value.eq_ignore_ascii_case("normal") {
+                style.line_height_normal = true;
+                style.line_height_multiplier = None;
+            } else if let Ok(multiplier) = value.parse::<f32>() {
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
+                style.line_height_normal = false;
             } else if let Some(height) = parse_length(value, style.font_size) {
                 style.line_height = height;
                 style.line_height_multiplier = None;
+                style.line_height_normal = false;
             }
         }
         "font-family" => {

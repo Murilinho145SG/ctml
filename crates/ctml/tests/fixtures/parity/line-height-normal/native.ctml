@@ -1,0 +1,6 @@
+<headers><application name="Normal line height parity" desktop width="640" height="360" /><stylesheet href="style.css" /></headers>
+<body>
+    <p>Inherited line height</p>
+    <p class="normal">Normal line height</p>
+    <p>Inherited line height</p>
+</body>

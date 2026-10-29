@@ -2,6 +2,7 @@ mod css_color;
 mod css_selector;
 mod css_style;
 mod font_family;
+mod font_metrics;
 mod page;
 mod renderer;
 mod style;
