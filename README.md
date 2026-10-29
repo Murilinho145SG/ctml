@@ -2,14 +2,14 @@
 
 **CTML (Compiled Text Markup Language)** is a Rust UI library with an HTML-inspired markup language for describing interfaces. A CTML application is a Rust project that uses the library; CTML is not a standalone executable.
 
-The project aims to build native interfaces without a browser or a separate CTML interpreter. It combines native application performance with familiar markup and CSS-inspired styling. Web interfaces are a later goal.
+The project builds 100% native interfaces without a browser runtime or a separate CTML interpreter. It combines native application performance with familiar markup and CSS-inspired styling. Web interfaces are out of scope.
 
 ## Goals
 
 - Describe interfaces with familiar markup.
 - Build compiled native applications without a dedicated CTML runtime.
 - Provide styling concepts inspired by CSS.
-- Support creating web interfaces with the same language.
+- Keep application rendering and interaction native to the host platform.
 
 ## Project status
 
@@ -74,7 +74,7 @@ cargo run -p ctml-native-demo
 
 ## Vision
 
-CTML aims to bring the simplicity of describing interfaces with markup together with the performance and integration of compiled applications. The goal is to use the same approach for both native and web interfaces.
+CTML brings the simplicity of describing interfaces with markup together with the performance and integration of compiled native applications. Browser-based rendering is not part of the project runtime.
 
 ## License
 

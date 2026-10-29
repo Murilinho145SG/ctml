@@ -1,6 +1,6 @@
 # CSS Test Matrix
 
-This matrix covers every CSS property and selector currently handled by the native CTML renderer. It does not mark the unchecked features in the [CSS roadmap](css-roadmap.md) as implemented. Each parity case has matching `native.ctml`, `browser.html`, and `style.css` files and runs as its own Rust test against Chromium.
+This matrix covers every CSS property and selector currently handled by the native CTML renderer. It does not mark the unchecked features in the [CSS roadmap](css-roadmap.md) as implemented. Each parity case has matching `native.ctml`, `browser.html`, and `style.css` files and runs as its own Rust test against Chromium. Chromium is a test-only reference; it is not shipped with or used by CTML applications.
 
 ## Property coverage
 
@@ -49,4 +49,4 @@ Run every Chromium comparison serially:
 cargo test --offline -p ctml page::tests::parity -- --test-threads=1
 ```
 
-The Chromium suite compares native and browser screenshots with a 0.05% differing-pixel limit. Artifacts are written to `target/css-parity/<case>/`.
+The Chromium suite compares native and browser screenshots with a 0.05% differing-pixel limit. This comparison helps identify rendering differences while the application stays fully native. Artifacts are written to `target/css-parity/<case>/`.

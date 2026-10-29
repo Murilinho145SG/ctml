@@ -207,7 +207,7 @@ Checkboxes describe CTML support today. A checked item means the feature is avai
 - [ ] Keep CSS parsing and compilation out of release runtime builds.
 - [ ] Keep development-only refresh and diagnostics out of the minimal release runtime.
 - [ ] Establish memory and performance budgets for stylesheet compilation and native rendering.
-- [ ] Mark web-only or browser API-dependent features as out of scope unless CTML adds a web target.
+- [x] Keep web-only and browser API-dependent features out of scope; CTML applications render natively.
 
 ## References
 
