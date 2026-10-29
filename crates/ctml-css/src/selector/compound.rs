@@ -108,6 +108,8 @@ pub(super) fn compound_matches(
                 "is" | "where" => matches,
                 "not" => !matches,
                 "has" => selector_has_matches(argument, position.node_id, selector_tree),
+                "lang" => language_pseudo_matches(argument, attributes, ancestor_attributes),
+                "dir" => direction_pseudo_matches(argument, attributes, ancestor_attributes),
                 "nth-child" => nth_expression_matches(argument, position.child_index),
                 "nth-last-child" => {
                     position.child_index > 0
@@ -161,6 +163,81 @@ pub(super) fn compound_matches(
         }
     }
     true
+}
+
+fn language_pseudo_matches(
+    argument: &str,
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+) -> bool {
+    let language = inherited_attribute("lang", attributes, ancestor_attributes)
+        .or_else(|| inherited_attribute("xml:lang", attributes, ancestor_attributes));
+    let Some(Some(language)) = language else {
+        return false;
+    };
+    split_selector_list(argument).into_iter().any(|range| {
+        let range = unquote(range.trim());
+        if range == "*" {
+            return !language.is_empty();
+        }
+        !range.is_empty()
+            && (language.eq_ignore_ascii_case(range)
+                || language
+                    .get(..range.len())
+                    .is_some_and(|prefix| prefix.eq_ignore_ascii_case(range))
+                    && language.as_bytes().get(range.len()) == Some(&b'-'))
+    })
+}
+
+fn direction_pseudo_matches(
+    argument: &str,
+    attributes: &[(String, Option<String>)],
+    ancestor_attributes: &[Vec<(String, Option<String>)>],
+) -> bool {
+    let requested = unquote(argument.trim());
+    if !requested.eq_ignore_ascii_case("ltr") && !requested.eq_ignore_ascii_case("rtl") {
+        return false;
+    }
+    match inherited_attribute("dir", attributes, ancestor_attributes) {
+        Some(Some(direction))
+            if direction.eq_ignore_ascii_case("ltr") || direction.eq_ignore_ascii_case("rtl") =>
+        {
+            direction.eq_ignore_ascii_case(requested)
+        }
+        Some(_) => false,
+        None => requested.eq_ignore_ascii_case("ltr"),
+    }
+}
+
+fn inherited_attribute<'a>(
+    name: &str,
+    attributes: &'a [(String, Option<String>)],
+    ancestor_attributes: &'a [Vec<(String, Option<String>)>],
+) -> Option<Option<&'a str>> {
+    attributes
+        .iter()
+        .find(|(attribute, _)| attribute.eq_ignore_ascii_case(name))
+        .map(|(_, value)| value.as_deref())
+        .or_else(|| {
+            ancestor_attributes.iter().rev().find_map(|attributes| {
+                attributes
+                    .iter()
+                    .find(|(attribute, _)| attribute.eq_ignore_ascii_case(name))
+                    .map(|(_, value)| value.as_deref())
+            })
+        })
+}
+
+fn unquote(value: &str) -> &str {
+    value
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            value
+                .strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })
+        .unwrap_or(value)
 }
 
 fn structural_pseudo_matches(name: &str, position: SelectorPosition) -> bool {

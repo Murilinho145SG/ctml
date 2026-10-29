@@ -191,6 +191,68 @@ fn matches_attribute_selectors_on_ancestors() {
 }
 
 #[test]
+fn matches_inherited_language_and_direction_pseudo_classes() {
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let body_attributes = vec![
+        ("lang".to_owned(), Some("en-US".to_owned())),
+        ("dir".to_owned(), Some("rtl".to_owned())),
+    ];
+    let ancestor_attributes = [body_attributes.clone()];
+    for selector in [":lang(en)", ":lang(\"EN-us\")", ":lang(*)", ":dir(rtl)"] {
+        assert!(
+            super::selector_matches_with_context(
+                selector,
+                &paragraph,
+                std::slice::from_ref(&body),
+                &[],
+                &ancestor_attributes,
+            ),
+            "{selector}"
+        );
+    }
+    for selector in [":lang(fr)", ":dir(ltr)"] {
+        assert!(
+            !super::selector_matches_with_context(
+                selector,
+                &paragraph,
+                std::slice::from_ref(&body),
+                &[],
+                &ancestor_attributes,
+            ),
+            "{selector}"
+        );
+    }
+    let current_attributes = [
+        ("lang".to_owned(), Some("fr-CA".to_owned())),
+        ("dir".to_owned(), Some("ltr".to_owned())),
+    ];
+    assert!(super::selector_matches_with_context(
+        ":lang(fr):dir(ltr)",
+        &paragraph,
+        std::slice::from_ref(&body),
+        &current_attributes,
+        &ancestor_attributes,
+    ));
+    assert!(super::selector_matches(":dir(ltr)", &paragraph, &[]));
+    assert!(!super::selector_matches_with_context(
+        ":lang(en)",
+        &paragraph,
+        std::slice::from_ref(&body),
+        &[("lang".to_owned(), Some(String::new()))],
+        &ancestor_attributes,
+    ));
+}
+
+#[test]
 fn matches_adjacent_and_general_sibling_combinators_with_chains() {
     let previous = [
         SelectorSibling {

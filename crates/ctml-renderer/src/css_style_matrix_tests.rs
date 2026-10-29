@@ -156,6 +156,45 @@ fn sibling_selectors_apply_styles_to_elements_in_document_order() {
 }
 
 #[test]
+fn inherited_language_and_direction_selectors_apply_styles() {
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let stylesheet = [StyleRule {
+        selectors: vec![":lang(en):dir(rtl)".to_owned()],
+        declarations: vec![StyleDeclaration {
+            property: "color".to_owned(),
+            value: "blue".to_owned(),
+        }],
+    }];
+    let style = resolve_style_with_tree_inline_context(
+        &TextStyle::default(),
+        &paragraph,
+        &[body],
+        &[],
+        &[vec![
+            ("lang".to_owned(), Some("en-GB".to_owned())),
+            ("dir".to_owned(), Some("rtl".to_owned())),
+        ]],
+        &[],
+        &[vec![]],
+        SelectorPosition::default(),
+        &[SelectorPosition::default()],
+        None,
+        &stylesheet,
+    );
+
+    assert_eq!(style.color, [0, 0, 255, 255]);
+}
+
+#[test]
 fn structural_pseudo_classes_apply_styles_from_element_positions() {
     let current = ElementIdentity {
         tag: "p".to_owned(),

@@ -33,7 +33,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Focus and form-state pseudo-classes: `:focus`, `:focus-visible`, `:focus-within`, `:enabled`, `:disabled`, `:checked`, `:indeterminate`, `:required`, `:optional`, `:valid`, `:invalid`, `:read-only`, and `:read-write`.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
-- [ ] Language and direction selectors: `:lang()` and `:dir()`.
+- [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
 - [ ] Link, form, range, and target pseudo-classes where applicable to CTML elements.
 - [ ] Pseudo-elements: `::before`, `::after`, `::first-line`, `::first-letter`, `::selection`, and `::placeholder`.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
