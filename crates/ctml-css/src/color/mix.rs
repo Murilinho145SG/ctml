@@ -18,12 +18,18 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             input.expect_ident_matching("in")?;
             let interpolation_space = input.expect_ident_cloned()?;
             let linear_srgb = interpolation_space.eq_ignore_ascii_case("srgb-linear");
+            let lab = interpolation_space.eq_ignore_ascii_case("lab");
+            let lch = interpolation_space.eq_ignore_ascii_case("lch");
             let oklab = interpolation_space.eq_ignore_ascii_case("oklab");
+            let oklch = interpolation_space.eq_ignore_ascii_case("oklch");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
             if !interpolation_space.eq_ignore_ascii_case("srgb")
                 && !linear_srgb
+                && !lab
+                && !lch
                 && !oklab
+                && !oklch
                 && !hsl
                 && !hwb
             {
@@ -59,6 +65,45 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
             let channels = if alpha == 0.0 {
                 [0; 3]
+            } else if lab {
+                let first_lab = super::color4::srgb_to_lab(first.0);
+                let second_lab = super::color4::srgb_to_lab(second.0);
+                let alpha_sum = first_alpha + second_alpha;
+                super::color4::lab_to_srgb((
+                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum,
+                    (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
+                    (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
+                ))
+            } else if lch {
+                let first_lab = super::color4::srgb_to_lab(first.0);
+                let second_lab = super::color4::srgb_to_lab(second.0);
+                let first_chroma = first_lab.1.hypot(first_lab.2);
+                let second_chroma = second_lab.1.hypot(second_lab.2);
+                let first_hue = first_lab
+                    .2
+                    .atan2(first_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let second_hue = second_lab
+                    .2
+                    .atan2(second_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let hue = interpolate_hue(
+                    first_hue,
+                    first_chroma < 0.0001,
+                    second_hue,
+                    second_chroma < 0.0001,
+                    first_alpha,
+                    second_alpha,
+                );
+                let lightness =
+                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
+                let chroma =
+                    (first_chroma * first_alpha + second_chroma * second_alpha) / alpha_sum;
+                let hue = hue.to_radians();
+                super::color4::lab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if oklab {
                 let first_lab = super::color4::srgb_to_oklab(first.0);
                 let second_lab = super::color4::srgb_to_oklab(second.0);
@@ -68,22 +113,48 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
                     (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
                 ))
+            } else if oklch {
+                let first_lab = super::color4::srgb_to_oklab(first.0);
+                let second_lab = super::color4::srgb_to_oklab(second.0);
+                let first_chroma = first_lab.1.hypot(first_lab.2);
+                let second_chroma = second_lab.1.hypot(second_lab.2);
+                let first_hue = first_lab
+                    .2
+                    .atan2(first_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let second_hue = second_lab
+                    .2
+                    .atan2(second_lab.1)
+                    .to_degrees()
+                    .rem_euclid(360.0);
+                let alpha_sum = first_alpha + second_alpha;
+                let hue = interpolate_hue(
+                    first_hue,
+                    first_chroma < 0.0001,
+                    second_hue,
+                    second_chroma < 0.0001,
+                    first_alpha,
+                    second_alpha,
+                );
+                let lightness =
+                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
+                let chroma =
+                    (first_chroma * first_alpha + second_chroma * second_alpha) / alpha_sum;
+                let hue = hue.to_radians();
+                super::color4::oklab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if hsl {
                 let first_hsl = super::rgb_to_hsl(first.0);
                 let second_hsl = super::rgb_to_hsl(second.0);
                 let alpha_sum = first_alpha + second_alpha;
-                let first_hue = if first_hsl.1 == 0.0 || first_alpha == 0.0 {
-                    second_hsl.0
-                } else {
-                    first_hsl.0
-                };
-                let second_hue = if second_hsl.1 == 0.0 || second_alpha == 0.0 {
-                    first_hue
-                } else {
-                    second_hsl.0
-                };
-                let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
-                let hue = (first_hue + hue_delta * (second_alpha / alpha_sum)).rem_euclid(360.0);
+                let hue = interpolate_hue(
+                    first_hsl.0,
+                    first_hsl.1 == 0.0,
+                    second_hsl.0,
+                    second_hsl.1 == 0.0,
+                    first_alpha,
+                    second_alpha,
+                );
                 let saturation =
                     (first_hsl.1 * first_alpha + second_hsl.1 * second_alpha) / alpha_sum;
                 let lightness =
@@ -93,18 +164,14 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 let first_hwb = super::rgb_to_hwb(first.0);
                 let second_hwb = super::rgb_to_hwb(second.0);
                 let alpha_sum = first_alpha + second_alpha;
-                let first_hue = if first_hwb.1 + first_hwb.2 >= 1.0 || first_alpha == 0.0 {
-                    second_hwb.0
-                } else {
-                    first_hwb.0
-                };
-                let second_hue = if second_hwb.1 + second_hwb.2 >= 1.0 || second_alpha == 0.0 {
-                    first_hue
-                } else {
-                    second_hwb.0
-                };
-                let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
-                let hue = (first_hue + hue_delta * (second_alpha / alpha_sum)).rem_euclid(360.0);
+                let hue = interpolate_hue(
+                    first_hwb.0,
+                    first_hwb.1 + first_hwb.2 >= 1.0,
+                    second_hwb.0,
+                    second_hwb.1 + second_hwb.2 >= 1.0,
+                    first_alpha,
+                    second_alpha,
+                );
                 let whiteness =
                     (first_hwb.1 * first_alpha + second_hwb.1 * second_alpha) / alpha_sum;
                 let blackness =
@@ -134,6 +201,28 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
         .ok()?;
 
     parser.is_exhausted().then_some(mixed)
+}
+
+fn interpolate_hue(
+    first_hue: f32,
+    first_powerless: bool,
+    second_hue: f32,
+    second_powerless: bool,
+    first_alpha: f32,
+    second_alpha: f32,
+) -> f32 {
+    let first_hue = if first_powerless || first_alpha == 0.0 {
+        second_hue
+    } else {
+        first_hue
+    };
+    let second_hue = if second_powerless || second_alpha == 0.0 {
+        first_hue
+    } else {
+        second_hue
+    };
+    let hue_delta = (second_hue - first_hue + 180.0).rem_euclid(360.0) - 180.0;
+    (first_hue + hue_delta * (second_alpha / (first_alpha + second_alpha))).rem_euclid(360.0)
 }
 
 fn parse_mix_component<'i, 't>(

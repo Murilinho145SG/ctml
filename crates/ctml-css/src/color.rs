@@ -427,6 +427,33 @@ mod tests {
     }
 
     #[test]
+    fn parses_lab_and_lch_color_mixes() {
+        let red_lab = super::color4::srgb_to_lab([255, 0, 0]);
+        assert!((red_lab.0 - 54.29).abs() < 0.1);
+        assert!((red_lab.1 - 80.81).abs() < 0.1);
+        assert!((red_lab.2 - 69.89).abs() < 0.1);
+        assert_eq!(
+            parse_color("color-mix(in lab, red, blue)"),
+            Some([193, 0, 136, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in lch, red, blue)"),
+            Some([245, 0, 134, 255])
+        );
+        assert_eq!(
+            parse_color("color-mix(in oklch, red, blue)"),
+            Some([186, 0, 194, 255])
+        );
+        for space in ["lab", "lch", "oklch"] {
+            assert_eq!(
+                parse_color(&format!("color-mix(in {space}, transparent, red)")),
+                Some([255, 0, 0, 128]),
+                "unexpected transparent mix in {space}"
+            );
+        }
+    }
+
+    #[test]
     fn parses_rgb_relative_colors_with_channel_and_alpha_references() {
         assert_eq!(parse_color("rgb(from red r g b)"), Some([255, 0, 0, 255]));
         assert_eq!(
@@ -468,7 +495,7 @@ mod tests {
     #[test]
     fn rejects_unsupported_or_invalid_color_mix_syntax() {
         for value in [
-            "color-mix(in lab, red, blue)",
+            "color-mix(in display-p3, red, blue)",
             "color-mix(in srgb, red -10%, blue)",
             "color-mix(in srgb, red 0%, blue 0%)",
             "color-mix(in srgb, red 80%, blue 30%, white)",

@@ -123,7 +123,7 @@ fn parse_alpha<'i, 't>(input: &mut Parser<'i, 't>) -> Result<f32, cssparser::Par
     super::parse_alpha(input)
 }
 
-fn lab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {
+pub(super) fn lab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {
     let fy = (lightness + 16.0) / 116.0;
     let fx = fy + a / 500.0;
     let fz = fy - b / 200.0;
@@ -133,6 +133,34 @@ fn lab_to_srgb((lightness, a, b): (f32, f32, f32)) -> [u8; 3] {
         lab_inverse(fz) * 0.82521,
     ];
     xyz_d50_to_srgb(xyz_d50)
+}
+
+pub(super) fn srgb_to_lab([red, green, blue]: [u8; 3]) -> (f32, f32, f32) {
+    let red = decode_srgb(red as f32 / 255.0);
+    let green = decode_srgb(green as f32 / 255.0);
+    let blue = decode_srgb(blue as f32 / 255.0);
+    let xyz_d65 = [
+        0.4123908 * red + 0.3575843 * green + 0.1804808 * blue,
+        0.2126390 * red + 0.7151687 * green + 0.0721923 * blue,
+        0.0193308 * red + 0.1191948 * green + 0.9505322 * blue,
+    ];
+    let [x, y, z] = [
+        1.0478112 * xyz_d65[0] + 0.0228866 * xyz_d65[1] - 0.0501270 * xyz_d65[2],
+        0.0295424 * xyz_d65[0] + 0.9904844 * xyz_d65[1] - 0.0170491 * xyz_d65[2],
+        -0.0092345 * xyz_d65[0] + 0.0150436 * xyz_d65[1] + 0.7521316 * xyz_d65[2],
+    ];
+    let fx = lab_forward(x / 0.96422);
+    let fy = lab_forward(y);
+    let fz = lab_forward(z / 0.82521);
+    (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
+}
+
+fn lab_forward(value: f32) -> f32 {
+    if value > 216.0 / 24389.0 {
+        value.cbrt()
+    } else {
+        (24389.0 / 27.0 * value + 16.0) / 116.0
+    }
 }
 
 fn lab_inverse(value: f32) -> f32 {

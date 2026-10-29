@@ -348,6 +348,21 @@ fn resolves_srgb_color_mix_for_text_and_page_background() {
 
     let hwb_style = style_for_declarations(&[("background-color", "color-mix(in hwb, red, blue)")]);
     assert_eq!(hwb_style.background, [255, 0, 255]);
+
+    for (space, expected) in [
+        ("lab", [193, 0, 136]),
+        ("lch", [245, 0, 134]),
+        ("oklch", [186, 0, 194]),
+    ] {
+        let style = style_for_declarations(&[(
+            "background-color",
+            &format!("color-mix(in {space}, red, blue)"),
+        )]);
+        assert_eq!(
+            style.background, expected,
+            "unexpected background in {space}"
+        );
+    }
 }
 
 #[test]
