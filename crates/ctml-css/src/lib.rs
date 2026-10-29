@@ -361,16 +361,7 @@ fn parse_declaration_block<'i, 't>(
             };
             declaration.expect_colon()?;
             declaration.skip_whitespace();
-            let mut value = String::new();
-            let mut valid = true;
-            while let Ok(token) = declaration.next_including_whitespace() {
-                if matches!(token, Token::BadString(_) | Token::BadUrl(_)) {
-                    valid = false;
-                }
-                token
-                    .to_css(&mut value)
-                    .expect("writing CSS tokens into a String cannot fail");
-            }
+            let (value, valid) = serialize_declaration_value(declaration)?;
             Ok((property, value.trim().to_owned(), valid))
         });
         if let Ok((property, value, valid)) = parsed
@@ -381,4 +372,33 @@ fn parse_declaration_block<'i, 't>(
         }
     }
     Ok(declarations)
+}
+
+fn serialize_declaration_value<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<(String, bool), cssparser::ParseError<'i, ()>> {
+    let mut value = String::new();
+    let mut valid = true;
+    while let Ok(token) = input.next_including_whitespace() {
+        if matches!(token, Token::BadString(_) | Token::BadUrl(_)) {
+            valid = false;
+        }
+        let block_end = match token {
+            Token::Function(_) | Token::ParenthesisBlock => Some(')'),
+            Token::SquareBracketBlock => Some(']'),
+            Token::CurlyBracketBlock => Some('}'),
+            _ => None,
+        };
+        token
+            .to_css(&mut value)
+            .expect("writing CSS tokens into a String cannot fail");
+        if let Some(block_end) = block_end {
+            let (contents, contents_valid) =
+                input.parse_nested_block(serialize_declaration_value)?;
+            value.push_str(&contents);
+            value.push(block_end);
+            valid &= contents_valid;
+        }
+    }
+    Ok((value, valid))
 }

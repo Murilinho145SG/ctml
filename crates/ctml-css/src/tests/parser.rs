@@ -141,6 +141,17 @@ fn decodes_escaped_identifiers_in_values_and_recovers_after_bad_strings() {
 }
 
 #[test]
+fn preserves_nested_function_syntax_when_serializing_values() {
+    let declarations = super::parse_declarations(
+        "color: rgb(51 102 153 / 50%); --fallback: var(--color, rgb(1 2 3));",
+    )
+    .unwrap();
+
+    assert_eq!(declarations[0].value, "rgb(51 102 153 / 50%)");
+    assert_eq!(declarations[1].value, "var(--color, rgb(1 2 3))");
+}
+
+#[test]
 fn skips_malformed_declarations_and_preserves_unknown_properties() {
     let stylesheet =
         parse_stylesheet("p { color red; future-property: value; color: blue; }").unwrap();
