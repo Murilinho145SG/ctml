@@ -28,7 +28,7 @@ pub(super) fn resolve_family_list(family_list: &str, font_system: &FontSystem) -
     }
 
     #[cfg(target_os = "linux")]
-    if let Some(alias) = crate::fontconfig::matched_family(&first) {
+    if let Some(alias) = crate::fontconfig::matched_family("Times New Roman") {
         return alias;
     }
 
@@ -132,10 +132,10 @@ mod tests {
 
     #[cfg(target_os = "linux")]
     #[test]
-    fn resolves_an_unavailable_named_family_through_fontconfig() {
+    fn uses_chromiums_standard_serif_for_an_unavailable_named_family() {
         let font_system = FontSystem::new();
-        let expected = crate::fontconfig::matched_family("Inter")
-            .expect("Fontconfig should provide a fallback for Inter");
+        let expected = crate::fontconfig::matched_family("Times New Roman")
+            .expect("Fontconfig should resolve Chromium's standard serif family");
 
         assert_eq!(resolve_family_list("Inter", &font_system), expected);
     }

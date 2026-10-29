@@ -35,15 +35,15 @@ impl PageRasterizer {
         let cursor_spans = cursor_spans(&runs);
         let mut font_system = FontSystem::new();
         #[cfg(target_os = "linux")]
-        if let Some(family) = crate::fontconfig::matched_family("sans-serif") {
+        if let Some(family) = crate::fontconfig::matched_family("Arial") {
             font_system.db_mut().set_sans_serif_family(family);
         }
         #[cfg(target_os = "linux")]
-        if let Some(family) = crate::fontconfig::matched_family("serif") {
+        if let Some(family) = crate::fontconfig::matched_family("Times New Roman") {
             font_system.db_mut().set_serif_family(family);
         }
         #[cfg(target_os = "linux")]
-        if let Some(family) = crate::fontconfig::matched_family("monospace") {
+        if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
         let buffer = Buffer::new(
