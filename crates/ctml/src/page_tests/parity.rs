@@ -109,6 +109,11 @@ parity_test!(font_stretch_values_match_chromium, "font-stretch", false);
 parity_test!(line_height_values_match_chromium, "line-height", false);
 parity_test!(font_size_percentages_match_chromium, "font-size", false);
 parity_test!(
+    relative_font_size_keywords_match_chromium,
+    "font-size-relative-keywords",
+    false
+);
+parity_test!(
     absolute_font_size_keywords_match_chromium,
     "font-size-keywords",
     false

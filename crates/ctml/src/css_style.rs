@@ -434,6 +434,8 @@ fn parse_font_size(value: &str, relative_to: f32) -> Option<f32> {
         "x-large" => Some(24.0),
         "xx-large" => Some(32.0),
         "xxx-large" => Some(48.0),
+        "larger" => Some(relative_to * 1.2),
+        "smaller" => Some(relative_to / 1.2),
         _ => None,
     };
     absolute_size.or_else(|| parse_length(value, relative_to))

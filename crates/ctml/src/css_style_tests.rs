@@ -226,6 +226,14 @@ fn resolves_absolute_font_size_keywords() {
 }
 
 #[test]
+fn resolves_relative_font_size_keywords() {
+    assert_eq!(super::parse_font_size("larger", 16.0), Some(19.2));
+    assert_eq!(super::parse_font_size("smaller", 16.0), Some(16.0 / 1.2));
+    assert_eq!(super::parse_font_size("larger", 20.0), Some(24.0));
+    assert_eq!(super::parse_font_size("smaller", 20.0), Some(20.0 / 1.2));
+}
+
+#[test]
 fn scales_inherited_unitless_line_height_with_font_size() {
     let inherited = TextStyle {
         font_size: 20.0,
