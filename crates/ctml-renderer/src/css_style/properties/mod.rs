@@ -3,6 +3,7 @@ use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
+use ctml_css::parse_signed_font_relative_length_with_viewport;
 
 use super::font_variant::{
     apply_font_variant, apply_font_variant_caps, apply_font_variant_east_asian,
@@ -208,6 +209,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.line_height_multiplier = inherited.line_height_multiplier;
             style.line_height_normal = inherited.line_height_normal;
         }
+        "vertical-align" => style.vertical_align_offset = inherited.vertical_align_offset,
         "letter-spacing" => {
             style.letter_spacing = inherited.letter_spacing;
             style.letter_spacing_px = inherited.letter_spacing_px;
@@ -296,6 +298,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.line_height_normal = true;
             style.line_height_multiplier = None;
         }
+        "vertical-align" => style.vertical_align_offset = 0.0,
         "letter-spacing" => {
             style.letter_spacing = 0.0;
             style.letter_spacing_px = false;
@@ -400,6 +403,28 @@ fn apply_declaration(
                 style.line_height_multiplier = None;
                 style.line_height_normal = false;
             }
+        }
+        "vertical-align" => {
+            style.vertical_align_offset = match value.to_ascii_lowercase().as_str() {
+                "baseline" => 0.0,
+                "sub" => -style.font_size * 0.2,
+                "super" => style.font_size * 0.2,
+                _ if value.ends_with('%') => value
+                    .strip_suffix('%')
+                    .and_then(|percent| percent.trim().parse::<f32>().ok())
+                    .filter(|percent| percent.is_finite())
+                    .map_or(style.vertical_align_offset, |percent| {
+                        style.line_height * percent / 100.0
+                    }),
+                _ => parse_signed_font_relative_length_with_viewport(
+                    value,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+                .unwrap_or(style.vertical_align_offset),
+            };
         }
         "font-family" => {
             style.family = value.to_owned();

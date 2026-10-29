@@ -153,7 +153,7 @@ pub(super) fn draw(
             if let (Some(style), Some(face)) = (text_style, font_system.db().face(first.font_id)) {
                 apply_synthetic_style(&mut font, face, style);
             }
-            let baseline = run.line_y - 0.4;
+            let baseline = run.line_y - 0.4 - text_style.map_or(0.0, |s| s.vertical_align_offset);
 
             let group = &run.glyphs[start..end];
             let text_start = group.iter().map(|glyph| glyph.start).min().unwrap_or(0);

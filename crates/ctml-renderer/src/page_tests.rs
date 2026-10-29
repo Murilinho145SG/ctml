@@ -46,6 +46,8 @@ mod parity;
 mod pseudo;
 #[path = "page_tests/pseudo_opacity.rs"]
 mod pseudo_opacity;
+#[path = "page_tests/pseudo_vertical_align.rs"]
+mod pseudo_vertical_align;
 #[path = "page_tests/selection.rs"]
 mod selection;
 #[path = "page_tests/sizing.rs"]

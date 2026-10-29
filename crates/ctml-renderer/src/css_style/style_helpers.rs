@@ -34,6 +34,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "font-variant-east-asian",
     "font-feature-settings",
     "line-height",
+    "vertical-align",
     "letter-spacing",
     "word-spacing",
     "text-transform",

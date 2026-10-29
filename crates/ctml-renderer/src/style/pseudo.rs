@@ -84,6 +84,7 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
             first_letter.style.line_height = pseudo_style.line_height;
             first_letter.style.line_height_multiplier = pseudo_style.line_height_multiplier;
             first_letter.style.line_height_normal = pseudo_style.line_height_normal;
+            first_letter.style.vertical_align_offset = pseudo_style.vertical_align_offset;
             first_letter.style.letter_spacing = pseudo_style.letter_spacing;
             first_letter.style.letter_spacing_px = pseudo_style.letter_spacing_px;
             first_letter
