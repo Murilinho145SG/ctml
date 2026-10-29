@@ -33,15 +33,6 @@ impl PageRasterizer {
         let (runs, root_style) = compile_runs(nodes, stylesheet);
         let cursor_spans = cursor_spans(&runs);
         let mut font_system = FontSystem::new();
-        #[cfg(target_os = "linux")]
-        // Match Chromium's Arial-compatible face for the generic sans-serif family.
-        font_system
-            .db_mut()
-            .set_sans_serif_family("Liberation Sans");
-        #[cfg(target_os = "linux")]
-        font_system.db_mut().set_serif_family("Liberation Serif");
-        #[cfg(target_os = "linux")]
-        font_system.db_mut().set_monospace_family("Liberation Mono");
         let buffer = Buffer::new(
             &mut font_system,
             Metrics::new(root_style.font_size, root_style.line_height),
