@@ -58,11 +58,11 @@ pub(super) fn apply_declaration_with_inherited(
         revert_display(style);
     } else if keyword == "revert" && matches!(property, "list-style" | "list-style-type") {
         style.list_style_type = None;
-    } else if keyword == "revert" && property == "width" {
+    } else if keyword == "revert" && matches!(property, "width" | "inline-size") {
         style.width = None;
-    } else if keyword == "revert" && property == "min-width" {
+    } else if keyword == "revert" && matches!(property, "min-width" | "min-inline-size") {
         style.min_width = None;
-    } else if keyword == "revert" && property == "max-width" {
+    } else if keyword == "revert" && matches!(property, "max-width" | "max-inline-size") {
         style.max_width = None;
     } else {
         initial_property(style, property);
@@ -117,9 +117,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background_color = inherited.background_color;
         }
         "display" => inherit_display(style, inherited),
-        "width" => inherit_width(style, inherited),
-        "min-width" => style.min_width.clone_from(&inherited.min_width),
-        "max-width" => style.max_width.clone_from(&inherited.max_width),
+        "width" | "inline-size" => inherit_width(style, inherited),
+        "min-width" | "min-inline-size" => style.min_width.clone_from(&inherited.min_width),
+        "max-width" | "max-inline-size" => style.max_width.clone_from(&inherited.max_width),
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -210,9 +210,9 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "display" => reset_display(style),
-        "width" => style.width = None,
-        "min-width" => style.min_width = None,
-        "max-width" => style.max_width = None,
+        "width" | "inline-size" => style.width = None,
+        "min-width" | "min-inline-size" => style.min_width = None,
+        "max-width" | "max-inline-size" => style.max_width = None,
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
@@ -295,9 +295,9 @@ fn apply_declaration(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "font" => apply_font_shorthand(style, value),
         "display" => apply_display(style, value),
-        "width" => apply_width(style, value),
-        "min-width" => apply_min_width(style, value),
-        "max-width" => apply_max_width(style, value),
+        "width" | "inline-size" => apply_width(style, value),
+        "min-width" | "min-inline-size" => apply_min_width(style, value),
+        "max-width" | "max-inline-size" => apply_max_width(style, value),
         "list-style-type" => apply_list_style_type(style, value),
         "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),

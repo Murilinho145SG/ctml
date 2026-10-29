@@ -25,6 +25,20 @@ fn body_min_and_max_width_constrain_text_wrapping() {
 }
 
 #[test]
+fn logical_inline_size_properties_use_the_horizontal_width_axis() {
+    let text = "logical inline size aliases constrain text wrapping ".repeat(8);
+    let inline_size_lines = line_count_with_rule("inline-size", "80px", text.clone(), 400);
+    let min_inline_size_lines = line_count_with_rule("min-inline-size", "800px", text.clone(), 160);
+    let min_reference_lines = line_count_without_rule(text.clone(), 160);
+    let max_inline_size_lines = line_count_with_rule("max-inline-size", "80px", text.clone(), 400);
+    let wide_lines = line_count_without_rule(text, 400);
+
+    assert!(inline_size_lines > wide_lines);
+    assert!(min_inline_size_lines < min_reference_lines);
+    assert!(max_inline_size_lines > wide_lines);
+}
+
+#[test]
 fn block_element_width_constrains_nested_text_wrapping() {
     let text = "words inside an inline child wrap to fit the parent block ".repeat(8);
     let nodes = [UiNode::Element {
@@ -60,7 +74,7 @@ fn block_element_width_constrains_nested_text_wrapping() {
             selectors: vec!["section".to_owned()],
             layer: None,
             declarations: vec![StyleDeclaration {
-                property: "width".to_owned(),
+                property: "inline-size".to_owned(),
                 value: "50%".to_owned(),
             }],
         },
