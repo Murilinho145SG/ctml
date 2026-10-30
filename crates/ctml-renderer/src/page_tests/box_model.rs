@@ -87,6 +87,53 @@ fn padding_contributes_to_block_flow_and_border_box_widths() {
 }
 
 #[test]
+fn border_widths_are_included_in_border_box_dimensions_and_flow() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("inside".to_owned())],
+    }];
+    for (box_sizing, expected_width, expected_height) in
+        [("content-box", 124.0, 130.0), ("border-box", 100.0, 100.0)]
+    {
+        let stylesheet = [StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                ("width", "100px"),
+                ("height", "100px"),
+                ("padding", "10px"),
+                ("border-width", "5px 2px"),
+                ("border-style", "solid"),
+                ("box-sizing", box_sizing),
+                ("overflow", "hidden"),
+            ]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.snapshot_pixels(300, 300);
+        let geometry = page.overflow_geometry[&1];
+        assert!(
+            ((geometry.clip.right - geometry.clip.left) - expected_width).abs() < 1.0,
+            "{box_sizing} should produce {expected_width}px outer width, got {}px",
+            geometry.clip.right - geometry.clip.left
+        );
+        assert!(
+            ((geometry.clip.bottom - geometry.clip.top) - expected_height).abs() < 1.0,
+            "{box_sizing} should produce {expected_height}px outer height, got {}px",
+            geometry.clip.bottom - geometry.clip.top
+        );
+    }
+}
+
+#[test]
 fn inline_start_padding_offsets_text_and_resolves_font_relative_lengths() {
     let nodes = [
         UiNode::Element {

@@ -52,6 +52,21 @@ pub(crate) enum WordBreak {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BorderLineStyle {
+    #[default]
+    None,
+    Hidden,
+    Solid,
+    Dotted,
+    Dashed,
+    Double,
+    Groove,
+    Ridge,
+    Inset,
+    Outset,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum LineBreak {
     #[default]
     Auto,
@@ -141,6 +156,8 @@ pub(crate) struct LayoutSize {
     pub(crate) min_block_size: Option<String>,
     pub(crate) max_block_size: Option<String>,
     pub(crate) border_box: bool,
+    pub(crate) border_width: [Option<String>; 4],
+    pub(crate) border_style: [BorderLineStyle; 4],
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
     pub(crate) intrinsic_min_content_width: Option<f32>,
@@ -170,6 +187,8 @@ pub(crate) struct LayoutHeight {
     pub(crate) min_block_size: Option<String>,
     pub(crate) max_block_size: Option<String>,
     pub(crate) border_box: bool,
+    pub(crate) border_width: [Option<String>; 4],
+    pub(crate) border_style: [BorderLineStyle; 4],
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
     pub(crate) size_property_orders: HashMap<String, usize>,

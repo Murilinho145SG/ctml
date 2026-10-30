@@ -50,6 +50,23 @@ pub(super) fn resolve_intrinsic_width(
     }
 }
 
+pub(super) fn resolve_intrinsic_layout_width(
+    size: &LayoutSize,
+    value: &str,
+    available: f32,
+) -> Option<f32> {
+    resolve_intrinsic_width(
+        value,
+        available,
+        size.intrinsic_min_content_width,
+        size.intrinsic_max_content_width,
+        size.font_size,
+        size.line_height,
+        size.font_relative_units,
+        size.viewport_size,
+    )
+}
+
 pub(super) fn resolve_constrained_size(
     specified: Option<&str>,
     min: Option<&str>,

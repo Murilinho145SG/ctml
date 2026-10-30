@@ -192,7 +192,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.cursor = inherited.cursor;
             style.cursor_hidden = inherited.cursor_hidden;
         }
-        _ => {}
+        _ => {
+            super::border::inherit_css_property(style, inherited, property);
+        }
     }
 }
 
@@ -381,6 +383,8 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.cursor = CursorIcon::Text;
             style.cursor_hidden = false;
         }
-        _ => {}
+        _ => {
+            super::border::initial_css_property(style, property);
+        }
     }
 }

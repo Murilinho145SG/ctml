@@ -1,9 +1,9 @@
 use ctml_css::{FontRelativeUnits, ViewportSize, parse_signed_font_relative_length_with_viewport};
 
-use crate::style::{LayoutSize, WritingMode};
+use crate::style::{BorderLineStyle, LayoutSize, WritingMode};
 
 use super::sizing::{block_size_constraints, resolve_width};
-use super::sizing_padding::{resolve_margin, resolve_padding};
+use super::sizing_padding::{resolve_borders, resolve_margin, resolve_padding};
 
 pub(super) fn resolve_content_block_height(
     height: Option<&str>,
@@ -38,6 +38,8 @@ pub(super) fn resolve_layout_height_with_ancestors(
     ancestors: &[LayoutSize],
     page_writing_mode: WritingMode,
     border_box: bool,
+    border_width: &[Option<String>; 4],
+    border_style: &[BorderLineStyle; 4],
     padding: &[Option<String>; 4],
     margin: &[Option<String>; 4],
     font_size: f32,
@@ -83,6 +85,17 @@ pub(super) fn resolve_layout_height_with_ancestors(
                 viewport_size,
             ),
             page_writing_mode,
+        ) + block_border_extent(
+            resolve_border_values(
+                border_width,
+                border_style,
+                containing_width,
+                font_size,
+                line_height,
+                font_relative_units,
+                viewport_size,
+            ),
+            page_writing_mode,
         ),
         border_box,
         font_size,
@@ -111,6 +124,7 @@ pub(super) fn resolve_block_box_extent(
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
     let padding = resolve_padding(size, containing_width);
+    let borders = resolve_borders(size, containing_width);
     let margin = resolve_margin(size, containing_width);
     let padding_start = if page_writing_mode == WritingMode::HorizontalTb
         && size.writing_mode == WritingMode::HorizontalTb
@@ -131,7 +145,8 @@ pub(super) fn resolve_block_box_extent(
         max_height,
         (content_height - padding_start).max(0.0),
         available_height,
-        block_padding_extent(padding, page_writing_mode),
+        block_padding_extent(padding, page_writing_mode)
+            + block_border_extent(borders, page_writing_mode),
         size.border_box,
         size.font_size,
         size.line_height,
@@ -231,6 +246,47 @@ fn block_padding_extent(padding: [f32; 4], page_writing_mode: WritingMode) -> f3
         padding[0] + padding[2]
     } else {
         padding[1] + padding[3]
+    }
+}
+
+fn resolve_border_values(
+    widths: &[Option<String>; 4],
+    styles: &[BorderLineStyle; 4],
+    containing_width: f32,
+    font_size: f32,
+    line_height: f32,
+    units: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> [f32; 4] {
+    std::array::from_fn(|index| {
+        if styles[index] == BorderLineStyle::None {
+            return 0.0;
+        }
+        let Some(value) = widths[index].as_deref() else {
+            return 3.0;
+        };
+        match value {
+            "thin" => 1.0,
+            "medium" => 3.0,
+            "thick" => 5.0,
+            _ => resolve_width(
+                value,
+                containing_width,
+                font_size,
+                line_height,
+                units,
+                viewport,
+            )
+            .unwrap_or_default(),
+        }
+    })
+}
+
+fn block_border_extent(border: [f32; 4], page_writing_mode: WritingMode) -> f32 {
+    if page_writing_mode == WritingMode::HorizontalTb {
+        border[0] + border[2]
+    } else {
+        border[1] + border[3]
     }
 }
 

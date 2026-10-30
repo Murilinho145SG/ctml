@@ -8,7 +8,7 @@ use crate::style::{LayoutSize, TextRun, WritingMode};
 use super::{
     PAGE_PADDING, local_writing,
     sizing::{is_vertical, resolve_layout_width},
-    sizing_padding::inline_padding,
+    sizing_padding::{inline_borders, inline_padding},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -217,6 +217,7 @@ pub(super) fn block_geometries(
                 page_writing_mode,
             );
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode)
+                + inline_borders(&sizes, available_width, page_writing_mode).1
                 + inline_padding(
                     std::slice::from_ref(&extent.size),
                     containing_width,

@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use crate::style::WritingMode;
 use crate::style::{LayoutSize, TextRun};
 
-use super::sizing_intrinsic::resolve_intrinsic_width;
-use super::sizing_padding::{resolve_margin, resolve_padding};
+use super::sizing_intrinsic::resolve_intrinsic_layout_width;
+use super::sizing_padding::{resolve_borders, resolve_margin, resolve_padding};
 pub(super) fn resolve_width(
     value: &str,
     available_width: f32,
@@ -211,41 +211,39 @@ pub(super) fn resolve_layout_width(
     let mut content_width = available_width;
     for size in sizes {
         let padding = resolve_padding(size, content_width);
+        let borders = resolve_borders(size, content_width);
         let margin = resolve_margin(size, content_width);
         let inline_padding = if is_vertical(page_writing_mode) {
             padding[0] + padding[2]
         } else {
             padding[1] + padding[3]
         };
+        let inline_border = if is_vertical(page_writing_mode) {
+            borders[0] + borders[2]
+        } else {
+            borders[1] + borders[3]
+        };
         let inline_margin = if is_vertical(page_writing_mode) {
             margin[0] + margin[2]
         } else {
             margin[1] + margin[3]
         };
-        let available_content_width = (content_width - inline_padding - inline_margin).max(0.0);
+        let available_content_width =
+            (content_width - inline_padding - inline_border - inline_margin).max(0.0);
         let resolve_inline_size = |value: &str| {
-            let width = resolve_intrinsic_width(
-                value,
-                available_content_width,
-                size.intrinsic_min_content_width,
-                size.intrinsic_max_content_width,
-                size.font_size,
-                size.line_height,
-                size.font_relative_units,
-                size.viewport_size,
-            )
-            .or_else(|| {
-                resolve_width(
-                    value,
-                    content_width,
-                    size.font_size,
-                    size.line_height,
-                    size.font_relative_units,
-                    size.viewport_size,
-                )
-            })?;
+            let width = resolve_intrinsic_layout_width(size, value, available_content_width)
+                .or_else(|| {
+                    resolve_width(
+                        value,
+                        content_width,
+                        size.font_size,
+                        size.line_height,
+                        size.font_relative_units,
+                        size.viewport_size,
+                    )
+                })?;
             Some(if size.border_box {
-                (width - inline_padding).max(0.0)
+                (width - inline_padding - inline_border).max(0.0)
             } else {
                 width
             })

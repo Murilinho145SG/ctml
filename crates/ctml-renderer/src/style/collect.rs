@@ -233,6 +233,10 @@ pub(super) fn collect_runs(
                         || style.max_block_size.is_some()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
+                        || style
+                            .border_style
+                            .iter()
+                            .any(|style| *style != super::BorderLineStyle::None)
                         || style.overflow_x != super::Overflow::Visible
                         || style.overflow_y != super::Overflow::Visible);
                 if has_block_size {
@@ -251,6 +255,8 @@ pub(super) fn collect_runs(
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
                         border_box: style.border_box,
+                        border_width: style.border_width.clone(),
+                        border_style: style.border_style,
                         padding: style.padding.clone(),
                         margin: style.margin.clone(),
                         intrinsic_min_content_width: None,
@@ -327,7 +333,11 @@ pub(super) fn collect_runs(
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
-                        || style.padding.iter().flatten().any(|padding| padding != "0"))
+                        || style.padding.iter().flatten().any(|padding| padding != "0")
+                        || style
+                            .border_style
+                            .iter()
+                            .any(|style| *style != super::BorderLineStyle::None))
                 {
                     let mut spacer_style = style.clone();
                     spacer_style.empty_block_height = Some(LayoutHeight {
@@ -344,6 +354,8 @@ pub(super) fn collect_runs(
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
                         border_box: style.border_box,
+                        border_width: style.border_width.clone(),
+                        border_style: style.border_style,
                         padding: style.padding.clone(),
                         margin: style.margin.clone(),
                         size_property_orders: style.size_property_orders.clone(),

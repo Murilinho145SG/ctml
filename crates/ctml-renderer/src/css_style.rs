@@ -412,6 +412,7 @@ mod pseudo;
 mod selection;
 #[cfg(test)]
 pub(super) use ctml_css::parse_length;
+pub(super) use properties::resolve_logical_borders;
 pub(super) use properties::resolve_logical_margin;
 pub(super) use properties::resolve_logical_padding;
 use properties::{apply_color_declaration, apply_declaration_with_inherited};
@@ -439,6 +440,9 @@ mod text_emphasis_tests;
 #[path = "css_style_direction_tests.rs"]
 mod direction_tests;
 
+#[cfg(test)]
+#[path = "css_style_border_tests.rs"]
+mod border_tests;
 #[cfg(test)]
 #[path = "css_style_matrix_tests.rs"]
 mod matrix_tests;

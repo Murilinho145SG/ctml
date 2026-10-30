@@ -15,6 +15,11 @@ use super::font_variant::{
 };
 use apply::apply_declaration;
 use background::{apply_background_color, apply_background_shorthand};
+use border::{
+    apply_border_style, apply_border_style_side, apply_border_width, apply_border_width_side,
+    apply_logical_border_style, apply_logical_border_style_shorthand, apply_logical_border_width,
+    apply_logical_border_width_shorthand,
+};
 use cascade_values::{inherit_property, initial_property};
 pub(super) use color::apply_color_declaration;
 use counters::{CounterProperty, apply_counter_property};
@@ -52,6 +57,7 @@ use text_shadow::apply_text_shadow;
 
 mod apply;
 mod background;
+mod border;
 mod cascade_values;
 mod color;
 mod counters;
@@ -245,6 +251,10 @@ pub(crate) fn resolve_logical_padding(style: &mut TextStyle) {
 
 pub(crate) fn resolve_logical_margin(style: &mut TextStyle) {
     spacing::resolve_logical_margin(style);
+}
+
+pub(crate) fn resolve_logical_borders(style: &mut TextStyle) {
+    border::resolve_logical_borders(style);
 }
 
 fn parse_overflow_value(value: &str) -> Option<(Overflow, Overflow)> {

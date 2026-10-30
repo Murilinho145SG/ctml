@@ -71,6 +71,14 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.logical_padding = std::array::from_fn(|_| None);
     style.physical_padding_orders = [0; 4];
     style.logical_padding_orders = [0; 4];
+    style.border_width = std::array::from_fn(|_| None);
+    style.logical_border_width = std::array::from_fn(|_| None);
+    style.physical_border_width_orders = [0; 4];
+    style.logical_border_width_orders = [0; 4];
+    style.border_style = [crate::style::BorderLineStyle::None; 4];
+    style.logical_border_style = std::array::from_fn(|_| None);
+    style.physical_border_style_orders = [0; 4];
+    style.logical_border_style_orders = [0; 4];
     style.margin = std::array::from_fn(|_| None);
     style.logical_margin = std::array::from_fn(|_| None);
     style.physical_margin_orders = [0; 4];
@@ -96,5 +104,6 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     );
     super::resolve_logical_padding(&mut style);
     super::resolve_logical_margin(&mut style);
+    super::resolve_logical_borders(&mut style);
     style
 }

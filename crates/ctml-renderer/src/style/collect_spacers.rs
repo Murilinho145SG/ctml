@@ -16,14 +16,15 @@ pub(super) fn append_block_start_spacers(
     };
     if block
         && style.writing_mode == super::WritingMode::HorizontalTb
-        && style.padding[0]
+        && (style.padding[0]
             .as_deref()
             .is_some_and(|padding| padding != "0")
+            || style.border_style[0] != super::BorderLineStyle::None)
         && has_content
     {
         let mut spacer_style = style.clone();
         spacer_style.font_size = 1.0;
-        spacer_style.line_height = style.padding[0]
+        let padding = style.padding[0]
             .as_deref()
             .and_then(|padding| {
                 ctml_css::parse_nonnegative_font_relative_length_with_viewport(
@@ -35,6 +36,24 @@ pub(super) fn append_block_start_spacers(
                 )
             })
             .unwrap_or_default();
+        let border = if style.border_style[0] == super::BorderLineStyle::None {
+            0.0
+        } else {
+            match style.border_width[0].as_deref().unwrap_or("medium") {
+                "thin" => 1.0,
+                "medium" => 3.0,
+                "thick" => 5.0,
+                value => ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+                    value,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+                .unwrap_or_default(),
+            }
+        };
+        spacer_style.line_height = padding + border;
         spacer_style.line_height_normal = false;
         spacer_style.flow_spacer = true;
         spacer_style.padding_start_spacer = true;

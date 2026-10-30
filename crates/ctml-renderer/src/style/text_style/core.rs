@@ -4,10 +4,11 @@ use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
-    Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
-    Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
-    TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
-    TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    BorderLineStyle, Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight,
+    LayoutSize, LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle,
+    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
+    TextRendering, TextShadow, TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace,
+    WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -44,6 +45,14 @@ pub(crate) struct TextStyle {
     pub(crate) min_inline_size: Option<String>,
     pub(crate) max_inline_size: Option<String>,
     pub(crate) border_box: bool,
+    pub(crate) border_width: [Option<String>; 4],
+    pub(crate) logical_border_width: [Option<String>; 4],
+    pub(crate) physical_border_width_orders: [usize; 4],
+    pub(crate) logical_border_width_orders: [usize; 4],
+    pub(crate) border_style: [BorderLineStyle; 4],
+    pub(crate) logical_border_style: [Option<BorderLineStyle>; 4],
+    pub(crate) physical_border_style_orders: [usize; 4],
+    pub(crate) logical_border_style_orders: [usize; 4],
     pub(crate) padding: [Option<String>; 4],
     pub(crate) logical_padding: [Option<String>; 4],
     pub(crate) physical_padding_orders: [usize; 4],
@@ -176,6 +185,14 @@ impl Default for TextStyle {
             min_inline_size: None,
             max_inline_size: None,
             border_box: false,
+            border_width: std::array::from_fn(|_| None),
+            logical_border_width: std::array::from_fn(|_| None),
+            physical_border_width_orders: [0; 4],
+            logical_border_width_orders: [0; 4],
+            border_style: [BorderLineStyle::None; 4],
+            logical_border_style: std::array::from_fn(|_| None),
+            physical_border_style_orders: [0; 4],
+            logical_border_style_orders: [0; 4],
             padding: std::array::from_fn(|_| None),
             logical_padding: std::array::from_fn(|_| None),
             physical_padding_orders: [0; 4],

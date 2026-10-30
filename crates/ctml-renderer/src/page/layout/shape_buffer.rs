@@ -7,7 +7,7 @@ use super::super::{
     sizing::{line_layout_sizes, resolve_layout_width, resolve_width, select_axis_size},
     sizing_height::resolve_layout_height_with_ancestors,
     sizing_intrinsic::measure_intrinsic_widths,
-    sizing_padding::{inline_margin, inline_padding},
+    sizing_padding::{inline_borders, inline_margin, inline_padding},
 };
 use super::{line_alignments, line_writing_modes, paragraph_directions};
 
@@ -161,6 +161,8 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                     &style.layout_sizes,
                     page_writing_mode,
                     height_size.border_box,
+                    &height_size.border_width,
+                    &height_size.border_style,
                     &height_size.padding,
                     &height_size.margin,
                     style.font_size,
@@ -278,10 +280,15 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
             inline_available
         };
         let (padding_start, _) = inline_padding(&sizes, inline_available, page_writing_mode);
+        let (border_start, _) = inline_borders(&sizes, inline_available, page_writing_mode);
         let (margin_start, _) = inline_margin(&sizes, inline_available, page_writing_mode);
-        let line_width = line_content_width + padding_start + margin_start;
+        let line_width = line_content_width + border_start + padding_start + margin_start;
         line.set_indent(
-            padding_start + margin_start + indent + line_content_width * indent_percent / 100.0,
+            border_start
+                + padding_start
+                + margin_start
+                + indent
+                + line_content_width * indent_percent / 100.0,
             hanging,
             each_line,
         );
