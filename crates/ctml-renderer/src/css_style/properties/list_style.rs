@@ -4,6 +4,8 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "disc",
     "circle",
     "square",
+    "disclosure-open",
+    "disclosure-closed",
     "decimal",
     "decimal-leading-zero",
     "lower-alpha",

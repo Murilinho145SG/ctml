@@ -222,6 +222,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [x] Hebrew, Armenian, Georgian, basic CJK, localized decimal, and kana alphabet predefined `list-style-type` systems, with decimal fallback outside supported ranges.
+- [x] `disclosure-open` and `disclosure-closed` list markers with open/down and closed/right triangle glyphs.
 - [ ] Remaining predefined `list-style-type` systems and counter styles.
 - [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
 - [x] `counter-reset`, `counter-increment`, and `counter-set` with scoped values, plus decimal, decimal-leading-zero, alphabetic, Greek, and Roman `counter()`/`counters()` formatting.

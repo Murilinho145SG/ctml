@@ -175,6 +175,45 @@ fn list_style_type_formats_latin_and_kana_alphabets() {
 }
 
 #[test]
+fn list_style_type_formats_disclosure_markers() {
+    use super::list_marker::{format_counter_value, format_marker};
+
+    for (style, expected_symbol, expected_marker) in [
+        ("disclosure-open", "▾", "▾ "),
+        ("disclosure-closed", "▸", "▸ "),
+    ] {
+        assert_eq!(
+            format_counter_value(style, 1).as_deref(),
+            Some(expected_symbol)
+        );
+        assert_eq!(
+            format_marker(Some(style), true, 1).as_deref(),
+            Some(expected_marker)
+        );
+
+        let (runs, _) = compile_runs(
+            &[list_container("ol", &["item"])],
+            &[StyleRule {
+                selectors: vec!["ol".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "list-style-type".to_owned(),
+                    value: style.to_owned(),
+                }],
+            }],
+            &[],
+            &[],
+            &[],
+            false,
+        );
+        assert_eq!(
+            runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+            format!("{expected_marker}item")
+        );
+    }
+}
+
+#[test]
 fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
     for style_type in [
         "armenian",
@@ -182,6 +221,8 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "lower-armenian",
         "hebrew",
         "georgian",
+        "disclosure-open",
+        "disclosure-closed",
         "cjk-decimal",
         "cjk-ideographic",
         "cjk-earthly-branch",

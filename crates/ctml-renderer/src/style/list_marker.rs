@@ -13,6 +13,8 @@ pub(super) fn format_marker(
         "disc" => "• ".to_owned(),
         "circle" => "◦ ".to_owned(),
         "square" => "▪ ".to_owned(),
+        "disclosure-open" => "▾ ".to_owned(),
+        "disclosure-closed" => "▸ ".to_owned(),
         "decimal" => format!("{index}. "),
         "decimal-leading-zero" => format!("{index:02}. "),
         "lower-alpha" => format!("{}. ", alphabetic_marker(index, false)),
@@ -60,6 +62,8 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
     let positive = usize::try_from(value).ok().filter(|value| *value > 0);
     match style {
         "decimal" => Some(value.to_string()),
+        "disclosure-open" => Some("▾".to_owned()),
+        "disclosure-closed" => Some("▸".to_owned()),
         "decimal-leading-zero" if (0..10).contains(&value) => Some(format!("0{value}")),
         "decimal-leading-zero" => Some(value.to_string()),
         "lower-alpha" => {
