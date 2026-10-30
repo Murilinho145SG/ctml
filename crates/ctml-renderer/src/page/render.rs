@@ -13,11 +13,17 @@ impl PageRasterizer {
         background: [u8; 3],
         scoped: bool,
         apply_root_opacity: bool,
+        transparent: bool,
     ) -> Vec<u8> {
         let mut pixels = vec![0_u8; width as usize * height as usize * 4];
         for pixel in pixels.chunks_exact_mut(4) {
-            pixel[..3].copy_from_slice(&background);
-            pixel[3] = 255;
+            if transparent {
+                pixel[..3].fill(0);
+                pixel[3] = 0;
+            } else {
+                pixel[..3].copy_from_slice(&background);
+                pixel[3] = 255;
+            }
         }
         let overflow_clips = &self.overflow_clips;
         let nested_scroll = &self.nested_scroll;

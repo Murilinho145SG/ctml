@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, Scroll, SwashCache};
 use winit::window::CursorIcon;
@@ -83,6 +83,7 @@ pub(crate) struct PageRasterizer {
     root_opacity: f32,
     opacity_groups: HashMap<usize, f32>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
+    isolation_groups: HashSet<usize>,
     decoration_opacity_scales: Vec<f32>,
     selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
@@ -130,7 +131,7 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
-        let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+        let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
             compile_runs_with_opacity_map(
                 nodes,
                 stylesheet,
@@ -186,6 +187,7 @@ impl PageRasterizer {
             root_opacity,
             opacity_groups,
             mix_blend_modes,
+            isolation_groups,
             decoration_opacity_scales: Vec::new(),
             selection_background_color,
             selection: None,
@@ -551,7 +553,7 @@ impl PageRasterizer {
     }
 
     fn rebuild_interaction_styles(&mut self) {
-        let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+        let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
             compile_runs_with_opacity_map(
                 &self.nodes,
                 &self.stylesheet,
@@ -582,6 +584,7 @@ impl PageRasterizer {
             .collect();
         self.opacity_groups = opacity_groups;
         self.mix_blend_modes = mix_blend_modes;
+        self.isolation_groups = isolation_groups;
         self.decoration_opacity_scales.clear();
         self.root_opacity = root_style.opacity;
         self.root_style = root_style;

@@ -186,6 +186,11 @@ pub(super) fn apply_declaration(
         "background-image" => apply_background_image(style, value),
         "background-blend-mode" => apply_background_blend_mode(style, value),
         "mix-blend-mode" => apply_mix_blend_mode(style, value),
+        "isolation" => match value.trim().to_ascii_lowercase().as_str() {
+            "auto" => style.isolation = false,
+            "isolate" => style.isolation = true,
+            _ => {}
+        },
         "background-repeat" => apply_background_repeat(style, value),
         "background-position" => apply_background_position(style, value),
         "background-size" => apply_background_size(style, value),

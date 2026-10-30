@@ -5,7 +5,7 @@ use crate::{
 use ctml_css::{
     SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement, ViewportSize,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 mod collect;
 mod collect_layout;
@@ -42,7 +42,7 @@ pub(super) fn compile_runs_with_font_system(
     color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
-    let (runs, root_style, _, _) = compile_runs_with_opacity_map(
+    let (runs, root_style, _, _, _) = compile_runs_with_opacity_map(
         nodes,
         stylesheet,
         hovered_path,
@@ -71,6 +71,7 @@ pub(super) fn compile_runs_with_opacity_map(
     TextStyle,
     HashMap<usize, f32>,
     HashMap<usize, BackgroundBlendMode>,
+    HashSet<usize>,
 ) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
@@ -144,6 +145,7 @@ pub(super) fn compile_runs_with_opacity_map(
     let mut counters = HashMap::new();
     let mut opacity_groups = HashMap::new();
     let mut mix_blend_modes = HashMap::new();
+    let mut isolation_groups = HashSet::new();
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -162,6 +164,7 @@ pub(super) fn compile_runs_with_opacity_map(
             &inherited_root_style,
             &mut opacity_groups,
             &mut mix_blend_modes,
+            &mut isolation_groups,
             root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,
@@ -241,7 +244,13 @@ pub(super) fn compile_runs_with_opacity_map(
         }
     }
     pseudo::style_first_letters(&mut runs);
-    (runs, root_style, opacity_groups, mix_blend_modes)
+    (
+        runs,
+        root_style,
+        opacity_groups,
+        mix_blend_modes,
+        isolation_groups,
+    )
 }
 
 #[derive(Clone)]

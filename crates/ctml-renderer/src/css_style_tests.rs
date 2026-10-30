@@ -79,6 +79,13 @@ fn resolves_mix_blend_mode_and_ignores_invalid_keywords() {
 }
 
 #[test]
+fn resolves_isolation_auto_and_isolate_values() {
+    assert!(style_for_declarations(&[("isolation", "isolate")]).isolation);
+    assert!(!style_for_declarations(&[("isolation", "auto")]).isolation);
+    assert!(!style_for_declarations(&[("isolation", "invalid")]).isolation);
+}
+
+#[test]
 fn resolves_numeric_weight_font_style_and_stretch() {
     let style = style_for_declarations(&[
         ("font-weight", "350"),

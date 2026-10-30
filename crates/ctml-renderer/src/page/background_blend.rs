@@ -24,10 +24,9 @@ pub(super) fn to_skia(mode: BackgroundBlendMode) -> skia_safe::BlendMode {
     }
 }
 
-pub(super) fn composite_with_mode(
+pub(super) fn composite_source_layer(
     destination: &mut [u8],
-    black: &[u8],
-    white: &[u8],
+    source: &[u8],
     opacity: f32,
     mode: BackgroundBlendMode,
     width: u32,
@@ -36,19 +35,6 @@ pub(super) fn composite_with_mode(
     if width == 0 || height == 0 {
         return;
     }
-    let mut source = vec![0; black.len()];
-    for ((source, black), white) in source
-        .chunks_exact_mut(4)
-        .zip(black.chunks_exact(4))
-        .zip(white.chunks_exact(4))
-    {
-        source[..3].copy_from_slice(&black[..3]);
-        let transmittance = (0..3)
-            .map(|channel| (i16::from(white[channel]) - i16::from(black[channel])) as f32 / 255.0)
-            .sum::<f32>()
-            / 3.0;
-        source[3] = ((1.0 - transmittance).clamp(0.0, 1.0) * 255.0).round() as u8;
-    }
     let info = ImageInfo::new(
         (width as i32, height as i32),
         ColorType::RGBA8888,
@@ -56,7 +42,7 @@ pub(super) fn composite_with_mode(
         ColorSpace::new_srgb(),
     );
     let Some(image) =
-        skia_safe::images::raster_from_data(&info, Data::new_copy(&source), width as usize * 4)
+        skia_safe::images::raster_from_data(&info, Data::new_copy(source), width as usize * 4)
     else {
         return;
     };

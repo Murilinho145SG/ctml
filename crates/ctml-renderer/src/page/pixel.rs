@@ -153,14 +153,20 @@ fn blend_pixel_with_rounding(
     }
     let offset = (y as usize * width as usize + x as usize) * 4;
     let rgba = color.as_rgba_tuple();
-    let alpha = alpha as u16;
+    let source_alpha = f32::from(alpha) / 255.0;
+    let destination_alpha = f32::from(pixels[offset + 3]) / 255.0;
+    let output_alpha = source_alpha + destination_alpha * (1.0 - source_alpha);
     for channel in 0..3 {
-        pixels[offset + channel] = ((pixels[offset + channel] as u16 * (255 - alpha)
-            + rgba_channel(rgba, channel) as u16 * alpha
-            + if round { 127 } else { 0 })
-            / 255) as u8;
+        let source = f32::from(rgba_channel(rgba, channel)) * source_alpha;
+        let destination = f32::from(pixels[offset + channel]);
+        let value = source + destination * (1.0 - source_alpha);
+        pixels[offset + channel] = if round {
+            value.round().clamp(0.0, 255.0) as u8
+        } else {
+            value.floor().clamp(0.0, 255.0) as u8
+        };
     }
-    pixels[offset + 3] = 255;
+    pixels[offset + 3] = (output_alpha * 255.0).round().clamp(0.0, 255.0) as u8;
 }
 
 pub(super) fn fill_rect_alpha_clipped(

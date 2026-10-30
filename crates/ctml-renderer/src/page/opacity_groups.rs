@@ -2,9 +2,6 @@ use super::PageRasterizer;
 use crate::style::{BackgroundBlendMode, WritingMode};
 use std::collections::HashSet;
 
-const BLACK: [u8; 3] = [0, 0, 0];
-const WHITE: [u8; 3] = [255, 255, 255];
-
 impl PageRasterizer {
     pub(super) fn render_layout_pixels(
         &mut self,
@@ -20,22 +17,21 @@ impl PageRasterizer {
             writing_mode,
             true,
             false,
+            false,
         );
         if self.root_opacity == 0.0 {
             for pixel in pixels.chunks_exact_mut(4) {
-                pixel[..3].copy_from_slice(&WHITE);
+                pixel[..3].copy_from_slice(&[255, 255, 255]);
             }
             return pixels;
         }
         for node_id in self.root_child_ids() {
             if let Some(opacity) = self.opacity_groups.get(&node_id).copied() {
                 if opacity > 0.0 && opacity < 1.0 {
-                    let (black, white) =
-                        self.render_group_layer(node_id, width, height, writing_mode);
-                    composite_group_layer(
+                    let source = self.render_group_layer(node_id, width, height, writing_mode);
+                    composite_source_layer(
                         &mut pixels,
-                        &black,
-                        &white,
+                        &source,
                         opacity,
                         self.mix_blend_modes[&node_id],
                         width,
@@ -68,53 +64,59 @@ impl PageRasterizer {
         width: u32,
         height: u32,
         writing_mode: WritingMode,
-    ) -> (Vec<u8>, Vec<u8>) {
-        let black = self.render_group_content(node_id, BLACK, width, height, writing_mode);
-        let white = self.render_group_content(node_id, WHITE, width, height, writing_mode);
-        (black, white)
+    ) -> Vec<u8> {
+        self.render_group_content(node_id, width, height, writing_mode)
     }
 
     fn render_group_content(
         &mut self,
         node_id: usize,
-        background: [u8; 3],
         width: u32,
         height: u32,
         writing_mode: WritingMode,
     ) -> Vec<u8> {
         let mut pixels = self.render_scoped_raw(
             Some(node_id),
-            background,
+            [0; 3],
             width,
             height,
             writing_mode,
             false,
             true,
+            true,
         );
         for child in self.child_ids(node_id) {
-            if let Some(opacity) = self.opacity_groups.get(&child).copied() {
-                if opacity > 0.0 && opacity < 1.0 {
-                    let (black, white) =
-                        self.render_group_layer(child, width, height, writing_mode);
-                    composite_group_layer(
-                        &mut pixels,
-                        &black,
-                        &white,
-                        opacity,
-                        self.mix_blend_modes[&child],
-                        width,
-                        height,
-                    );
-                } else if opacity == 0.0 {
-                    continue;
-                } else {
-                    self.composite_node_layer(child, &mut pixels, width, height, writing_mode);
-                }
-            } else {
-                self.composite_node_layer(child, &mut pixels, width, height, writing_mode);
-            }
+            self.composite_child(child, &mut pixels, width, height, writing_mode);
         }
         pixels
+    }
+
+    fn composite_child(
+        &mut self,
+        node_id: usize,
+        pixels: &mut [u8],
+        width: u32,
+        height: u32,
+        writing_mode: WritingMode,
+    ) {
+        if let Some(opacity) = self.opacity_groups.get(&node_id).copied() {
+            if opacity == 0.0 {
+                return;
+            }
+            if opacity < 1.0 {
+                let source = self.render_group_layer(node_id, width, height, writing_mode);
+                composite_source_layer(
+                    pixels,
+                    &source,
+                    opacity,
+                    self.mix_blend_modes[&node_id],
+                    width,
+                    height,
+                );
+                return;
+            }
+        }
+        self.composite_node_layer(node_id, pixels, width, height, writing_mode);
     }
 
     fn render_scoped_raw(
@@ -126,6 +128,7 @@ impl PageRasterizer {
         writing_mode: WritingMode,
         root_only: bool,
         own_only: bool,
+        transparent: bool,
     ) -> Vec<u8> {
         let original_runs = std::mem::take(&mut self.runs);
         let original_cursor_spans = std::mem::take(&mut self.cursor_spans);
@@ -187,6 +190,7 @@ impl PageRasterizer {
             background,
             scope.is_some(),
             false,
+            transparent,
         );
         self.runs = original_runs;
         self.cursor_spans = original_cursor_spans;
@@ -202,55 +206,41 @@ impl PageRasterizer {
         height: u32,
         writing_mode: WritingMode,
     ) {
-        let black = self.render_scoped_raw(
+        let isolated = self.isolation_groups.contains(&node_id)
+            || self.mix_blend_modes[&node_id] != BackgroundBlendMode::Normal;
+        if isolated {
+            let source = self.render_group_layer(node_id, width, height, writing_mode);
+            composite_source_layer(
+                pixels,
+                &source,
+                1.0,
+                self.mix_blend_modes[&node_id],
+                width,
+                height,
+            );
+            return;
+        }
+
+        let source = self.render_scoped_raw(
             Some(node_id),
-            BLACK,
+            [0; 3],
             width,
             height,
             writing_mode,
             false,
             true,
-        );
-        let white = self.render_scoped_raw(
-            Some(node_id),
-            WHITE,
-            width,
-            height,
-            writing_mode,
-            false,
             true,
         );
-        composite_group_layer(
+        composite_source_layer(
             pixels,
-            &black,
-            &white,
+            &source,
             1.0,
-            self.mix_blend_modes[&node_id],
+            BackgroundBlendMode::Normal,
             width,
             height,
         );
         for child in self.child_ids(node_id) {
-            if let Some(opacity) = self.opacity_groups.get(&child).copied() {
-                if opacity > 0.0 && opacity < 1.0 {
-                    let (black, white) =
-                        self.render_group_layer(child, width, height, writing_mode);
-                    composite_group_layer(
-                        pixels,
-                        &black,
-                        &white,
-                        opacity,
-                        self.mix_blend_modes[&child],
-                        width,
-                        height,
-                    );
-                } else if opacity == 0.0 {
-                    continue;
-                } else {
-                    self.composite_node_layer(child, pixels, width, height, writing_mode);
-                }
-            } else {
-                self.composite_node_layer(child, pixels, width, height, writing_mode);
-            }
+            self.composite_child(child, pixels, width, height, writing_mode);
         }
     }
 
@@ -306,42 +296,20 @@ fn adjust_decoration_opacity(
     }
 }
 
-fn composite_group_layer(
+fn composite_source_layer(
     destination: &mut [u8],
-    black: &[u8],
-    white: &[u8],
+    source: &[u8],
     opacity: f32,
     blend_mode: BackgroundBlendMode,
     width: u32,
     height: u32,
 ) {
-    if blend_mode != BackgroundBlendMode::Normal {
-        super::background_blend::composite_with_mode(
-            destination,
-            black,
-            white,
-            opacity,
-            blend_mode,
-            width,
-            height,
-        );
-        return;
-    }
-    for ((destination, black), white) in destination
-        .chunks_exact_mut(4)
-        .zip(black.chunks_exact(4))
-        .zip(white.chunks_exact(4))
-    {
-        let transmittance = (0..3)
-            .map(|channel| (i16::from(white[channel]) - i16::from(black[channel])) as f32 / 255.0)
-            .sum::<f32>()
-            / 3.0;
-        let group_alpha = (1.0 - transmittance).clamp(0.0, 1.0) * opacity;
-        for channel in 0..3 {
-            destination[channel] = (f32::from(black[channel]) * opacity
-                + f32::from(destination[channel]) * (1.0 - group_alpha))
-                .round()
-                .clamp(0.0, 255.0) as u8;
-        }
-    }
+    super::background_blend::composite_source_layer(
+        destination,
+        source,
+        opacity,
+        blend_mode,
+        width,
+        height,
+    );
 }

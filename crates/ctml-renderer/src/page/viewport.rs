@@ -16,7 +16,7 @@ pub(super) fn resize_styles(
         width: width as f32,
         height: height as f32,
     };
-    let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+    let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
         compile_runs_with_opacity_map(
             &page.nodes,
             &page.stylesheet,
@@ -41,6 +41,7 @@ pub(super) fn resize_styles(
         .collect();
     page.opacity_groups = opacity_groups;
     page.mix_blend_modes = mix_blend_modes;
+    page.isolation_groups = isolation_groups;
     page.decoration_opacity_scales.clear();
     page.root_opacity = root_style.opacity;
     page.root_style = root_style;

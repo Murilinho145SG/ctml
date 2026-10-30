@@ -54,6 +54,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             .background_blend_modes
             .clone_from(&inherited.background_blend_modes),
         "mix-blend-mode" => style.mix_blend_mode = inherited.mix_blend_mode,
+        "isolation" => style.isolation = inherited.isolation,
         "border-image-source" => {
             style
                 .border_image_source
@@ -343,6 +344,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "mix-blend-mode" => {
             style.mix_blend_mode = crate::style::BackgroundBlendMode::Normal;
         }
+        "isolation" => style.isolation = false,
         "border-image-source" => style.border_image_source = None,
         "border-image" => {
             style.border_image_source = None;

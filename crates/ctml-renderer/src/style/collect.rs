@@ -3,7 +3,7 @@ use crate::{
     css_style::{self, ElementIdentity},
 };
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     LayoutHeight, TextRun, TextStyle, UserSelect, append_text, collect_layout, collect_spacers,
@@ -54,6 +54,7 @@ pub(super) fn collect_runs(
     inherited: &TextStyle,
     opacity_groups: &mut HashMap<usize, f32>,
     mix_blend_modes: &mut HashMap<usize, super::BackgroundBlendMode>,
+    isolation_groups: &mut HashSet<usize>,
     page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
@@ -174,6 +175,9 @@ pub(super) fn collect_runs(
                 };
                 opacity_groups.insert(sibling.node_id, style.opacity);
                 mix_blend_modes.insert(sibling.node_id, style.mix_blend_mode);
+                if style.isolation {
+                    isolation_groups.insert(sibling.node_id);
+                }
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;
@@ -394,6 +398,7 @@ pub(super) fn collect_runs(
                     &style,
                     opacity_groups,
                     mix_blend_modes,
+                    isolation_groups,
                     page_writing_mode,
                     font_metrics,
                     output,
