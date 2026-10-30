@@ -111,7 +111,10 @@ pub(super) fn draw(
                                 && size.background_layers == style.background_layers
                         })
                     });
-            if is_block_background {
+            if is_block_background
+                || (style.inline_box
+                    && style.background_layers.len() > usize::from(skip_root_background))
+            {
                 start += 1;
                 continue;
             }

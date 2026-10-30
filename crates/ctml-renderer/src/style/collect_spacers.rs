@@ -3,12 +3,36 @@ use super::{TextRun, TextStyle, append_text, push_line_break};
 pub(super) fn append_block_start_spacers(
     style: &TextStyle,
     block: bool,
+    empty_box: bool,
     has_content: bool,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
+    if !block
+        && empty_box
+        && !style.content_skipped
+        && (!style.background_layers.is_empty()
+            || style.padding.iter().flatten().any(|padding| padding != "0")
+            || style
+                .border_style
+                .iter()
+                .any(|style| *style != super::BorderLineStyle::None))
+    {
+        let last_was_space_before = *last_was_space;
+        let capitalize_next_before = *capitalize_next;
+        append_text(
+            "\u{200b}",
+            style,
+            element_path,
+            output,
+            last_was_space,
+            capitalize_next,
+        );
+        *last_was_space = last_was_space_before;
+        *capitalize_next = capitalize_next_before;
+    }
     let margin_start_side = match style.writing_mode {
         super::WritingMode::HorizontalTb => 0,
         super::WritingMode::VerticalRl => 1,

@@ -145,6 +145,107 @@ fn paints_content_block_background_across_its_padding_box() {
 }
 
 #[test]
+fn paints_inline_background_across_padding_box() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("padded".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("X".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".padded".to_owned()],
+        layer: None,
+        declarations: [("padding", "8px"), ("background-color", "red")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 70);
+    let pixel = &pixels[(20 * 100 + 8) * 4..][..3];
+
+    assert_eq!(
+        pixel,
+        [255, 0, 0],
+        "inline padding should receive the background"
+    );
+}
+
+#[test]
+fn paints_background_for_an_empty_inline_element() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("empty".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".empty".to_owned()],
+        layer: None,
+        declarations: [("padding", "8px"), ("background-color", "red")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 70);
+    let pixel = &pixels[(20 * 100 + 8) * 4..][..3];
+
+    assert_eq!(pixel, [255, 0, 0], "empty inline padding should be painted");
+}
+
+#[test]
+fn empty_inline_background_does_not_change_adjacent_text_transformation() {
+    let nodes = [
+        UiNode::Text("apple".to_owned()),
+        UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("empty".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        UiNode::Text("banana".to_owned()),
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "text-transform".to_owned(),
+                value: "capitalize".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".empty".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let page = PageRasterizer::new(&nodes, &stylesheet);
+    let rendered_text = page
+        .runs
+        .iter()
+        .map(|run| run.text.as_str())
+        .collect::<String>()
+        .replace('\u{200b}', "");
+
+    assert!(
+        rendered_text.contains("Applebanana"),
+        "empty inline decoration should not create a word boundary: {rendered_text:?}"
+    );
+}
+
+#[test]
 fn nests_element_backgrounds_behind_child_text() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

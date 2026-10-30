@@ -130,7 +130,7 @@ Malformed declarations and selector rules are skipped without a warning, and par
 
 ### Painting and colors
 
-- Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip. Block backgrounds paint across used border boxes, including padding, for both empty and content-bearing blocks. Fragmented inline boxes still paint only their text fragments.
+- Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip. Block backgrounds paint across used border boxes, including padding, for both empty and content-bearing blocks. Inline backgrounds paint through their padding on each text fragment, and empty inline elements with decoration paint their line box.
 - Background images, gradients, and the `opacity` property.
 - Other predefined/custom color spaces.
 - Vertical text-emphasis side placement.

@@ -254,6 +254,7 @@ pub(super) fn collect_runs(
                 collect_spacers::append_block_start_spacers(
                     &style,
                     block,
+                    empty_box,
                     !children.is_empty() || before_content.is_some() || has_after_content,
                     element_path,
                     output,

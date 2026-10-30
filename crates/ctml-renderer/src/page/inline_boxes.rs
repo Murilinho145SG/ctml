@@ -9,6 +9,8 @@ use super::{
     borders::{draw_edge, edge_color},
     local_writing,
     overflow_clip::{self, ClipRect},
+    pixel::fill_rect_alpha_clipped,
+    sizing::resolve_width,
 };
 
 #[derive(Clone, Copy)]
@@ -63,7 +65,9 @@ pub(super) fn draw(
                     run.style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
-            if !has_border && !has_outline {
+            let has_background =
+                run.first_letter_block.is_none() && !run.style.background_layers.is_empty();
+            if !has_border && !has_outline && !has_background {
                 continue;
             }
             let entry = line_fragments.entry(node_id).or_insert(Fragment {
@@ -106,6 +110,8 @@ pub(super) fn draw(
                     style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
+            let has_background =
+                run.first_letter_block.is_none() && !style.background_layers.is_empty();
             let widths: [f32; 4] = std::array::from_fn(|side| {
                 if style.border_style[side] == BorderLineStyle::None {
                     return 0.0;
@@ -175,6 +181,44 @@ pub(super) fn draw(
             };
             let top = fragment.top + PAGE_PADDING - block_padding[0];
             let fragment_height = fragment_height + block_padding[0] + block_padding[2];
+            if has_background {
+                let inline_available = if super::sizing::is_vertical(page_writing_mode) {
+                    height as f32 - PAGE_PADDING * 2.0
+                } else {
+                    width as f32 - PAGE_PADDING * 2.0
+                };
+                let background_padding = resolve_inline_padding(style, inline_available.max(0.0));
+                let border_start = if sides[3] { widths[3] } else { 0.0 };
+                let border_end = if sides[1] { widths[1] } else { 0.0 };
+                let padding_start = if sides[3] { background_padding[3] } else { 0.0 };
+                let padding_end = if sides[1] { background_padding[1] } else { 0.0 };
+                let background_left = left - border_start - padding_start;
+                let background_top = top - widths[0] - background_padding[0];
+                let background_width =
+                    length + border_start + border_end + padding_start + padding_end;
+                let background_height = fragment_height
+                    + widths[0]
+                    + widths[2]
+                    + background_padding[0]
+                    + background_padding[2];
+                for layer in &style.background_layers {
+                    let mut color = *layer;
+                    color[3] = (f32::from(color[3]) * style.opacity)
+                        .round()
+                        .clamp(0.0, 255.0) as u8;
+                    fill_rect_alpha_clipped(
+                        pixels,
+                        width,
+                        height,
+                        background_left,
+                        background_top,
+                        background_width,
+                        background_height,
+                        color,
+                        clip,
+                    );
+                }
+            }
             if has_outline {
                 super::outlines::draw_inline_outline(
                     pixels,
@@ -262,4 +306,22 @@ pub(super) fn draw(
             }
         }
     }
+}
+
+fn resolve_inline_padding(style: &crate::style::TextStyle, containing_width: f32) -> [f32; 4] {
+    std::array::from_fn(|side| {
+        style.padding[side]
+            .as_deref()
+            .and_then(|value| {
+                resolve_width(
+                    value,
+                    containing_width,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+            })
+            .unwrap_or_default()
+    })
 }

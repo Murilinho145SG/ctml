@@ -304,6 +304,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `background-color` on rendered text fragments, including alpha compositing and nested elements.
 - [x] Paint backgrounds across the border boxes of empty sized blocks, including their padding area.
 - [x] Paint block backgrounds across used border boxes for content-bearing blocks, with nested clipping and writing-mode placement.
+- [x] Paint backgrounds on empty inline elements and extend fragmented inline backgrounds through their padding area.
 - [ ] Background painting for empty elements and complete CSS boxes, including padding, sizing, and fragmented inline boxes.
 - [ ] Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip.
 - [ ] Linear, radial, conic, and repeating gradients.
