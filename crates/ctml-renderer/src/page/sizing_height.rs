@@ -2,7 +2,7 @@ use ctml_css::{FontRelativeUnits, ViewportSize, parse_signed_font_relative_lengt
 
 use crate::style::{BorderLineStyle, LayoutSize, WritingMode};
 
-use super::sizing::{block_size_constraints, resolve_width};
+use super::sizing::{block_size_constraints, is_vertical, resolve_width};
 use super::sizing_padding::{resolve_borders, resolve_margin, resolve_padding};
 
 pub(super) fn resolve_content_block_height(
@@ -142,8 +142,12 @@ pub(super) fn resolve_block_box_extent(
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
     let content_height = if size.size_contained {
-        size.contain_intrinsic_height
-            .as_deref()
+        let intrinsic_block_size = if is_vertical(page_writing_mode) {
+            size.contain_intrinsic_width.as_deref()
+        } else {
+            size.contain_intrinsic_height.as_deref()
+        };
+        intrinsic_block_size
             .and_then(|value| {
                 resolve_width(
                     value,

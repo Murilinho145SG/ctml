@@ -5,10 +5,10 @@ use cosmic_text::{Attrs, Buffer, Metrics, Shaping, Wrap};
 use crate::font_family::resolve_family_list;
 use ctml_css::{FontRelativeUnits, ViewportSize};
 
-use crate::style::{LayoutSize, OverflowWrap, TextRun, WhiteSpace, WordBreak};
+use crate::style::{LayoutSize, OverflowWrap, TextRun, WhiteSpace, WordBreak, WritingMode};
 
 use super::PageRasterizer;
-use super::sizing::resolve_width;
+use super::sizing::{is_vertical, resolve_width};
 
 pub(super) fn resolve_intrinsic_width(
     value: &str,
@@ -54,11 +54,17 @@ pub(super) fn resolve_intrinsic_layout_width(
     size: &LayoutSize,
     value: &str,
     available: f32,
+    page_writing_mode: WritingMode,
 ) -> Option<f32> {
-    if size.inline_size_contained {
+    let matching_inline_axis = is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
+    let contained_fallback = if is_vertical(page_writing_mode) {
+        size.contain_intrinsic_height.as_deref()
+    } else {
+        size.contain_intrinsic_width.as_deref()
+    };
+    if size.size_contained || (size.inline_size_contained && matching_inline_axis) {
         return Some(
-            size.contain_intrinsic_width
-                .as_deref()
+            contained_fallback
                 .and_then(|value| {
                     resolve_width(
                         value,
@@ -282,6 +288,87 @@ fn min_content_wrap(runs: &[TextRun], run_indices: &[usize]) -> Wrap {
         Wrap::Glyph
     } else {
         Wrap::Word
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PageRasterizer, resolve_intrinsic_layout_width};
+    use crate::style::WritingMode;
+    use crate::{StyleDeclaration, StyleRule, UiNode};
+
+    fn inline_size_contained_layout(writing_mode: &str) -> crate::style::LayoutSize {
+        let nodes = [UiNode::Element {
+            tag: "p".to_owned(),
+            class: Some("contained".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("sample".to_owned())],
+        }];
+        let stylesheet = [
+            StyleRule {
+                selectors: vec!["body".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "vertical-rl".to_owned(),
+                }],
+            },
+            StyleRule {
+                selectors: vec![".contained".to_owned()],
+                layer: None,
+                declarations: vec![
+                    StyleDeclaration {
+                        property: "writing-mode".to_owned(),
+                        value: writing_mode.to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "contain".to_owned(),
+                        value: "inline-size".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "width".to_owned(),
+                        value: "max-content".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "contain-intrinsic-size".to_owned(),
+                        value: "50px 30px".to_owned(),
+                    },
+                ],
+            },
+        ];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(300, 300);
+        let mut size = page
+            .runs
+            .iter()
+            .flat_map(|run| &run.style.layout_sizes)
+            .find(|size| size.inline_size_contained)
+            .expect("the contained block should have layout sizing data")
+            .clone();
+        size.intrinsic_min_content_width = Some(10.0);
+        size.intrinsic_max_content_width = Some(80.0);
+        size
+    }
+
+    #[test]
+    fn vertical_inline_size_containment_uses_the_physical_height_fallback() {
+        let size = inline_size_contained_layout("vertical-rl");
+
+        assert_eq!(
+            resolve_intrinsic_layout_width(&size, "max-content", 200.0, WritingMode::VerticalRl),
+            Some(30.0)
+        );
+    }
+
+    #[test]
+    fn orthogonal_inline_size_containment_keeps_the_block_axis_contribution() {
+        let size = inline_size_contained_layout("horizontal-tb");
+
+        assert_eq!(
+            resolve_intrinsic_layout_width(&size, "max-content", 200.0, WritingMode::VerticalRl),
+            Some(80.0)
+        );
     }
 }
 

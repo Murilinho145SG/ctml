@@ -137,10 +137,14 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                 )
                 .flatten();
                 let block_size = explicit_block_size.or_else(|| {
-                    height_size
-                        .size_contained
-                        .then(|| height_size.contain_intrinsic_height.as_deref())
-                        .flatten()
+                    if !height_size.size_contained {
+                        return None;
+                    }
+                    if page_writing_mode == crate::style::WritingMode::HorizontalTb {
+                        height_size.contain_intrinsic_height.as_deref()
+                    } else {
+                        height_size.contain_intrinsic_width.as_deref()
+                    }
                 });
                 let min_block_size = select_axis_size(
                     logical_min.as_ref(),

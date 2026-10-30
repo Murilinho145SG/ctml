@@ -467,6 +467,57 @@ fn vertical_root_block_size_constrains_the_block_flow_axis() {
 }
 
 #[test]
+fn vertical_size_containment_uses_the_physical_width_as_block_fallback() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: Some("contained".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("contained".to_owned())],
+    }];
+    let fallback_flow = |intrinsic_size: &str| {
+        let stylesheet = [
+            StyleRule {
+                selectors: vec!["body".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "vertical-rl".to_owned(),
+                }],
+            },
+            StyleRule {
+                selectors: vec![".contained".to_owned()],
+                layer: None,
+                declarations: vec![
+                    StyleDeclaration {
+                        property: "contain".to_owned(),
+                        value: "size".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "contain-intrinsic-size".to_owned(),
+                        value: intrinsic_size.to_owned(),
+                    },
+                ],
+            },
+        ];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(300, 300);
+        page.runs
+            .iter()
+            .filter(|run| run.style.flow_spacer)
+            .map(|run| run.style.line_height)
+            .sum::<f32>()
+    };
+
+    let width_fallback_flow = fallback_flow("120px 40px");
+    let height_fallback_flow = fallback_flow("40px 120px");
+    assert!(
+        width_fallback_flow > height_fallback_flow + 40.0,
+        "vertical block flow must use contain-intrinsic-width (120px), got spacer heights {width_fallback_flow} and {height_fallback_flow}"
+    );
+}
+
+#[test]
 fn nested_vertical_block_size_reserves_additional_column_flow() {
     let nodes = [
         UiNode::Element {

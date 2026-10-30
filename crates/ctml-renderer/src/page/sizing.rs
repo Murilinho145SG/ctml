@@ -231,17 +231,22 @@ pub(super) fn resolve_layout_width(
         let available_content_width =
             (content_width - inline_padding - inline_border - inline_margin).max(0.0);
         let resolve_inline_size = |value: &str| {
-            let width = resolve_intrinsic_layout_width(size, value, available_content_width)
-                .or_else(|| {
-                    resolve_width(
-                        value,
-                        content_width,
-                        size.font_size,
-                        size.line_height,
-                        size.font_relative_units,
-                        size.viewport_size,
-                    )
-                })?;
+            let width = resolve_intrinsic_layout_width(
+                size,
+                value,
+                available_content_width,
+                page_writing_mode,
+            )
+            .or_else(|| {
+                resolve_width(
+                    value,
+                    content_width,
+                    size.font_size,
+                    size.line_height,
+                    size.font_relative_units,
+                    size.viewport_size,
+                )
+            })?;
             Some(if size.border_box {
                 (width - inline_padding - inline_border).max(0.0)
             } else {
