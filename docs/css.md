@@ -25,6 +25,17 @@ The CSS crate also exposes a local resource loader for binary resources. It reso
 
 Stylesheet files must be UTF-8. An optional UTF-8 BOM is removed. CSS comments are discarded outside quoted strings, and an unterminated comment is an error. The legacy `@charset` rule does not change decoding and is unsupported.
 
+## CSS value processing
+
+CTML follows these value-processing stages for the properties it supports:
+
+- **Specified values:** the stylesheet parser retains declaration values as CSS token text after removing comments and handling escapes. Property-specific parsers validate the supported grammar; invalid or unsupported declarations do not become style values.
+- **Computed styles:** the cascade combines inherited text properties, modeled initial values, stylesheet rules, and inline declarations using importance, layer order, specificity, and source order. Custom properties and supported `var()` and `attr()` substitutions are resolved before the receiving property is parsed. The renderer stores the resulting values in its internal text style; it does not expose a CSSOM.
+- **Used values:** relative lengths and percentages resolve when their needed context is available, including font metrics, line height, viewport dimensions, containing text area, or the active page size. Layout then calculates text flow, wrapping, and line metrics. Resizing recompiles styles with the new viewport dimensions.
+- **Actual values:** the native shaping and rasterization path selects available font faces, positions glyphs, maps colors to the display's sRGB output, and paints the resulting pixels into the render target. Pixel placement and glyph metrics therefore reflect the native font and raster backends.
+
+These stages describe CTML's implementation boundary rather than a promise that every CSS property or every CSS value grammar is supported.
+
 Named `@layer` order statements and blocks are supported, including escaped identifiers, nested named layers, and anonymous blocks. Anonymous layers remain distinct across stylesheet imports. Normal declarations in later layers outrank earlier layers, while `!important` layer order is reversed; unlayered normal rules outrank layered normal rules, and layered important rules outrank unlayered important rules.
 
 Malformed layer declarations and unterminated comments report the source file, line, and column during the build. Incomplete rules at end of file, malformed selector rules, and unsupported at-rules are discarded so later rules can still apply. Invalid declarations are skipped so later declarations in the same rule can still apply.
