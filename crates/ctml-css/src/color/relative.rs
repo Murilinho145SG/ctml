@@ -11,6 +11,7 @@ enum ColorSpace {
     A98Rgb,
     ProPhotoRgb,
     Rec2020,
+    Rec2020Linear,
     XyzD50,
     XyzD65,
 }
@@ -170,6 +171,7 @@ fn parse_color_space<'i, 't>(
         "a98-rgb" => Ok(ColorSpace::A98Rgb),
         "prophoto-rgb" => Ok(ColorSpace::ProPhotoRgb),
         "rec2020" => Ok(ColorSpace::Rec2020),
+        "rec2100-linear" => Ok(ColorSpace::Rec2020Linear),
         "xyz-d50" => Ok(ColorSpace::XyzD50),
         "xyz" | "xyz-d65" => Ok(ColorSpace::XyzD65),
         _ => Err(input.new_custom_error(())),
@@ -187,6 +189,7 @@ fn convert_source_color(space: ColorSpace, color: [u8; 3]) -> [f32; 3] {
         ColorSpace::A98Rgb => super::color4::srgb_to_a98(color),
         ColorSpace::ProPhotoRgb => super::color4::srgb_to_prophoto(color),
         ColorSpace::Rec2020 => super::color4::srgb_to_rec2020(color),
+        ColorSpace::Rec2020Linear => super::color4::srgb_to_rec2020_linear(color),
         ColorSpace::XyzD50 => super::color4::srgb_to_xyz_d50(color),
         ColorSpace::XyzD65 => super::color4::srgb_to_xyz_d65(color),
     }
@@ -203,6 +206,7 @@ fn convert_color_space(space: ColorSpace, components: [f32; 3]) -> [u8; 3] {
         ColorSpace::A98Rgb => super::color4::a98_to_srgb(components),
         ColorSpace::ProPhotoRgb => super::color4::prophoto_to_srgb(components),
         ColorSpace::Rec2020 => super::color4::rec2020_to_srgb(components),
+        ColorSpace::Rec2020Linear => super::color4::rec2020_linear_to_srgb(components),
         ColorSpace::XyzD50 => super::color4::xyz_d50_to_srgb(components),
         ColorSpace::XyzD65 => super::color4::xyz_d65_to_srgb(components),
     }
