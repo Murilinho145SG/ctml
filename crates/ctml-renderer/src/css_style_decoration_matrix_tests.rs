@@ -16,7 +16,7 @@ fn covers_every_text_transform_value() {
 fn covers_every_text_alignment_value() {
     for (value, expected) in [
         ("left", Align::Left),
-        ("start", Align::Left),
+        ("start", Align::Start),
         ("right", Align::Right),
         ("end", Align::End),
         ("center", Align::Center),

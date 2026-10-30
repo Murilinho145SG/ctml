@@ -2334,6 +2334,39 @@ impl ShapeLine {
         match_mono_width: Option<f32>,
         hinting: Hinting,
     ) {
+        self.layout_to_buffer_with_indent(
+            scratch,
+            font_size,
+            width_opt,
+            wrap,
+            ellipsize,
+            align,
+            align_last,
+            0.0,
+            false,
+            false,
+            layout_lines,
+            match_mono_width,
+            hinting,
+        );
+    }
+
+    pub fn layout_to_buffer_with_indent(
+        &self,
+        scratch: &mut ShapeBuffer,
+        font_size: f32,
+        width_opt: Option<f32>,
+        wrap: Wrap,
+        ellipsize: Ellipsize,
+        align: Option<Align>,
+        align_last: Option<Align>,
+        indent: f32,
+        indent_hanging: bool,
+        indent_each_line: bool,
+        layout_lines: &mut Vec<LayoutLine>,
+        match_mono_width: Option<f32>,
+        hinting: Hinting,
+    ) {
         // For each visual line a list of  (span index,  and range of words in that span)
         // Note that a BiDi visual line could have multiple spans or parts of them
         // let mut vl_range_of_spans = Vec::with_capacity(1);
@@ -2829,6 +2862,15 @@ impl ShapeLine {
             } else {
                 align
             };
+            let line_indent = if (indent_each_line && index == 0)
+                || (indent_hanging && index > 0)
+                || (!indent_each_line && !indent_hanging && index == 0)
+            {
+                indent
+            } else {
+                0.0
+            };
+            let alignment_width = (line_width - line_indent).max(0.0);
 
             let new_order = self.reorder(&visual_line.ranges);
 
@@ -2840,14 +2882,14 @@ impl ShapeLine {
             let mut max_ascent: f32 = 0.;
             let mut max_descent: f32 = 0.;
             let alignment_correction = match (line_align, self.rtl) {
-                (Align::Left, true) => (line_width - visual_line.w).max(0.),
+                (Align::Left, true) => (alignment_width - visual_line.w).max(0.),
                 (Align::Left, false) => 0.,
                 (Align::Right, true) => 0.,
-                (Align::Right, false) => (line_width - visual_line.w).max(0.),
-                (Align::Center, _) => (line_width - visual_line.w).max(0.) / 2.0,
+                (Align::Right, false) => (alignment_width - visual_line.w).max(0.),
+                (Align::Center, _) => (alignment_width - visual_line.w).max(0.) / 2.0,
                 (Align::Start, true) => 0.,
                 (Align::Start, false) => 0.,
-                (Align::End, _) => (line_width - visual_line.w).max(0.),
+                (Align::End, _) => (alignment_width - visual_line.w).max(0.),
                 (Align::Justified | Align::JustifiedLast, _) => 0.,
             };
 
@@ -2855,6 +2897,12 @@ impl ShapeLine {
                 x -= alignment_correction;
             } else {
                 x += alignment_correction;
+            }
+
+            if self.rtl {
+                x -= line_indent;
+            } else {
+                x += line_indent;
             }
 
             if hinting == Hinting::Enabled {

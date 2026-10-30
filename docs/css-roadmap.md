@@ -198,7 +198,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features.
 - [x] Text alignment: left, right, center, justify, start, and end.
 - [x] `text-align-last` for automatic, logical and physical edge, centered, and justified final lines.
-- [ ] `text-indent` lengths and percentages, with hanging and each-line behavior.
+- [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
 - [ ] Advanced `text-justify` controls.
 - [ ] White-space collapsing/wrapping controls, including `white-space`, `overflow-wrap`, and `word-break`.
 - [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.

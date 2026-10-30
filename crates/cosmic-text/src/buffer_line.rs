@@ -17,6 +17,9 @@ pub struct BufferLine {
     attrs_list: AttrsList,
     align: Option<Align>,
     align_last: Option<Align>,
+    indent: f32,
+    indent_hanging: bool,
+    indent_each_line: bool,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -39,6 +42,9 @@ impl BufferLine {
             attrs_list,
             align: None,
             align_last: None,
+            indent: 0.0,
+            indent_hanging: false,
+            indent_each_line: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -61,6 +67,9 @@ impl BufferLine {
         self.attrs_list = attrs_list;
         self.align = None;
         self.align_last = None;
+        self.indent = 0.0;
+        self.indent_hanging = false;
+        self.indent_each_line = false;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -169,6 +178,22 @@ impl BufferLine {
         }
     }
 
+    /// Set text indentation in pixels and whether it applies to wrapped lines.
+    pub fn set_indent(&mut self, indent: f32, hanging: bool, each_line: bool) -> bool {
+        if self.indent != indent
+            || self.indent_hanging != hanging
+            || self.indent_each_line != each_line
+        {
+            self.indent = indent;
+            self.indent_hanging = hanging;
+            self.indent_each_line = each_line;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Append line at end of this line
     ///
     /// The wrap setting of the appended line will be lost
@@ -205,6 +230,9 @@ impl BufferLine {
         self.ending = LineEnding::None;
         new.align = self.align;
         new.align_last = self.align_last;
+        new.indent = self.indent;
+        new.indent_hanging = self.indent_hanging;
+        new.indent_each_line = self.indent_each_line;
         new
     }
 
@@ -271,12 +299,15 @@ impl BufferLine {
         if self.layout_opt.is_unused() {
             let align = self.align;
             let align_last = self.align_last;
+            let indent = self.indent;
+            let indent_hanging = self.indent_hanging;
+            let indent_each_line = self.indent_each_line;
             let mut layout = self
                 .layout_opt
                 .take_unused()
                 .unwrap_or_else(|| Vec::with_capacity(1));
             let shape = self.shape(font_system, tab_width);
-            shape.layout_to_buffer_with_last_align(
+            shape.layout_to_buffer_with_indent(
                 &mut font_system.shape_buffer,
                 font_size,
                 width_opt,
@@ -284,6 +315,9 @@ impl BufferLine {
                 ellipsize,
                 align,
                 align_last,
+                indent,
+                indent_hanging,
+                indent_each_line,
                 &mut layout,
                 match_mono_width,
                 hinting,
@@ -324,6 +358,9 @@ impl BufferLine {
             attrs_list: AttrsList::new(&Attrs::new()),
             align: None,
             align_last: None,
+            indent: 0.0,
+            indent_hanging: false,
+            indent_each_line: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -381,5 +418,70 @@ mod tests {
             left > 0.0,
             "centered final line should have a positive offset"
         );
+    }
+
+    #[test]
+    fn applies_text_indent_to_first_or_hanging_wrapped_lines() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(80.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "one two three four five six seven eight",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+        buffer.lines[0].set_indent(12.0, false, false);
+        buffer.shape_until_scroll(&mut font_system, false);
+
+        let runs: Vec<_> = buffer.layout_runs().collect();
+        assert!(runs.len() > 1, "text should wrap to multiple visual lines");
+        let first_left = runs[0]
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("first visual line should contain glyphs");
+        let second_left = runs[1]
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("second visual line should contain glyphs");
+        assert!(first_left >= 12.0);
+        assert!(second_left < 12.0);
+
+        buffer.lines[0].set_indent(12.0, false, true);
+        buffer.shape_until_scroll(&mut font_system, false);
+        let runs: Vec<_> = buffer.layout_runs().collect();
+        let second_left = runs[1]
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("second visual line should contain glyphs");
+        assert!(
+            second_left < 12.0,
+            "each-line alone should not indent soft-wrapped lines"
+        );
+
+        buffer.lines[0].set_indent(12.0, true, false);
+        buffer.shape_until_scroll(&mut font_system, false);
+        let runs: Vec<_> = buffer.layout_runs().collect();
+        let first_left = runs[0]
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("first visual line should contain glyphs");
+        let second_left = runs[1]
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("second visual line should contain glyphs");
+        assert!(first_left < 12.0);
+        assert!(second_left >= 12.0);
     }
 }

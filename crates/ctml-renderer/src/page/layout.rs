@@ -227,11 +227,12 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         Shaping::Advanced,
         Some(page.root_style.text_align),
     );
-    for (line, (align, align_last)) in page
+    let line_styles = line_alignments(&page.runs);
+    for (line, (align, align_last, _, _, _, _)) in page
         .buffer
         .lines
         .iter_mut()
-        .zip(line_alignments(&page.runs))
+        .zip(line_styles.iter().copied())
     {
         line.set_align(Some(align));
         line.set_align_last(align_last);
@@ -244,16 +245,27 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
     let monospace_width = page.buffer.monospace_width();
     let tab_width = page.buffer.tab_width();
     let hinting = page.buffer.hinting();
-    for (line, sizes) in page.buffer.lines.iter_mut().zip(line_sizes) {
+    for ((line, sizes), (_, _, indent, indent_percent, hanging, each_line)) in page
+        .buffer
+        .lines
+        .iter_mut()
+        .zip(line_sizes)
+        .zip(line_styles)
+    {
         let has_custom_width = !sizes.is_empty();
-        if !has_custom_width && line.layout_opt().is_some() {
-            continue;
-        }
         let line_width = if has_custom_width {
             resolve_layout_width(&sizes, content_width)
         } else {
             content_width
         };
+        line.set_indent(
+            indent + line_width * indent_percent / 100.0,
+            hanging,
+            each_line,
+        );
+        if !has_custom_width && line.layout_opt().is_some() {
+            continue;
+        }
         line.reset_layout();
         line.layout(
             &mut page.font_system,

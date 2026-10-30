@@ -32,6 +32,7 @@ use text_decoration::{
     inherit_text_decoration, reset_text_decoration,
 };
 use text_emphasis::{apply_text_emphasis_property, inherit_text_emphasis, reset_text_emphasis};
+use text_indent::apply_text_indent;
 use text_shadow::apply_text_shadow;
 
 mod background;
@@ -46,6 +47,7 @@ mod size;
 mod spacing;
 mod text_decoration;
 mod text_emphasis;
+mod text_indent;
 mod text_shadow;
 
 pub(super) fn apply_declaration_with_inherited(
@@ -129,6 +131,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-transform"
             | "text-align"
             | "text-align-last"
+            | "text-indent"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -231,6 +234,12 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "text-transform" => style.text_transform = inherited.text_transform,
         "text-align" => style.text_align = inherited.text_align,
         "text-align-last" => style.text_align_last = inherited.text_align_last,
+        "text-indent" => {
+            style.text_indent = inherited.text_indent;
+            style.text_indent_percent = inherited.text_indent_percent;
+            style.text_indent_hanging = inherited.text_indent_hanging;
+            style.text_indent_each_line = inherited.text_indent_each_line;
+        }
         "text-decoration" => {
             inherit_text_decoration(style, inherited);
         }
@@ -323,6 +332,12 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-transform" => style.text_transform = TextTransform::None,
         "text-align" => style.text_align = cosmic_text::Align::Left,
         "text-align-last" => style.text_align_last = None,
+        "text-indent" => {
+            style.text_indent = 0.0;
+            style.text_indent_percent = 0.0;
+            style.text_indent_hanging = false;
+            style.text_indent_each_line = false;
+        }
         "text-decoration" | "text-decoration-line" => {
             if property == "text-decoration" {
                 reset_text_decoration(style);
@@ -550,6 +565,7 @@ fn apply_declaration(
                 _ => style.text_align_last,
             };
         }
+        "text-indent" => apply_text_indent(style, value),
         "text-decoration"
         | "text-decoration-line"
         | "text-decoration-style"

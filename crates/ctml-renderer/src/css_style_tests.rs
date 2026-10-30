@@ -542,6 +542,32 @@ fn resolves_supported_text_alignment_values() {
 }
 
 #[test]
+fn resolves_text_indent_lengths_percentages_and_flags() {
+    let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
+    assert_eq!(em_indent.text_indent, 32.0);
+    assert_eq!(em_indent.text_indent_percent, 0.0);
+    assert!(em_indent.text_indent_hanging);
+    assert!(em_indent.text_indent_each_line);
+
+    let percent_indent = style_for_declarations(&[("text-indent", "12.5% hanging")]);
+    assert_eq!(percent_indent.text_indent, 0.0);
+    assert_eq!(percent_indent.text_indent_percent, 12.5);
+    assert!(percent_indent.text_indent_hanging);
+    assert!(!percent_indent.text_indent_each_line);
+
+    let negative_indent = style_for_declarations(&[("text-indent", "-8px")]);
+    assert_eq!(negative_indent.text_indent, -8.0);
+    assert_eq!(negative_indent.text_indent_percent, 0.0);
+    assert!(!negative_indent.text_indent_hanging);
+    assert!(!negative_indent.text_indent_each_line);
+
+    let invalid_after_valid =
+        style_for_declarations(&[("text-indent", "10px hanging"), ("text-indent", "auto")]);
+    assert_eq!(invalid_after_valid.text_indent, 10.0);
+    assert!(invalid_after_valid.text_indent_hanging);
+}
+
+#[test]
 fn resolves_solid_double_and_patterned_text_decoration_styles() {
     for (value, expected) in [
         ("solid", super::super::style::TextDecorationStyle::Solid),
