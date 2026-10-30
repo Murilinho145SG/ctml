@@ -294,6 +294,10 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
                         value: writing_mode.to_owned(),
                     },
                     StyleDeclaration {
+                        property: "cursor".to_owned(),
+                        value: "pointer".to_owned(),
+                    },
+                    StyleDeclaration {
                         property: "background-color".to_owned(),
                         value: "#00ff00".to_owned(),
                     },
@@ -322,6 +326,50 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
         ];
         let mut page = PageRasterizer::new(&nodes, &stylesheet);
         let pixels = page.snapshot_pixels(160, 400);
+        let origins = super::super::local_writing::vertical_block_origins(
+            &page.runs,
+            &page.buffer,
+            crate::style::WritingMode::HorizontalTb,
+        );
+        let first_line = page.buffer.layout_runs().next().unwrap();
+        let first_glyph = first_line.glyphs.first().unwrap();
+        let style_index = super::super::local_writing::style_index_at(
+            &super::super::local_writing::text_style_ranges(&page.runs),
+            first_glyph.start,
+        )
+        .unwrap();
+        let block = page.runs[style_index].first_line_block.unwrap();
+        let transform = super::super::local_writing::LocalVerticalTransform::new(
+            page.runs[style_index].style.writing_mode,
+            origins[&block],
+            160,
+            400,
+        );
+        let (left, top, glyph_width, glyph_height) = transform.map_rect(
+            first_glyph.x + 8.0,
+            first_line.line_top + 8.0,
+            first_glyph.w,
+            first_line.line_height,
+        );
+        let first_point = (
+            f64::from(left + glyph_width / 2.0),
+            f64::from(top + glyph_height / 2.0),
+        );
+        assert_eq!(
+            page.cursor_at(first_point.0, first_point.1).0,
+            winit::window::CursorIcon::Pointer
+        );
+        let second_glyph = &first_line.glyphs[5];
+        let (second_left, second_top, second_width, second_height) = transform.map_rect(
+            second_glyph.x + 8.0,
+            first_line.line_top + 8.0,
+            second_glyph.w,
+            first_line.line_height,
+        );
+        let second_point = (
+            f64::from(second_left + second_width / 2.0),
+            f64::from(second_top + second_height / 2.0),
+        );
         let mut bounds = (160_u32, 400_u32, 0_u32, 0_u32);
         let mut decoration_bounds = (160_u32, 400_u32, 0_u32, 0_u32);
         for y in 0..400 {
@@ -354,14 +402,8 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
             "{writing_mode} underline: {decoration_bounds:?}"
         );
 
-        page.selection = Some((
-            cosmic_text::Cursor::new_with_affinity(0, 0, cosmic_text::Affinity::Before),
-            cosmic_text::Cursor::new_with_affinity(
-                0,
-                "Vertical".len(),
-                cosmic_text::Affinity::After,
-            ),
-        ));
+        assert!(page.begin_selection(first_point.0, first_point.1));
+        assert!(page.extend_selection(second_point.0, second_point.1));
         let selected_pixels = page.snapshot_pixels(160, 400);
         let mut selection_bounds = (160_u32, 400_u32, 0_u32, 0_u32);
         for y in 0..400 {
@@ -376,7 +418,7 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
             }
         }
         assert!(
-            selection_bounds.3 - selection_bounds.1 > (selection_bounds.2 - selection_bounds.0) * 2,
+            selection_bounds.3 - selection_bounds.1 > selection_bounds.2 - selection_bounds.0,
             "{writing_mode} selection: {selection_bounds:?}"
         );
     }

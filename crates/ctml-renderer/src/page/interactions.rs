@@ -1,8 +1,9 @@
 use cosmic_text::{Affinity, Cursor};
+use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
 use winit::window::CursorIcon;
 
-use super::{PAGE_PADDING, PageRasterizer};
+use super::{PAGE_PADDING, PageRasterizer, local_writing};
 
 impl PageRasterizer {
     pub(crate) fn cursor_at(&self, x: f64, y: f64) -> (CursorIcon, bool) {
@@ -208,7 +209,9 @@ impl PageRasterizer {
     }
 
     fn hit(&self, x: f64, y: f64) -> Option<Cursor> {
-        let (x, y) = self.layout_point(x as f32, y as f32);
+        let (x, y) = self
+            .local_vertical_layout_point(x as f32, y as f32)
+            .unwrap_or_else(|| self.layout_point(x as f32, y as f32));
         let x = x - PAGE_PADDING;
         let y = y - PAGE_PADDING;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
@@ -272,5 +275,69 @@ impl PageRasterizer {
     fn layout_point(&self, x: f32, y: f32) -> (f32, f32) {
         let (width, height) = self.layout_size.unwrap_or((0, 0));
         super::vertical::layout_point(self.writing_mode(), width, height, x, y)
+    }
+
+    fn local_vertical_layout_point(&self, x: f32, y: f32) -> Option<(f32, f32)> {
+        if self.writing_mode() != crate::style::WritingMode::HorizontalTb {
+            return None;
+        }
+        let (width, height) = self.layout_size?;
+        let style_ranges = local_writing::text_style_ranges(&self.runs);
+        let line_starts = local_writing::text_line_starts(&self.runs);
+        let origins =
+            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
+        let mut bounds = HashMap::<usize, (crate::style::WritingMode, f32, f32, f32, f32)>::new();
+        for line in self.buffer.layout_runs() {
+            let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
+            for glyph in line.glyphs {
+                let Some(style_index) =
+                    local_writing::style_index_at(&style_ranges, line_start + glyph.start)
+                else {
+                    continue;
+                };
+                let Some(run) = self.runs.get(style_index) else {
+                    continue;
+                };
+                if run.style.writing_mode == crate::style::WritingMode::HorizontalTb {
+                    continue;
+                }
+                let Some(block) = run.first_line_block else {
+                    continue;
+                };
+                let entry = bounds.entry(block).or_insert((
+                    run.style.writing_mode,
+                    glyph.x,
+                    glyph.x + glyph.w,
+                    line.line_top,
+                    line.line_top + line.line_height,
+                ));
+                entry.1 = entry.1.min(glyph.x);
+                entry.2 = entry.2.max(glyph.x + glyph.w);
+                entry.3 = entry.3.min(line.line_top);
+                entry.4 = entry.4.max(line.line_top + line.line_height);
+            }
+        }
+        for (block, (mode, left, right, top, bottom)) in bounds {
+            let Some(origin_y) = origins.get(&block).copied() else {
+                continue;
+            };
+            let transform =
+                local_writing::LocalVerticalTransform::new(mode, origin_y, width, height);
+            let (rect_left, rect_top, rect_width, rect_height) = transform.map_rect(
+                left + PAGE_PADDING,
+                top + PAGE_PADDING,
+                right - left,
+                bottom - top,
+            );
+            if x >= rect_left
+                && x <= rect_left + rect_width
+                && y >= rect_top
+                && y <= rect_top + rect_height
+            {
+                let (layout_x, layout_y) = super::vertical::layout_point(mode, width, height, x, y);
+                return Some((layout_x, layout_y));
+            }
+        }
+        None
     }
 }
