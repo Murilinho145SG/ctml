@@ -2,6 +2,60 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
+fn first_line_block_padding_extends_its_background_without_changing_line_height() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: [("width", "72px"), ("line-height", "20px")]
+                .into_iter()
+                .map(|(property, value)| StyleDeclaration {
+                    property: property.to_owned(),
+                    value: value.to_owned(),
+                })
+                .collect(),
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: [
+                ("background-color", "red"),
+                ("padding-block-start", "8px"),
+                ("padding-block-end", "8px"),
+            ]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(180, 120);
+    let mut lines = page.buffer.layout_runs();
+    let first_line = lines.next().expect("paragraph should have a line");
+    let second_line = lines.next().expect("narrow paragraph should wrap");
+
+    assert!((first_line.line_height - second_line.line_height).abs() < 1.0);
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .filter(|pixel| pixel[..3] == [255, 0, 0])
+            .count()
+            > 100,
+        "the first-line background should cover its expanded line box"
+    );
+}
+
+#[test]
 fn first_line_border_radius_rounds_its_background() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

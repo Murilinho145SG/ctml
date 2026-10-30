@@ -173,7 +173,7 @@ impl PageRasterizer {
                     ));
                 }
             }
-            for (group_start, group_end, _, background, path, style_run, opacity) in groups {
+            for (group_start, group_end, block, background, path, style_run, opacity) in groups {
                 let local_transform = LocalVerticalTransform::from_run(
                     &self.runs,
                     &self.buffer,
@@ -193,11 +193,30 @@ impl PageRasterizer {
                     .runs
                     .get(style_run)
                     .and_then(|run| run.first_line_font_style.as_ref());
+                let padding = pseudo_style
+                    .and_then(|pseudo_style| {
+                        self.runs.get(style_run).map(|originating_run| {
+                            let inline_available =
+                                if super::sizing::is_vertical(self.writing_mode()) {
+                                    height as f32 - super::PAGE_PADDING * 2.0
+                                } else {
+                                    width as f32 - super::PAGE_PADDING * 2.0
+                                };
+                            super::layout::resolve_first_letter_padding(
+                                &originating_run.style,
+                                pseudo_style,
+                                block,
+                                inline_available.max(0.0),
+                                self.writing_mode(),
+                            )
+                        })
+                    })
+                    .unwrap_or([0.0; 4]);
                 if let Some(background) = background {
                     fill_highlight(
                         run.line_i,
-                        run.line_top,
-                        run.line_height,
+                        run.line_top - padding[0],
+                        run.line_height + padding[0] + padding[2],
                         group_start,
                         group_end,
                         background,
@@ -224,8 +243,8 @@ impl PageRasterizer {
                         style,
                         opacity,
                         run.line_i,
-                        run.line_top,
-                        run.line_height,
+                        run.line_top - padding[0],
+                        run.line_height + padding[0] + padding[2],
                         group_start,
                         group_end,
                         &run,
