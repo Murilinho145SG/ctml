@@ -85,6 +85,23 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "cjk-decimal" => Some(cjk_decimal(value)),
         "cjk-earthly-branch" => Some(fixed_cjk(value, "子丑寅卯辰巳午未申酉戌亥")),
         "cjk-heavenly-stem" => Some(fixed_cjk(value, "甲乙丙丁戊己庚辛壬癸")),
+        "arabic-indic" => Some(localized_decimal(value, '٠')),
+        "bengali" => Some(localized_decimal(value, '০')),
+        "cambodian" | "khmer" => Some(localized_decimal(value, '០')),
+        "devanagari" => Some(localized_decimal(value, '०')),
+        "gujarati" => Some(localized_decimal(value, '૦')),
+        "gurmukhi" => Some(localized_decimal(value, '੦')),
+        "kannada" => Some(localized_decimal(value, '೦')),
+        "lao" => Some(localized_decimal(value, '໐')),
+        "malayalam" => Some(localized_decimal(value, '൦')),
+        "mongolian" => Some(localized_decimal(value, '᠐')),
+        "myanmar" => Some(localized_decimal(value, '၀')),
+        "oriya" => Some(localized_decimal(value, '୦')),
+        "persian" => Some(localized_decimal(value, '۰')),
+        "tamil" => Some(localized_decimal(value, '௦')),
+        "telugu" => Some(localized_decimal(value, '౦')),
+        "thai" => Some(localized_decimal(value, '๐')),
+        "tibetan" => Some(localized_decimal(value, '༠')),
         _ => Some(value.to_string()),
     }
 }
@@ -241,6 +258,18 @@ fn cjk_decimal(value: i32) -> String {
         output.insert(0, '-');
     }
     output
+}
+
+fn localized_decimal(value: i32, zero: char) -> String {
+    value
+        .to_string()
+        .chars()
+        .map(|character| {
+            character.to_digit(10).map_or(character, |digit| {
+                char::from_u32(zero as u32 + digit).unwrap_or(character)
+            })
+        })
+        .collect()
 }
 
 fn fixed_cjk(value: i32, symbols: &str) -> String {

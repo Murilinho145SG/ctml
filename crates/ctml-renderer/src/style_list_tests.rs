@@ -121,6 +121,26 @@ fn list_style_type_formats_hebrew_armenian_and_cjk_counters() {
 }
 
 #[test]
+fn list_style_type_formats_localized_decimal_digits() {
+    use super::list_marker::format_counter_value;
+
+    for (style, value, expected) in [
+        ("arabic-indic", 2048, "٢٠٤٨"),
+        ("bengali", 2048, "২০৪৮"),
+        ("devanagari", 2048, "२०४८"),
+        ("persian", -42, "-۴۲"),
+        ("thai", 100, "๑๐๐"),
+        ("tibetan", 9, "༩"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style}"
+        );
+    }
+}
+
+#[test]
 fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
     for style_type in [
         "armenian",
@@ -130,6 +150,24 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "cjk-decimal",
         "cjk-earthly-branch",
         "cjk-heavenly-stem",
+        "arabic-indic",
+        "bengali",
+        "cambodian",
+        "khmer",
+        "devanagari",
+        "gujarati",
+        "gurmukhi",
+        "kannada",
+        "lao",
+        "malayalam",
+        "mongolian",
+        "myanmar",
+        "oriya",
+        "persian",
+        "tamil",
+        "telugu",
+        "thai",
+        "tibetan",
     ] {
         let stylesheet = [StyleRule {
             selectors: vec!["ol".to_owned()],
