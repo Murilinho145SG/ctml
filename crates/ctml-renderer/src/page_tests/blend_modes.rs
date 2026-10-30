@@ -146,3 +146,39 @@ fn isolation_prevents_descendant_blending_with_the_outside_backdrop() {
             .any(|pixel| pixel[..3] == [255, 0, 0])
     );
 }
+
+#[test]
+fn root_body_mix_blend_mode_composites_over_the_page_canvas() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Root".to_owned())],
+    }];
+    let stylesheet = |mode: &str| {
+        [StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![
+                declaration("background-color", "red"),
+                declaration("mix-blend-mode", mode),
+                declaration("color", "transparent"),
+            ],
+        }]
+    };
+    let normal = PageRasterizer::new(&nodes, &stylesheet("normal")).snapshot_pixels(100, 60);
+    let mut screen_page = PageRasterizer::new(&nodes, &stylesheet("screen"));
+    let screen = screen_page.snapshot_pixels(100, 60);
+
+    assert!(
+        normal
+            .chunks_exact(4)
+            .all(|pixel| pixel == [255, 0, 0, 255])
+    );
+    assert!(
+        screen
+            .chunks_exact(4)
+            .all(|pixel| pixel == [255, 255, 255, 255])
+    );
+}

@@ -65,7 +65,7 @@ impl PageRasterizer {
             &mut pixels,
             width,
             height,
-            scoped || self.root_style.background_color.is_some(),
+            scoped || (self.root_style.background_color.is_some() && !transparent),
             writing_mode,
             &overflow_clips,
             nested_scroll,

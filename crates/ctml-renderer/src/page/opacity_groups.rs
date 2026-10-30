@@ -25,6 +25,34 @@ impl PageRasterizer {
             }
             return pixels;
         }
+        if self.root_style.mix_blend_mode != BackgroundBlendMode::Normal {
+            for pixel in pixels.chunks_exact_mut(4) {
+                pixel[..3].copy_from_slice(&[255, 255, 255]);
+                pixel[3] = 255;
+            }
+            let mut source = self.render_scoped_raw(
+                None,
+                [0; 3],
+                width,
+                height,
+                writing_mode,
+                true,
+                false,
+                true,
+            );
+            for node_id in self.root_child_ids() {
+                self.composite_child(node_id, &mut source, width, height, writing_mode);
+            }
+            composite_source_layer(
+                &mut pixels,
+                &source,
+                self.root_opacity,
+                self.root_style.mix_blend_mode,
+                width,
+                height,
+            );
+            return pixels;
+        }
         for node_id in self.root_child_ids() {
             if let Some(opacity) = self.opacity_groups.get(&node_id).copied() {
                 if opacity > 0.0 && opacity < 1.0 {
