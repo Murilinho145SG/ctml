@@ -333,6 +333,34 @@ fn root_overflow_auto_scrolls_with_wheel_offsets_but_hidden_does_not() {
     assert!(!clipped.scroll_by(0.0, -36.0));
 }
 
+#[test]
+fn root_overflow_scroll_draws_a_scrollbar_and_auto_hides_it_without_overflow() {
+    let rule = |overflow: &str| StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "overflow-y".to_owned(),
+            value: overflow.to_owned(),
+        }],
+    };
+    let short = [text_paragraph("short")];
+    let mut scroll = PageRasterizer::new(&short, &[rule("scroll")]);
+    let forced = scroll.snapshot_pixels(80, 60);
+    assert!(forced.chunks_exact(4).enumerate().any(|(index, pixel)| {
+        let x = (index % 80) as u32;
+        x >= 72 && pixel[..3] == [142, 142, 142]
+    }));
+
+    let mut automatic = PageRasterizer::new(&short, &[rule("auto")]);
+    let automatic = automatic.snapshot_pixels(80, 60);
+    assert!(
+        !automatic
+            .chunks_exact(4)
+            .enumerate()
+            .any(|(index, pixel)| (index % 80) as u32 >= 72 && pixel[..3] == [142, 142, 142])
+    );
+}
+
 fn size_rule(property: &str, value: &str) -> StyleRule {
     StyleRule {
         selectors: vec!["div".to_owned()],

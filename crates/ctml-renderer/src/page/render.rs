@@ -172,6 +172,7 @@ impl PageRasterizer {
             &all_ink_mask,
             &overflow_clips,
         );
+        self.draw_root_scrollbars(&mut pixels, width, height, writing_mode);
         pixels
     }
 }

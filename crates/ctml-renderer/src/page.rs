@@ -26,6 +26,7 @@ mod local_writing;
 mod overflow_clip;
 mod pixel;
 mod render;
+mod scrollbars;
 mod scrolling;
 mod selection_backgrounds;
 mod sizing;

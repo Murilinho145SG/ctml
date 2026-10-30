@@ -72,6 +72,15 @@ fn user_scrollable_axes(x: Overflow, y: Overflow) -> (bool, bool) {
     (is_user_scrollable(x, y), is_user_scrollable(y, x))
 }
 
+pub(super) fn scrollbar_axis(value: Overflow, other: Overflow) -> Option<bool> {
+    match value {
+        Overflow::Auto => Some(false),
+        Overflow::Scroll => Some(true),
+        Overflow::Visible if !matches!(other, Overflow::Visible | Overflow::Clip) => Some(false),
+        Overflow::Visible | Overflow::Hidden | Overflow::Clip => None,
+    }
+}
+
 fn is_user_scrollable(value: Overflow, other: Overflow) -> bool {
     match value {
         Overflow::Auto | Overflow::Scroll => true,
@@ -84,7 +93,7 @@ fn is_user_scrollable(value: Overflow, other: Overflow) -> bool {
 mod tests {
     use crate::style::Overflow;
 
-    use super::user_scrollable_axes;
+    use super::{scrollbar_axis, user_scrollable_axes};
 
     #[test]
     fn computes_user_scrollable_overflow_axes() {
@@ -104,5 +113,20 @@ mod tests {
             user_scrollable_axes(Overflow::Visible, Overflow::Clip),
             (false, false)
         );
+    }
+
+    #[test]
+    fn computes_scrollbar_modes_for_visible_and_scroll_axes() {
+        assert_eq!(scrollbar_axis(Overflow::Scroll, Overflow::Clip), Some(true));
+        assert_eq!(
+            scrollbar_axis(Overflow::Auto, Overflow::Visible),
+            Some(false)
+        );
+        assert_eq!(
+            scrollbar_axis(Overflow::Visible, Overflow::Hidden),
+            Some(false)
+        );
+        assert_eq!(scrollbar_axis(Overflow::Visible, Overflow::Clip), None);
+        assert_eq!(scrollbar_axis(Overflow::Hidden, Overflow::Visible), None);
     }
 }
