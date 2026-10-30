@@ -328,10 +328,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 ## At-rules and resource definitions
 
-- [ ] `@charset` handling or explicit omission as obsolete stylesheet syntax.
-- [ ] `@import`.
+- [x] Explicitly omit legacy `@charset` encoding overrides; CTML stylesheets are always UTF-8.
+- [x] Expand local `@import` rules in source order, including nested imports; reject unsupported external and qualified imports.
 - [x] Named `@layer` statements and blocks.
-- [x] Local `@import` resolution and named `@layer` statements and blocks.
 - [ ] `@media`, `@supports`, `@container`, and other conditional at-rules.
 - [x] `@font-face` local URLs and static font weight/style/stretch descriptors.
 - [ ] Font feature/value rules and variable descriptors.
@@ -339,7 +338,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `@page` and margin at-rules for print output.
 - [ ] `@property` registration for custom properties.
 - [ ] Counter style and font palette at-rules where relevant.
-- [ ] Define a policy for unknown and future at-rules.
+- [x] Skip unknown and unsupported at-rules while continuing to parse later rules.
 
 ## Accessibility, platform integration, and native CTML scope
 
