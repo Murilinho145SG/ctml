@@ -143,8 +143,10 @@ pub(super) fn collect_runs(
                     style.paint_contained = true;
                     style.size_contained = true;
                     style.inline_size_contained = true;
+                    style.style_contained = true;
                 } else if style.content_visibility_auto {
                     style.paint_contained = true;
+                    style.style_contained = true;
                 }
                 if style.user_select == UserSelect::All {
                     style.user_select_all_owner = Some(sibling.node_id);
@@ -170,6 +172,8 @@ pub(super) fn collect_runs(
                     element_index += 1;
                     continue;
                 }
+                let scoped_counters = style.style_contained.then(|| counters.clone());
+                let scoped_quote_depth = style.style_contained.then_some(*quote_depth);
                 let mut counter_scope = Vec::new();
                 for (name, value) in &style.counter_reset {
                     counters.entry(name.clone()).or_default().push(*value);
@@ -506,6 +510,12 @@ pub(super) fn collect_runs(
                             counters.remove(&name);
                         }
                     }
+                }
+                if let Some(scoped_counters) = scoped_counters {
+                    *counters = scoped_counters;
+                }
+                if let Some(scoped_quote_depth) = scoped_quote_depth {
+                    *quote_depth = scoped_quote_depth;
                 }
                 element_index += 1;
                 if block {

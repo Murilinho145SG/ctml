@@ -242,6 +242,93 @@ fn generated_counters_follow_nested_scopes_and_sibling_increments() {
 }
 
 #[test]
+fn style_containment_scopes_counter_changes_to_the_subtree() {
+    let contained_item = UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("item contained".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("A".to_owned())],
+    };
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("root".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![contained_item, counter_item("B", None)],
+    }];
+    let stylesheet = [
+        (".root", "counter-reset", "chapter"),
+        (".contained", "contain", "style"),
+        (".item", "counter-increment", "chapter"),
+        (".item::before", "content", "counter(chapter) \"/\""),
+        (".contained", "counter-increment", "chapter"),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "1/A1/B"
+    );
+}
+
+#[test]
+fn style_containment_scopes_quote_depth_to_the_subtree() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: Some("contained".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("A".to_owned())],
+            },
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: Some("sibling".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("B".to_owned())],
+            },
+        ],
+    }];
+    let stylesheet = [
+        ("div", "quotes", "\"«\" \"»\" \"‹\" \"›\""),
+        (".contained", "contain", "style"),
+        (".contained::before", "content", "open-quote"),
+        (".sibling::before", "content", "open-quote"),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "«A«B"
+    );
+}
+
+#[test]
 fn generated_counters_support_alpha_greek_and_roman_styles() {
     let nodes = [UiNode::Element {
         tag: "span".to_owned(),

@@ -1,14 +1,17 @@
 use super::*;
 
 pub(super) fn apply_contain(style: &mut TextStyle, value: &str) {
-    if let Some((paint_contained, size_contained, inline_size_contained)) = parse_contain(value) {
+    if let Some((paint_contained, size_contained, inline_size_contained, style_contained)) =
+        parse_contain(value)
+    {
         style.paint_contained = paint_contained;
         style.size_contained = size_contained;
         style.inline_size_contained = inline_size_contained;
+        style.style_contained = style_contained;
     }
 }
 
-fn parse_contain(value: &str) -> Option<(bool, bool, bool)> {
+fn parse_contain(value: &str) -> Option<(bool, bool, bool, bool)> {
     let values = value
         .split_ascii_whitespace()
         .map(str::to_ascii_lowercase)
@@ -18,11 +21,13 @@ fn parse_contain(value: &str) -> Option<(bool, bool, bool)> {
     }
     if values.len() == 1 {
         return match values[0].as_str() {
-            "none" | "layout" | "style" => Some((false, false, false)),
-            "inline-size" => Some((false, false, true)),
-            "size" => Some((false, true, true)),
-            "paint" | "content" => Some((true, false, false)),
-            "strict" => Some((true, true, true)),
+            "none" | "layout" => Some((false, false, false, false)),
+            "style" => Some((false, false, false, true)),
+            "inline-size" => Some((false, false, true, false)),
+            "size" => Some((false, true, true, false)),
+            "paint" => Some((true, false, false, false)),
+            "content" => Some((true, false, false, true)),
+            "strict" => Some((true, true, true, true)),
             _ => None,
         };
     }
@@ -54,5 +59,6 @@ fn parse_contain(value: &str) -> Option<(bool, bool, bool)> {
         values.iter().any(|value| value == "paint"),
         contains_size,
         contains_size || values.iter().any(|value| value == "inline-size"),
+        values.iter().any(|value| value == "style"),
     ))
 }
