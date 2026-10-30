@@ -398,8 +398,14 @@ impl PageRasterizer {
             self.cursor_spans = cursor_spans(&self.runs);
             shape_buffer(self, content_width, content_height);
         }
-        if layout::apply_first_line_letter_spacing(&self.buffer, &mut self.runs, &self.cursor_spans)
-        {
+        for _ in 0..8 {
+            if !layout::apply_first_line_letter_spacing(
+                &self.buffer,
+                &mut self.runs,
+                &self.cursor_spans,
+            ) {
+                break;
+            }
             self.cursor_spans = cursor_spans(&self.runs);
             shape_buffer(self, content_width, content_height);
         }

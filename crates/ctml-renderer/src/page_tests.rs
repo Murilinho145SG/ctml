@@ -60,6 +60,8 @@ mod css_math;
 mod element_opacity;
 #[path = "page_tests/first_letter_transform.rs"]
 mod first_letter_transform;
+#[path = "page_tests/first_line_spacing.rs"]
+mod first_line_spacing;
 #[path = "page_tests/first_line_transform.rs"]
 mod first_line_transform;
 #[path = "page_tests/font_relative_units.rs"]

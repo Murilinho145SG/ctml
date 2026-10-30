@@ -201,17 +201,14 @@ pub(super) fn apply_first_line_letter_spacing(
     spans: &[CursorSpan],
 ) -> bool {
     let first_lines = first_formatted_line_ranges(buffer, spans);
-    let mut spacing_by_run: HashMap<usize, Vec<(usize, usize, f32)>> = HashMap::new();
+    let mut spacing_by_run: HashMap<usize, Vec<(usize, usize, f32, f32)>> = HashMap::new();
     for span in spans {
         let Some(block) = span.first_line_block else {
             continue;
         };
-        let Some((line, end)) = first_lines.get(&block).copied() else {
+        let Some((_, end)) = first_lines.get(&block).copied() else {
             continue;
         };
-        if span.line != line || span.start >= end {
-            continue;
-        }
         let Some(pseudo_style) = &span.first_line_font_style else {
             continue;
         };
@@ -236,12 +233,23 @@ pub(super) fn apply_first_line_letter_spacing(
         } else {
             pseudo_style.letter_spacing
         };
-        let delta = pseudo_spacing - (current_spacing - current_word_spacing);
-        if delta.abs() > f32::EPSILON {
+        let current_adjustment = run.style.first_line_letter_spacing_adjustment;
+        let base_spacing = current_spacing - current_word_spacing - current_adjustment;
+        // CursorSpan::line counts explicit newlines, while layout_run.line_i also
+        // counts soft wraps. First-line styles apply to the first explicit line;
+        // the glyph range identifies how far that line reaches after wrapping.
+        let desired_adjustment = if span.line == 0 && span.start < end {
+            pseudo_spacing - base_spacing
+        } else {
+            0.0
+        };
+        let spacing_change = desired_adjustment - current_adjustment;
+        if spacing_change.abs() > f32::EPSILON {
             spacing_by_run.entry(span.run_index).or_default().push((
                 span.run_offset,
                 span.run_offset + span.character.len_utf8(),
-                delta,
+                spacing_change,
+                desired_adjustment,
             ));
         }
     }
@@ -255,20 +263,21 @@ pub(super) fn apply_first_line_letter_spacing(
             output.push(run.clone());
             continue;
         };
-        ranges.sort_by_key(|(start, _, _)| *start);
-        let mut merged: Vec<(usize, usize, f32)> = Vec::with_capacity(ranges.len());
-        for (start, end, spacing) in ranges {
-            if let Some((_, previous_end, previous_spacing)) = merged.last_mut()
+        ranges.sort_by_key(|(start, _, _, _)| *start);
+        let mut merged: Vec<(usize, usize, f32, f32)> = Vec::with_capacity(ranges.len());
+        for (start, end, spacing_change, desired_adjustment) in ranges {
+            if let Some((_, previous_end, previous_change, previous_adjustment)) = merged.last_mut()
                 && *previous_end == start
-                && *previous_spacing == spacing
+                && *previous_change == spacing_change
+                && *previous_adjustment == desired_adjustment
             {
                 *previous_end = end;
             } else {
-                merged.push((start, end, spacing));
+                merged.push((start, end, spacing_change, desired_adjustment));
             }
         }
         let mut offset = 0;
-        for (start, end, spacing) in merged {
+        for (start, end, spacing_change, desired_adjustment) in merged {
             if start > offset {
                 let mut prefix = run.clone();
                 prefix.text = run.text[offset..start].to_owned();
@@ -280,8 +289,9 @@ pub(super) fn apply_first_line_letter_spacing(
                 adjusted.style.letter_spacing / adjusted.style.font_size.max(1.0)
             } else {
                 adjusted.style.letter_spacing
-            } + spacing;
+            } + spacing_change;
             adjusted.style.letter_spacing_px = false;
+            adjusted.style.first_line_letter_spacing_adjustment = desired_adjustment;
             output.push(adjusted);
             offset = end;
         }
