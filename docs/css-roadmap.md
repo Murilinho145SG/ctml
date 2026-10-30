@@ -151,6 +151,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Render absolute modern color functions with missing (`none`) components treated as zero, including hue and alpha.
 - [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-pq`, `rec2100-hlg`, `rec2100-linear`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
 - [ ] Custom `color-mix()` interpolation spaces.
+  Requires `@color-profile` registration, ICC profile loading, and profile-aware conversion; custom color spaces are currently marked at-risk in CSS Color 5.
 - [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, `oklch(from ...)`, and `color(from ...)` relative colors in supported profiles with channel references, alpha preservation, supported numeric, percentage, and angle overrides, number, percentage, and angle calculations, and `none` components mapped to zero during conversion.
 - [x] Carry matching missing components and alpha from direct `color(srgb ...)` inputs through `color-mix(in srgb, ...)`.
 - [x] Carry missing alpha components from direct `color(srgb ...)` inputs through other supported `color-mix()` spaces.
