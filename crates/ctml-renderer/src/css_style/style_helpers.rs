@@ -112,6 +112,8 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "background-position",
     "background-size",
     "background-attachment",
+    "background-origin",
+    "background-clip",
     "font",
     "font-family",
     "font-size",

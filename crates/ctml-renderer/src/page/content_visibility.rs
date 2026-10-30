@@ -140,6 +140,7 @@ mod tests {
         BlockGeometry {
             clip: rect,
             border_box: rect,
+            content_box: rect,
             content_block_extent: bottom - top,
             content_inline_extent: right - left,
         }

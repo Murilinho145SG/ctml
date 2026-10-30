@@ -312,6 +312,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `background-position` supports one or two axis keywords, percentages, and font-relative or absolute lengths per layer.
   - [x] `background-size` supports auto dimensions, lengths, percentages, `cover`, and `contain` for embedded images.
   - [x] `background-attachment` supports per-layer `scroll`, `fixed`, and `local`; fixed images stay viewport-anchored through nested scrolling.
+  - [x] `background-origin` and `background-clip` support per-layer border-box, padding-box, and content-box geometry; background colors use the final clip value.
 - [ ] Linear, radial, conic, and repeating gradients.
   - [x] `linear-gradient()` with direction or angle, CSS colors, and optional percentage stop positions.
 - [ ] Border images and nine-slice behavior.

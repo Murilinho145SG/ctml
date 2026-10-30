@@ -34,6 +34,8 @@ const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 mod aspect_ratio;
 #[path = "page_tests/background_attachment.rs"]
 mod background_attachment;
+#[path = "page_tests/background_box.rs"]
+mod background_box;
 #[path = "page_tests/background_images.rs"]
 mod background_images;
 #[path = "page_tests/backgrounds.rs"]

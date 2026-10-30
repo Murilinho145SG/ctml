@@ -70,6 +70,16 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .background_attachments
                 .clone_from(&inherited.background_attachments);
         }
+        "background-origin" => {
+            style
+                .background_origins
+                .clone_from(&inherited.background_origins);
+        }
+        "background-clip" => {
+            style
+                .background_clips
+                .clone_from(&inherited.background_clips);
+        }
         "display" => inherit_display(style, inherited),
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
@@ -303,6 +313,8 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "background-position" => style.background_positions.clear(),
         "background-size" => style.background_sizes.clear(),
         "background-attachment" => style.background_attachments.clear(),
+        "background-origin" => style.background_origins.clear(),
+        "background-clip" => style.background_clips.clear(),
         "display" => reset_display(style),
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
@@ -366,6 +378,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_positions.clear();
             style.background_sizes.clear();
             style.background_attachments.clear();
+            reset_background_box_properties(style);
         }
         "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),

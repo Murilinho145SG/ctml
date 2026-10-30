@@ -20,6 +20,9 @@ use background::{
     apply_background_repeat, apply_background_shorthand, apply_background_size,
 };
 use background_attachment::apply_background_attachment;
+use background_box::{
+    apply_background_clip, apply_background_origin, reset_background_box_properties,
+};
 use border::{
     apply_border_color, apply_border_color_side, apply_border_shorthand, apply_border_side,
     apply_border_style, apply_border_style_side, apply_border_width, apply_border_width_side,
@@ -78,6 +81,7 @@ mod apply;
 mod aspect_ratio;
 mod background;
 mod background_attachment;
+mod background_box;
 mod border;
 mod border_cascade;
 mod border_radius;

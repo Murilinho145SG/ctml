@@ -48,6 +48,14 @@ pub(crate) enum BackgroundAttachment {
     Local,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BackgroundBox {
+    #[default]
+    BorderBox,
+    PaddingBox,
+    ContentBox,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct BackgroundSize {
     pub(crate) width: Option<BackgroundSizeAxis>,

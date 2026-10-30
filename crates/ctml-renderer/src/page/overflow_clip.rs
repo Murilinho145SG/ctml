@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem};
 use std::collections::HashSet;
 
-use crate::style::{LayoutSize, TextRun, WritingMode};
+use crate::style::{BackgroundBox, LayoutSize, TextRun, WritingMode};
 
 use super::{
     PAGE_PADDING, local_writing,
@@ -23,11 +23,46 @@ pub(super) struct ClipRect {
 pub(super) struct BlockGeometry {
     pub(super) clip: ClipRect,
     pub(super) border_box: ClipRect,
+    pub(super) content_box: ClipRect,
     pub(super) content_block_extent: f32,
     pub(super) content_inline_extent: f32,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(super) struct BackgroundBoxes {
+    pub(super) border: ClipRect,
+    pub(super) padding: ClipRect,
+    pub(super) content: ClipRect,
+}
+
+impl BackgroundBoxes {
+    pub(super) fn get(self, background_box: BackgroundBox) -> ClipRect {
+        match background_box {
+            BackgroundBox::BorderBox => self.border,
+            BackgroundBox::PaddingBox => self.padding,
+            BackgroundBox::ContentBox => self.content,
+        }
+    }
+
+    pub(super) fn offset(self, x: f32, y: f32) -> Self {
+        Self {
+            border: self.border.with_offset((x, y)),
+            padding: self.padding.with_offset((x, y)),
+            content: self.content.with_offset((x, y)),
+        }
+    }
+}
+
 impl ClipRect {
+    pub(super) fn with_offset(self, (x, y): (f32, f32)) -> Self {
+        Self {
+            left: self.left + x,
+            top: self.top + y,
+            right: self.right + x,
+            bottom: self.bottom + y,
+        }
+    }
+
     pub(super) fn intersect(self, other: Self) -> Self {
         Self {
             left: self.left.max(other.left),
@@ -284,11 +319,19 @@ pub(super) fn block_geometries(
                 right: clip.right + (border_extent - border_start),
                 bottom: clip.bottom + border_block_end,
             };
+            let padding = super::sizing_padding::resolve_padding(&extent.size, containing_width);
+            let content_box = ClipRect {
+                left: clip.left + padding[3],
+                top: clip.top + padding[0],
+                right: (clip.right - padding[1]).max(clip.left + padding[3]),
+                bottom: (clip.bottom - padding[2]).max(clip.top + padding[0]),
+            };
             (
                 node_id,
                 BlockGeometry {
                     clip,
                     border_box,
+                    content_box,
                     content_block_extent: extent.content_height,
                     content_inline_extent: extent.content_inline_extent,
                 },

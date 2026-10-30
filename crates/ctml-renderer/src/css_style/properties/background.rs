@@ -8,27 +8,16 @@ use ctml_css::parse_color_with_opacity_and_profiles;
 
 pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
-        style.background_images.clear();
-        style.background_repeats.clear();
-        style.background_positions.clear();
-        style.background_sizes.clear();
-        style.background_attachments.clear();
+        super::background_box::reset_background_image_layers(style);
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some(images) = parse_background_images(style, value) {
+        super::background_box::reset_background_image_layers(style);
         style.background_images = images;
-        style.background_repeats.clear();
-        style.background_positions.clear();
-        style.background_sizes.clear();
-        style.background_attachments.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some((channels, alpha)) = parse_background_color(style, value) {
-        style.background_images.clear();
-        style.background_repeats.clear();
-        style.background_positions.clear();
-        style.background_sizes.clear();
-        style.background_attachments.clear();
+        super::background_box::reset_background_image_layers(style);
         set_background_color(style, channels, alpha);
     } else {
         return;

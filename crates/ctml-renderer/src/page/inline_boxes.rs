@@ -216,6 +216,37 @@ pub(super) fn draw(
                     + widths[2]
                     + background_padding[0]
                     + background_padding[2];
+                let background_boxes = overflow_clip::BackgroundBoxes {
+                    border: ClipRect {
+                        left: background_left,
+                        top: background_top,
+                        right: background_left + background_width,
+                        bottom: background_top + background_height,
+                    },
+                    padding: ClipRect {
+                        left: background_left + border_start,
+                        top: background_top + widths[0],
+                        right: background_left + background_width - border_end,
+                        bottom: background_top + background_height - widths[2],
+                    },
+                    content: ClipRect {
+                        left: background_left + border_start + background_padding[3],
+                        top: background_top + widths[0] + background_padding[0],
+                        right: background_left + background_width
+                            - border_end
+                            - background_padding[1],
+                        bottom: background_top + background_height
+                            - widths[2]
+                            - background_padding[2],
+                    },
+                }
+                .offset(-scroll_x, -scroll_y);
+                let color_clip_box = style.background_clips.last().copied().unwrap_or_default();
+                let color_clip_box = background_boxes
+                    .get(color_clip_box)
+                    .with_offset((PAGE_PADDING, PAGE_PADDING));
+                let color_clip =
+                    Some(clip.map_or(color_clip_box, |outer| outer.intersect(color_clip_box)));
                 for layer in &style.background_layers {
                     let mut color = *layer;
                     color[3] = (f32::from(color[3]) * style.opacity)
@@ -230,7 +261,7 @@ pub(super) fn draw(
                         background_width,
                         background_height,
                         color,
-                        clip,
+                        color_clip,
                     );
                 }
                 super::background_images::draw_background_image_layers(
@@ -239,18 +270,15 @@ pub(super) fn draw(
                     &style.background_positions,
                     &style.background_sizes,
                     &style.background_attachments,
+                    &style.background_origins,
+                    &style.background_clips,
                     (scroll_x, scroll_y),
                     element_scroll,
                     style.opacity,
                     pixels,
                     width,
                     height,
-                    ClipRect {
-                        left: background_left - scroll_x,
-                        top: background_top - scroll_y,
-                        right: background_left + background_width - scroll_x,
-                        bottom: background_top + background_height - scroll_y,
-                    },
+                    background_boxes,
                     clip,
                     image_cache,
                 );

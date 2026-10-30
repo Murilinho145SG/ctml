@@ -55,6 +55,24 @@ pub(super) fn draw_block_boxes(
                 page_writing_mode,
             );
             let rect = geometry.border_box;
+            let boxes = overflow_clip::BackgroundBoxes {
+                border: geometry.border_box,
+                padding: geometry.clip,
+                content: geometry.content_box,
+            }
+            .offset(
+                -super::PAGE_PADDING - scroll_x,
+                -super::PAGE_PADDING - scroll_y,
+            );
+            let fill_boxes = overflow_clip::BackgroundBoxes {
+                border: geometry.border_box,
+                padding: geometry.clip,
+                content: geometry.content_box,
+            }
+            .offset(-scroll_x, -scroll_y);
+            let color_clip_box = size.background_clips.last().copied().unwrap_or_default();
+            let color_clip = fill_boxes.get(color_clip_box);
+            let color_clip = Some(clip.map_or(color_clip, |outer| outer.intersect(color_clip)));
             for layer in &size.background_layers {
                 let mut color = *layer;
                 color[3] = (f32::from(color[3]) * size.opacity)
@@ -69,7 +87,7 @@ pub(super) fn draw_block_boxes(
                     rect.right - rect.left,
                     rect.bottom - rect.top,
                     color,
-                    clip,
+                    color_clip,
                 );
             }
             super::background_images::draw_background_image_layers(
@@ -78,18 +96,15 @@ pub(super) fn draw_block_boxes(
                 &size.background_positions,
                 &size.background_sizes,
                 &size.background_attachments,
+                &size.background_origins,
+                &size.background_clips,
                 (scroll_x, scroll_y),
                 element_scroll,
                 size.opacity,
                 pixels,
                 width,
                 height,
-                overflow_clip::ClipRect {
-                    left: rect.left - super::PAGE_PADDING - scroll_x,
-                    top: rect.top - super::PAGE_PADDING - scroll_y,
-                    right: rect.right - super::PAGE_PADDING - scroll_x,
-                    bottom: rect.bottom - super::PAGE_PADDING - scroll_y,
-                },
+                boxes,
                 clip,
                 image_cache,
             );
@@ -266,17 +281,33 @@ pub(super) fn draw(
                     &style.background_positions,
                     &style.background_sizes,
                     &style.background_attachments,
+                    &style.background_origins,
+                    &style.background_clips,
                     (scroll_offset_x, scroll_offset_y),
                     element_scroll,
                     style.opacity,
                     pixels,
                     width,
                     height,
-                    overflow_clip::ClipRect {
-                        left: left - scroll_offset_x,
-                        top: line.line_top - scroll_offset_y,
-                        right: right - scroll_offset_x,
-                        bottom: line.line_top + line.line_height - scroll_offset_y,
+                    overflow_clip::BackgroundBoxes {
+                        border: overflow_clip::ClipRect {
+                            left: left - scroll_offset_x,
+                            top: line.line_top - scroll_offset_y,
+                            right: right - scroll_offset_x,
+                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                        },
+                        padding: overflow_clip::ClipRect {
+                            left: left - scroll_offset_x,
+                            top: line.line_top - scroll_offset_y,
+                            right: right - scroll_offset_x,
+                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                        },
+                        content: overflow_clip::ClipRect {
+                            left: left - scroll_offset_x,
+                            top: line.line_top - scroll_offset_y,
+                            right: right - scroll_offset_x,
+                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                        },
                     },
                     clip,
                     image_cache,
