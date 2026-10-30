@@ -178,6 +178,7 @@ pub(super) fn apply_declaration(
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "background-image" => apply_background_image(style, value),
+        "background-repeat" => apply_background_repeat(style, value),
         "font-size" => {
             if let Some(size) = parse_font_size_with_font_units(
                 value,

@@ -60,6 +60,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
         box_shadows: style.box_shadows.clone(),
         background_layers: style.background_layers.clone(),
         background_images: style.background_images.clone(),
+        background_repeats: style.background_repeats.clone(),
         opacity: style.opacity,
         visibility_hidden: style.visibility_hidden,
         content_skipped: style.content_skipped,

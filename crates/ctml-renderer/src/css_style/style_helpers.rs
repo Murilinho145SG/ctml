@@ -108,6 +108,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "max-block-size",
     "background-color",
     "background-image",
+    "background-repeat",
     "font",
     "font-family",
     "font-size",

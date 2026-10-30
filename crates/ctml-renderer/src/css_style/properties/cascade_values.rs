@@ -50,6 +50,11 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .background_images
                 .clone_from(&inherited.background_images);
         }
+        "background-repeat" => {
+            style
+                .background_repeats
+                .clone_from(&inherited.background_repeats);
+        }
         "display" => inherit_display(style, inherited),
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
@@ -279,6 +284,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "background-image" => style.background_images.clear(),
+        "background-repeat" => style.background_repeats.clear(),
         "display" => reset_display(style),
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
@@ -338,6 +344,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background = [255, 255, 255];
             style.background_color = None;
             style.background_images.clear();
+            style.background_repeats.clear();
         }
         "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),

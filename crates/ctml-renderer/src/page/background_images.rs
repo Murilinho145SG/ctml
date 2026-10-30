@@ -4,7 +4,7 @@ use skia_safe::{
 };
 use std::{collections::HashMap, sync::Arc};
 
-use crate::style::{BackgroundImage, LinearGradient};
+use crate::style::{BackgroundImage, BackgroundRepeat, LinearGradient};
 
 use super::overflow_clip::ClipRect;
 
@@ -12,6 +12,7 @@ pub(super) type ImageCache = HashMap<Arc<[u8]>, Option<Image>>;
 
 pub(super) fn draw_background_image_layers(
     images: &[BackgroundImage],
+    repeats: &[BackgroundRepeat],
     opacity: f32,
     pixels: &mut [u8],
     width: u32,
@@ -44,8 +45,12 @@ pub(super) fn draw_background_image_layers(
     }
     let tile_origin = Matrix::translate((rect.left, rect.top));
     let rect = Rect::from_ltrb(rect.left, rect.top, rect.right, rect.bottom);
-    for background in images.iter().rev() {
-        let shader = match background {
+    for (index, background) in images.iter().enumerate().rev() {
+        let repeat = repeats
+            .get(index % repeats.len().max(1))
+            .copied()
+            .unwrap_or(BackgroundRepeat::REPEAT);
+        let (shader, tile_clip) = match background {
             BackgroundImage::Encoded(encoded) => {
                 let image = image_cache
                     .entry(Arc::clone(encoded))
@@ -53,19 +58,45 @@ pub(super) fn draw_background_image_layers(
                 let Some(image) = image.as_ref() else {
                     continue;
                 };
-                image.to_shader(
-                    Some((TileMode::Repeat, TileMode::Repeat)),
-                    SamplingOptions::default(),
-                    Some(&tile_origin),
+                let clip = (!repeat.x || !repeat.y).then(|| {
+                    Rect::from_ltrb(
+                        rect.left,
+                        rect.top,
+                        if repeat.x {
+                            rect.right
+                        } else {
+                            (rect.left + image.width() as f32).min(rect.right)
+                        },
+                        if repeat.y {
+                            rect.bottom
+                        } else {
+                            (rect.top + image.height() as f32).min(rect.bottom)
+                        },
+                    )
+                });
+                (
+                    image.to_shader(
+                        Some((TileMode::Repeat, TileMode::Repeat)),
+                        SamplingOptions::default(),
+                        Some(&tile_origin),
+                    ),
+                    clip,
                 )
             }
-            BackgroundImage::LinearGradient(gradient) => linear_gradient_shader(gradient, rect),
+            BackgroundImage::LinearGradient(gradient) => {
+                (linear_gradient_shader(gradient, rect), None)
+            }
         };
         let Some(shader) = shader else { continue };
+        canvas.save();
+        if let Some(tile_clip) = tile_clip {
+            canvas.clip_rect(tile_clip, ClipOp::Intersect, false);
+        }
         let mut paint = Paint::default();
         paint.set_shader(shader);
         paint.set_alpha_f(opacity.clamp(0.0, 1.0));
         canvas.draw_rect(rect, &paint);
+        canvas.restore();
     }
     canvas.restore();
 }

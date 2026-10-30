@@ -1,4 +1,4 @@
-use crate::style::{BackgroundImage, LinearGradient, TextStyle};
+use crate::style::{BackgroundImage, BackgroundRepeat, LinearGradient, TextStyle};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use cssparser::{Parser, ParserInput, Token};
 use ctml_css::parse_color_with_opacity_and_profiles;
@@ -6,14 +6,17 @@ use ctml_css::parse_color_with_opacity_and_profiles;
 pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
         style.background_images.clear();
+        style.background_repeats.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some(images) = parse_background_images(style, value) {
         style.background_images = images;
+        style.background_repeats.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some((channels, alpha)) = parse_background_color(style, value) {
         style.background_images.clear();
+        style.background_repeats.clear();
         set_background_color(style, channels, alpha);
     } else {
         return;
@@ -25,6 +28,41 @@ pub(super) fn apply_background_image(style: &mut TextStyle, value: &str) {
         return;
     };
     style.background_images = images;
+}
+
+pub(super) fn apply_background_repeat(style: &mut TextStyle, value: &str) {
+    let repeats = split_top_level_commas(value)
+        .into_iter()
+        .map(parse_background_repeat_layer)
+        .collect::<Option<Vec<_>>>();
+    if let Some(repeats) = repeats.filter(|repeats| !repeats.is_empty()) {
+        style.background_repeats = repeats;
+    }
+}
+
+fn parse_background_repeat_layer(value: &str) -> Option<BackgroundRepeat> {
+    let mut values = value.split_ascii_whitespace();
+    let first = values.next()?.to_ascii_lowercase();
+    let second = values.next().map(str::to_ascii_lowercase);
+    if values.next().is_some() {
+        return None;
+    }
+    let repeat_axis = |value: &str| match value {
+        "repeat" => Some(true),
+        "no-repeat" => Some(false),
+        _ => None,
+    };
+    match (first.as_str(), second) {
+        ("repeat-x", None) => Some(BackgroundRepeat::REPEAT_X),
+        ("repeat-y", None) => Some(BackgroundRepeat::REPEAT_Y),
+        ("repeat", None) => Some(BackgroundRepeat::REPEAT),
+        ("no-repeat", None) => Some(BackgroundRepeat::NO_REPEAT),
+        (x, Some(y)) => Some(BackgroundRepeat {
+            x: repeat_axis(x)?,
+            y: repeat_axis(&y)?,
+        }),
+        _ => None,
+    }
 }
 
 fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<BackgroundImage>> {
