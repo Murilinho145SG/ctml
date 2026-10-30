@@ -46,6 +46,18 @@ fn resolves_numeric_weight_font_style_and_stretch() {
 }
 
 #[test]
+fn parses_exponential_numeric_font_weights() {
+    assert_eq!(
+        style_for_declarations(&[("font-weight", "1e2")]).weight,
+        Weight(100)
+    );
+    assert_eq!(
+        style_for_declarations(&[("font", "1e2 16px sans-serif")]).weight,
+        Weight(100)
+    );
+}
+
+#[test]
 fn resolves_relative_font_weight_keywords() {
     assert_eq!(
         style_for_declarations(&[("font-weight", "bolder")]).weight,
@@ -93,6 +105,29 @@ fn maps_font_stretch_percentages_to_available_widths() {
     assert_eq!(
         style_for_declarations(&[("font-stretch", "100%")]).stretch,
         Stretch::Normal
+    );
+}
+
+#[test]
+fn scalar_css_values_require_single_number_or_percentage_tokens() {
+    assert_eq!(style_for_declarations(&[("opacity", "+.25")]).opacity, 0.25);
+    assert_eq!(style_for_declarations(&[("opacity", "1 %")]).opacity, 1.0);
+    assert_eq!(style_for_declarations(&[("opacity", "NaN")]).opacity, 1.0);
+    assert_eq!(
+        style_for_declarations(&[("line-height", "1.5")]).line_height,
+        24.0
+    );
+    assert_eq!(
+        style_for_declarations(&[("font-stretch", "75 %")]).stretch,
+        Stretch::Normal
+    );
+    assert_eq!(
+        style_for_declarations(&[("vertical-align", "50 %")]).vertical_align_offset,
+        0.0
+    );
+    assert_eq!(
+        style_for_declarations(&[("word-spacing", "25 %")]).word_spacing_percent,
+        None
     );
 }
 

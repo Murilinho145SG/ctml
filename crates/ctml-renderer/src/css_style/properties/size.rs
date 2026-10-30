@@ -135,9 +135,7 @@ fn is_size_expression_with_metrics(
     viewport_size: ctml_css::ViewportSize,
 ) -> bool {
     parse_math_expression(value, |component| {
-        component
-            .strip_suffix('%')
-            .and_then(|percent| percent.trim().parse::<f32>().ok())
+        ctml_css::parse_css_percentage(component)
             .filter(|percent| percent.is_finite())
             .or_else(|| {
                 parse_nonnegative_font_relative_length_with_viewport(

@@ -23,8 +23,8 @@ pub(super) fn apply_text_indent(style: &mut TextStyle, value: &str) {
         return;
     }
     let length = length.join(" ");
-    if let Some(percent) = length.strip_suffix('%') {
-        let Ok(percent) = percent.trim().parse::<f32>() else {
+    if length.ends_with('%') {
+        let Some(percent) = ctml_css::parse_css_percentage(&length) else {
             return;
         };
         if !percent.is_finite() {

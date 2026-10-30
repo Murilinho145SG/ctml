@@ -39,7 +39,7 @@ pub(super) fn parse_font_stretch(value: &str) -> Option<Stretch> {
         return keyword;
     }
 
-    let percentage = value.strip_suffix('%')?.trim().parse::<f32>().ok()?;
+    let percentage = ctml_css::parse_css_percentage(value)?;
     if !percentage.is_finite() || percentage < 0.0 {
         return None;
     }
@@ -93,6 +93,10 @@ pub(super) fn apply_font_shorthand(
     for (start, end) in &components[..size_index] {
         let component = &value[*start..*end];
         let lower = component.to_ascii_lowercase();
+        let numeric_weight = ctml_css::parse_css_number(component)
+            .filter(|number| (1.0..=1000.0).contains(number))
+            .filter(|number| number.fract() == 0.0)
+            .map(|number| number as u16);
         if lower == "normal" {
             if saw_normal {
                 return;
@@ -112,9 +116,7 @@ pub(super) fn apply_font_shorthand(
                 return;
             }
         } else if matches!(lower.as_str(), "bold" | "bolder" | "lighter")
-            || component
-                .parse::<u16>()
-                .is_ok_and(|value| (1..=1000).contains(&value))
+            || numeric_weight.is_some()
         {
             if weight.is_some() {
                 return;
@@ -123,7 +125,7 @@ pub(super) fn apply_font_shorthand(
                 "bold" => Weight::BOLD,
                 "bolder" => relative_font_weight(style.weight, true),
                 "lighter" => relative_font_weight(style.weight, false),
-                _ => Weight(component.parse::<u16>().ok().unwrap()),
+                _ => Weight(numeric_weight.unwrap()),
             });
         } else if let Some(parsed_stretch) = parse_font_stretch(component) {
             if stretch.replace(parsed_stretch).is_some() {
@@ -324,7 +326,7 @@ fn parse_line_height(
         return Some(None);
     }
     if let Some(multiplier) =
-        ctml_css::parse_math_number(value).or_else(|| value.parse::<f32>().ok())
+        ctml_css::parse_math_number(value).or_else(|| ctml_css::parse_css_number(value))
     {
         return (multiplier.is_finite() && multiplier >= 0.0)
             .then_some(Some(font_size * multiplier));

@@ -412,18 +412,9 @@ fn apply_declaration(
     let value = value.trim();
     match property {
         "opacity" => {
-            let value = value.trim();
-            let opacity = ctml_css::parse_math_number(value).or_else(|| {
-                if let Some(percent) = value.strip_suffix('%') {
-                    percent
-                        .trim()
-                        .parse::<f32>()
-                        .ok()
-                        .map(|value| value / 100.0)
-                } else {
-                    value.parse::<f32>().ok()
-                }
-            });
+            let opacity = ctml_css::parse_math_number(value)
+                .or_else(|| ctml_css::parse_css_number(value))
+                .or_else(|| ctml_css::parse_css_percentage(value).map(|value| value / 100.0));
             if let Some(opacity) = opacity.filter(|opacity| opacity.is_finite()) {
                 style.opacity = opacity.clamp(0.0, 1.0);
             }
@@ -460,7 +451,7 @@ fn apply_declaration(
                 style.line_height_normal = true;
                 style.line_height_multiplier = None;
             } else if let Some(multiplier) =
-                ctml_css::parse_math_number(value).or_else(|| value.parse::<f32>().ok())
+                ctml_css::parse_math_number(value).or_else(|| ctml_css::parse_css_number(value))
             {
                 style.line_height = style.font_size * multiplier;
                 style.line_height_multiplier = Some(multiplier);
@@ -490,9 +481,7 @@ fn apply_declaration(
                 "text-bottom" => (style.font_size - parent_font_size) * 0.2,
                 "top" => (parent_line_height - style.line_height) / 2.0,
                 "bottom" => (style.line_height - parent_line_height) / 2.0,
-                _ if value.ends_with('%') => value
-                    .strip_suffix('%')
-                    .and_then(|percent| percent.trim().parse::<f32>().ok())
+                _ if value.ends_with('%') => ctml_css::parse_css_percentage(value)
                     .filter(|percent| percent.is_finite())
                     .map_or(style.vertical_align_offset, |percent| {
                         style.line_height * percent / 100.0
@@ -517,10 +506,10 @@ fn apply_declaration(
                 "bolder" => relative_font_weight(style.weight, true),
                 "lighter" => relative_font_weight(style.weight, false),
                 _ => ctml_css::parse_math_number(value)
+                    .or_else(|| ctml_css::parse_css_number(value))
                     .filter(|number| (1.0..=1000.0).contains(number))
                     .filter(|number| number.fract() == 0.0)
                     .map(|number| number as u16)
-                    .or_else(|| value.parse::<u16>().ok())
                     .filter(|weight| (1..=1000).contains(weight))
                     .map_or(style.weight, Weight),
             };
