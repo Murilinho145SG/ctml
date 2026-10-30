@@ -124,6 +124,14 @@ pub(super) fn draw_borders(
                         .clamp(0.0, 255.0) as u8;
                 color
             });
+        let opacity = span.opacity * run.first_line_opacity.unwrap_or(1.0);
+        if style.border_image_source.is_some()
+            && super::border_images::draw_inline(
+                pixels, width, height, style, rect, border, opacity, clip,
+            )
+        {
+            continue;
+        }
         let radii = super::border_radius::resolve_radii_values(
             &style.border_radius,
             style.font_size,

@@ -64,6 +64,8 @@ mod first_letter_border_image;
 mod first_letter_logical_box;
 #[path = "page_tests/first_letter_transform.rs"]
 mod first_letter_transform;
+#[path = "page_tests/first_line_border_image.rs"]
+mod first_line_border_image;
 #[path = "page_tests/first_line_spacing.rs"]
 mod first_line_spacing;
 #[path = "page_tests/first_line_transform.rs"]
