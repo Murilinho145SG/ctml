@@ -29,6 +29,7 @@ pub(super) fn compile_runs_with_font_system(
     focused_path: &[usize],
     keyboard_focus: bool,
     font_system: Option<&cosmic_text::FontSystem>,
+    color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
@@ -86,6 +87,7 @@ pub(super) fn compile_runs_with_font_system(
         stylesheet,
         font_metrics.as_ref(),
         viewport_size,
+        color_profiles,
     );
     let mut runs = Vec::new();
     let mut path = vec![body];
@@ -123,7 +125,7 @@ pub(super) fn compile_runs_with_font_system(
         );
     }
     trim_runs(&mut runs);
-    let selection_background = css_style::selection_background_color(stylesheet);
+    let selection_background = css_style::selection_background_color(stylesheet, color_profiles);
     for run in &mut runs {
         let Some(node_id) = run.element_path.last() else {
             continue;

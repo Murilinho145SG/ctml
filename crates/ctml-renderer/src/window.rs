@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration, time::Instant};
 
 use super::renderer::Renderer;
-use crate::{FontFace, StyleRule, UiNode};
+use crate::{CssColorProfile, FontFace, StyleRule, UiNode};
 
 use thiserror::Error;
 use winit::{
@@ -28,6 +28,8 @@ pub struct WindowConfig {
     pub stylesheet: Vec<StyleRule>,
     /// Local fonts loaded from CSS `@font-face` rules.
     pub fonts: Vec<FontFace>,
+    /// Local ICC profiles loaded from CSS `@color-profile` rules.
+    pub color_profiles: Vec<CssColorProfile>,
 }
 
 impl Default for WindowConfig {
@@ -39,6 +41,7 @@ impl Default for WindowConfig {
             body: Vec::new(),
             stylesheet: Vec::new(),
             fonts: Vec::new(),
+            color_profiles: Vec::new(),
         }
     }
 }
@@ -148,6 +151,7 @@ impl ApplicationHandler for WindowApplication {
             &self.config.body,
             &self.config.stylesheet,
             &self.config.fonts,
+            &self.config.color_profiles,
         )) {
             Ok(renderer) => renderer,
             Err(error) => {

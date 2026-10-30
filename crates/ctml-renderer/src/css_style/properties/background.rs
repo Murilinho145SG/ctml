@@ -1,5 +1,5 @@
 use crate::style::TextStyle;
-use ctml_css::parse_color_with_opacity;
+use ctml_css::parse_color_with_opacity_and_profiles;
 
 pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
@@ -17,7 +17,7 @@ pub(super) fn apply_background_color(style: &mut TextStyle, value: &str) {
             style.color_opacity,
         ))
     } else {
-        parse_color_with_opacity(value)
+        parse_color_with_opacity_and_profiles(value, &style.color_profiles)
     };
     let Some((channels, alpha)) = color else {
         return;

@@ -24,6 +24,7 @@ pub(super) fn resize_styles(
         &page.focused_path,
         page.keyboard_focus,
         Some(&page.font_system),
+        &page.color_profiles,
         viewport,
     );
     page.runs = compiled_runs

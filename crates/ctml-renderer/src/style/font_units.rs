@@ -10,9 +10,11 @@ pub(super) fn resolve_root_style(
     stylesheet: &[StyleRule],
     font_metrics: Option<&FontRelativeUnitsContext<'_>>,
     viewport: ViewportSize,
+    color_profiles: &[ctml_css::CssColorProfile],
 ) -> TextStyle {
     let mut inherited = TextStyle::default();
     inherited.viewport_size = viewport;
+    inherited.color_profiles = std::sync::Arc::from(color_profiles);
     if let Some(font_metrics) = font_metrics {
         inherited.font_relative_units = font_metrics.resolve(&inherited);
     }
@@ -36,6 +38,7 @@ pub(super) fn resolve_root_style(
     let mut initial_values = TextStyle::default();
     initial_values.font_relative_units = inherited.font_relative_units;
     initial_values.viewport_size = viewport;
+    initial_values.color_profiles = std::sync::Arc::from(color_profiles);
     css_style::resolve_style_with_selector_tree_context_and_font_units(
         &initial_values,
         body,

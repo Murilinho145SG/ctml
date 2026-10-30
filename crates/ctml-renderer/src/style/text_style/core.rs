@@ -1,6 +1,6 @@
 use cosmic_text::{Align, Stretch, Style, Weight};
 use ctml_css::{FontRelativeUnits, ViewportSize};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
@@ -17,6 +17,7 @@ const DEFAULT_LINE_HEIGHT: f32 = 20.0;
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
     pub(crate) viewport_size: ViewportSize,
+    pub(crate) color_profiles: Arc<[ctml_css::CssColorProfile]>,
     pub(crate) font_size: f32,
     pub(crate) font_scale: f32,
     pub(crate) line_height: f32,
@@ -135,6 +136,7 @@ impl Default for TextStyle {
         Self {
             font_relative_units: FontRelativeUnits::default(),
             viewport_size: ViewportSize::default(),
+            color_profiles: Arc::from([]),
             font_size: DEFAULT_FONT_SIZE,
             font_scale: 1.0,
             line_height: DEFAULT_LINE_HEIGHT,

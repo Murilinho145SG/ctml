@@ -1,6 +1,6 @@
 use crate::style::{TextShadow, TextStyle};
 use ctml_css::{
-    parse_color_with_opacity, parse_nonnegative_font_relative_length_with_viewport,
+    parse_color_with_opacity_and_profiles, parse_nonnegative_font_relative_length_with_viewport,
     parse_signed_font_relative_length_with_viewport,
 };
 
@@ -16,6 +16,7 @@ pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
         style.font_relative_units,
         style.viewport_size,
         style.color,
+        &style.color_profiles,
     ) else {
         return;
     };
@@ -29,6 +30,7 @@ fn parse_text_shadows(
     font_metrics: ctml_css::FontRelativeUnits,
     viewport: ctml_css::ViewportSize,
     current_color: [u8; 4],
+    color_profiles: &[ctml_css::CssColorProfile],
 ) -> Option<Vec<TextShadow>> {
     let mut shadows = Vec::new();
     for shadow in split_top_level_commas(value) {
@@ -44,7 +46,9 @@ fn parse_text_shadows(
                 if color.replace(current_color).is_some() {
                     return None;
                 }
-            } else if let Some((channels, opacity)) = parse_color_with_opacity(component) {
+            } else if let Some((channels, opacity)) =
+                parse_color_with_opacity_and_profiles(component, color_profiles)
+            {
                 if color
                     .replace([
                         channels[0],
@@ -165,6 +169,7 @@ mod tests {
                 ctml_css::FontRelativeUnits::default(),
                 ctml_css::ViewportSize::default(),
                 [0; 4],
+                &[],
             ),
             Some(vec![
                 crate::style::TextShadow {
@@ -193,6 +198,7 @@ mod tests {
                 ctml_css::FontRelativeUnits::default(),
                 ctml_css::ViewportSize::default(),
                 [0; 4],
+                &[],
             ),
             Some(vec![crate::style::TextShadow {
                 offset_x: 24.0,
@@ -220,6 +226,7 @@ mod tests {
                     ctml_css::FontRelativeUnits::default(),
                     ctml_css::ViewportSize::default(),
                     [0; 4],
+                    &[],
                 ),
                 None,
                 "{value}"

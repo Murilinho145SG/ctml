@@ -28,6 +28,7 @@ yeslogic-fontconfig-sys = "6.0.1"
 [dev-dependencies]
 chromiumoxide_fetcher = "0.9.1"
 ctml-compiler.workspace = true
+lcms2.workspace = true
 png.workspace = true
 tokio.workspace = true
 url.workspace = true

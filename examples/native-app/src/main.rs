@@ -10,5 +10,6 @@ fn main() -> Result<(), ctml::WindowError> {
         body: generated::body(),
         stylesheet: generated::stylesheet(),
         fonts: generated::fonts(),
+        color_profiles: generated::color_profiles(),
     })
 }

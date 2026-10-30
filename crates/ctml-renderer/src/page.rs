@@ -40,6 +40,7 @@ use sizing::{
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
     stylesheet: Vec<StyleRule>,
+    color_profiles: Vec<ctml_css::CssColorProfile>,
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
     spacer_line_flags: Vec<bool>,
@@ -64,10 +65,20 @@ impl PageRasterizer {
         Self::new_with_fonts(nodes, stylesheet, &[])
     }
 
+    #[cfg(test)]
     pub(crate) fn new_with_fonts(
         nodes: &[UiNode],
         stylesheet: &[StyleRule],
         fonts: &[crate::FontFace],
+    ) -> Self {
+        Self::new_with_fonts_and_color_profiles(nodes, stylesheet, fonts, &[])
+    }
+
+    pub(crate) fn new_with_fonts_and_color_profiles(
+        nodes: &[UiNode],
+        stylesheet: &[StyleRule],
+        fonts: &[crate::FontFace],
+        color_profiles: &[ctml_css::CssColorProfile],
     ) -> Self {
         let mut font_system = FontSystem::new();
         register_font_faces(&mut font_system, fonts);
@@ -91,10 +102,12 @@ impl PageRasterizer {
             &[],
             false,
             Some(&font_system),
+            color_profiles,
             ctml_css::ViewportSize::default(),
         );
         let focus_manager = focus::FocusManager::new(nodes);
-        let selection_background_color = crate::css_style::selection_background_color(stylesheet);
+        let selection_background_color =
+            crate::css_style::selection_background_color(stylesheet, color_profiles);
         let mut runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
@@ -119,6 +132,7 @@ impl PageRasterizer {
         Self {
             nodes: nodes.to_vec(),
             stylesheet: stylesheet.to_vec(),
+            color_profiles: color_profiles.to_vec(),
             runs,
             cursor_spans,
             spacer_line_flags: Vec::new(),
@@ -352,6 +366,7 @@ impl PageRasterizer {
             &self.focused_path,
             self.keyboard_focus,
             Some(&self.font_system),
+            &self.color_profiles,
             self.layout_size
                 .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
                     ctml_css::ViewportSize {

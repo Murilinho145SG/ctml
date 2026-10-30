@@ -11,30 +11,33 @@ const ANGLE_UNITS: &[&str] = &["deg", "grad", "rad", "turn"];
 pub(super) fn substitute_attr_functions(
     value: &str,
     attributes: &[(String, Option<String>)],
+    color_profiles: &[ctml_css::CssColorProfile],
 ) -> Option<String> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let mut output = String::with_capacity(value.len());
-    serialize_tokens(&mut parser, attributes, &mut output).ok()?;
+    serialize_tokens(&mut parser, attributes, color_profiles, &mut output).ok()?;
     Some(output)
 }
 
 fn serialize_tokens<'i, 't>(
     parser: &mut Parser<'i, 't>,
     attributes: &[(String, Option<String>)],
+    color_profiles: &[ctml_css::CssColorProfile],
     output: &mut String,
 ) -> Result<(), cssparser::ParseError<'i, ()>> {
     while !parser.is_exhausted() {
         let token = parser.next_including_whitespace()?;
         match token {
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
-                let (name, attr_type, fallback) =
-                    parser.parse_nested_block(parse_attr_arguments)?;
+                let (name, attr_type, fallback) = parser
+                    .parse_nested_block(|nested| parse_attr_arguments(nested, color_profiles))?;
                 let raw_value = attributes
                     .iter()
                     .find(|(attribute, _)| attribute.eq_ignore_ascii_case(&name))
                     .and_then(|(_, value)| value.as_deref());
-                let converted = raw_value.and_then(|value| convert_attribute(value, attr_type));
+                let converted =
+                    raw_value.and_then(|value| convert_attribute(value, attr_type, color_profiles));
                 if let Some(converted) = converted {
                     output.push_str(&converted);
                 } else if let Some(fallback) = fallback {
@@ -55,7 +58,9 @@ fn serialize_tokens<'i, 't>(
                 token
                     .to_css(output)
                     .expect("writing CSS tokens into a String cannot fail");
-                parser.parse_nested_block(|nested| serialize_tokens(nested, attributes, output))?;
+                parser.parse_nested_block(|nested| {
+                    serialize_tokens(nested, attributes, color_profiles, output)
+                })?;
                 output.push(end);
             }
             _ => token
@@ -68,6 +73,7 @@ fn serialize_tokens<'i, 't>(
 
 fn parse_attr_arguments<'i, 't>(
     parser: &mut Parser<'i, 't>,
+    color_profiles: &[ctml_css::CssColorProfile],
 ) -> Result<(String, Option<AttrType>, Option<String>), cssparser::ParseError<'i, ()>> {
     let name = parser.expect_ident_cloned()?.to_string();
     parser.skip_whitespace();
@@ -96,7 +102,7 @@ fn parse_attr_arguments<'i, 't>(
         None
     } else {
         let mut output = String::new();
-        serialize_tokens(parser, &[], &mut output)?;
+        serialize_tokens(parser, &[], color_profiles, &mut output)?;
         Some(output)
     };
     Ok((name, attr_type, fallback))
@@ -132,7 +138,11 @@ impl AttrType {
     }
 }
 
-fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String> {
+fn convert_attribute(
+    value: &str,
+    attr_type: Option<AttrType>,
+    color_profiles: &[ctml_css::CssColorProfile],
+) -> Option<String> {
     match attr_type {
         None | Some(AttrType::String) => {
             let mut serialized = String::new();
@@ -155,12 +165,14 @@ fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String>
             .map(|value| format!("{value}%"))
             .or_else(|| parse_dimension(value, LENGTH_UNITS)),
         Some(AttrType::Angle) => parse_dimension(value, ANGLE_UNITS),
-        Some(AttrType::Color) => ctml_css::parse_color(value).map(|color| {
-            format!(
-                "#{:02x}{:02x}{:02x}{:02x}",
-                color[0], color[1], color[2], color[3]
-            )
-        }),
+        Some(AttrType::Color) => {
+            ctml_css::parse_color_with_profiles(value, color_profiles).map(|color| {
+                format!(
+                    "#{:02x}{:02x}{:02x}{:02x}",
+                    color[0], color[1], color[2], color[3]
+                )
+            })
+        }
         Some(AttrType::CustomIdent) => parse_custom_ident(value),
     }
 }

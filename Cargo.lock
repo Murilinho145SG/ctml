@@ -708,6 +708,7 @@ dependencies = [
  "ctml-compiler",
  "ctml-css",
  "hyphenation",
+ "lcms2",
  "png 0.18.1",
  "pollster",
  "skia-safe",

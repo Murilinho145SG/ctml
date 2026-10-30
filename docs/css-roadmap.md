@@ -148,12 +148,12 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Other predefined and custom color profiles.
 - [x] Parse `@color-profile` descriptors and load valid local ICC profiles relative to the declaring stylesheet, bounded to the configured resource root.
 - [x] Expose profile-aware parsing for absolute and relative custom `color()` spaces and custom `color-mix()` interpolation through loaded ICC profiles.
-- [ ] Pass registered custom color profiles through native renderer style resolution.
-- [x] CSS HDR `rec2100-linear` profile in absolute `color()`, relative colors, and interpolation; other HDR color spaces and custom ICC profiles are not implemented.
+- [x] Pass registered custom color profiles through native renderer style resolution.
+- [x] CSS HDR `rec2100-linear` profile in absolute `color()`, relative colors, and interpolation; other HDR color spaces are implemented below.
 - [x] CSS HDR `rec2100-pq` and `rec2100-hlg` profiles in absolute `color()`, relative colors, and interpolation.
 - [x] Render absolute modern color functions with missing (`none`) components treated as zero, including hue and alpha.
 - [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-pq`, `rec2100-hlg`, `rec2100-linear`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
-- [ ] Custom `color-mix()` interpolation spaces.
+- [x] Custom `color-mix()` interpolation spaces.
   Requires `@color-profile` registration, ICC profile loading, and profile-aware conversion; custom color spaces are currently marked at-risk in CSS Color 5.
 - [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, `oklch(from ...)`, and `color(from ...)` relative colors in supported profiles with channel references, alpha preservation, supported numeric, percentage, and angle overrides, number, percentage, and angle calculations, and `none` components mapped to zero during conversion.
 - [x] Carry matching missing components and alpha from direct `color(srgb ...)` inputs through `color-mix(in srgb, ...)`.

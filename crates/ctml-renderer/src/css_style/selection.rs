@@ -4,7 +4,10 @@ use crate::{StyleRule, style::TextStyle};
 
 use super::{ElementIdentity, resolve_style_with_selector_tree_context};
 
-pub(crate) fn selection_background_color(stylesheet: &[StyleRule]) -> [u8; 4] {
+pub(crate) fn selection_background_color(
+    stylesheet: &[StyleRule],
+    color_profiles: &[ctml_css::CssColorProfile],
+) -> [u8; 4] {
     let declarations = stylesheet
         .iter()
         .filter_map(|rule| {
@@ -40,8 +43,10 @@ pub(crate) fn selection_background_color(stylesheet: &[StyleRule]) -> [u8; 4] {
         class: None,
         id: None,
     };
+    let mut inherited = TextStyle::default();
+    inherited.color_profiles = std::sync::Arc::from(color_profiles);
     let style = resolve_style_with_selector_tree_context(
-        &TextStyle::default(),
+        &inherited,
         &body,
         &[],
         &[],

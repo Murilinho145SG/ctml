@@ -13,6 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let document = parse(&source)?;
     let mut stylesheet = Vec::new();
     let mut fonts = Vec::new();
+    let mut color_profiles = Vec::new();
     let mut layers = Vec::new();
     for element in document.stylesheets() {
         let relative_path = string_attribute(element, "href")?
@@ -61,6 +62,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 face.stretch.clone(),
             ));
         }
+        for profile in &parsed.color_profiles {
+            if let Some(index) = color_profiles
+                .iter()
+                .position(|existing: &ctml_compiler::CssColorProfile| existing.name == profile.name)
+            {
+                color_profiles[index] = profile.clone();
+            } else {
+                color_profiles.push(profile.clone());
+            }
+        }
         for layer in &parsed.layers {
             if !layers.contains(layer) {
                 let insertion = layer
@@ -91,8 +102,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let body = rust_nodes(&document.body)?;
     let stylesheet = rust_stylesheet(&stylesheet);
     let fonts = rust_fonts(&fonts);
+    let color_profiles = rust_color_profiles(&color_profiles);
     let generated_source = format!(
-        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\npub fn fonts() -> Vec<ctml::FontFace> {{ vec![{fonts}] }}\n"
+        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\npub fn fonts() -> Vec<ctml::FontFace> {{ vec![{fonts}] }}\npub fn color_profiles() -> Vec<ctml::CssColorProfile> {{ vec![{color_profiles}] }}\n"
     );
 
     let output_path = PathBuf::from(
@@ -207,6 +219,29 @@ fn rust_fonts(
             "ctml::FontFace {{ family: {family:?}.to_owned(), sources: vec![{sources}], weight: {weight}, weight_range: {weight_range}, style: {style}, style_range: {style_range}, stretch: {stretch} }}"
         )
     }).collect::<Vec<_>>().join(", ")
+}
+
+fn rust_color_profiles(profiles: &[ctml_compiler::CssColorProfile]) -> String {
+    profiles
+        .iter()
+        .map(|profile| {
+            let components = profile
+                .components
+                .iter()
+                .map(|component| format!("{component:?}.to_owned()"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let profile_data = profile.profile_data.as_ref().map_or_else(
+                || "None".to_owned(),
+                |bytes| format!("Some(vec![{}])", bytes.iter().map(u8::to_string).collect::<Vec<_>>().join(", ")),
+            );
+            format!(
+                "ctml::CssColorProfile {{ name: {:?}.to_owned(), source: {:?}.to_owned(), rendering_intent: {:?}.to_owned(), components: vec![{components}], profile_data: {profile_data}, stylesheet_path: None }}",
+                profile.name, profile.source, profile.rendering_intent
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn parse_font_weight(value: &str) -> Option<u16> {

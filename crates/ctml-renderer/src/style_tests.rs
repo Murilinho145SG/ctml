@@ -20,8 +20,57 @@ fn compile_runs(
         focused_path,
         keyboard_focus,
         None,
+        &[],
         ctml_css::ViewportSize::default(),
     )
+}
+
+#[test]
+fn resolves_custom_icc_colors_in_native_text_styles() {
+    let profile = ctml_css::CssColorProfile {
+        name: "--screen".to_owned(),
+        source: "url(test.icc)".to_owned(),
+        rendering_intent: "relative-colorimetric".to_owned(),
+        components: vec!["red".to_owned(), "green".to_owned(), "blue".to_owned()],
+        profile_data: Some(lcms2::Profile::new_srgb().icc().unwrap()),
+        stylesheet_path: None,
+    };
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("profile color".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        declarations: vec![
+            StyleDeclaration {
+                property: "color".to_owned(),
+                value: "color-mix(in --screen, color(--screen 1 0 0), blue)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "color(--screen 1 0 0)".to_owned(),
+            },
+        ],
+        layer: None,
+    }];
+
+    let (runs, _) = compile_runs_with_font_system(
+        &nodes,
+        &stylesheet,
+        &[],
+        &[],
+        &[],
+        false,
+        None,
+        &[profile],
+        ctml_css::ViewportSize::default(),
+    );
+
+    assert_eq!(runs[0].style.color, [127, 0, 128, 255]);
+    assert_eq!(runs[0].style.background_color, Some([255, 0, 0, 255]));
 }
 
 #[test]

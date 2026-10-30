@@ -1,6 +1,6 @@
 use crate::style::TextStyle;
 use ctml_css::{
-    parse_color, parse_nonnegative_font_relative_length_with_viewport,
+    parse_color_with_profiles, parse_nonnegative_font_relative_length_with_viewport,
     parse_signed_font_relative_length_with_viewport,
 };
 
@@ -50,7 +50,9 @@ pub(super) fn apply_text_decoration_shorthand(style: &mut TextStyle, value: &str
             if color.replace(None).is_some() {
                 return;
             }
-        } else if let Some(parsed_color) = parse_color(component) {
+        } else if let Some(parsed_color) =
+            parse_color_with_profiles(component, &style.color_profiles)
+        {
             if color.replace(Some(parsed_color)).is_some() {
                 return;
             }
@@ -181,7 +183,7 @@ pub(super) fn apply_text_decoration_property(style: &mut TextStyle, property: &s
             style.text_decoration_color = if value.eq_ignore_ascii_case("currentcolor") {
                 None
             } else {
-                parse_color(value)
+                parse_color_with_profiles(value, &style.color_profiles)
             };
         }
         _ => {}
