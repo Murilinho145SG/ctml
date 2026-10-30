@@ -1,7 +1,8 @@
 use std::{env, fs, io, path::PathBuf};
 
 use ctml_compiler::{
-    AttributeValue, CssRule, Element, Node, load_font_face_resource, parse, parse_stylesheet_file,
+    AttributeValue, CssFontSource, CssRule, Element, Node, load_local_resource, parse,
+    parse_font_face_sources, parse_stylesheet_file,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,12 +37,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .stylesheet_path
                 .as_ref()
                 .ok_or_else(|| invalid_data("font-face has no source stylesheet"))?;
-            let resource =
-                load_font_face_resource(&face.source, path, &source_root).map_err(invalid_data)?;
-            println!("cargo:rerun-if-changed={}", resource.path.display());
+            let candidates = parse_font_face_sources(&face.source)
+                .ok_or_else(|| invalid_data("invalid @font-face src descriptor"))?;
+            let mut sources = Vec::new();
+            for candidate in candidates {
+                match candidate {
+                    CssFontSource::Local(name) => sources.push((Some(name), None)),
+                    CssFontSource::Url(url) => {
+                        let resource =
+                            load_local_resource(&url, path, &source_root).map_err(invalid_data)?;
+                        println!("cargo:rerun-if-changed={}", resource.path.display());
+                        sources.push((None, Some(resource.path)));
+                    }
+                }
+            }
             fonts.push((
                 face.family.clone(),
-                resource.path,
+                sources,
                 face.weight.clone(),
                 face.style.clone(),
                 face.stretch.clone(),
@@ -164,22 +176,29 @@ fn rust_stylesheet(rules: &[CssRule]) -> String {
 fn rust_fonts(
     fonts: &[(
         String,
-        PathBuf,
+        Vec<(Option<String>, Option<PathBuf>)>,
         Option<String>,
         Option<String>,
         Option<String>,
     )],
 ) -> String {
-    fonts.iter().map(|(family, path, weight, style, stretch)| {
+    fonts.iter().map(|(family, sources, weight, style, stretch)| {
         let weight = weight.as_deref().and_then(parse_font_weight)
             .map_or_else(|| "None".to_owned(), |weight| format!("Some({weight})"));
         let style = style.as_deref().filter(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "normal" | "italic" | "oblique"))
             .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
         let stretch = stretch.as_deref().filter(|value| is_font_stretch(value))
             .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
+        let sources = sources.iter().map(|(local, path)| match (local, path) {
+            (Some(name), None) => format!("ctml::FontFaceSource::Local({name:?}.to_owned())"),
+            (None, Some(path)) => format!(
+                "ctml::FontFaceSource::Embedded(include_bytes!({:?}).to_vec())",
+                path.to_str().expect("canonical resource path must be UTF-8"),
+            ),
+            _ => unreachable!("font source candidate must have exactly one variant"),
+        }).collect::<Vec<_>>().join(", ");
         format!(
-            "ctml::FontFace {{ family: {family:?}.to_owned(), bytes: include_bytes!({:?}).to_vec(), weight: {weight}, style: {style}, stretch: {stretch} }}",
-            path.to_str().expect("canonical resource path must be UTF-8"),
+            "ctml::FontFace {{ family: {family:?}.to_owned(), sources: vec![{sources}], weight: {weight}, style: {style}, stretch: {stretch} }}"
         )
     }).collect::<Vec<_>>().join(", ")
 }

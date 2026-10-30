@@ -16,6 +16,13 @@ pub struct LocalResource {
     pub bytes: Vec<u8>,
 }
 
+/// A source candidate from a CSS `@font-face` `src` descriptor.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CssFontSource {
+    Local(String),
+    Url(String),
+}
+
 /// Extracts the URL path from a CSS `url()` value, including quoted and escaped forms.
 pub fn parse_css_url(value: &str) -> Option<String> {
     if !has_closed_url_function(value) {
@@ -90,53 +97,91 @@ pub fn load_css_resource(
     load_local_resource(&url_path, stylesheet_path, root)
 }
 
-/// Loads a local font URL from an `@font-face` `src` descriptor.
-///
-/// One `url()` source may be followed by `format()` or `tech()` hints.
-pub fn load_font_face_resource(
-    src: &str,
-    stylesheet_path: impl AsRef<Path>,
-    root: impl AsRef<Path>,
-) -> Result<LocalResource, String> {
-    let url = parse_font_face_src_url(src)
-        .ok_or_else(|| "unsupported @font-face src descriptor".to_owned())?;
-    load_local_resource(&url, stylesheet_path, root)
-}
-
-fn parse_font_face_src_url(src: &str) -> Option<String> {
+/// Parses ordered `local()` and `url()` source candidates, including format and technology hints.
+pub fn parse_font_face_sources(src: &str) -> Option<Vec<CssFontSource>> {
     let mut source = ParserInput::new(src);
     let mut parser = Parser::new(&mut source);
-    let url = match parser.next().ok()? {
-        Token::UnquotedUrl(url) => url.to_string(),
-        Token::Function(name) if name.eq_ignore_ascii_case("url") => parser
-            .parse_nested_block(|input| -> Result<String, cssparser::ParseError<'_, ()>> {
-                input.skip_whitespace();
-                let value = input.expect_string()?.to_string();
-                input.skip_whitespace();
-                if !input.is_exhausted() {
-                    return Err(input.new_custom_error(()));
-                }
-                Ok(value)
-            })
-            .ok()?,
-        _ => return None,
-    };
+    let mut sources = Vec::new();
     while !parser.is_exhausted() {
-        match parser.next().ok()? {
-            Token::Function(name)
-                if matches!(name.to_ascii_lowercase().as_str(), "format" | "tech") =>
-            {
-                parser
+        let source = match parser.next().ok()? {
+            Token::UnquotedUrl(url) => CssFontSource::Url(url.to_string()),
+            Token::Function(name) if name.eq_ignore_ascii_case("url") => {
+                let url = parser
+                    .parse_nested_block(|input| -> Result<String, cssparser::ParseError<'_, ()>> {
+                        input.skip_whitespace();
+                        let value = input.expect_string()?.to_string();
+                        input.skip_whitespace();
+                        if input.is_exhausted() {
+                            Ok(value)
+                        } else {
+                            Err(input.new_custom_error(()))
+                        }
+                    })
+                    .ok()?;
+                CssFontSource::Url(url)
+            }
+            Token::Function(name) if name.eq_ignore_ascii_case("local") => {
+                let family = parser
+                    .parse_nested_block(|input| -> Result<String, cssparser::ParseError<'_, ()>> {
+                        input.skip_whitespace();
+                        if let Ok(value) = input
+                            .try_parse(|input| input.expect_string().map(|value| value.to_string()))
+                        {
+                            input.skip_whitespace();
+                            return if input.is_exhausted() {
+                                Ok(value)
+                            } else {
+                                Err(input.new_custom_error(()))
+                            };
+                        }
+                        let mut family = String::new();
+                        while !input.is_exhausted() {
+                            let identifier = input.expect_ident_cloned()?.to_string();
+                            if !family.is_empty() {
+                                family.push(' ');
+                            }
+                            family.push_str(&identifier);
+                            input.skip_whitespace();
+                        }
+                        if family.trim().is_empty() {
+                            Err(input.new_custom_error(()))
+                        } else {
+                            Ok(family)
+                        }
+                    })
+                    .ok()?;
+                CssFontSource::Local(family)
+            }
+            _ => return None,
+        };
+        sources.push(source);
+        loop {
+            let hint = parser.try_parse(|input| -> Result<String, cssparser::ParseError<'_, ()>> {
+                match input.next()? {
+                    Token::Function(name)
+                        if matches!(name.to_ascii_lowercase().as_str(), "format" | "tech") =>
+                    {
+                        Ok(name.to_ascii_lowercase())
+                    }
+                    _ => Err(input.new_custom_error(())),
+                }
+            });
+            match hint {
+                Ok(_) => parser
                     .parse_nested_block(|input| -> Result<(), cssparser::ParseError<'_, ()>> {
                         while input.next().is_ok() {}
                         Ok(())
                     })
-                    .ok()?;
+                    .ok()?,
+                Err(_) => break,
             }
-            _ => return None,
         }
+        if parser.is_exhausted() {
+            break;
+        }
+        parser.expect_comma().ok()?;
     }
-    Some(url)
+    (!sources.is_empty()).then_some(sources)
 }
 
 /// Loads a local resource relative to a stylesheet, constrained to its configured root.

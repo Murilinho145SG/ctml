@@ -1,4 +1,4 @@
-use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, SwashCache, fontdb};
+use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, SwashCache};
 use winit::window::CursorIcon;
 
 use crate::{
@@ -12,6 +12,7 @@ mod backgrounds;
 mod cursor_spans;
 mod decorations;
 mod focus;
+mod font_faces;
 mod font_features;
 mod font_raster;
 mod highlights;
@@ -24,6 +25,7 @@ mod viewport;
 const PAGE_PADDING: f32 = 8.0;
 
 use cursor_spans::{CursorSpan, cursor_spans};
+use font_faces::register_font_faces;
 use layout::shape_buffer;
 use sizing::{
     block_spacer_heights, cursor_with_flow_spacers, cursor_without_flow_spacers, flow_spacer_lines,
@@ -63,38 +65,7 @@ impl PageRasterizer {
         fonts: &[crate::FontFace],
     ) -> Self {
         let mut font_system = FontSystem::new();
-        for font in fonts {
-            let database = font_system.db_mut();
-            let ids = database.load_font_source(fontdb::Source::Binary(std::sync::Arc::new(
-                font.bytes.clone(),
-            )));
-            let aliases = ids
-                .iter()
-                .filter_map(|id| database.face(*id).cloned())
-                .map(|mut face| {
-                    if let Some((_, language)) = face.families.first() {
-                        face.families = vec![(font.family.clone(), language.clone())];
-                    }
-                    if let Some(weight) = font.weight {
-                        face.weight = fontdb::Weight(weight);
-                    }
-                    if let Some(style) = font.style.as_deref() {
-                        face.style = match style.trim().to_ascii_lowercase().as_str() {
-                            "italic" => fontdb::Style::Italic,
-                            "oblique" => fontdb::Style::Oblique,
-                            _ => fontdb::Style::Normal,
-                        };
-                    }
-                    if let Some(stretch) = font.stretch.as_deref().and_then(parse_font_stretch) {
-                        face.stretch = stretch;
-                    }
-                    face
-                })
-                .collect::<Vec<_>>();
-            for face in aliases {
-                database.push_face_info(face);
-            }
-        }
+        register_font_faces(&mut font_system, fonts);
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
             font_system.db_mut().set_sans_serif_family(family);
@@ -451,46 +422,6 @@ impl PageRasterizer {
         self.draw_pseudo_decorations(&mut pixels, width, height, &auto_ink_mask, &all_ink_mask);
         pixels
     }
-}
-
-fn parse_font_stretch(value: &str) -> Option<fontdb::Stretch> {
-    let lower = value.trim().to_ascii_lowercase();
-    Some(match lower.as_str() {
-        "ultra-condensed" => fontdb::Stretch::UltraCondensed,
-        "extra-condensed" => fontdb::Stretch::ExtraCondensed,
-        "condensed" => fontdb::Stretch::Condensed,
-        "semi-condensed" => fontdb::Stretch::SemiCondensed,
-        "normal" => fontdb::Stretch::Normal,
-        "semi-expanded" => fontdb::Stretch::SemiExpanded,
-        "expanded" => fontdb::Stretch::Expanded,
-        "extra-expanded" => fontdb::Stretch::ExtraExpanded,
-        "ultra-expanded" => fontdb::Stretch::UltraExpanded,
-        _ => {
-            let percentage = lower.strip_suffix('%')?.trim().parse::<f32>().ok()?;
-            if !percentage.is_finite() || percentage <= 0.0 {
-                return None;
-            }
-            let ranges = [
-                (50.0, fontdb::Stretch::UltraCondensed),
-                (62.5, fontdb::Stretch::ExtraCondensed),
-                (75.0, fontdb::Stretch::Condensed),
-                (87.5, fontdb::Stretch::SemiCondensed),
-                (100.0, fontdb::Stretch::Normal),
-                (112.5, fontdb::Stretch::SemiExpanded),
-                (125.0, fontdb::Stretch::Expanded),
-                (150.0, fontdb::Stretch::ExtraExpanded),
-                (200.0, fontdb::Stretch::UltraExpanded),
-            ];
-            return ranges
-                .into_iter()
-                .min_by(|(left, _), (right, _)| {
-                    (left - percentage)
-                        .abs()
-                        .total_cmp(&(right - percentage).abs())
-                })
-                .map(|(_, stretch)| stretch);
-        }
-    })
 }
 
 fn is_underline_descender(character: char) -> bool {

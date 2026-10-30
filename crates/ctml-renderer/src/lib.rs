@@ -14,9 +14,15 @@ pub use ui::{StyleDeclaration, StyleRule, UiNode};
 #[derive(Clone, Debug)]
 pub struct FontFace {
     pub family: String,
-    pub bytes: Vec<u8>,
+    pub sources: Vec<FontFaceSource>,
     pub weight: Option<u16>,
     pub style: Option<String>,
     pub stretch: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub enum FontFaceSource {
+    Local(String),
+    Embedded(Vec<u8>),
 }
 pub use window::{Window, WindowConfig, WindowError};

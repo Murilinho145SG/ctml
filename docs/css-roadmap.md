@@ -193,8 +193,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Low-level `font-feature-settings` with four-character OpenType tags, numeric settings, `on`, and `off`.
 - [ ] Optical sizing and font variation settings.
 - [x] Local `@font-face` loading with a CSS family alias and static weight, style, and stretch descriptors.
-- [ ] Font source lists, `local()` sources, and variable weight/style ranges.
-- [ ] Fallback selection and local font lookup policy.
+- [ ] Variable font weight/style ranges.
+- [x] `@font-face` tries `local()` and local URL candidates in source order, aliases the first available font to the declared family, and matches static weight/style/stretch descriptors through the native font database.
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features.
 - [x] Text alignment: left, right, center, justify, start, and end.
 - [ ] Alignment last line, indentation, and advanced justification controls.

@@ -87,27 +87,31 @@ fn resolves_font_face_sources_from_the_declaring_stylesheet() {
 }
 
 #[test]
-fn loads_font_face_urls_with_format_and_technology_hints() {
+fn parses_ordered_font_face_source_lists_and_hints() {
     let root = temporary_directory("font-face-format-hint");
     std::fs::create_dir_all(root.join("styles")).unwrap();
     std::fs::write(root.join("styles/font.bin"), [4, 5, 6]).unwrap();
     std::fs::write(root.join("styles/main.css"), "").unwrap();
 
-    let resource = crate::load_font_face_resource(
-        "url('font.bin') format('opentype') tech(color-COLRv1)",
-        root.join("styles/main.css"),
-        &root,
+    let candidates = crate::parse_font_face_sources(
+        "local('System Sans'), local(System Sans), url('font.bin') format('opentype') tech(color-COLRv1), url('fallback.bin')",
     )
     .unwrap();
-    assert_eq!(resource.bytes, [4, 5, 6]);
-    assert!(
-        crate::load_font_face_resource(
-            "url('font.bin'), url('fallback.bin')",
-            root.join("styles/main.css"),
-            &root,
-        )
-        .is_err()
+    assert_eq!(
+        candidates,
+        [
+            crate::CssFontSource::Local("System Sans".to_owned()),
+            crate::CssFontSource::Local("System Sans".to_owned()),
+            crate::CssFontSource::Url("font.bin".to_owned()),
+            crate::CssFontSource::Url("fallback.bin".to_owned()),
+        ]
     );
+    let crate::CssFontSource::Url(url) = &candidates[2] else {
+        panic!("second candidate should be a URL")
+    };
+    let resource = crate::load_local_resource(url, root.join("styles/main.css"), &root).unwrap();
+    assert_eq!(resource.bytes, [4, 5, 6]);
+    assert!(crate::parse_font_face_sources("url(font.bin) bogus").is_none());
 
     std::fs::remove_dir_all(root).unwrap();
 }
