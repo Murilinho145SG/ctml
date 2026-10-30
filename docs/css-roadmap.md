@@ -111,12 +111,12 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Viewport-relative units, including small, large, and dynamic variants, for supported font, text-effect, and box-size lengths.
 - [x] Evaluate `calc()`, `min()`, `max()`, and `clamp()` for supported length/percentage values, plus number expressions for opacity, line-height, and font weight.
 - [ ] Container query units, if container queries are implemented.
-- [ ] Angles, times, frequencies, and resolutions where relevant.
+- [x] Angles, times, frequencies, and resolutions where relevant to implemented properties and generated content.
 - [x] Parse finite `deg`, `grad`, `rad`, and `turn` angle tokens for CSS colors and oblique `@font-face` ranges.
 - [x] Apply `font-style: oblique <angle>` to the OpenType `slnt` axis, including angle calculations and explicit-angle validation.
 - [x] Evaluate supported angle calculations for `font-style: oblique` and normalize angle units to degrees.
-- [ ] `calc()`, `min()`, `max()`, and `clamp()`.
-- [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
+- [x] `calc()`, `min()`, `max()`, and `clamp()` for supported length, percentage, number, angle, and relative-color values.
+- [x] Typed arithmetic and calculation functions from newer CSS Values modules for the number and dimension types consumed by supported properties.
 - [x] Support CSS `round()` for numbers and supported length dimensions, including all rounding strategies and number-only default intervals.
 - [x] Support typed `mod()` and `rem()` calculations for numbers and supported length dimensions.
 - [x] Support CSS `abs()` for supported dimensions and `abs()`/`sign()` for numbers.
