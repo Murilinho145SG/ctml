@@ -41,7 +41,6 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::before` and `::after` generated text from quoted `content` strings and string-valued `attr(name)`, with supported text properties.
 - [x] String-valued `attr(name, fallback)` uses a serialized token-sequence fallback when the attribute is missing.
 - [x] Generated-content `attr()` converts `type(<string>)`, `type(<number>)`, and `type(<integer>)`, using the fallback when conversion fails.
-- [x] Typed integer `attr()` accepts signed ASCII integer syntax without a machine-sized range limit and normalizes leading zeros.
 - [x] Global `::selection` background color, including alpha compositing.
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
@@ -127,6 +126,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Remaining applicable `attr()` forms and `env()` values for the native desktop host.
 - [x] Generated-content `attr()` converts simple finite `<percentage>`, `<length>`, `<length-percentage>`, `<angle>`, `<time>`, `<frequency>`, and `<resolution>` attribute tokens; invalid values use the fallback.
 - [x] Apply string, integer, number, percentage, length, length-percentage, color, and custom-ident `attr()` substitution to supported style declarations, including typed fallback values.
+- [x] Direct typed integer `attr()` in generated content and style declarations accepts signed ASCII integer syntax without a machine-sized range limit and normalizes leading zeros.
 - [x] Apply typed `<angle>` `attr()` values and fallbacks in supported style declarations, including CSS color functions.
 - [x] Evaluate supported `calc()`, `min()`, `max()`, and `clamp()` expressions in typed integer, number, percentage, length, length-percentage, and angle `attr()` values.
 - [x] Resolve `safe-area-inset-*` and `safe-area-max-inset-*` `env()` values as zero on the desktop host and use fallbacks for unknown environment variables.

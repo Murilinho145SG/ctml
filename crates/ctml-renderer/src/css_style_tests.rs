@@ -205,14 +205,30 @@ fn resolves_math_calculations_in_typed_attr_values() {
             Some("calc(0.25turn + 90deg)".to_owned()),
         ),
     ];
+    let stylesheet = [rule];
 
-    let style =
-        resolve_style_with_attributes(&TextStyle::default(), &paragraph, &[], &attributes, &[rule]);
+    let style = resolve_style_with_attributes(
+        &TextStyle::default(),
+        &paragraph,
+        &[],
+        &attributes,
+        &stylesheet,
+    );
 
     assert_eq!(style.font_size, 18.0);
     assert_eq!(style.weight, Weight(700));
     assert_eq!(style.opacity, 0.5);
     assert_eq!(style.background_color, Some([0, 255, 255, 255]));
+
+    let integer_attributes = [("data-weight".to_owned(), Some("+000725".to_owned()))];
+    let integer_style = resolve_style_with_attributes(
+        &TextStyle::default(),
+        &paragraph,
+        &[],
+        &integer_attributes,
+        &stylesheet,
+    );
+    assert_eq!(integer_style.weight, Weight(725));
 }
 
 #[test]

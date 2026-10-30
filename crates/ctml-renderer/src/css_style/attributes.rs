@@ -188,17 +188,12 @@ fn convert_attribute(
                 .expect("writing CSS tokens into a String cannot fail");
             Some(serialized)
         }
-        Some(AttrType::Integer) => value
-            .trim()
-            .parse::<i64>()
-            .ok()
-            .map(|value| value.to_string())
-            .or_else(|| {
-                let value = ctml_css::parse_math_number(value)?;
-                let rounded = (value as f64 + 0.5).floor();
-                (rounded >= i64::MIN as f64 && rounded <= i64::MAX as f64)
-                    .then(|| (rounded as i64).to_string())
-            }),
+        Some(AttrType::Integer) => ctml_css::parse_css_integer(value).or_else(|| {
+            let value = ctml_css::parse_math_number(value)?;
+            let rounded = (value as f64 + 0.5).floor();
+            (rounded >= i64::MIN as f64 && rounded <= i64::MAX as f64)
+                .then(|| (rounded as i64).to_string())
+        }),
         Some(AttrType::Number) => ctml_css::parse_math_number(value)
             .or_else(|| ctml_css::parse_css_number(value))
             .map(|value| value.to_string()),

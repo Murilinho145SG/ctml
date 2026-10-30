@@ -30,7 +30,7 @@ pub use length::{
     parse_signed_length_percentage_with_line_height,
 };
 pub use math::{parse_math_angle, parse_math_expression, parse_math_number, parse_math_percentage};
-pub use numeric::{parse_css_dimension, parse_css_number, parse_css_percentage};
+pub use numeric::{parse_css_dimension, parse_css_integer, parse_css_number, parse_css_percentage};
 pub use resources::{
     CssFontSource, LocalResource, load_css_resource, load_local_resource, parse_css_url,
     parse_font_face_sources,

@@ -7,6 +7,28 @@ pub(crate) enum CssNumericToken {
     Dimension(f32, String),
 }
 
+/// Parses a CSS integer and returns a canonical decimal representation.
+pub fn parse_css_integer(value: &str) -> Option<String> {
+    let value = value.trim();
+    let (negative, digits) = match value.as_bytes().first() {
+        Some(b'+') => (false, &value[1..]),
+        Some(b'-') => (true, &value[1..]),
+        _ => (false, value),
+    };
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let digits = digits.trim_start_matches('0');
+    if digits.is_empty() {
+        return Some("0".to_owned());
+    }
+    Some(if negative {
+        format!("-{digits}")
+    } else {
+        digits.to_owned()
+    })
+}
+
 pub(crate) fn parse_css_numeric_token(value: &str) -> Option<CssNumericToken> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
@@ -47,7 +69,20 @@ pub fn parse_css_dimension(value: &str) -> Option<(f32, String)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_css_number, parse_css_percentage};
+    use super::{parse_css_integer, parse_css_number, parse_css_percentage};
+
+    #[test]
+    fn parses_css_integers_without_a_machine_range_limit() {
+        assert_eq!(parse_css_integer("+00042"), Some("42".to_owned()));
+        assert_eq!(parse_css_integer("-000"), Some("0".to_owned()));
+        assert_eq!(
+            parse_css_integer("9999999999999999999999999999999999999999"),
+            Some("9999999999999999999999999999999999999999".to_owned())
+        );
+        for value in ["", "+", "-", "1.0", "1e2", "1 2", "١"] {
+            assert_eq!(parse_css_integer(value), None, "{value}");
+        }
+    }
 
     #[test]
     fn parses_css_numbers_and_percentages_without_accepting_other_tokens() {
