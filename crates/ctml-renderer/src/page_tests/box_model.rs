@@ -88,13 +88,16 @@ fn padding_contributes_to_block_flow_and_border_box_widths() {
 
 #[test]
 fn inline_start_padding_offsets_text_and_resolves_font_relative_lengths() {
-    let nodes = [UiNode::Element {
-        tag: "div".to_owned(),
-        class: None,
-        id: None,
-        attributes: Vec::new(),
-        children: vec![UiNode::Text("inside".to_owned())],
-    }];
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("inside".to_owned())],
+        },
+        text_paragraph("after"),
+    ];
     let mut natural = PageRasterizer::new(&nodes, &[]);
     let stylesheet = [StyleRule {
         selectors: vec!["div".to_owned()],
@@ -214,6 +217,102 @@ fn logical_block_start_padding_insets_content_and_adds_to_flow() {
     assert!(
         (offset - 12.0).abs() < 2.0,
         "expected 12px inset, got {offset}px"
+    );
+}
+
+#[test]
+fn logical_percentage_margins_offset_text_and_add_block_flow_space() {
+    let nodes = [UiNode::Element {
+        tag: "section".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "div".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("inside".to_owned())],
+            },
+            text_paragraph("after"),
+        ],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["section".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "200px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "margin-inline-start".to_owned(),
+                    value: "10%".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "margin-block".to_owned(),
+                    value: "10%".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    let mut margined = PageRasterizer::new(&nodes, &stylesheet);
+    natural.prepare_layout(300, 300);
+    margined.prepare_layout(300, 300);
+    let horizontal_offset = text_line_x(&margined, "inside") - text_line_x(&natural, "inside");
+    let vertical_offset = text_line_y(&margined, "inside") - text_line_y(&natural, "inside");
+    let flow_offset = text_line_y(&margined, "after") - text_line_y(&natural, "after");
+    assert!(
+        (horizontal_offset - 20.0).abs() < 2.0,
+        "got {horizontal_offset}px"
+    );
+    assert!(
+        (vertical_offset - 20.0).abs() < 3.0,
+        "got {vertical_offset}px"
+    );
+    assert!((flow_offset - 40.0).abs() < 5.0, "got {flow_offset}px");
+}
+
+#[test]
+fn negative_block_start_margin_pulls_content_upward() {
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("inside".to_owned())],
+        },
+        text_paragraph("after"),
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "margin-top".to_owned(),
+            value: "-8px".to_owned(),
+        }],
+    }];
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    let mut margined = PageRasterizer::new(&nodes, &stylesheet);
+    natural.prepare_layout(300, 300);
+    margined.prepare_layout(300, 300);
+    let content_offset = text_line_y(&margined, "inside") - text_line_y(&natural, "inside");
+    let flow_offset = text_line_y(&margined, "after") - text_line_y(&natural, "after");
+    assert!(
+        content_offset.abs() < 1.0,
+        "text should retain its line position, got {content_offset}px"
+    );
+    assert!(
+        (flow_offset + 8.0).abs() < 2.0,
+        "expected -8px flow offset, got {flow_offset}px"
     );
 }
 

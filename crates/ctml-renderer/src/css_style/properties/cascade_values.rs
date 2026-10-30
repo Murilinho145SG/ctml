@@ -75,6 +75,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
         "min-block-size" => style.min_block_size.clone_from(&inherited.min_block_size),
         "max-height" => style.max_height.clone_from(&inherited.max_height),
         "max-block-size" => style.max_block_size.clone_from(&inherited.max_block_size),
+        property if is_margin_property(property) => {
+            inherit_margin_property(style, inherited, property)
+        }
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -266,6 +269,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "min-block-size" => style.min_block_size = None,
         "max-height" => style.max_height = None,
         "max-block-size" => style.max_block_size = None,
+        property if is_margin_property(property) => reset_margin_property(style, property),
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use crate::style::WritingMode;
 use crate::style::{LayoutSize, TextRun};
 
-use super::sizing_padding::resolve_padding;
+use super::sizing_padding::{resolve_margin, resolve_padding};
 pub(super) fn resolve_width(
     value: &str,
     available_width: f32,
@@ -210,12 +210,18 @@ pub(super) fn resolve_layout_width(
     let mut content_width = available_width;
     for size in sizes {
         let padding = resolve_padding(size, content_width);
+        let margin = resolve_margin(size, content_width);
         let inline_padding = if is_vertical(page_writing_mode) {
             padding[0] + padding[2]
         } else {
             padding[1] + padding[3]
         };
-        let available_content_width = (content_width - inline_padding).max(0.0);
+        let inline_margin = if is_vertical(page_writing_mode) {
+            margin[0] + margin[2]
+        } else {
+            margin[1] + margin[3]
+        };
+        let available_content_width = (content_width - inline_padding - inline_margin).max(0.0);
         let resolve_inline_size = |value: &str| {
             resolve_width(
                 value,

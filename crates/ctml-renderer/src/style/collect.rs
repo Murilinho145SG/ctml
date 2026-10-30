@@ -6,7 +6,7 @@ use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 use std::collections::HashMap;
 
 use super::{
-    LayoutHeight, LayoutSize, TextRun, TextStyle, UserSelect, append_text,
+    LayoutHeight, LayoutSize, TextRun, TextStyle, UserSelect, append_text, collect_spacers,
     list_marker::format_marker, pseudo, push_line_break, selector_sibling_contexts,
 };
 
@@ -231,6 +231,7 @@ pub(super) fn collect_runs(
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
+                        || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
                         || style.overflow_x != super::Overflow::Visible
                         || style.overflow_y != super::Overflow::Visible);
@@ -251,6 +252,7 @@ pub(super) fn collect_runs(
                         max_block_size: style.max_block_size.clone(),
                         border_box: style.border_box,
                         padding: style.padding.clone(),
+                        margin: style.margin.clone(),
                         overflow_x: style.overflow_x,
                         overflow_y: style.overflow_y,
                         size_property_orders: style.size_property_orders.clone(),
@@ -270,44 +272,15 @@ pub(super) fn collect_runs(
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
-                if block
-                    && style.writing_mode == super::WritingMode::HorizontalTb
-                    && style.padding[0]
-                        .as_deref()
-                        .is_some_and(|padding| padding != "0")
-                    && (!children.is_empty() || before_content.is_some() || has_after_content)
-                {
-                    let mut spacer_style = style.clone();
-                    spacer_style.font_size = 1.0;
-                    spacer_style.line_height = style.padding[0]
-                        .as_deref()
-                        .and_then(|padding| {
-                            ctml_css::parse_nonnegative_font_relative_length_with_viewport(
-                                padding,
-                                style.font_size,
-                                style.line_height,
-                                style.font_relative_units,
-                                style.viewport_size,
-                            )
-                        })
-                        .unwrap_or_default();
-                    spacer_style.line_height_normal = false;
-                    spacer_style.flow_spacer = true;
-                    spacer_style.padding_start_spacer = true;
-                    let last_was_space_before = *last_was_space;
-                    let capitalize_next_before = *capitalize_next;
-                    append_text(
-                        "\u{200b}",
-                        &spacer_style,
-                        element_path,
-                        output,
-                        last_was_space,
-                        capitalize_next,
-                    );
-                    push_line_break(output, &spacer_style, element_path, last_was_space);
-                    *last_was_space = last_was_space_before;
-                    *capitalize_next = capitalize_next_before;
-                }
+                collect_spacers::append_block_start_spacers(
+                    &style,
+                    block,
+                    !children.is_empty() || before_content.is_some() || has_after_content,
+                    element_path,
+                    output,
+                    last_was_space,
+                    capitalize_next,
+                );
                 if list_item {
                     if let Some(marker) = format_marker(
                         style.list_style_type.as_deref(),
@@ -351,6 +324,7 @@ pub(super) fn collect_runs(
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
+                        || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0"))
                 {
                     let mut spacer_style = style.clone();
@@ -369,6 +343,7 @@ pub(super) fn collect_runs(
                         max_block_size: style.max_block_size.clone(),
                         border_box: style.border_box,
                         padding: style.padding.clone(),
+                        margin: style.margin.clone(),
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

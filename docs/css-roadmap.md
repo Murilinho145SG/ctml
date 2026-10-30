@@ -204,7 +204,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Apply `border-box` to borders; intrinsic sizing keywords.
 - [x] Percentage physical padding resolves against the containing block's inline size.
 - [x] Logical `padding-inline` and `padding-block` shorthand, including start/end longhands, map through `writing-mode` and `direction` and follow declaration order with physical padding.
-- [ ] Margin and logical margin properties.
+- [x] Physical and logical margin shorthands and sides accept signed font-relative lengths and percentages, follow writing mode, direction, and source order, and adjust text flow. `auto` currently resolves to zero.
 - [ ] Borders, per-side styles/colors/widths, and logical border properties.
 - [ ] `border-radius` and corner shaping.
 - [ ] `outline` and `outline-offset`.

@@ -37,8 +37,10 @@ use size::{
     inherit_width,
 };
 use spacing::{
-    apply_letter_spacing, apply_logical_padding, apply_logical_padding_shorthand, apply_padding,
-    apply_padding_side, apply_word_spacing,
+    apply_letter_spacing, apply_logical_margin, apply_logical_margin_shorthand,
+    apply_logical_padding, apply_logical_padding_shorthand, apply_margin, apply_margin_side,
+    apply_padding, apply_padding_side, apply_word_spacing, inherit_margin_property,
+    is_margin_property, reset_margin_property,
 };
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_property, copy_text_decoration_lines,
@@ -162,6 +164,17 @@ fn is_size_property(property: &str) -> bool {
             | "padding-block"
             | "padding-block-start"
             | "padding-block-end"
+            | "margin"
+            | "margin-top"
+            | "margin-right"
+            | "margin-bottom"
+            | "margin-left"
+            | "margin-inline"
+            | "margin-inline-start"
+            | "margin-inline-end"
+            | "margin-block"
+            | "margin-block-start"
+            | "margin-block-end"
     )
 }
 
@@ -228,6 +241,10 @@ fn is_inherited_property(property: &str) -> bool {
 
 pub(crate) fn resolve_logical_padding(style: &mut TextStyle) {
     spacing::resolve_logical_padding(style);
+}
+
+pub(crate) fn resolve_logical_margin(style: &mut TextStyle) {
+    spacing::resolve_logical_margin(style);
 }
 
 fn parse_overflow_value(value: &str) -> Option<(Overflow, Overflow)> {

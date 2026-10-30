@@ -1,9 +1,9 @@
-use ctml_css::{FontRelativeUnits, ViewportSize};
+use ctml_css::{FontRelativeUnits, ViewportSize, parse_signed_font_relative_length_with_viewport};
 
 use crate::style::{LayoutSize, WritingMode};
 
 use super::sizing::{block_size_constraints, resolve_width};
-use super::sizing_padding::resolve_padding;
+use super::sizing_padding::{resolve_margin, resolve_padding};
 
 pub(super) fn resolve_content_block_height(
     height: Option<&str>,
@@ -39,6 +39,7 @@ pub(super) fn resolve_layout_height_with_ancestors(
     page_writing_mode: WritingMode,
     border_box: bool,
     padding: &[Option<String>; 4],
+    margin: &[Option<String>; 4],
     font_size: f32,
     line_height: f32,
     font_relative_units: FontRelativeUnits,
@@ -88,6 +89,16 @@ pub(super) fn resolve_layout_height_with_ancestors(
         line_height,
         font_relative_units,
         viewport_size,
+    ) + block_margin_extent(
+        resolve_margin_values(
+            margin,
+            containing_width,
+            font_size,
+            line_height,
+            font_relative_units,
+            viewport_size,
+        ),
+        page_writing_mode,
     )
 }
 
@@ -100,10 +111,17 @@ pub(super) fn resolve_block_box_extent(
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
     let padding = resolve_padding(size, containing_width);
+    let margin = resolve_margin(size, containing_width);
     let padding_start = if page_writing_mode == WritingMode::HorizontalTb
         && size.writing_mode == WritingMode::HorizontalTb
     {
         padding[0]
+    } else {
+        0.0
+    };
+    let margin_start = margin_block_start(margin, page_writing_mode);
+    let content_margin_start = if margin_start < 0.0 || content_height <= f32::EPSILON {
+        margin_start
     } else {
         0.0
     };
@@ -119,7 +137,68 @@ pub(super) fn resolve_block_box_extent(
         size.line_height,
         size.font_relative_units,
         size.viewport_size,
-    )
+    ) + content_margin_start
+        + margin_block_end(margin, page_writing_mode)
+}
+
+fn resolve_margin_values(
+    margins: &[Option<String>; 4],
+    containing_width: f32,
+    font_size: f32,
+    line_height: f32,
+    units: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> [f32; 4] {
+    std::array::from_fn(|index| {
+        margins[index]
+            .as_deref()
+            .and_then(|value| {
+                value
+                    .strip_suffix('%')
+                    .and_then(|percent| percent.trim().parse::<f32>().ok())
+                    .map(|percent| containing_width * percent / 100.0)
+                    .filter(|margin| margin.is_finite())
+                    .or_else(|| {
+                        parse_signed_font_relative_length_with_viewport(
+                            value,
+                            font_size,
+                            line_height,
+                            units,
+                            viewport,
+                        )
+                    })
+            })
+            .unwrap_or_default()
+    })
+}
+
+fn margin_block_start(margin: [f32; 4], page_writing_mode: WritingMode) -> f32 {
+    if page_writing_mode == WritingMode::HorizontalTb {
+        margin[0]
+    } else if page_writing_mode == WritingMode::VerticalRl {
+        margin[1]
+    } else {
+        margin[3]
+    }
+}
+
+fn margin_block_end(margin: [f32; 4], page_writing_mode: WritingMode) -> f32 {
+    let side = if page_writing_mode == WritingMode::HorizontalTb {
+        2
+    } else if page_writing_mode == WritingMode::VerticalRl {
+        3
+    } else {
+        1
+    };
+    margin[side]
+}
+
+fn block_margin_extent(margin: [f32; 4], page_writing_mode: WritingMode) -> f32 {
+    if page_writing_mode == WritingMode::HorizontalTb {
+        margin[0] + margin[2]
+    } else {
+        margin[1] + margin[3]
+    }
 }
 
 fn resolve_padding_values(

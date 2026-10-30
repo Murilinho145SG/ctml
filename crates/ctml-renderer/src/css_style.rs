@@ -412,6 +412,7 @@ mod pseudo;
 mod selection;
 #[cfg(test)]
 pub(super) use ctml_css::parse_length;
+pub(super) use properties::resolve_logical_margin;
 pub(super) use properties::resolve_logical_padding;
 use properties::{apply_color_declaration, apply_declaration_with_inherited};
 pub(super) use pseudo::PseudoDecoration;

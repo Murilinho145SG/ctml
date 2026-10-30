@@ -180,3 +180,80 @@ fn logical_padding_maps_after_writing_mode_and_respects_cascade_order() {
     assert_eq!(style.padding[3].as_deref(), Some("6px"));
     assert_eq!(style.padding[1].as_deref(), Some("2px"));
 }
+
+#[test]
+fn margins_accept_signed_lengths_and_logical_properties_follow_source_order() {
+    let style = style_for("margin", "-2px 5% 1em");
+    assert_eq!(
+        style.margin,
+        [
+            Some("-2px".to_owned()),
+            Some("5%".to_owned()),
+            Some("1em".to_owned()),
+            Some("5%".to_owned()),
+        ]
+    );
+    assert_eq!(
+        style_for("margin-inline", "auto").logical_margin[0].as_deref(),
+        Some("auto")
+    );
+    let current = ElementIdentity {
+        tag: "div".to_owned(),
+        class: Some("case".to_owned()),
+        id: None,
+    };
+    let stylesheet = [StyleRule {
+        selectors: vec![".case".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "margin-inline".to_owned(),
+                value: "1px 2px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "margin-left".to_owned(),
+                value: "8px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "margin-inline-start".to_owned(),
+                value: "6px".to_owned(),
+            },
+        ],
+    }];
+    let style = resolve_style(&TextStyle::default(), &current, &[], &stylesheet);
+    assert_eq!(style.margin[3].as_deref(), Some("6px"));
+    assert_eq!(style.margin[1].as_deref(), Some("2px"));
+
+    let vertical = [StyleRule {
+        selectors: vec![".case".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            },
+            StyleDeclaration {
+                property: "direction".to_owned(),
+                value: "rtl".to_owned(),
+            },
+            StyleDeclaration {
+                property: "margin-inline-start".to_owned(),
+                value: "3px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "margin-block".to_owned(),
+                value: "4px 5px".to_owned(),
+            },
+        ],
+    }];
+    let style = resolve_style(&TextStyle::default(), &current, &[], &vertical);
+    assert_eq!(
+        style.margin,
+        [
+            None,
+            Some("4px".to_owned()),
+            Some("3px".to_owned()),
+            Some("5px".to_owned()),
+        ]
+    );
+}

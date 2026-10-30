@@ -6,7 +6,7 @@ use super::super::{
     PageRasterizer,
     sizing::{line_layout_sizes, resolve_layout_width, resolve_width, select_axis_size},
     sizing_height::resolve_layout_height_with_ancestors,
-    sizing_padding::inline_padding,
+    sizing_padding::{inline_margin, inline_padding},
 };
 use super::{line_alignments, line_writing_modes, paragraph_directions};
 
@@ -50,6 +50,26 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                         )
                     })
                     .unwrap_or_default();
+            }
+            let margin_start_side = match style.writing_mode {
+                crate::style::WritingMode::HorizontalTb => 0,
+                crate::style::WritingMode::VerticalRl => 1,
+                crate::style::WritingMode::VerticalLr => 3,
+            };
+            if style.margin_start_spacer
+                && style.margin[margin_start_side]
+                    .as_deref()
+                    .is_some_and(|margin| margin.contains('%'))
+            {
+                let parent_width = resolve_layout_width(
+                    &style.layout_sizes[..style.layout_sizes.len().saturating_sub(1)],
+                    content_width,
+                    page_writing_mode,
+                );
+                style.line_height = style.layout_sizes.last().map_or(0.0, |size| {
+                    super::super::sizing_padding::resolve_margin(size, parent_width)
+                        [margin_start_side]
+                });
             }
             if let Some(height_size) = &style.empty_block_height {
                 let same_axis_orientation = (height_size.writing_mode
@@ -141,6 +161,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                     page_writing_mode,
                     height_size.border_box,
                     &height_size.padding,
+                    &height_size.margin,
                     style.font_size,
                     style.line_height,
                     style.font_relative_units,
@@ -255,9 +276,10 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
             inline_available
         };
         let (padding_start, _) = inline_padding(&sizes, inline_available, page_writing_mode);
-        let line_width = line_content_width + padding_start;
+        let (margin_start, _) = inline_margin(&sizes, inline_available, page_writing_mode);
+        let line_width = line_content_width + padding_start + margin_start;
         line.set_indent(
-            padding_start + indent + line_content_width * indent_percent / 100.0,
+            padding_start + margin_start + indent + line_content_width * indent_percent / 100.0,
             hanging,
             each_line,
         );
