@@ -64,6 +64,11 @@ impl PageRasterizer {
                     && first_letters.get(&block) == Some(&(span.line, span.start, span.end))
                     && let Some(decoration) = span.first_letter_decoration
                 {
+                    let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+                        &span.element_path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    );
                     draw_decoration(
                         &run,
                         span.start,
@@ -84,18 +89,17 @@ impl PageRasterizer {
                             height,
                             &vertical_origins,
                         ),
-                        overflow_clip::scroll_offset_y_for_path(
-                            &span.element_path,
-                            &self.nested_scroll,
-                        ),
-                        overflow_clip::scroll_offset_x_for_path(
-                            &span.element_path,
-                            &self.nested_scroll,
-                        ),
+                        scroll_x,
+                        scroll_y,
                     );
                 }
             }
             for (start, end, _, decoration, path) in first_line_groups {
+                let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+                    &path,
+                    &self.nested_scroll,
+                    self.writing_mode(),
+                );
                 draw_decoration(
                     &run,
                     start,
@@ -116,8 +120,8 @@ impl PageRasterizer {
                         height,
                         &vertical_origins,
                     ),
-                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
-                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
+                    scroll_x,
+                    scroll_y,
                 );
             }
         }

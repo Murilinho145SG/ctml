@@ -60,6 +60,20 @@ pub(super) fn scroll_offset_x_for_path(
         .sum()
 }
 
+pub(super) fn scroll_translation_for_path(
+    path: &[usize],
+    offsets: &HashMap<usize, (f32, f32)>,
+    writing_mode: WritingMode,
+) -> (f32, f32) {
+    let offset_x = scroll_offset_x_for_path(path, offsets);
+    let offset_y = scroll_offset_y_for_path(path, offsets);
+    match writing_mode {
+        WritingMode::HorizontalTb => (offset_x, offset_y),
+        WritingMode::VerticalRl => (-offset_y, offset_x),
+        WritingMode::VerticalLr => (offset_y, -offset_x),
+    }
+}
+
 #[derive(Clone, Debug)]
 struct BlockExtent {
     size: LayoutSize,

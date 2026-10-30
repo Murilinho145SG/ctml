@@ -263,6 +263,110 @@ fn nested_scroll_chains_to_parent_scrollers_at_inner_boundaries() {
     assert_eq!(page.buffer.scroll(), cosmic_text::Scroll::default());
 }
 
+#[test]
+fn nested_overflow_scrolls_under_a_vertical_page_root() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("vertical nested overflow ".repeat(80))],
+    }];
+    for (writing_mode, pointer) in [
+        ("vertical-rl", (280.0, 20.0)),
+        ("vertical-lr", (20.0, 100.0)),
+    ] {
+        for axis in ["x", "y"] {
+            let mut block_declarations = vec![
+                StyleDeclaration {
+                    property: "block-size".to_owned(),
+                    value: "40px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "inline-size".to_owned(),
+                    value: "60px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: format!("overflow-{axis}"),
+                    value: "auto".to_owned(),
+                },
+            ];
+            if axis == "y" {
+                block_declarations.push(StyleDeclaration {
+                    property: "white-space".to_owned(),
+                    value: "nowrap".to_owned(),
+                });
+            }
+            let stylesheet = [
+                StyleRule {
+                    selectors: vec!["body".to_owned()],
+                    layer: None,
+                    declarations: vec![StyleDeclaration {
+                        property: "writing-mode".to_owned(),
+                        value: writing_mode.to_owned(),
+                    }],
+                },
+                StyleRule {
+                    selectors: vec!["div".to_owned()],
+                    layer: None,
+                    declarations: block_declarations,
+                },
+            ];
+            let mut page = PageRasterizer::new(&nodes, &stylesheet);
+            let before = page.snapshot_pixels(300, 120);
+            assert_eq!(page.overflow_geometry.len(), 1);
+
+            let delta = if axis == "x" {
+                (-24.0, 0.0)
+            } else {
+                (0.0, -24.0)
+            };
+            let scroll_pointer = match (writing_mode, axis) {
+                ("vertical-rl", "y") => (280.0, 50.0),
+                ("vertical-lr", "x") => (40.0, 100.0),
+                _ => pointer,
+            };
+            assert!(page.scroll_by_at(delta.0, delta.1, scroll_pointer.0, scroll_pointer.1));
+
+            let offset = page
+                .nested_scroll
+                .values()
+                .next()
+                .copied()
+                .unwrap_or_default();
+            assert!(if axis == "x" {
+                offset.0 > 0.0
+            } else {
+                offset.1 > 0.0
+            });
+            assert_eq!(page.buffer.scroll(), cosmic_text::Scroll::default());
+            assert!(
+                page.begin_selection(scroll_pointer.0, scroll_pointer.1),
+                "{writing_mode} overflow-{axis}"
+            );
+            let after = page.snapshot_pixels(300, 120);
+            assert_ne!(before, after, "{writing_mode} overflow-{axis}");
+            let scrollbar_region = match (writing_mode, axis) {
+                ("vertical-rl", "x") => (252..292, 60..68),
+                ("vertical-lr", "x") => (8..48, 104..112),
+                ("vertical-rl", "y") => (283..291, 8..68),
+                ("vertical-lr", "y") => (40..48, 52..112),
+                _ => unreachable!(),
+            };
+            assert!(
+                after.chunks_exact(4).enumerate().any(|(index, pixel)| {
+                    let x = index % 300;
+                    let y = index / 300;
+                    scrollbar_region.0.contains(&x)
+                        && scrollbar_region.1.contains(&y)
+                        && pixel[..3] == [142, 142, 142]
+                }),
+                "{writing_mode} overflow-{axis} scrollbar should be visible"
+            );
+        }
+    }
+}
+
 fn text_paragraph(text: &str) -> UiNode {
     UiNode::Element {
         tag: "p".to_owned(),

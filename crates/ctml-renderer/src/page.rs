@@ -414,25 +414,31 @@ impl PageRasterizer {
                     .map_or((false, false), |size| {
                         scrolling::user_scrollable_axes(size.overflow_x, size.overflow_y)
                     });
-                *offset_x = if x_scrollable {
-                    offset_x.clamp(
-                        0.0,
+                let (max_x, max_y) = match writing_mode {
+                    crate::style::WritingMode::HorizontalTb => (
                         (geometry.content_inline_extent
                             - (geometry.clip.right - geometry.clip.left))
                             .max(0.0),
-                    )
+                        (geometry.content_block_extent
+                            - (geometry.clip.bottom - geometry.clip.top))
+                            .max(0.0),
+                    ),
+                    crate::style::WritingMode::VerticalRl
+                    | crate::style::WritingMode::VerticalLr => (
+                        (geometry.content_block_extent
+                            - (geometry.clip.bottom - geometry.clip.top))
+                            .max(0.0),
+                        (geometry.content_inline_extent
+                            - (geometry.clip.right - geometry.clip.left))
+                            .max(0.0),
+                    ),
+                };
+                *offset_x = if x_scrollable {
+                    offset_x.clamp(0.0, max_x)
                 } else {
                     0.0
                 };
-                *offset_y = offset_y.clamp(
-                    0.0,
-                    if y_scrollable {
-                        (geometry.content_block_extent - (geometry.clip.bottom - geometry.clip.top))
-                            .max(0.0)
-                    } else {
-                        0.0
-                    },
-                );
+                *offset_y = offset_y.clamp(0.0, if y_scrollable { max_y } else { 0.0 });
             }
         }
     }

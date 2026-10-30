@@ -90,8 +90,18 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
-                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
-                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .0,
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .1,
                 );
             }
         }
@@ -171,8 +181,18 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
-                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
-                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .0,
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .1,
                 );
             }
         }
@@ -232,8 +252,18 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
-                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
-                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .0,
+                    overflow_clip::scroll_translation_for_path(
+                        &path,
+                        &self.nested_scroll,
+                        self.writing_mode(),
+                    )
+                    .1,
                 );
             }
         }

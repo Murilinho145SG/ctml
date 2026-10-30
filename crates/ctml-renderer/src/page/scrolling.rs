@@ -12,42 +12,44 @@ impl PageRasterizer {
         pointer_x: f64,
         pointer_y: f64,
     ) -> bool {
-        if self.writing_mode() == WritingMode::HorizontalTb {
-            let (layout_x, layout_y) = self.layout_size.map_or((0.0, 0.0), |(width, height)| {
-                super::vertical::layout_point(
-                    self.writing_mode(),
-                    width,
-                    height,
-                    pointer_x as f32,
-                    pointer_y as f32,
-                )
-            });
-            let mut remaining_x = delta_x;
-            let mut remaining_y = delta_y;
-            let mut nested_changed = false;
-            for (node_id, max_x, max_y) in
-                nested_scroll_targets(&self.runs, &self.overflow_geometry, layout_x, layout_y)
-            {
-                let current = self
-                    .nested_scroll
-                    .get(&node_id)
-                    .copied()
-                    .unwrap_or_default();
-                let next = (
-                    (current.0 - remaining_x).clamp(0.0, max_x),
-                    (current.1 - remaining_y).clamp(0.0, max_y),
-                );
-                if next != current {
-                    self.nested_scroll.insert(node_id, next);
-                    remaining_x += next.0 - current.0;
-                    remaining_y += next.1 - current.1;
-                    nested_changed = true;
-                }
+        let writing_mode = self.writing_mode();
+        let (layout_x, layout_y) = self.layout_size.map_or((0.0, 0.0), |(width, height)| {
+            super::vertical::layout_point(
+                writing_mode,
+                width,
+                height,
+                pointer_x as f32,
+                pointer_y as f32,
+            )
+        });
+        let mut remaining_x = delta_x;
+        let mut remaining_y = delta_y;
+        let mut nested_changed = false;
+        for (node_id, max_x, max_y) in nested_scroll_targets(
+            &self.runs,
+            &self.overflow_geometry,
+            layout_x,
+            layout_y,
+            writing_mode,
+        ) {
+            let current = self
+                .nested_scroll
+                .get(&node_id)
+                .copied()
+                .unwrap_or_default();
+            let next = (
+                (current.0 - remaining_x).clamp(0.0, max_x),
+                (current.1 - remaining_y).clamp(0.0, max_y),
+            );
+            if next != current {
+                self.nested_scroll.insert(node_id, next);
+                remaining_x += next.0 - current.0;
+                remaining_y += next.1 - current.1;
+                nested_changed = true;
             }
-            let page_changed = self.scroll_by(remaining_x, remaining_y);
-            return nested_changed || page_changed;
         }
-        self.scroll_by(delta_x, delta_y)
+        let page_changed = self.scroll_by(remaining_x, remaining_y);
+        nested_changed || page_changed
     }
 
     pub(crate) fn scroll_by(&mut self, delta_x: f32, delta_y: f32) -> bool {
@@ -116,6 +118,7 @@ fn nested_scroll_targets(
     geometry: &std::collections::HashMap<usize, super::overflow_clip::BlockGeometry>,
     pointer_x: f32,
     pointer_y: f32,
+    page_writing_mode: WritingMode,
 ) -> Vec<(usize, f32, f32)> {
     let mut candidates = HashSet::new();
     let mut targets = Vec::new();
@@ -126,7 +129,7 @@ fn nested_scroll_targets(
             }
             let (x_scrollable, y_scrollable) =
                 user_scrollable_axes(size.overflow_x, size.overflow_y);
-            if (!x_scrollable && !y_scrollable) || size.writing_mode != WritingMode::HorizontalTb {
+            if (!x_scrollable && !y_scrollable) || size.writing_mode != page_writing_mode {
                 continue;
             }
             let Some(block) = geometry.get(&size.node_id) else {
@@ -140,13 +143,29 @@ fn nested_scroll_targets(
             {
                 continue;
             }
+            let (inline_viewport, block_viewport) =
+                (clip.right - clip.left, clip.bottom - clip.top);
+            let (content_x, viewport_x, content_y, viewport_y) = match page_writing_mode {
+                WritingMode::HorizontalTb => (
+                    block.content_inline_extent,
+                    inline_viewport,
+                    block.content_block_extent,
+                    block_viewport,
+                ),
+                WritingMode::VerticalRl | WritingMode::VerticalLr => (
+                    block.content_block_extent,
+                    block_viewport,
+                    block.content_inline_extent,
+                    inline_viewport,
+                ),
+            };
             let max_x = if x_scrollable {
-                (block.content_inline_extent - (clip.right - clip.left)).max(0.0)
+                (content_x - viewport_x).max(0.0)
             } else {
                 0.0
             };
             let max_y = if y_scrollable {
-                (block.content_block_extent - (clip.bottom - clip.top)).max(0.0)
+                (content_y - viewport_y).max(0.0)
             } else {
                 0.0
             };

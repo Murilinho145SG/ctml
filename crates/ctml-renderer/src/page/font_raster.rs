@@ -217,15 +217,14 @@ pub(super) fn draw(
             let local_vertical_mode = text_style.map(|style| style.writing_mode).filter(|mode| {
                 *mode != WritingMode::HorizontalTb && writing_mode == WritingMode::HorizontalTb
             });
-            let nested_scroll_y = style_index
+            let (nested_scroll_x, nested_scroll_y) = style_index
                 .and_then(|index| runs.get(index))
-                .map_or(0.0, |run| {
-                    overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
-                });
-            let nested_scroll_x = style_index
-                .and_then(|index| runs.get(index))
-                .map_or(0.0, |run| {
-                    overflow_clip::scroll_offset_x_for_path(&run.element_path, nested_scroll)
+                .map_or((0.0, 0.0), |run| {
+                    overflow_clip::scroll_translation_for_path(
+                        &run.element_path,
+                        nested_scroll,
+                        writing_mode,
+                    )
                 });
             canvas.save();
             if let Some(clip) =
@@ -246,7 +245,7 @@ pub(super) fn draw(
                     false,
                 );
             }
-            if nested_scroll_y != 0.0 {
+            if nested_scroll_x != 0.0 || nested_scroll_y != 0.0 {
                 canvas.translate((-nested_scroll_x, -nested_scroll_y));
             }
             if let Some(mode) = local_vertical_mode {

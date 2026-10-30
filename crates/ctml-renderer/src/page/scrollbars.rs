@@ -80,13 +80,10 @@ impl PageRasterizer {
         height: u32,
         writing_mode: WritingMode,
     ) {
-        if writing_mode != WritingMode::HorizontalTb {
-            return;
-        }
         let mut seen = std::collections::HashSet::new();
         for run in &self.runs {
             for size in &run.style.layout_sizes {
-                if !seen.insert(size.node_id) || size.writing_mode != WritingMode::HorizontalTb {
+                if !seen.insert(size.node_id) || size.writing_mode != writing_mode {
                     continue;
                 }
                 let Some(geometry) = self.overflow_geometry.get(&size.node_id) else {
@@ -98,6 +95,19 @@ impl PageRasterizer {
                     .get(&size.node_id)
                     .copied()
                     .unwrap_or_default();
+                if writing_mode != WritingMode::HorizontalTb {
+                    self.draw_vertical_root_nested_scrollbars(
+                        pixels,
+                        width,
+                        height,
+                        size,
+                        geometry,
+                        offset_x,
+                        offset_y,
+                        writing_mode,
+                    );
+                    continue;
+                }
                 if let Some(always_visible) = scrollbar_axis(size.overflow_x, size.overflow_y) {
                     let viewport = clip.right - clip.left;
                     if always_visible || geometry.content_inline_extent > viewport {
@@ -128,6 +138,61 @@ impl PageRasterizer {
                         );
                     }
                 }
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_vertical_root_nested_scrollbars(
+        &self,
+        pixels: &mut [u8],
+        width: u32,
+        height: u32,
+        size: &crate::style::LayoutSize,
+        geometry: &super::overflow_clip::BlockGeometry,
+        offset_x: f32,
+        offset_y: f32,
+        writing_mode: WritingMode,
+    ) {
+        let clip = geometry.clip;
+        if let Some(always_visible) = scrollbar_axis(size.overflow_x, size.overflow_y) {
+            let viewport = clip.bottom - clip.top;
+            if always_visible || geometry.content_block_extent > viewport {
+                let x = match writing_mode {
+                    WritingMode::VerticalRl => clip.right - BAR_THICKNESS,
+                    WritingMode::VerticalLr => clip.left,
+                    WritingMode::HorizontalTb => unreachable!(),
+                };
+                draw_vertical_scrollbar(
+                    pixels,
+                    width,
+                    height,
+                    x,
+                    clip.top,
+                    viewport,
+                    geometry.content_block_extent,
+                    offset_x,
+                );
+            }
+        }
+        if let Some(always_visible) = scrollbar_axis(size.overflow_y, size.overflow_x) {
+            let viewport = clip.right - clip.left;
+            if always_visible || geometry.content_inline_extent > viewport {
+                let y = match writing_mode {
+                    WritingMode::VerticalRl => clip.top,
+                    WritingMode::VerticalLr => clip.bottom - BAR_THICKNESS,
+                    WritingMode::HorizontalTb => unreachable!(),
+                };
+                draw_horizontal_scrollbar(
+                    pixels,
+                    width,
+                    height,
+                    clip.left,
+                    y,
+                    viewport,
+                    geometry.content_inline_extent,
+                    offset_y,
+                );
             }
         }
     }

@@ -59,15 +59,14 @@ pub(super) fn draw(
                 end += 1;
             }
             let fragment = &line.glyphs[start..end];
-            let scroll_offset = style_index
+            let (scroll_offset_x, scroll_offset_y) = style_index
                 .and_then(|index| runs.get(index))
-                .map_or(0.0, |run| {
-                    overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
-                });
-            let scroll_offset_x = style_index
-                .and_then(|index| runs.get(index))
-                .map_or(0.0, |run| {
-                    overflow_clip::scroll_offset_x_for_path(&run.element_path, nested_scroll)
+                .map_or((0.0, 0.0), |run| {
+                    overflow_clip::scroll_translation_for_path(
+                        &run.element_path,
+                        nested_scroll,
+                        page_writing_mode,
+                    )
                 });
             let left = fragment
                 .iter()
@@ -111,7 +110,7 @@ pub(super) fn draw(
                             width,
                             height,
                             left - crate::page::PAGE_PADDING - scroll_offset_x,
-                            top - crate::page::PAGE_PADDING - scroll_offset,
+                            top - crate::page::PAGE_PADDING - scroll_offset_y,
                             rect_width,
                             rect_height,
                             color,
@@ -128,7 +127,7 @@ pub(super) fn draw(
                             width,
                             height,
                             left - scroll_offset_x,
-                            line.line_top - scroll_offset,
+                            line.line_top - scroll_offset_y,
                             right - left,
                             line.line_height,
                             color,

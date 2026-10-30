@@ -228,8 +228,13 @@ impl PageRasterizer {
             .fold((0.0, 0.0), |(offset_x, offset_y), (x, y)| {
                 (offset_x + x, offset_y + y)
             });
-        let x = x + scroll_offset_x;
-        let y = y - PAGE_PADDING + scroll_offset_y;
+        let (scroll_translation_x, scroll_translation_y) = match self.writing_mode() {
+            crate::style::WritingMode::HorizontalTb => (scroll_offset_x, scroll_offset_y),
+            crate::style::WritingMode::VerticalRl => (-scroll_offset_y, scroll_offset_x),
+            crate::style::WritingMode::VerticalLr => (scroll_offset_y, -scroll_offset_x),
+        };
+        let x = x + scroll_translation_x;
+        let y = y - PAGE_PADDING + scroll_translation_y;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
             run.line_w > 0.0
                 && x >= 0.0
