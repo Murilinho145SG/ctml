@@ -46,6 +46,21 @@ fn normalizes_css_angle_units_in_oblique_font_face_ranges() {
 }
 
 #[test]
+fn rejects_oblique_ranges_with_non_angle_or_non_finite_tokens() {
+    for value in [
+        "oblique 10 deg 20deg",
+        "oblique 1e999deg 20deg",
+        "oblique 10deg 91deg",
+    ] {
+        let stylesheet = parse_stylesheet(&format!(
+            "@font-face {{ font-family: 'Slanted Sans'; src: url(variable.woff2); font-style: {value}; }}"
+        ))
+        .unwrap();
+        assert_eq!(stylesheet.font_faces[0].style_range, None, "{value}");
+    }
+}
+
+#[test]
 fn parses_rules_groups_declarations_and_important_values() {
     let stylesheet = parse_stylesheet("p.notice, #target { color: red !important; }").unwrap();
 

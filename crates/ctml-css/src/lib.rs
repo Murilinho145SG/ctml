@@ -83,15 +83,11 @@ fn parse_oblique_angle_range(value: &str) -> Option<(String, String)> {
         return None;
     }
     let parse_angle = |part: &str| {
-        if part == "0" {
+        if crate::parse_css_number(part) == Some(0.0) {
             return Some(0.0);
         }
-        let part = part.to_ascii_lowercase();
-        let (number, unit) = ["deg", "grad", "rad", "turn"]
-            .into_iter()
-            .find_map(|unit| part.strip_suffix(unit).map(|number| (number, unit)))?;
-        let number = number.parse::<f32>().ok()?;
-        let degrees = match unit {
+        let (number, unit) = crate::parse_css_dimension(part)?;
+        let degrees = match unit.as_str() {
             "deg" => number,
             "grad" => number * 0.9,
             "rad" => number.to_degrees(),

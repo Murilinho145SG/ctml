@@ -111,6 +111,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Evaluate `calc()`, `min()`, `max()`, and `clamp()` for supported length/percentage values, plus number expressions for opacity, line-height, and font weight.
 - [ ] Container query units, if container queries are implemented.
 - [ ] Angles, times, frequencies, and resolutions where relevant.
+- [x] Parse finite `deg`, `grad`, `rad`, and `turn` angle tokens for CSS colors and oblique `@font-face` ranges.
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.
 - [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
 - [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
