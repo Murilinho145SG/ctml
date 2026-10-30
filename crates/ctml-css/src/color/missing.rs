@@ -1,73 +1,148 @@
 use cssparser::{Parser, ParserInput, Token};
 
-pub(super) fn parse_missing_rgb_components(value: &str) -> [bool; 4] {
-    parse_missing_components(value, 0)
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ComponentSpace {
+    Rgb,
+    Xyz,
+    Lab,
+    Lch,
+    Oklab,
+    Oklch,
 }
 
-fn parse_missing_components(value: &str, depth: usize) -> [bool; 4] {
+#[derive(Clone, Copy)]
+pub(super) struct MissingComponents {
+    space: Option<ComponentSpace>,
+    channels: [bool; 3],
+    pub(super) alpha: bool,
+}
+
+impl MissingComponents {
+    fn empty() -> Self {
+        Self {
+            space: None,
+            channels: [false; 3],
+            alpha: false,
+        }
+    }
+
+    pub(super) fn channels_for(self, space: Option<ComponentSpace>) -> [bool; 3] {
+        if self.space == space {
+            self.channels
+        } else {
+            [false; 3]
+        }
+    }
+}
+
+pub(super) fn parse_missing_components(value: &str) -> MissingComponents {
+    parse_missing(value, 0)
+}
+
+fn parse_missing(value: &str, depth: usize) -> MissingComponents {
     if depth > 32 {
-        return [false; 4];
+        return MissingComponents::empty();
     }
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let Ok(function) = parser.expect_function() else {
-        return [false; 4];
+        return MissingComponents::empty();
     };
     let function = function.to_ascii_lowercase();
     let missing = match function.as_str() {
         "color" => parser
             .parse_nested_block(parse_color_components)
-            .unwrap_or([false; 4]),
+            .unwrap_or_else(|_| MissingComponents::empty()),
+        "lab" | "lch" | "oklab" | "oklch" => parser
+            .parse_nested_block(|input| parse_lab_components(input, &function))
+            .unwrap_or_else(|_| MissingComponents::empty()),
         "color-mix" => parser
             .parse_nested_block(|input| parse_mix_components(input, depth + 1))
-            .unwrap_or([false; 4]),
-        _ => [false; 4],
+            .unwrap_or_else(|_| MissingComponents::empty()),
+        _ => MissingComponents::empty(),
     };
     if parser.is_exhausted() {
         missing
     } else {
-        [false; 4]
+        MissingComponents::empty()
     }
 }
 
 fn parse_color_components<'i, 't>(
     input: &mut Parser<'i, 't>,
-) -> Result<[bool; 4], cssparser::ParseError<'i, ()>> {
+) -> Result<MissingComponents, cssparser::ParseError<'i, ()>> {
     let profile = input.expect_ident_cloned()?.to_ascii_lowercase();
-    let propagates_components = is_rgb_profile(&profile) || is_xyz_profile(&profile);
-    let mut missing = [false; 4];
-    for component in &mut missing[..3] {
+    let space = component_space(&profile);
+    let mut missing = MissingComponents {
+        space,
+        ..MissingComponents::empty()
+    };
+    for component in &mut missing.channels {
         let is_missing = input
             .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok();
-        *component = is_missing && propagates_components;
+        *component = is_missing && space.is_some();
         if !is_missing {
             input.next()?;
         }
     }
+    parse_alpha_component(input, &mut missing)?;
+    Ok(missing)
+}
+
+fn parse_lab_components<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    function: &str,
+) -> Result<MissingComponents, cssparser::ParseError<'i, ()>> {
+    let space = component_space(function);
+    let mut missing = MissingComponents {
+        space,
+        ..MissingComponents::empty()
+    };
+    for component in &mut missing.channels {
+        let is_missing = input
+            .try_parse(|input| input.expect_ident_matching("none"))
+            .is_ok();
+        *component = is_missing;
+        if !is_missing {
+            input.next()?;
+        }
+    }
+    parse_alpha_component(input, &mut missing)?;
+    Ok(missing)
+}
+
+fn parse_alpha_component<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    missing: &mut MissingComponents,
+) -> Result<(), cssparser::ParseError<'i, ()>> {
     if input.is_exhausted() {
-        return Ok(missing);
+        return Ok(());
     }
     input.expect_delim('/')?;
-    missing[3] = input
+    missing.alpha = input
         .try_parse(|input| input.expect_ident_matching("none"))
         .is_ok();
-    if !missing[3] {
+    if !missing.alpha {
         input.next()?;
     }
     if !input.is_exhausted() {
         return Err(input.new_custom_error(()));
     }
-    Ok(missing)
+    Ok(())
 }
 
 fn parse_mix_components<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
-) -> Result<[bool; 4], cssparser::ParseError<'i, ()>> {
+) -> Result<MissingComponents, cssparser::ParseError<'i, ()>> {
     input.expect_ident_matching("in")?;
-    let space = input.expect_ident_cloned()?.to_ascii_lowercase();
-    if matches!(space.as_str(), "lch" | "oklch" | "hsl" | "hwb") {
+    let interpolation_space = input.expect_ident_cloned()?.to_ascii_lowercase();
+    let space = component_space(&interpolation_space);
+    if matches!(
+        interpolation_space.as_str(),
+        "lch" | "oklch" | "hsl" | "hwb"
+    ) {
         let _ = input.try_parse(|input| {
             input.expect_ident_cloned()?;
             input.expect_ident_matching("hue")
@@ -80,20 +155,19 @@ fn parse_mix_components<'i, 't>(
     if !input.is_exhausted() {
         return Err(input.new_custom_error(()));
     }
-    let mut missing = [false; 4];
-    if is_rgb_profile(&space) {
-        for index in 0..3 {
-            missing[index] = first[index] && second[index];
-        }
-    }
-    missing[3] = first[3] && second[3];
-    Ok(missing)
+    let first_channels = first.channels_for(space);
+    let second_channels = second.channels_for(space);
+    Ok(MissingComponents {
+        space,
+        channels: std::array::from_fn(|index| first_channels[index] && second_channels[index]),
+        alpha: first.alpha && second.alpha,
+    })
 }
 
 fn parse_mix_color<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
-) -> Result<[bool; 4], cssparser::ParseError<'i, ()>> {
+) -> Result<MissingComponents, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
         Token::Function(_) | Token::ParenthesisBlock => {
@@ -104,24 +178,20 @@ fn parse_mix_color<'i, 't>(
     let end = input.position();
     let color = input.slice(start..end).trim();
     let _ = input.try_parse(|input| input.expect_percentage());
-    Ok(parse_missing_components(color, depth))
+    Ok(parse_missing(color, depth))
 }
 
-fn is_rgb_profile(profile: &str) -> bool {
-    matches!(
-        profile,
-        "srgb"
-            | "srgb-linear"
-            | "display-p3"
-            | "display-p3-linear"
-            | "a98-rgb"
-            | "prophoto-rgb"
-            | "rec2020"
-    )
-}
-
-fn is_xyz_profile(profile: &str) -> bool {
-    matches!(profile, "xyz" | "xyz-d50" | "xyz-d65")
+pub(super) fn component_space(space: &str) -> Option<ComponentSpace> {
+    match space {
+        "srgb" | "srgb-linear" | "display-p3" | "display-p3-linear" | "a98-rgb"
+        | "prophoto-rgb" | "rec2020" => Some(ComponentSpace::Rgb),
+        "xyz" | "xyz-d50" | "xyz-d65" => Some(ComponentSpace::Xyz),
+        "lab" => Some(ComponentSpace::Lab),
+        "lch" => Some(ComponentSpace::Lch),
+        "oklab" => Some(ComponentSpace::Oklab),
+        "oklch" => Some(ComponentSpace::Oklch),
+        _ => None,
+    }
 }
 
 fn consume_all_tokens<'i, 't>(

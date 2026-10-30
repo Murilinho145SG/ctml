@@ -492,10 +492,12 @@ mod tests {
         ] {
             let mixed = parse_color(&format!(
                 "color-mix(in {space}, color({profile} none 0 0), color({profile} 1 0 0))"
-            ));
+            ))
+            .unwrap_or_else(|| panic!("failed to parse missing RGB mix in {space}"));
             let zero_component = parse_color(&format!(
                 "color-mix(in {space}, color({profile} 0 0 0), color({profile} 1 0 0))"
-            ));
+            ))
+            .unwrap_or_else(|| panic!("failed to parse zero RGB mix in {space}"));
             assert_ne!(
                 mixed, zero_component,
                 "missing RGB component was treated as zero in {space}"
@@ -512,10 +514,12 @@ mod tests {
         ] {
             let mixed = parse_color(&format!(
                 "color-mix(in {space}, color({profile} none 0 0), color({profile} 1 0 0))"
-            ));
+            ))
+            .unwrap_or_else(|| panic!("failed to parse missing XYZ mix in {space}"));
             let zero_component = parse_color(&format!(
                 "color-mix(in {space}, color({profile} 0 0 0), color({profile} 1 0 0))"
-            ));
+            ))
+            .unwrap_or_else(|| panic!("failed to parse zero XYZ mix in {space}"));
             assert_ne!(
                 mixed, zero_component,
                 "missing XYZ component was treated as zero in {space}"

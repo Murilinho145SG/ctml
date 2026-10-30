@@ -1,14 +1,11 @@
 use cssparser::{Parser, ParserInput, Token};
 
-use super::{missing::parse_missing_rgb_components, parse_color_with_opacity_depth};
-
-#[derive(Clone, Copy)]
-enum HueInterpolation {
-    Shorter,
-    Longer,
-    Increasing,
-    Decreasing,
-}
+use super::{
+    missing::{MissingComponents, component_space, parse_missing_components},
+    parse_color_with_opacity_depth,
+};
+mod hue;
+use hue::{HueInterpolation, interpolate_hue};
 
 pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
@@ -25,6 +22,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
         .parse_nested_block(|input| {
             input.expect_ident_matching("in")?;
             let interpolation_space = input.expect_ident_cloned()?;
+            let component_space = component_space(&interpolation_space.to_ascii_lowercase());
             let linear_srgb = interpolation_space.eq_ignore_ascii_case("srgb-linear");
             let lab = interpolation_space.eq_ignore_ascii_case("lab");
             let lch = interpolation_space.eq_ignore_ascii_case("lch");
@@ -101,7 +99,11 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let first_weight = first_weight / weight_sum;
             let second_weight = second_weight / weight_sum;
             let (mut first, mut second) = (first, second);
-            match (first_missing[3], second_missing[3]) {
+            let (first_missing_alpha, second_missing_alpha) =
+                (first_missing.alpha, second_missing.alpha);
+            let first_missing = first_missing.channels_for(component_space);
+            let second_missing = second_missing.channels_for(component_space);
+            match (first_missing_alpha, second_missing_alpha) {
                 (true, true) => {
                     first.1 = 0.0;
                     second.1 = 0.0;
@@ -211,81 +213,121 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             } else if lab {
                 let first_lab = super::color4::srgb_to_lab(first.0);
                 let second_lab = super::color4::srgb_to_lab(second.0);
+                let mut first_lab = [first_lab.0, first_lab.1, first_lab.2];
+                let mut second_lab = [second_lab.0, second_lab.1, second_lab.2];
+                carry_missing_components(
+                    &mut first_lab,
+                    &mut second_lab,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 super::color4::lab_to_srgb((
-                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum,
-                    (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
-                    (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
+                    (first_lab[0] * first_alpha + second_lab[0] * second_alpha) / alpha_sum,
+                    (first_lab[1] * first_alpha + second_lab[1] * second_alpha) / alpha_sum,
+                    (first_lab[2] * first_alpha + second_lab[2] * second_alpha) / alpha_sum,
                 ))
             } else if lch {
                 let first_lab = super::color4::srgb_to_lab(first.0);
                 let second_lab = super::color4::srgb_to_lab(second.0);
-                let first_chroma = first_lab.1.hypot(first_lab.2);
-                let second_chroma = second_lab.1.hypot(second_lab.2);
-                let first_hue = first_lab
-                    .2
-                    .atan2(first_lab.1)
-                    .to_degrees()
-                    .rem_euclid(360.0);
-                let second_hue = second_lab
-                    .2
-                    .atan2(second_lab.1)
-                    .to_degrees()
-                    .rem_euclid(360.0);
+                let mut first_lch = [
+                    first_lab.0,
+                    first_lab.1.hypot(first_lab.2),
+                    first_lab
+                        .2
+                        .atan2(first_lab.1)
+                        .to_degrees()
+                        .rem_euclid(360.0),
+                ];
+                let mut second_lch = [
+                    second_lab.0,
+                    second_lab.1.hypot(second_lab.2),
+                    second_lab
+                        .2
+                        .atan2(second_lab.1)
+                        .to_degrees()
+                        .rem_euclid(360.0),
+                ];
+                carry_missing_components(
+                    &mut first_lch,
+                    &mut second_lch,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let hue = interpolate_hue(
-                    first_hue,
-                    first_chroma < 0.0001,
-                    second_hue,
-                    second_chroma < 0.0001,
+                    first_lch[2],
+                    first_lch[1] < 0.0001 || first_missing[2],
+                    second_lch[2],
+                    second_lch[1] < 0.0001 || second_missing[2],
                     first_alpha,
                     second_alpha,
                     hue_interpolation,
                 );
                 let lightness =
-                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
+                    (first_lch[0] * first_alpha + second_lch[0] * second_alpha) / alpha_sum;
                 let chroma =
-                    (first_chroma * first_alpha + second_chroma * second_alpha) / alpha_sum;
+                    (first_lch[1] * first_alpha + second_lch[1] * second_alpha) / alpha_sum;
                 let hue = hue.to_radians();
                 super::color4::lab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if oklab {
                 let first_lab = super::color4::srgb_to_oklab(first.0);
                 let second_lab = super::color4::srgb_to_oklab(second.0);
+                let mut first_lab = [first_lab.0, first_lab.1, first_lab.2];
+                let mut second_lab = [second_lab.0, second_lab.1, second_lab.2];
+                carry_missing_components(
+                    &mut first_lab,
+                    &mut second_lab,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 super::color4::oklab_to_srgb((
-                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum,
-                    (first_lab.1 * first_alpha + second_lab.1 * second_alpha) / alpha_sum,
-                    (first_lab.2 * first_alpha + second_lab.2 * second_alpha) / alpha_sum,
+                    (first_lab[0] * first_alpha + second_lab[0] * second_alpha) / alpha_sum,
+                    (first_lab[1] * first_alpha + second_lab[1] * second_alpha) / alpha_sum,
+                    (first_lab[2] * first_alpha + second_lab[2] * second_alpha) / alpha_sum,
                 ))
             } else if oklch {
                 let first_lab = super::color4::srgb_to_oklab(first.0);
                 let second_lab = super::color4::srgb_to_oklab(second.0);
-                let first_chroma = first_lab.1.hypot(first_lab.2);
-                let second_chroma = second_lab.1.hypot(second_lab.2);
-                let first_hue = first_lab
-                    .2
-                    .atan2(first_lab.1)
-                    .to_degrees()
-                    .rem_euclid(360.0);
-                let second_hue = second_lab
-                    .2
-                    .atan2(second_lab.1)
-                    .to_degrees()
-                    .rem_euclid(360.0);
+                let mut first_lch = [
+                    first_lab.0,
+                    first_lab.1.hypot(first_lab.2),
+                    first_lab
+                        .2
+                        .atan2(first_lab.1)
+                        .to_degrees()
+                        .rem_euclid(360.0),
+                ];
+                let mut second_lch = [
+                    second_lab.0,
+                    second_lab.1.hypot(second_lab.2),
+                    second_lab
+                        .2
+                        .atan2(second_lab.1)
+                        .to_degrees()
+                        .rem_euclid(360.0),
+                ];
+                carry_missing_components(
+                    &mut first_lch,
+                    &mut second_lch,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let hue = interpolate_hue(
-                    first_hue,
-                    first_chroma < 0.0001,
-                    second_hue,
-                    second_chroma < 0.0001,
+                    first_lch[2],
+                    first_lch[1] < 0.0001 || first_missing[2],
+                    second_lch[2],
+                    second_lch[1] < 0.0001 || second_missing[2],
                     first_alpha,
                     second_alpha,
                     hue_interpolation,
                 );
                 let lightness =
-                    (first_lab.0 * first_alpha + second_lab.0 * second_alpha) / alpha_sum;
+                    (first_lch[0] * first_alpha + second_lch[0] * second_alpha) / alpha_sum;
                 let chroma =
-                    (first_chroma * first_alpha + second_chroma * second_alpha) / alpha_sum;
+                    (first_lch[1] * first_alpha + second_lch[1] * second_alpha) / alpha_sum;
                 let hue = hue.to_radians();
                 super::color4::oklab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if hsl {
@@ -358,59 +400,10 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
     parser.is_exhausted().then_some(mixed)
 }
 
-fn interpolate_hue(
-    first_hue: f32,
-    first_powerless: bool,
-    second_hue: f32,
-    second_powerless: bool,
-    first_alpha: f32,
-    second_alpha: f32,
-    interpolation: HueInterpolation,
-) -> f32 {
-    let first_hue = if first_powerless || first_alpha == 0.0 {
-        second_hue
-    } else {
-        first_hue
-    };
-    let second_hue = if second_powerless || second_alpha == 0.0 {
-        first_hue
-    } else {
-        second_hue
-    };
-    let difference = (second_hue - first_hue).rem_euclid(360.0);
-    let hue_delta = match interpolation {
-        HueInterpolation::Shorter => {
-            if difference > 180.0 {
-                difference - 360.0
-            } else {
-                difference
-            }
-        }
-        HueInterpolation::Longer => {
-            if difference == 0.0 {
-                360.0
-            } else if difference < 180.0 {
-                difference - 360.0
-            } else {
-                difference
-            }
-        }
-        HueInterpolation::Increasing => difference,
-        HueInterpolation::Decreasing => {
-            if difference == 0.0 {
-                0.0
-            } else {
-                difference - 360.0
-            }
-        }
-    };
-    (first_hue + hue_delta * (second_alpha / (first_alpha + second_alpha))).rem_euclid(360.0)
-}
-
 fn parse_mix_component<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
-) -> Result<(([u8; 3], f32), Option<f32>, [bool; 4]), cssparser::ParseError<'i, ()>> {
+) -> Result<(([u8; 3], f32), Option<f32>, MissingComponents), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
         Token::Function(_) => input.parse_nested_block(|nested| consume_all_tokens(nested, 0))?,
@@ -423,7 +416,7 @@ fn parse_mix_component<'i, 't>(
     let color_value = input.slice(start..color_end).trim();
     let color = parse_color_with_opacity_depth(color_value, depth + 1)
         .ok_or_else(|| input.new_custom_error(()))?;
-    let missing = parse_missing_rgb_components(color_value);
+    let missing = parse_missing_components(color_value);
     let percentage = input
         .try_parse(|input| input.expect_percentage())
         .ok()
@@ -437,8 +430,8 @@ fn parse_mix_component<'i, 't>(
 fn carry_missing_components(
     first: &mut [f32; 3],
     second: &mut [f32; 3],
-    first_missing: [bool; 4],
-    second_missing: [bool; 4],
+    first_missing: [bool; 3],
+    second_missing: [bool; 3],
 ) {
     for index in 0..3 {
         match (first_missing[index], second_missing[index]) {

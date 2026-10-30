@@ -131,7 +131,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Carry matching missing components from direct predefined RGB-profile colors through supported RGB interpolation spaces.
 - [x] Propagate missing components through nested mixes in supported RGB interpolation spaces.
 - [x] Carry matching missing `x`, `y`, and `z` components from direct XYZ-profile colors through XYZ interpolation spaces.
-- [ ] Propagate missing components through Lab/LCH and powerless components.
+- [x] Carry missing components through matching Lab, LCH, Oklab, and Oklch interpolation spaces, including nested mixes.
+- [x] Ignore powerless hues during interpolation in HSL, HWB, LCH, and Oklch spaces.
 - [x] Standard and deprecated system color keywords using CTML's fixed light fallback palette.
 - [ ] Respond to OS forced-color palettes and element color schemes when the host exposes them.
 - [x] Alpha colors for text and page background, including page-background compositing over white.

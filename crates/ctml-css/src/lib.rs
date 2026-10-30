@@ -33,6 +33,10 @@ pub use selector::{
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[path = "tests/color_missing.rs"]
+mod color_missing_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
