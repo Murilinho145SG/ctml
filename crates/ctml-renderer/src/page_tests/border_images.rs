@@ -32,6 +32,48 @@ fn border_image_url() -> String {
     )
 }
 
+#[test]
+fn border_image_paints_around_inline_text_fragments() {
+    let source = border_image_url();
+    let border_image = format!("{source} 1 / 1 stretch");
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("image-border".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("inline".to_owned())],
+        }],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".image-border".to_owned()],
+        layer: None,
+        declarations: [
+            ("border", "4px solid black"),
+            ("border-image", border_image.as_str()),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let rendered = page.snapshot_pixels(140, 80);
+
+    assert!(
+        rendered
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0]),
+        "the nine-slice image should paint around the inline text box"
+    );
+}
+
 fn repeating_border_image_url() -> String {
     let colors = [
         [255, 0, 0, 255],

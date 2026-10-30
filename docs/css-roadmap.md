@@ -332,6 +332,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `border-image-width` accepts one-to-four `auto`, number multipliers, lengths, or percentages.
   - [x] `border-image-outset` expands painted image bounds with one-to-four number multipliers or lengths.
   - [x] The `border-image` shorthand expands the implemented source, slice, width, outset, and repeat longhands with normal source-order conflicts.
+  - [x] Paint border images around inline text fragments as well as block border boxes.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
 - [ ] Transform properties, transform origin, and transform box.
