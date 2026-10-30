@@ -18,13 +18,19 @@ impl PageRasterizer {
         self.cursor_spans
             .iter()
             .find(|span| {
-                span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
+                span.line == cursor.line
+                    && cursor.index >= span.start
+                    && cursor.index < span.end
+                    && !span.visibility_hidden
+                    && !span.pointer_events_none
             })
             .or_else(|| {
-                self.cursor_spans
-                    .iter()
-                    .rev()
-                    .find(|span| span.line == cursor.line && cursor.index == span.end)
+                self.cursor_spans.iter().rev().find(|span| {
+                    span.line == cursor.line
+                        && cursor.index == span.end
+                        && !span.visibility_hidden
+                        && !span.pointer_events_none
+                })
             })
             .map_or((fallback, fallback_visible), |span| {
                 (span.icon, !span.hidden)
@@ -162,13 +168,19 @@ impl PageRasterizer {
         self.cursor_spans
             .iter()
             .find(|span| {
-                span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
+                span.line == cursor.line
+                    && cursor.index >= span.start
+                    && cursor.index < span.end
+                    && !span.visibility_hidden
+                    && !span.pointer_events_none
             })
             .or_else(|| {
-                self.cursor_spans
-                    .iter()
-                    .rev()
-                    .find(|span| span.line == cursor.line && cursor.index == span.end)
+                self.cursor_spans.iter().rev().find(|span| {
+                    span.line == cursor.line
+                        && cursor.index == span.end
+                        && !span.visibility_hidden
+                        && !span.pointer_events_none
+                })
             })
             .map_or_else(Vec::new, |span| span.element_path.clone())
     }
@@ -193,6 +205,7 @@ impl PageRasterizer {
                         && cursor.index >= span.start
                         && cursor.index < span.end
                         && !span.visibility_hidden
+                        && !span.pointer_events_none
                 })
             })
     }

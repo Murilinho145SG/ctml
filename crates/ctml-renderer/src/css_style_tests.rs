@@ -977,6 +977,19 @@ fn visibility_inherits_and_supports_css_wide_keywords() {
 }
 
 #[test]
+fn pointer_events_accepts_auto_none_and_css_wide_keywords() {
+    let disabled = style_for_declarations(&[("pointer-events", "none")]);
+    assert!(disabled.pointer_events_none);
+
+    let enabled = style_for_declarations(&[("pointer-events", "none"), ("pointer-events", "auto")]);
+    assert!(!enabled.pointer_events_none);
+
+    let initial =
+        style_for_declarations(&[("pointer-events", "none"), ("pointer-events", "initial")]);
+    assert!(!initial.pointer_events_none);
+}
+
+#[test]
 fn resolves_custom_css_quote_pairs() {
     let quotes = style_for_declarations(&[("quotes", "\"«\" \"»\" \"‹\" \"›\"")]);
     assert_eq!(

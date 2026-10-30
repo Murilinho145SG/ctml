@@ -71,6 +71,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-emphasis-color",
     "text-emphasis-position",
     "cursor",
+    "pointer-events",
 ];
 
 pub(super) fn is_all_keyword(value: &str) -> bool {

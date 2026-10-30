@@ -189,6 +189,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-orientation"
             | "writing-mode"
             | "visibility"
+            | "pointer-events"
             | "direction"
             | "quotes"
             | "text-decoration-skip-ink"
@@ -201,6 +202,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
     match property {
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
+        "pointer-events" => style.pointer_events_none = inherited.pointer_events_none,
         "background-color" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -334,6 +336,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
+        "pointer-events" => style.pointer_events_none = false,
         "background-color" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -481,6 +484,11 @@ fn apply_declaration(
         "visibility" => match value.to_ascii_lowercase().as_str() {
             "visible" => style.visibility_hidden = false,
             "hidden" | "collapse" => style.visibility_hidden = true,
+            _ => {}
+        },
+        "pointer-events" => match value.to_ascii_lowercase().as_str() {
+            "auto" => style.pointer_events_none = false,
+            "none" => style.pointer_events_none = true,
             _ => {}
         },
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),

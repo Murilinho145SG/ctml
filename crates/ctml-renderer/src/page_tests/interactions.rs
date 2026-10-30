@@ -44,6 +44,96 @@ fn pointer_hover_and_active_states_restyle_text_runs() {
 }
 
 #[test]
+fn pointer_events_none_removes_text_from_pointer_hit_testing() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![],
+        children: vec![UiNode::Text("No pointer target".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "pointer-events".to_owned(),
+                value: "none".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p:hover".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(180, 50);
+
+    assert!(!page.update_hover(10.0, 14.0));
+    assert!(!page.begin_selection(10.0, 14.0));
+    assert_eq!(page.runs[0].style.color, [0, 0, 0, 255]);
+}
+
+#[test]
+fn pointer_events_auto_descendant_restores_pointer_targeting() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![],
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: vec![],
+            children: vec![UiNode::Text("Target".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "pointer-events".to_owned(),
+                value: "none".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "pointer-events".to_owned(),
+                    value: "auto".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "red".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["span:hover".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(120, 50);
+
+    assert!(page.update_hover(10.0, 14.0));
+    assert_eq!(page.runs[0].style.color, [255, 0, 0, 255]);
+    assert_eq!(page.runs[0].style.weight.0, 700);
+}
+
+#[test]
 fn direction_rtl_sets_the_paragraph_base_bidi_level() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
