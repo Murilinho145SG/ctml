@@ -2,8 +2,8 @@ use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{
-    FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation, TextOverflow,
-    TextRendering, TextStyle, TextTransform, WhiteSpace, WordBreak,
+    Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
+    TextOverflow, TextRendering, TextStyle, TextTransform, WhiteSpace, WordBreak,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -147,6 +147,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "hyphens"
             | "text-rendering"
             | "text-orientation"
+            | "direction"
             | "quotes"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
@@ -258,6 +259,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "hyphens" => style.hyphens = inherited.hyphens,
         "text-rendering" => style.text_rendering = inherited.text_rendering,
         "text-orientation" => style.text_orientation = inherited.text_orientation,
+        "direction" => style.direction = inherited.direction,
         "quotes" => style.quotes = inherited.quotes.clone(),
         "text-indent" => {
             style.text_indent = inherited.text_indent;
@@ -365,6 +367,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "hyphens" => style.hyphens = Hyphens::Manual,
         "text-rendering" => style.text_rendering = TextRendering::Auto,
         "text-orientation" => style.text_orientation = TextOrientation::Mixed,
+        "direction" => style.direction = Direction::Ltr,
         "quotes" => style.quotes = quotes::default_quotes(),
         "counter-reset" => style.counter_reset.clear(),
         "counter-increment" => style.counter_increment.clear(),
@@ -663,6 +666,13 @@ fn apply_declaration(
                 "upright" => TextOrientation::Upright,
                 "sideways" => TextOrientation::Sideways,
                 _ => style.text_orientation,
+            };
+        }
+        "direction" => {
+            style.direction = match value.to_ascii_lowercase().as_str() {
+                "ltr" => Direction::Ltr,
+                "rtl" => Direction::Rtl,
+                _ => style.direction,
             };
         }
         "quotes" => apply_quotes(style, value),

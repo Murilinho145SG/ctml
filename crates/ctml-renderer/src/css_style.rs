@@ -430,5 +430,9 @@ mod text_shadow_tests;
 mod text_emphasis_tests;
 
 #[cfg(test)]
+#[path = "css_style_direction_tests.rs"]
+mod direction_tests;
+
+#[cfg(test)]
 #[path = "css_style_matrix_tests.rs"]
 mod matrix_tests;

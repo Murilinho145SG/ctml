@@ -79,6 +79,13 @@ pub(crate) enum TextOrientation {
     Sideways,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Direction {
+    #[default]
+    Ltr,
+    Rtl,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -147,6 +154,7 @@ pub(crate) struct TextStyle {
     pub(crate) line_clamp: Option<usize>,
     pub(crate) text_rendering: TextRendering,
     pub(crate) text_orientation: TextOrientation,
+    pub(crate) direction: Direction,
     pub(crate) quotes: Vec<(String, String)>,
     pub(crate) counter_reset: Vec<(String, i32)>,
     pub(crate) counter_increment: Vec<(String, i32)>,
@@ -353,6 +361,7 @@ impl Default for TextStyle {
             line_clamp: None,
             text_rendering: TextRendering::Auto,
             text_orientation: TextOrientation::Mixed,
+            direction: Direction::Ltr,
             quotes: vec![
                 ("“".to_owned(), "”".to_owned()),
                 ("‘".to_owned(), "’".to_owned()),

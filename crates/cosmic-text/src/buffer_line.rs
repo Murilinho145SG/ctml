@@ -30,6 +30,7 @@ pub struct BufferLine {
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
     metadata: Option<usize>,
+    base_rtl: Option<bool>,
 }
 
 impl BufferLine {
@@ -61,6 +62,7 @@ impl BufferLine {
             layout_opt: Cached::Empty,
             shaping,
             metadata: None,
+            base_rtl: None,
         }
     }
 
@@ -92,6 +94,7 @@ impl BufferLine {
         self.layout_opt.set_unused();
         self.shaping = shaping;
         self.metadata = None;
+        self.base_rtl = None;
     }
 
     /// Get current text
@@ -245,6 +248,17 @@ impl BufferLine {
         }
     }
 
+    /// Set the base direction used to resolve bidirectional text in this paragraph.
+    pub fn set_base_rtl(&mut self, base_rtl: Option<bool>) -> bool {
+        if self.base_rtl != base_rtl {
+            self.base_rtl = base_rtl;
+            self.reset_shaping();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Set the line wrapping mode and invalidate its layout if it changes.
     pub fn set_wrap(&mut self, wrap: Wrap) -> bool {
         if self.wrap != wrap {
@@ -351,7 +365,7 @@ impl BufferLine {
                 .shape_opt
                 .take_unused()
                 .unwrap_or_else(ShapeLine::empty);
-            line.build_with_keep_all(
+            line.build_with_base_rtl(
                 font_system,
                 &self.text,
                 &self.attrs_list,
@@ -359,6 +373,7 @@ impl BufferLine {
                 tab_width,
                 self.keep_all,
                 self.hyphens_none,
+                self.base_rtl,
             );
             self.shape_opt.set_used(line);
             self.layout_opt.set_unused();
@@ -469,6 +484,7 @@ impl BufferLine {
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
             metadata: None,
+            base_rtl: None,
         }
     }
 

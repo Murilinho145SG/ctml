@@ -237,7 +237,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Keyword and single-grapheme string `text-emphasis` marks (`dot`, `circle`, `double-circle`, `triangle`, and `sesame`), filled/open styles, inherited color, and over/under position.
 - [x] Parse and preserve the optional `left`/`right` side in `text-emphasis-position`; its vertical placement depends on writing modes.
 - [ ] Vertical text-emphasis side placement.
-- [ ] Writing modes, direction, bidirectional isolation, and vertical text.
+- [x] `direction: ltr|rtl` establishes the inherited base bidi direction for each rendered paragraph.
+- [ ] Writing modes, bidirectional isolation, and vertical text.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [x] Hebrew, Armenian, Georgian, basic CJK, localized decimal, and kana alphabet predefined `list-style-type` systems, with decimal fallback outside supported ranges.

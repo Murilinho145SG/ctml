@@ -1423,6 +1423,30 @@ impl ShapeLine {
         keep_all: bool,
         hyphens_none: bool,
     ) {
+        self.build_with_base_rtl(
+            font_system,
+            line,
+            attrs_list,
+            shaping,
+            tab_width,
+            keep_all,
+            hyphens_none,
+            None,
+        );
+    }
+
+    /// Build a shaped line using an optional explicit base direction.
+    pub fn build_with_base_rtl(
+        &mut self,
+        font_system: &mut FontSystem,
+        line: &str,
+        attrs_list: &AttrsList,
+        shaping: Shaping,
+        tab_width: u16,
+        keep_all: bool,
+        hyphens_none: bool,
+        base_rtl: Option<bool>,
+    ) {
         // Clear stale ellipsis span so it gets recomputed with the current attrs.
         // Without this, reusing a ShapeLine from a previous text (via Cached::Unused)
         // would keep an ellipsis shaped with the old attrs.
@@ -1435,7 +1459,14 @@ impl ShapeLine {
         cached_spans.clear();
         cached_spans.extend(spans.drain(..).rev());
 
-        let bidi = unicode_bidi::BidiInfo::new(line, None);
+        let base_level = base_rtl.map(|rtl| {
+            if rtl {
+                unicode_bidi::Level::rtl()
+            } else {
+                unicode_bidi::Level::ltr()
+            }
+        });
+        let bidi = unicode_bidi::BidiInfo::new(line, base_level);
         let rtl = if bidi.paragraphs.is_empty() {
             false
         } else {

@@ -227,6 +227,10 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         Shaping::Advanced,
         Some(page.root_style.text_align),
     );
+    let paragraph_directions = paragraph_directions(&page.runs, page.buffer.lines.len());
+    for (line, direction) in page.buffer.lines.iter_mut().zip(paragraph_directions) {
+        line.set_base_rtl(Some(direction == crate::style::Direction::Rtl));
+    }
     let line_styles = line_alignments(&page.runs);
     for (
         line,
@@ -301,4 +305,26 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
             hinting,
         );
     }
+}
+
+fn paragraph_directions(runs: &[TextRun], line_count: usize) -> Vec<crate::style::Direction> {
+    let mut directions = Vec::with_capacity(line_count);
+    let mut current = None;
+    for run in runs {
+        for character in run.text.chars() {
+            current.get_or_insert(run.style.direction);
+            if character == '\n' {
+                directions.push(current.take().unwrap_or_default());
+            }
+        }
+    }
+    if current.is_some() || directions.is_empty() {
+        directions.push(current.unwrap_or_default());
+    }
+    directions.resize(
+        line_count,
+        *directions.last().unwrap_or(&crate::style::Direction::Ltr),
+    );
+    directions.truncate(line_count);
+    directions
 }

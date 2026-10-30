@@ -44,6 +44,29 @@ fn pointer_hover_and_active_states_restyle_text_runs() {
 }
 
 #[test]
+fn direction_rtl_sets_the_paragraph_base_bidi_level() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("abc אבג 123".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "direction".to_owned(),
+            value: "rtl".to_owned(),
+        }],
+    }];
+    let left_to_right = PageRasterizer::new(&nodes, &[]).snapshot_pixels(240, 50);
+    let right_to_left = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(240, 50);
+
+    assert_ne!(left_to_right, right_to_left);
+}
+
+#[test]
 fn focus_and_focus_within_restyle_clicked_links() {
     let nodes = [UiNode::Element {
         tag: "section".to_owned(),
