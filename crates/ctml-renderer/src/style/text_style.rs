@@ -16,9 +16,9 @@ mod border_image;
 mod core;
 mod layout;
 pub(crate) use background::{
-    BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
-    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient, LinearGradient,
-    RadialGradient, RadialGradientExtent, RadialGradientShape,
+    BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
+    BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient,
+    LinearGradient, RadialGradient, RadialGradientExtent, RadialGradientShape,
 };
 pub(crate) use border_image::{
     BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,

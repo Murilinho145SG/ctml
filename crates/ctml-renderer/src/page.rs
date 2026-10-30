@@ -10,6 +10,7 @@ use crate::{
     style::{TextRun, TextStyle, compile_runs_with_opacity_map, synthesize_font_variant_caps},
 };
 
+mod background_blend;
 mod background_images;
 mod backgrounds;
 mod block_sizing;

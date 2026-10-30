@@ -16,8 +16,8 @@ use super::font_variant::{
 use apply::apply_declaration;
 use aspect_ratio::apply_aspect_ratio;
 use background::{
-    apply_background_color, apply_background_image, apply_background_position,
-    apply_background_repeat, apply_background_size,
+    apply_background_blend_mode, apply_background_color, apply_background_image,
+    apply_background_position, apply_background_repeat, apply_background_size,
 };
 use background_attachment::apply_background_attachment;
 use background_box::{

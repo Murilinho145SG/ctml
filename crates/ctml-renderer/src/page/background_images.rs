@@ -5,9 +5,9 @@ use skia_safe::{
 use std::{collections::HashMap, sync::Arc};
 
 use crate::style::{
-    BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
-    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient, LinearGradient,
-    RadialGradient, RadialGradientExtent, RadialGradientShape,
+    BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
+    BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient,
+    LinearGradient, RadialGradient, RadialGradientExtent, RadialGradientShape,
 };
 
 use super::overflow_clip::{BackgroundBoxes, ClipRect};
@@ -16,6 +16,7 @@ pub(super) type ImageCache = HashMap<Arc<[u8]>, Option<Image>>;
 
 pub(super) fn draw_background_image_layers(
     images: &[BackgroundImage],
+    blend_modes: &[BackgroundBlendMode],
     repeats: &[BackgroundRepeat],
     positions: &[BackgroundPosition],
     sizes: &[BackgroundSize],
@@ -200,6 +201,12 @@ pub(super) fn draw_background_image_layers(
         let mut paint = Paint::default();
         paint.set_shader(shader);
         paint.set_alpha_f(opacity.clamp(0.0, 1.0));
+        paint.set_blend_mode(super::background_blend::to_skia(
+            blend_modes
+                .get(index % blend_modes.len().max(1))
+                .copied()
+                .unwrap_or_default(),
+        ));
         canvas.draw_rect(layer_rect, &paint);
         canvas.restore();
     }

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use ctml_css::{FontRelativeUnits, ViewportSize};
 
 use super::{
-    BackgroundAttachment, BackgroundBox, BackgroundImage, BackgroundPosition, BackgroundRepeat,
-    BackgroundSize, BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
-    BorderLineStyle, Overflow, WritingMode,
+    BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundImage, BackgroundPosition,
+    BackgroundRepeat, BackgroundSize, BorderImageOutset, BorderImageRepeat, BorderImageSlice,
+    BorderImageWidth, BorderLineStyle, Overflow, WritingMode,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,6 +42,7 @@ pub(crate) struct LayoutSize {
     pub(crate) box_shadows: Vec<BoxShadow>,
     pub(crate) background_layers: Vec<[u8; 4]>,
     pub(crate) background_images: Vec<BackgroundImage>,
+    pub(crate) background_blend_modes: Vec<BackgroundBlendMode>,
     pub(crate) background_repeats: Vec<BackgroundRepeat>,
     pub(crate) background_positions: Vec<BackgroundPosition>,
     pub(crate) background_sizes: Vec<BackgroundSize>,

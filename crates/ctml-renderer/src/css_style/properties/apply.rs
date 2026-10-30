@@ -184,6 +184,7 @@ pub(super) fn apply_declaration(
         "background" => apply_background_shorthand(style, value),
         "background-color" => apply_background_color(style, value),
         "background-image" => apply_background_image(style, value),
+        "background-blend-mode" => apply_background_blend_mode(style, value),
         "background-repeat" => apply_background_repeat(style, value),
         "background-position" => apply_background_position(style, value),
         "background-size" => apply_background_size(style, value),

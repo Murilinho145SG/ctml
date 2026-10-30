@@ -4,9 +4,9 @@ use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
-    BackgroundAttachment, BackgroundBox, BackgroundImage, BackgroundPosition, BackgroundRepeat,
-    BackgroundSize, BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
-    BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps,
+    BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundImage, BackgroundPosition,
+    BackgroundRepeat, BackgroundSize, BorderImageOutset, BorderImageRepeat, BorderImageSlice,
+    BorderImageWidth, BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps,
     FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, Overflow, OverflowWrap,
     TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
     TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextTransform,
@@ -34,6 +34,7 @@ pub(crate) struct TextStyle {
     pub(crate) background_color: Option<[u8; 4]>,
     pub(crate) background_layers: Vec<[u8; 4]>,
     pub(crate) background_images: Vec<BackgroundImage>,
+    pub(crate) background_blend_modes: Vec<BackgroundBlendMode>,
     pub(crate) background_repeats: Vec<BackgroundRepeat>,
     pub(crate) background_positions: Vec<BackgroundPosition>,
     pub(crate) background_sizes: Vec<BackgroundSize>,
@@ -215,6 +216,7 @@ impl Default for TextStyle {
             background_color: None,
             background_layers: Vec::new(),
             background_images: Vec::new(),
+            background_blend_modes: Vec::new(),
             background_repeats: Vec::new(),
             background_positions: Vec::new(),
             background_sizes: Vec::new(),

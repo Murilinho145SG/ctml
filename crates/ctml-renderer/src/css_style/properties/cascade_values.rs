@@ -50,6 +50,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .background_images
                 .clone_from(&inherited.background_images);
         }
+        "background-blend-mode" => style
+            .background_blend_modes
+            .clone_from(&inherited.background_blend_modes),
         "border-image-source" => {
             style
                 .border_image_source
@@ -335,6 +338,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "background-image" => style.background_images.clear(),
+        "background-blend-mode" => style.background_blend_modes.clear(),
         "border-image-source" => style.border_image_source = None,
         "border-image" => {
             style.border_image_source = None;

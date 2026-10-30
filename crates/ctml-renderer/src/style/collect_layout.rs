@@ -67,6 +67,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
         box_shadows: style.box_shadows.clone(),
         background_layers: style.background_layers.clone(),
         background_images: style.background_images.clone(),
+        background_blend_modes: style.background_blend_modes.clone(),
         background_repeats: style.background_repeats.clone(),
         background_positions: style.background_positions.clone(),
         background_sizes: style.background_sizes.clone(),

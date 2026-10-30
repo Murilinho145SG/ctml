@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{Overflow, TextDecorationStyle, TextStyle, UserSelect},
+    style::{BackgroundBlendMode, Overflow, TextDecorationStyle, TextStyle, UserSelect},
 };
 
 pub(super) fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle {
@@ -33,6 +33,18 @@ pub(super) fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle
         id: None,
     };
     resolve_style(&TextStyle::default(), &paragraph, &[body], &[rule])
+}
+
+#[test]
+fn resolves_background_blend_mode_lists_and_ignores_invalid_lists() {
+    let style = style_for_declarations(&[("background-blend-mode", "screen, multiply")]);
+    assert_eq!(
+        style.background_blend_modes,
+        [BackgroundBlendMode::Screen, BackgroundBlendMode::Multiply]
+    );
+
+    let invalid = style_for_declarations(&[("background-blend-mode", "screen, invalid")]);
+    assert!(invalid.background_blend_modes.is_empty());
 }
 
 #[test]

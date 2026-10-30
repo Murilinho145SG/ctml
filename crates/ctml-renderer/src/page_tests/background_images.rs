@@ -296,6 +296,44 @@ fn paints_linear_gradient_backgrounds_in_the_declared_direction() {
 }
 
 #[test]
+fn background_blend_mode_combines_image_layers_over_the_background_color() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("blend".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".blend".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "40px"),
+            ("height", "40px"),
+            ("background-color", "black"),
+            (
+                "background-image",
+                "linear-gradient(red, red), linear-gradient(blue, blue)",
+            ),
+            ("background-blend-mode", "screen"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(80, 70);
+    let pixel = &pixels[(20 * 80 + 20) * 4..][..3];
+
+    assert!(
+        pixel[0] > 240 && pixel[1] < 15 && pixel[2] > 240,
+        "blended pixel: {pixel:?}"
+    );
+}
+
+#[test]
 fn paints_linear_gradients_with_explicit_color_stop_positions() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

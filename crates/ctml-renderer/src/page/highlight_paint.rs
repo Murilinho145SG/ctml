@@ -69,6 +69,7 @@ pub(super) fn draw_highlight_background_images(
         );
         super::background_images::draw_background_image_layers(
             &style.background_images,
+            &style.background_blend_modes,
             &style.background_repeats,
             &style.background_positions,
             &style.background_sizes,
