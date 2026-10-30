@@ -128,7 +128,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                         "max-width",
                     )
                 };
-                let block_size = select_axis_size(
+                let explicit_block_size = select_axis_size(
                     logical_size.as_ref(),
                     physical_size.as_ref(),
                     &height_size.size_property_orders,
@@ -136,6 +136,12 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                     physical_name,
                 )
                 .flatten();
+                let block_size = explicit_block_size.or_else(|| {
+                    height_size
+                        .size_contained
+                        .then(|| height_size.contain_intrinsic_height.as_deref())
+                        .flatten()
+                });
                 let min_block_size = select_axis_size(
                     logical_min.as_ref(),
                     physical_min.as_ref(),

@@ -1169,6 +1169,66 @@ fn contain_tracks_paint_containment_and_resets_with_css_wide_values() {
 }
 
 #[test]
+fn contain_intrinsic_size_parses_shorthand_pairs_and_css_wide_resets() {
+    let pair = style_for_declarations(&[("contain-intrinsic-size", "120px 40px")]);
+    assert_eq!(pair.contain_intrinsic_width.as_deref(), Some("120px"));
+    assert_eq!(pair.contain_intrinsic_height.as_deref(), Some("40px"));
+
+    let auto_fallback = style_for_declarations(&[("contain-intrinsic-size", "auto 32px")]);
+    assert_eq!(
+        auto_fallback.contain_intrinsic_width.as_deref(),
+        Some("32px")
+    );
+    assert_eq!(
+        auto_fallback.contain_intrinsic_height.as_deref(),
+        Some("32px")
+    );
+
+    let per_axis = style_for_declarations(&[("contain-intrinsic-size", "auto 120px auto 48px")]);
+    assert_eq!(per_axis.contain_intrinsic_width.as_deref(), Some("120px"));
+    assert_eq!(per_axis.contain_intrinsic_height.as_deref(), Some("48px"));
+
+    let longhand_fallback = style_for_declarations(&[("contain-intrinsic-height", "auto 36px")]);
+    assert_eq!(
+        longhand_fallback.contain_intrinsic_height.as_deref(),
+        Some("36px")
+    );
+
+    let reset = style_for_declarations(&[
+        ("contain-intrinsic-size", "120px 40px"),
+        ("contain-intrinsic-size", "initial"),
+    ]);
+    assert_eq!(reset.contain_intrinsic_width, None);
+    assert_eq!(reset.contain_intrinsic_height, None);
+
+    let shorthand_first = style_for_declarations(&[
+        ("contain-intrinsic-size", "120px 40px"),
+        ("contain-intrinsic-height", "24px"),
+    ]);
+    assert_eq!(
+        shorthand_first.contain_intrinsic_width.as_deref(),
+        Some("120px")
+    );
+    assert_eq!(
+        shorthand_first.contain_intrinsic_height.as_deref(),
+        Some("24px")
+    );
+
+    let shorthand_last = style_for_declarations(&[
+        ("contain-intrinsic-height", "24px"),
+        ("contain-intrinsic-size", "120px 40px"),
+    ]);
+    assert_eq!(
+        shorthand_last.contain_intrinsic_height.as_deref(),
+        Some("40px")
+    );
+
+    let invalid = style_for_declarations(&[("contain-intrinsic-size", "-1px")]);
+    assert_eq!(invalid.contain_intrinsic_width, None);
+    assert_eq!(invalid.contain_intrinsic_height, None);
+}
+
+#[test]
 fn overflow_modes_parse_and_do_not_inherit_by_default() {
     let hidden = style_for_declarations(&[("overflow", "hidden")]);
     assert_eq!(hidden.overflow_x, Overflow::Hidden);

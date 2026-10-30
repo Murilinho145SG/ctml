@@ -290,6 +290,8 @@ pub(super) fn collect_runs(
                         paint_contained: style.paint_contained,
                         size_contained: style.size_contained,
                         inline_size_contained: style.inline_size_contained,
+                        contain_intrinsic_width: style.contain_intrinsic_width.clone(),
+                        contain_intrinsic_height: style.contain_intrinsic_height.clone(),
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,
@@ -362,6 +364,7 @@ pub(super) fn collect_runs(
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
                         || style.aspect_ratio.is_some()
+                        || (style.size_contained && style.contain_intrinsic_height.is_some())
                         || !style.box_shadows.is_empty()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
@@ -397,6 +400,9 @@ pub(super) fn collect_runs(
                         line_height: style.line_height,
                         font_relative_units: style.font_relative_units,
                         viewport_size: style.viewport_size,
+                        size_contained: style.size_contained,
+                        contain_intrinsic_width: style.contain_intrinsic_width.clone(),
+                        contain_intrinsic_height: style.contain_intrinsic_height.clone(),
                     });
                     let last_was_space_before = *last_was_space;
                     let capitalize_next_before = *capitalize_next;

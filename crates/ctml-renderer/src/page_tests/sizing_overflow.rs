@@ -82,6 +82,100 @@ fn contain_size_removes_intrinsic_block_height_but_keeps_overflowing_text() {
 }
 
 #[test]
+fn content_visibility_hidden_uses_contain_intrinsic_height_fallback() {
+    let hidden = UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("hidden".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Skipped content".to_owned())],
+    };
+    let after = text_paragraph("after");
+    let nodes = [hidden, after];
+    let stylesheet = [StyleRule {
+        selectors: vec![".hidden".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "hidden".to_owned(),
+            },
+            StyleDeclaration {
+                property: "contain-intrinsic-height".to_owned(),
+                value: "auto 40px".to_owned(),
+            },
+        ],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(240, 120);
+    let mut zero_placeholder = PageRasterizer::new(
+        &nodes,
+        &[StyleRule {
+            selectors: vec![".hidden".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "hidden".to_owned(),
+            }],
+        }],
+    );
+    zero_placeholder.prepare_layout(240, 120);
+
+    let after_y = text_line_y(&page, "after");
+    let zero_after_y = text_line_y(&zero_placeholder, "after");
+    assert!(
+        (after_y - zero_after_y - 40.0).abs() < 5.0,
+        "the skipped block should add its 40px intrinsic height: {after_y} vs {zero_after_y}"
+    );
+}
+
+#[test]
+fn empty_hidden_block_uses_contain_intrinsic_height_fallback() {
+    let hidden = UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("hidden".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    };
+    let nodes = [hidden, text_paragraph("after")];
+    let stylesheet = [StyleRule {
+        selectors: vec![".hidden".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "hidden".to_owned(),
+            },
+            StyleDeclaration {
+                property: "contain-intrinsic-height".to_owned(),
+                value: "32px".to_owned(),
+            },
+        ],
+    }];
+    let mut with_fallback = PageRasterizer::new(&nodes, &stylesheet);
+    let mut without_fallback = PageRasterizer::new(
+        &nodes,
+        &[StyleRule {
+            selectors: vec![".hidden".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "hidden".to_owned(),
+            }],
+        }],
+    );
+    with_fallback.prepare_layout(240, 120);
+    without_fallback.prepare_layout(240, 120);
+
+    let delta = text_line_y(&with_fallback, "after") - text_line_y(&without_fallback, "after");
+    assert!(
+        (delta - 32.0).abs() < 5.0,
+        "empty skipped block should reserve its intrinsic height, got {delta}"
+    );
+}
+
+#[test]
 fn overflow_hidden_clips_descendant_text_and_backgrounds_at_the_used_block_extent() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

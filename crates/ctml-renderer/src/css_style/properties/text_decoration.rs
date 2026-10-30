@@ -190,7 +190,7 @@ pub(super) fn apply_text_decoration_property(style: &mut TextStyle, property: &s
     }
 }
 
-fn split_css_whitespace(value: &str) -> Vec<&str> {
+pub(super) fn split_css_whitespace(value: &str) -> Vec<&str> {
     let mut components = Vec::new();
     let mut start = None;
     let mut depth: usize = 0;

@@ -182,6 +182,8 @@ pub(crate) struct LayoutSize {
     pub(crate) paint_contained: bool,
     pub(crate) size_contained: bool,
     pub(crate) inline_size_contained: bool,
+    pub(crate) contain_intrinsic_width: Option<String>,
+    pub(crate) contain_intrinsic_height: Option<String>,
     pub(crate) size_property_orders: HashMap<String, usize>,
     pub(crate) writing_mode: WritingMode,
     pub(crate) font_size: f32,
@@ -217,6 +219,9 @@ pub(crate) struct LayoutHeight {
     pub(crate) line_height: f32,
     pub(crate) font_relative_units: FontRelativeUnits,
     pub(crate) viewport_size: ViewportSize,
+    pub(crate) size_contained: bool,
+    pub(crate) contain_intrinsic_width: Option<String>,
+    pub(crate) contain_intrinsic_height: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

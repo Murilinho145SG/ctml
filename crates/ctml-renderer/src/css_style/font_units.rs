@@ -98,6 +98,8 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.paint_contained = false;
     style.size_contained = false;
     style.inline_size_contained = false;
+    style.contain_intrinsic_width = None;
+    style.contain_intrinsic_height = None;
     style.box_decoration_break = crate::style::BoxDecorationBreak::Slice;
     style.inline_box = false;
     style.margin = std::array::from_fn(|_| None);

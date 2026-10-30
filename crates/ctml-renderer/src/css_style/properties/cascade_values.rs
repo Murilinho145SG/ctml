@@ -13,6 +13,20 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.size_contained = inherited.size_contained;
             style.inline_size_contained = inherited.inline_size_contained;
         }
+        "contain-intrinsic-size" => {
+            style.contain_intrinsic_width = inherited.contain_intrinsic_width.clone();
+            style.contain_intrinsic_height = inherited.contain_intrinsic_height.clone();
+        }
+        "contain-intrinsic-width" => {
+            style
+                .contain_intrinsic_width
+                .clone_from(&inherited.contain_intrinsic_width);
+        }
+        "contain-intrinsic-height" => {
+            style
+                .contain_intrinsic_height
+                .clone_from(&inherited.contain_intrinsic_height);
+        }
         "overflow" => {
             style.overflow_x = inherited.overflow_x;
             style.overflow_y = inherited.overflow_y;
@@ -233,6 +247,12 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.size_contained = false;
             style.inline_size_contained = false;
         }
+        "contain-intrinsic-size" => {
+            style.contain_intrinsic_width = None;
+            style.contain_intrinsic_height = None;
+        }
+        "contain-intrinsic-width" => style.contain_intrinsic_width = None,
+        "contain-intrinsic-height" => style.contain_intrinsic_height = None,
         "overflow" => {
             style.overflow_x = Overflow::Visible;
             style.overflow_y = Overflow::Visible;

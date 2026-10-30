@@ -56,7 +56,21 @@ pub(super) fn resolve_intrinsic_layout_width(
     available: f32,
 ) -> Option<f32> {
     if size.inline_size_contained {
-        return Some(0.0);
+        return Some(
+            size.contain_intrinsic_width
+                .as_deref()
+                .and_then(|value| {
+                    resolve_width(
+                        value,
+                        available,
+                        size.font_size,
+                        size.line_height,
+                        size.font_relative_units,
+                        size.viewport_size,
+                    )
+                })
+                .unwrap_or_default(),
+        );
     }
     resolve_intrinsic_width(
         value,

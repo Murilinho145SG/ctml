@@ -39,6 +39,9 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "contain" => apply_contain(style, value),
+        "contain-intrinsic-size" => apply_contain_intrinsic_size(style, value),
+        "contain-intrinsic-width" => apply_contain_intrinsic_width(style, value),
+        "contain-intrinsic-height" => apply_contain_intrinsic_height(style, value),
         "overflow" => {
             if let Some((overflow_x, overflow_y)) = parse_overflow_value(value) {
                 style.overflow_x = overflow_x;

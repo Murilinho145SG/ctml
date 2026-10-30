@@ -141,6 +141,23 @@ pub(super) fn resolve_block_box_extent(
     page_writing_mode: WritingMode,
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
+    let content_height = if size.size_contained {
+        size.contain_intrinsic_height
+            .as_deref()
+            .and_then(|value| {
+                resolve_width(
+                    value,
+                    containing_width,
+                    size.font_size,
+                    size.line_height,
+                    size.font_relative_units,
+                    size.viewport_size,
+                )
+            })
+            .unwrap_or_default()
+    } else {
+        content_height
+    };
     let padding = resolve_padding(size, containing_width);
     let borders = resolve_borders(size, containing_width);
     let margin = resolve_margin(size, containing_width);

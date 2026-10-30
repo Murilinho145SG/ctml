@@ -30,6 +30,9 @@ use box_shadow::apply_box_shadow;
 use cascade_values::{inherit_property, initial_property};
 pub(super) use color::apply_color_declaration;
 use contain::apply_contain;
+use contain_intrinsic_size::{
+    apply_contain_intrinsic_height, apply_contain_intrinsic_size, apply_contain_intrinsic_width,
+};
 use counters::{CounterProperty, apply_counter_property};
 use cursor::parse_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
@@ -78,6 +81,7 @@ mod box_shadow;
 mod cascade_values;
 mod color;
 mod contain;
+mod contain_intrinsic_size;
 mod counters;
 mod cursor;
 mod display;
@@ -257,6 +261,9 @@ fn is_inherited_property(property: &str) -> bool {
             | "visibility"
             | "content-visibility"
             | "contain"
+            | "contain-intrinsic-size"
+            | "contain-intrinsic-width"
+            | "contain-intrinsic-height"
             | "pointer-events"
             | "direction"
             | "quotes"
