@@ -129,7 +129,13 @@ impl AttrType {
 
 fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String> {
     match attr_type {
-        None | Some(AttrType::String) => Some(value.to_owned()),
+        None | Some(AttrType::String) => {
+            let mut serialized = String::new();
+            Token::QuotedString(value.into())
+                .to_css(&mut serialized)
+                .expect("writing CSS tokens into a String cannot fail");
+            Some(serialized)
+        }
         Some(AttrType::Integer) => value
             .trim()
             .parse::<i64>()

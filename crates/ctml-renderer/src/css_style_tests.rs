@@ -106,6 +106,29 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
 }
 
 #[test]
+fn untyped_attr_is_a_css_string_not_an_injected_token_sequence() {
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "color".to_owned(),
+            value: "attr(data-color)".to_owned(),
+        }],
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let attributes = [("data-color".to_owned(), Some("red".to_owned()))];
+
+    let style =
+        resolve_style_with_attributes(&TextStyle::default(), &paragraph, &[], &attributes, &[rule]);
+
+    assert_eq!(style.color, [0, 0, 0, 255]);
+}
+
+#[test]
 fn parses_exponential_numeric_font_weights() {
     assert_eq!(
         style_for_declarations(&[("font-weight", "1e2")]).weight,
