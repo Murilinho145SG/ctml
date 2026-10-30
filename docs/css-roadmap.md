@@ -52,7 +52,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-letter` applies `font-optical-sizing` and `font-variation-settings` to the initial glyph.
 - [x] `text-orientation` applies to `::first-line` and `::first-letter` glyphs.
 - [x] `::first-letter` includes the first typographic character and associated Unicode punctuation and intervening spaces across adjacent text runs; `text-transform` changes the character while preserving the punctuation.
-- [x] `::first-line` font family, size, weight, style, stretch, kerning, supported variants/features, and letter spacing in glyph rendering; wrapping and line metrics still come from the base text layout.
+- [x] `::first-line` font family, size, weight, style, stretch, kerning, supported variants/features, and letter spacing in glyph rendering and line layout.
 - [x] `::first-line` applies `font-optical-sizing` and `font-variation-settings` during glyph rendering.
 - [x] Apply `text-rendering` to `::first-line` and `::first-letter` glyph shaping.
 - [x] `::first-line` text shadow and emphasis marks in glyph rendering.

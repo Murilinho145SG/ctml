@@ -195,6 +195,106 @@ pub(super) fn apply_first_line_word_spacing(
     true
 }
 
+pub(super) fn apply_first_line_letter_spacing(
+    buffer: &cosmic_text::Buffer,
+    runs: &mut Vec<TextRun>,
+    spans: &[CursorSpan],
+) -> bool {
+    let first_lines = first_formatted_line_ranges(buffer, spans);
+    let mut spacing_by_run: HashMap<usize, Vec<(usize, usize, f32)>> = HashMap::new();
+    for span in spans {
+        let Some(block) = span.first_line_block else {
+            continue;
+        };
+        let Some((line, end)) = first_lines.get(&block).copied() else {
+            continue;
+        };
+        if span.line != line || span.start >= end {
+            continue;
+        }
+        let Some(pseudo_style) = &span.first_line_font_style else {
+            continue;
+        };
+        let Some(run) = runs.get(span.run_index) else {
+            continue;
+        };
+        let font_size = run.style.font_size.max(1.0);
+        let current_spacing = if run.style.letter_spacing_px {
+            run.style.letter_spacing / font_size
+        } else {
+            run.style.letter_spacing
+        };
+        let current_word_spacing = if run.style.word_spacing_space {
+            (run.style.word_spacing_px
+                + run.style.word_spacing_percent.unwrap_or_default() * font_size / 100.0)
+                / font_size
+        } else {
+            0.0
+        };
+        let pseudo_spacing = if pseudo_style.letter_spacing_px {
+            pseudo_style.letter_spacing / font_size
+        } else {
+            pseudo_style.letter_spacing
+        };
+        let delta = pseudo_spacing - (current_spacing - current_word_spacing);
+        if delta.abs() > f32::EPSILON {
+            spacing_by_run.entry(span.run_index).or_default().push((
+                span.run_offset,
+                span.run_offset + span.character.len_utf8(),
+                delta,
+            ));
+        }
+    }
+    if spacing_by_run.is_empty() {
+        return false;
+    }
+
+    let mut output = Vec::with_capacity(runs.len() + spacing_by_run.len());
+    for (run_index, run) in runs.iter().enumerate() {
+        let Some(mut ranges) = spacing_by_run.remove(&run_index) else {
+            output.push(run.clone());
+            continue;
+        };
+        ranges.sort_by_key(|(start, _, _)| *start);
+        let mut merged: Vec<(usize, usize, f32)> = Vec::with_capacity(ranges.len());
+        for (start, end, spacing) in ranges {
+            if let Some((_, previous_end, previous_spacing)) = merged.last_mut()
+                && *previous_end == start
+                && *previous_spacing == spacing
+            {
+                *previous_end = end;
+            } else {
+                merged.push((start, end, spacing));
+            }
+        }
+        let mut offset = 0;
+        for (start, end, spacing) in merged {
+            if start > offset {
+                let mut prefix = run.clone();
+                prefix.text = run.text[offset..start].to_owned();
+                output.push(prefix);
+            }
+            let mut adjusted = run.clone();
+            adjusted.text = run.text[start..end].to_owned();
+            adjusted.style.letter_spacing = if adjusted.style.letter_spacing_px {
+                adjusted.style.letter_spacing / adjusted.style.font_size.max(1.0)
+            } else {
+                adjusted.style.letter_spacing
+            } + spacing;
+            adjusted.style.letter_spacing_px = false;
+            output.push(adjusted);
+            offset = end;
+        }
+        if offset < run.text.len() {
+            let mut suffix = run.clone();
+            suffix.text = run.text[offset..].to_owned();
+            output.push(suffix);
+        }
+    }
+    *runs = output;
+    true
+}
+
 pub(super) fn apply_first_line_line_height(
     buffer: &cosmic_text::Buffer,
     runs: &mut Vec<TextRun>,

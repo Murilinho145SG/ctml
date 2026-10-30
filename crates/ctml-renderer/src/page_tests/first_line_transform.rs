@@ -2,110 +2,6 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
-fn text_transform_applies_full_width_and_full_size_kana_to_text() {
-    let nodes = [UiNode::Element {
-        tag: "p".to_owned(),
-        class: None,
-        id: None,
-        attributes: Vec::new(),
-        children: vec![UiNode::Text("ABC ぁｧ".to_owned())],
-    }];
-    let stylesheet = [StyleRule {
-        selectors: vec!["p".to_owned()],
-        layer: None,
-        declarations: [("text-transform", "uppercase full-width full-size-kana")]
-            .into_iter()
-            .map(|(property, value)| StyleDeclaration {
-                property: property.to_owned(),
-                value: value.to_owned(),
-            })
-            .collect(),
-    }];
-    let page = PageRasterizer::new(&nodes, &stylesheet);
-    let rendered_text = page
-        .runs
-        .iter()
-        .map(|run| run.text.as_str())
-        .collect::<String>();
-
-    assert_eq!(rendered_text, "ＡＢＣ あア");
-}
-
-#[test]
-fn full_width_transforms_spaces_only_when_white_space_is_preserved() {
-    let nodes = [UiNode::Element {
-        tag: "p".to_owned(),
-        class: None,
-        id: None,
-        attributes: Vec::new(),
-        children: vec![UiNode::Text("A B".to_owned())],
-    }];
-    let stylesheet = [StyleRule {
-        selectors: vec!["p".to_owned()],
-        layer: None,
-        declarations: vec![
-            StyleDeclaration {
-                property: "white-space".to_owned(),
-                value: "pre".to_owned(),
-            },
-            StyleDeclaration {
-                property: "text-transform".to_owned(),
-                value: "full-width".to_owned(),
-            },
-        ],
-    }];
-    let page = PageRasterizer::new(&nodes, &stylesheet);
-    let rendered_text = page
-        .runs
-        .iter()
-        .map(|run| run.text.as_str())
-        .collect::<String>();
-
-    assert_eq!(rendered_text, "Ａ\u{3000}Ｂ\n");
-}
-
-#[test]
-fn first_line_text_transform_applies_full_width_and_full_size_kana() {
-    let nodes = [UiNode::Element {
-        tag: "p".to_owned(),
-        class: None,
-        id: None,
-        attributes: Vec::new(),
-        children: vec![UiNode::Text("aぁｧ\nlater".to_owned())],
-    }];
-    let stylesheet = [
-        StyleRule {
-            selectors: vec!["p".to_owned()],
-            layer: None,
-            declarations: vec![StyleDeclaration {
-                property: "white-space".to_owned(),
-                value: "pre".to_owned(),
-            }],
-        },
-        StyleRule {
-            selectors: vec!["p::first-line".to_owned()],
-            layer: None,
-            declarations: [("text-transform", "uppercase full-width full-size-kana")]
-                .into_iter()
-                .map(|(property, value)| StyleDeclaration {
-                    property: property.to_owned(),
-                    value: value.to_owned(),
-                })
-                .collect(),
-        },
-    ];
-    let mut page = PageRasterizer::new(&nodes, &stylesheet);
-    page.prepare_layout(180, 100);
-    let rendered_text = page
-        .runs
-        .iter()
-        .map(|run| run.text.as_str())
-        .collect::<String>();
-
-    assert_eq!(rendered_text, "Ａあア\nlater\n");
-}
-
-#[test]
 fn first_line_inline_margin_and_padding_adjust_line_advance() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
@@ -149,6 +45,96 @@ fn first_line_inline_margin_and_padding_adjust_line_advance() {
         (negatively_margined_width - natural_width + 4.0).abs() < 1.0,
         "-2px inline margin on each side should remove 4px, got {}px",
         negatively_margined_width - natural_width
+    );
+}
+
+#[test]
+fn first_line_letter_spacing_changes_only_the_first_line_advance() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("AB\nCD".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "white-space".to_owned(),
+                value: "pre".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "letter-spacing".to_owned(),
+                value: "5px".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(180, 100);
+    let mut lines = page.buffer.layout_runs();
+    let first_line = lines.next().expect("paragraph should have a first line");
+    let second_line = lines
+        .next()
+        .expect("preserved newline should create a second line");
+
+    assert!(
+        first_line.line_w > second_line.line_w + 5.0,
+        "first-line letter spacing should add advance to the first line only"
+    );
+}
+
+#[test]
+fn first_line_letter_spacing_can_change_wrapping() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+    }];
+    let first_line_end = |letter_spacing: Option<&str>| {
+        let declarations = vec![StyleDeclaration {
+            property: "width".to_owned(),
+            value: "95px".to_owned(),
+        }];
+        let mut stylesheet = vec![StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations,
+        }];
+        if let Some(letter_spacing) = letter_spacing {
+            stylesheet.push(StyleRule {
+                selectors: vec!["p::first-line".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "letter-spacing".to_owned(),
+                    value: letter_spacing.to_owned(),
+                }],
+            });
+        }
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(200, 120);
+        page.buffer
+            .layout_runs()
+            .next()
+            .unwrap()
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.end)
+            .max()
+            .unwrap()
+    };
+
+    assert_ne!(
+        first_line_end(None),
+        first_line_end(Some("4px")),
+        "first-line letter spacing should participate in line wrapping"
     );
 }
 

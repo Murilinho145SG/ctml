@@ -102,6 +102,8 @@ mod sizing_overflow;
 mod sizing_percentages;
 #[path = "page_tests/sizing_vertical.rs"]
 mod sizing_vertical;
+#[path = "page_tests/text_transform.rs"]
+mod text_transform;
 #[path = "page_tests/viewport_units.rs"]
 mod viewport_units;
 
