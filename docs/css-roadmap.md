@@ -123,6 +123,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
 - [x] Generated-content `attr()` converts simple finite `<percentage>`, `<length>`, `<length-percentage>`, `<angle>`, `<time>`, `<frequency>`, and `<resolution>` attribute tokens; invalid values use the fallback.
 - [x] Apply string, integer, number, percentage, length, length-percentage, color, and custom-ident `attr()` substitution to supported style declarations, including typed fallback values.
+- [x] Apply typed `<angle>` `attr()` values and fallbacks in supported style declarations, including CSS color functions.
 - [x] Preserve default and `type(<string>)` attribute values as CSS string tokens during declaration substitution.
 - [x] Parse CSS `url()` token and string forms and load local resources relative to a stylesheet; canonicalize paths within a configured root, bound reads, and reject external schemes and root escapes.
 - [x] Connect local `url()` resources to `@font-face` font loading.

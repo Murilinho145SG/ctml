@@ -6,6 +6,7 @@ const LENGTH_UNITS: &[&str] = &[
     "svmin", "svmax", "lvw", "lvh", "lvi", "lvb", "lvmin", "lvmax", "dvw", "dvh", "dvi", "dvb",
     "dvmin", "dvmax",
 ];
+const ANGLE_UNITS: &[&str] = &["deg", "grad", "rad", "turn"];
 
 pub(super) fn substitute_attr_functions(
     value: &str,
@@ -109,6 +110,7 @@ enum AttrType {
     Percentage,
     Length,
     LengthPercentage,
+    Angle,
     Color,
     CustomIdent,
 }
@@ -122,6 +124,7 @@ impl AttrType {
             "percentage" => Some(Self::Percentage),
             "length" => Some(Self::Length),
             "length-percentage" => Some(Self::LengthPercentage),
+            "angle" => Some(Self::Angle),
             "color" => Some(Self::Color),
             "custom-ident" => Some(Self::CustomIdent),
             _ => None,
@@ -151,6 +154,7 @@ fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String>
         Some(AttrType::LengthPercentage) => ctml_css::parse_css_percentage(value)
             .map(|value| format!("{value}%"))
             .or_else(|| parse_dimension(value, LENGTH_UNITS)),
+        Some(AttrType::Angle) => parse_dimension(value, ANGLE_UNITS),
         Some(AttrType::Color) => ctml_css::parse_color(value).map(|color| {
             format!(
                 "#{:02x}{:02x}{:02x}{:02x}",
