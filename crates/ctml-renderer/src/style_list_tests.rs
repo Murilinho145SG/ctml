@@ -229,6 +229,35 @@ fn list_style_type_formats_chinese_longhand_counters() {
 }
 
 #[test]
+fn list_style_type_formats_korean_longhand_counters() {
+    use super::list_marker::{format_counter_value, format_marker};
+
+    for (style, value, expected) in [
+        ("korean-hangul-formal", 0, "영"),
+        ("korean-hangul-formal", 11, "일십일"),
+        ("korean-hangul-formal", 6001, "육천일"),
+        ("korean-hanja-informal", 6001, "六千一"),
+        ("korean-hanja-formal", 11, "壹拾壹"),
+        ("korean-hanja-formal", 6001, "六仟壹"),
+        ("korean-hanja-formal", -12, "마이너스 壹拾貳"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style} {value}"
+        );
+    }
+    assert_eq!(
+        format_marker(Some("korean-hanja-informal"), true, 11).as_deref(),
+        Some("十一, ")
+    );
+    assert_eq!(
+        format_counter_value("korean-hanja-informal", 10_000).as_deref(),
+        Some("一〇〇〇〇")
+    );
+}
+
+#[test]
 fn list_style_type_formats_latin_and_kana_alphabets() {
     use super::list_marker::{format_counter_value, format_marker};
 
@@ -334,6 +363,9 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "simp-chinese-formal",
         "trad-chinese-informal",
         "trad-chinese-formal",
+        "korean-hangul-formal",
+        "korean-hanja-informal",
+        "korean-hanja-formal",
         "lower-latin",
         "upper-latin",
         "hiragana",

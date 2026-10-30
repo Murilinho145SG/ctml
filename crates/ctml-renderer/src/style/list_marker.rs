@@ -1,6 +1,7 @@
 mod chinese;
 mod ethiopic;
 mod japanese;
+mod korean;
 
 pub(super) fn format_marker(
     list_style_type: Option<&str>,
@@ -80,6 +81,10 @@ pub(super) fn format_marker(
                 ". "
             };
             format!("{marker}{suffix}")
+        }
+        "korean-hangul-formal" | "korean-hanja-informal" | "korean-hanja-formal" => {
+            let marker = korean::format(list_style_type, index as i32);
+            format!("{marker}, ")
         }
         _ => return None,
     })
@@ -181,6 +186,9 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         | "simp-chinese-formal"
         | "trad-chinese-informal"
         | "trad-chinese-formal" => Some(chinese::format(style, value)),
+        "korean-hangul-formal" | "korean-hanja-informal" | "korean-hanja-formal" => {
+            Some(korean::format(style, value))
+        }
         _ => Some(value.to_string()),
     }
 }

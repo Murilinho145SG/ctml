@@ -225,6 +225,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `ethiopic-numeric` built-in counter style using two-digit groups.
 - [x] Japanese informal and formal longhand counter styles through 9,999.
 - [x] Simplified and traditional Chinese informal and formal longhand counter styles through 9,999.
+- [x] Korean Hangul formal, Hanja informal, and Hanja formal longhand counter styles through 9,999.
 - [x] `disclosure-open` and `disclosure-closed` list markers with open/down and closed/right triangle glyphs.
 - [ ] Remaining predefined `list-style-type` systems and counter styles.
 - [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
