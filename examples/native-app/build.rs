@@ -1,6 +1,8 @@
 use std::{env, fs, io, path::PathBuf};
 
-use ctml_compiler::{AttributeValue, CssRule, Element, Node, parse, parse_stylesheet_file};
+use ctml_compiler::{
+    AttributeValue, CssRule, Element, Node, load_css_resource, parse, parse_stylesheet_file,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source_path = "src/main.ctml";
@@ -9,6 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(source_path)?;
     let document = parse(&source)?;
     let mut stylesheet = Vec::new();
+    let mut fonts = Vec::new();
     let mut layers = Vec::new();
     for element in document.stylesheets() {
         let relative_path = string_attribute(element, "href")?
@@ -27,6 +30,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             parse_stylesheet_file(&stylesheet_path, &source_root).map_err(invalid_data)?;
         for dependency in dependencies {
             println!("cargo:rerun-if-changed={}", dependency.display());
+        }
+        for face in &parsed.font_faces {
+            let path = face
+                .stylesheet_path
+                .as_ref()
+                .ok_or_else(|| invalid_data("font-face has no source stylesheet"))?;
+            let resource =
+                load_css_resource(&face.source, path, &source_root).map_err(invalid_data)?;
+            println!("cargo:rerun-if-changed={}", resource.path.display());
+            fonts.push((face.family.clone(), resource.path));
         }
         for layer in &parsed.layers {
             if !layers.contains(layer) {
@@ -57,8 +70,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let height = dimension_attribute(application, "height", 600)?;
     let body = rust_nodes(&document.body)?;
     let stylesheet = rust_stylesheet(&stylesheet);
+    let fonts = rust_fonts(&fonts);
     let generated_source = format!(
-        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\n"
+        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\npub fn fonts() -> Vec<ctml::FontFace> {{ vec![{fonts}] }}\n"
     );
 
     let output_path = PathBuf::from(
@@ -139,6 +153,13 @@ fn rust_stylesheet(rules: &[CssRule]) -> String {
         })
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn rust_fonts(fonts: &[(String, PathBuf)]) -> String {
+    fonts.iter().map(|(family, path)| format!(
+        "ctml::FontFace {{ family: {family:?}.to_owned(), bytes: include_bytes!({:?}).to_vec() }}",
+        path.to_str().expect("canonical resource path must be UTF-8"),
+    )).collect::<Vec<_>>().join(", ")
 }
 
 fn option_string(value: Option<&str>) -> String {

@@ -1,6 +1,22 @@
 use super::*;
 
 #[test]
+fn parses_local_font_face_descriptors() {
+    let stylesheet = parse_stylesheet(
+        "@font-face { font-family: 'Project Sans'; src: url(../fonts/project.woff2); font-weight: 400 700; } p { font-family: 'Project Sans'; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.font_faces.len(), 1);
+    assert_eq!(stylesheet.font_faces[0].family, "Project Sans");
+    assert_eq!(
+        stylesheet.font_faces[0].source,
+        "url(../fonts/project.woff2)"
+    );
+    assert_eq!(stylesheet.rules.len(), 1);
+}
+
+#[test]
 fn parses_rules_groups_declarations_and_important_values() {
     let stylesheet = parse_stylesheet("p.notice, #target { color: red !important; }").unwrap();
 

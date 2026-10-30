@@ -66,6 +66,7 @@ fn expand_file(
     let imports = find_imports(&source).map_err(|error| format!("{}: {error}", path.display()))?;
     let mut stylesheet = Stylesheet {
         rules: Vec::new(),
+        font_faces: Vec::new(),
         layers: Vec::new(),
     };
     let mut copied_until = 0;
@@ -97,8 +98,12 @@ fn expand_file(
 }
 
 fn parse_source_segment(source: &str, path: &Path, line_offset: u32) -> Result<Stylesheet, String> {
-    parse_stylesheet_with_line_offset(source, line_offset)
-        .map_err(|error| format!("{}: {error}", path.display()))
+    let mut stylesheet = parse_stylesheet_with_line_offset(source, line_offset)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    for face in &mut stylesheet.font_faces {
+        face.stylesheet_path = Some(path.to_path_buf());
+    }
+    Ok(stylesheet)
 }
 
 fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
@@ -156,6 +161,7 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
         });
     }
     target.rules.extend(source.rules);
+    target.font_faces.extend(source.font_faces);
 }
 
 fn is_anonymous_layer_segment(name: &str) -> bool {

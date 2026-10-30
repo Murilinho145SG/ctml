@@ -1,4 +1,4 @@
-use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, SwashCache};
+use cosmic_text::{Buffer, Color, Cursor, FontSystem, Metrics, SwashCache, fontdb};
 use winit::window::CursorIcon;
 
 use crate::{
@@ -52,8 +52,36 @@ pub(crate) struct PageRasterizer {
 }
 
 impl PageRasterizer {
+    #[cfg(test)]
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
+        Self::new_with_fonts(nodes, stylesheet, &[])
+    }
+
+    pub(crate) fn new_with_fonts(
+        nodes: &[UiNode],
+        stylesheet: &[StyleRule],
+        fonts: &[crate::FontFace],
+    ) -> Self {
         let mut font_system = FontSystem::new();
+        for font in fonts {
+            let database = font_system.db_mut();
+            let ids = database.load_font_source(fontdb::Source::Binary(std::sync::Arc::new(
+                font.bytes.clone(),
+            )));
+            let aliases = ids
+                .iter()
+                .filter_map(|id| database.face(*id).cloned())
+                .map(|mut face| {
+                    if let Some((_, language)) = face.families.first() {
+                        face.families = vec![(font.family.clone(), language.clone())];
+                    }
+                    face
+                })
+                .collect::<Vec<_>>();
+            for face in aliases {
+                database.push_face_info(face);
+            }
+        }
         #[cfg(target_os = "linux")]
         if let Some(family) = crate::fontconfig::matched_family("Arial") {
             font_system.db_mut().set_sans_serif_family(family);

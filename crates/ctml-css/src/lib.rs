@@ -42,8 +42,17 @@ mod color_missing_tests;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
+    pub font_faces: Vec<CssFontFace>,
     /// Layer names in normal cascade order, from lowest to highest priority.
     pub layers: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CssFontFace {
+    pub family: String,
+    pub source: String,
+    /// Source stylesheet, populated by `parse_stylesheet_file`.
+    pub stylesheet_path: Option<std::path::PathBuf>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -91,7 +100,11 @@ pub(crate) fn parse_stylesheet_with_line_offset(
             rule
         })
         .collect();
-    Ok(Stylesheet { rules, layers })
+    Ok(Stylesheet {
+        rules,
+        font_faces: state.font_faces,
+        layers,
+    })
 }
 
 #[derive(Default)]
@@ -99,6 +112,7 @@ struct LayerParseState {
     roots: Vec<LayerNode>,
     rules: Vec<(Option<String>, CssRule)>,
     anonymous_layer_count: usize,
+    font_faces: Vec<CssFontFace>,
 }
 
 #[derive(Default)]
@@ -208,6 +222,30 @@ fn parse_rule_list<'i, 't>(
                 state.register(&path);
                 input.expect_curly_bracket_block()?;
                 input.parse_nested_block(|nested| parse_rule_list(nested, &path, state))?;
+            }
+            continue;
+        }
+        if prelude.eq_ignore_ascii_case("@font-face") && !statement {
+            input.expect_curly_bracket_block()?;
+            let declarations = input.parse_nested_block(parse_declaration_block)?;
+            let family = declarations
+                .iter()
+                .find(|item| item.property == "font-family")
+                .map(|item| {
+                    crate::parse_css_string(&item.value)
+                        .unwrap_or_else(|| item.value.trim().to_owned())
+                })
+                .filter(|family| !family.is_empty());
+            let source = declarations
+                .iter()
+                .find(|item| item.property == "src")
+                .map(|item| item.value.clone());
+            if let (Some(family), Some(source)) = (family, source) {
+                state.font_faces.push(CssFontFace {
+                    family,
+                    source,
+                    stylesheet_path: None,
+                });
             }
             continue;
         }

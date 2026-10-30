@@ -10,4 +10,10 @@ mod ui;
 mod window;
 
 pub use ui::{StyleDeclaration, StyleRule, UiNode};
+/// A local font loaded from a stylesheet `@font-face` rule.
+#[derive(Clone, Debug)]
+pub struct FontFace {
+    pub family: String,
+    pub bytes: Vec<u8>,
+}
 pub use window::{Window, WindowConfig, WindowError};

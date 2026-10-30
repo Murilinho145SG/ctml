@@ -58,6 +58,35 @@ fn loads_relative_local_resources_and_decodes_url_paths() {
 }
 
 #[test]
+fn resolves_font_face_sources_from_the_declaring_stylesheet() {
+    let root = temporary_directory("font-face-import");
+    std::fs::create_dir_all(root.join("styles")).unwrap();
+    std::fs::create_dir_all(root.join("fonts")).unwrap();
+    std::fs::write(root.join("fonts/custom.bin"), [1, 2, 3]).unwrap();
+    std::fs::write(
+        root.join("styles/fonts.css"),
+        "@font-face { font-family: 'Custom'; src: url('../fonts/custom.bin'); }",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("styles/main.css"),
+        "@import 'fonts.css'; p { font-family: Custom; }",
+    )
+    .unwrap();
+
+    let (stylesheet, _) =
+        super::parse_stylesheet_file(root.join("styles/main.css"), &root).unwrap();
+    let face = &stylesheet.font_faces[0];
+    assert_eq!(face.family, "Custom");
+    let resource =
+        crate::load_css_resource(&face.source, face.stylesheet_path.as_ref().unwrap(), &root)
+            .unwrap();
+    assert_eq!(resource.bytes, [1, 2, 3]);
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn parses_css_url_tokens_strings_and_escapes() {
     assert_eq!(
         crate::parse_css_url("url(font.woff2)"),

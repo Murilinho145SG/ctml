@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::window::WindowError;
-use crate::{StyleRule, UiNode, page::PageRasterizer};
+use crate::{FontFace, StyleRule, UiNode, page::PageRasterizer};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton},
@@ -29,6 +29,7 @@ impl Renderer {
         height: u32,
         body: &[UiNode],
         stylesheet: &[StyleRule],
+        fonts: &[FontFace],
     ) -> Result<Self, WindowError> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_with_display_handle(
             Box::new(display_handle),
@@ -55,7 +56,7 @@ impl Renderer {
             .ok_or(WindowError::UnsupportedSurface)?;
         surface.configure(&device, &config);
 
-        let mut page = PageRasterizer::new(body, stylesheet);
+        let mut page = PageRasterizer::new_with_fonts(body, stylesheet, fonts);
         let (page_texture, page_layout, page_sampler, page_bind_group, pipeline) =
             create_page_renderer(&device, &queue, &config, &mut page)?;
 
