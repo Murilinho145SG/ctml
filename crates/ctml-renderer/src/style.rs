@@ -118,6 +118,7 @@ pub(super) fn compile_runs_with_font_system(
             keyboard_focus,
             &selector_tree,
             &root_style,
+            root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,
             &mut last_was_space,

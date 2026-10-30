@@ -220,6 +220,7 @@ pub(crate) struct LayoutHeight {
     pub(crate) font_relative_units: FontRelativeUnits,
     pub(crate) viewport_size: ViewportSize,
     pub(crate) size_contained: bool,
+    pub(crate) inline_size_contained: bool,
     pub(crate) contain_intrinsic_width: Option<String>,
     pub(crate) contain_intrinsic_height: Option<String>,
 }

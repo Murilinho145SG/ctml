@@ -518,6 +518,96 @@ fn vertical_size_containment_uses_the_physical_width_as_block_fallback() {
 }
 
 #[test]
+fn orthogonal_inline_size_containment_uses_the_inline_fallback_in_page_flow() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: Some("contained".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("vertical inline content".repeat(4))],
+    }];
+    let fallback_flow = |intrinsic_size: &str| {
+        let stylesheet = [StyleRule {
+            selectors: vec![".contained".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "vertical-rl".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain".to_owned(),
+                    value: "inline-size".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain-intrinsic-size".to_owned(),
+                    value: intrinsic_size.to_owned(),
+                },
+            ],
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(300, 300);
+        page.runs
+            .iter()
+            .filter(|run| run.style.flow_spacer)
+            .map(|run| run.style.line_height)
+            .sum::<f32>()
+    };
+
+    let short_inline_fallback = fallback_flow("50px 30px");
+    let long_inline_fallback = fallback_flow("50px 60px");
+    assert!(
+        long_inline_fallback > short_inline_fallback + 20.0,
+        "orthogonal inline-size containment should reserve its 30px or 60px physical-height fallback, got spacer heights {short_inline_fallback} and {long_inline_fallback}"
+    );
+}
+
+#[test]
+fn empty_orthogonal_inline_size_containment_uses_the_inline_fallback_in_page_flow() {
+    let nodes = [
+        text_paragraph("before"),
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("contained".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        text_paragraph("after"),
+    ];
+    let fallback_flow = |intrinsic_size: &str| {
+        let stylesheet = [StyleRule {
+            selectors: vec![".contained".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "vertical-rl".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain".to_owned(),
+                    value: "inline-size".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain-intrinsic-size".to_owned(),
+                    value: intrinsic_size.to_owned(),
+                },
+            ],
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(300, 300);
+        text_line_y(&page, "after")
+    };
+
+    let short_inline_fallback = fallback_flow("50px 30px");
+    let long_inline_fallback = fallback_flow("50px 60px");
+    assert!(
+        long_inline_fallback > short_inline_fallback + 20.0,
+        "empty orthogonal inline-size containment should reserve its 30px or 60px physical-height fallback, got spacer heights {short_inline_fallback} and {long_inline_fallback}"
+    );
+}
+
+#[test]
 fn nested_vertical_block_size_reserves_additional_column_flow() {
     let nodes = [
         UiNode::Element {

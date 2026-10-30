@@ -52,6 +52,7 @@ pub(super) fn collect_runs(
     keyboard_focus: bool,
     selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
+    page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
@@ -258,7 +259,8 @@ pub(super) fn collect_runs(
                         || style.overflow_x != super::Overflow::Visible
                         || style.overflow_y != super::Overflow::Visible
                         || style.paint_contained
-                        || style.size_contained);
+                        || style.size_contained
+                        || style.inline_size_contained);
                 if has_block_size {
                     style.layout_sizes.push(LayoutSize {
                         node_id: sibling.node_id,
@@ -350,6 +352,15 @@ pub(super) fn collect_runs(
                         capitalize_next,
                     );
                 }
+                let contained_block_fallback =
+                    if page_writing_mode == super::WritingMode::HorizontalTb {
+                        style.contain_intrinsic_height.as_deref()
+                    } else {
+                        style.contain_intrinsic_width.as_deref()
+                    };
+                let inline_containment_is_block_axis = style.inline_size_contained
+                    && (style.writing_mode != super::WritingMode::HorizontalTb)
+                        != (page_writing_mode != super::WritingMode::HorizontalTb);
                 if block
                     && children.is_empty()
                     && before_content.is_none()
@@ -368,8 +379,10 @@ pub(super) fn collect_runs(
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
                         || style.aspect_ratio.is_some()
-                        || ((style.size_contained || style.content_visibility_auto)
-                            && style.contain_intrinsic_height.is_some())
+                        || ((style.size_contained
+                            || style.content_visibility_auto
+                            || inline_containment_is_block_axis)
+                            && contained_block_fallback.is_some())
                         || !style.box_shadows.is_empty()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
@@ -406,6 +419,7 @@ pub(super) fn collect_runs(
                         font_relative_units: style.font_relative_units,
                         viewport_size: style.viewport_size,
                         size_contained: style.size_contained,
+                        inline_size_contained: style.inline_size_contained,
                         contain_intrinsic_width: style.contain_intrinsic_width.clone(),
                         contain_intrinsic_height: style.contain_intrinsic_height.clone(),
                     });
@@ -437,6 +451,7 @@ pub(super) fn collect_runs(
                     keyboard_focus,
                     selector_tree,
                     &style,
+                    page_writing_mode,
                     font_metrics,
                     output,
                     last_was_space,

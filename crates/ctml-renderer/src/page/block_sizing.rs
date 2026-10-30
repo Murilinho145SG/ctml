@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun, WritingMode};
 
-use super::sizing_height::resolve_block_box_extent;
+use super::sizing_height::{contains_page_block_axis, resolve_block_box_extent};
 
 pub(super) fn block_spacer_heights(
     runs: &[TextRun],
@@ -74,7 +74,7 @@ pub(super) fn block_spacer_heights(
             available_width,
             page_writing_mode,
         );
-        let sizing_content_height = if size.size_contained {
+        let sizing_content_height = if contains_page_block_axis(size, page_writing_mode) {
             0.0
         } else {
             content_height
@@ -140,7 +140,7 @@ fn containing_block_height(
             available_width,
             page_writing_mode,
         );
-        let sizing_content_height = if size.size_contained {
+        let sizing_content_height = if contains_page_block_axis(size, page_writing_mode) {
             0.0
         } else {
             content_heights

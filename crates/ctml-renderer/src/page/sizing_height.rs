@@ -141,7 +141,7 @@ pub(super) fn resolve_block_box_extent(
     page_writing_mode: WritingMode,
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
-    let content_height = if size.size_contained {
+    let content_height = if contains_page_block_axis(size, page_writing_mode) {
         let intrinsic_block_size = if is_vertical(page_writing_mode) {
             size.contain_intrinsic_width.as_deref()
         } else {
@@ -222,6 +222,13 @@ pub(super) fn resolve_block_box_extent(
         size.viewport_size,
     ) + content_margin_start
         + margin_block_end(margin, page_writing_mode)
+}
+
+pub(super) fn contains_page_block_axis(size: &LayoutSize, page_writing_mode: WritingMode) -> bool {
+    size.size_contained
+        || (size.inline_size_contained
+            && (super::sizing::is_vertical(size.writing_mode)
+                != super::sizing::is_vertical(page_writing_mode)))
 }
 
 fn resolve_margin_values(

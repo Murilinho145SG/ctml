@@ -137,7 +137,12 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                 )
                 .flatten();
                 let block_size = explicit_block_size.or_else(|| {
-                    if !height_size.size_contained {
+                    let same_axis_orientation = (height_size.writing_mode
+                        != crate::style::WritingMode::HorizontalTb)
+                        == (page_writing_mode != crate::style::WritingMode::HorizontalTb);
+                    if !height_size.size_contained
+                        && !(height_size.inline_size_contained && !same_axis_orientation)
+                    {
                         return None;
                     }
                     if page_writing_mode == crate::style::WritingMode::HorizontalTb {
