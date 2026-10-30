@@ -510,3 +510,65 @@ fn list_style_type_accepts_custom_string_markers() {
         "→ apple\n→ pear"
     );
 }
+
+#[test]
+fn list_style_type_formats_anonymous_symbols_counter_styles() {
+    for (style_type, count, expected) in [
+        ("symbols(\"x\" \"y\")", 5, "x. y. x. y. x."),
+        ("symbols(fixed 3 \"x\" \"y\")", 5, "1. 2. x. y. 5."),
+        ("symbols(symbolic \"*\" \"+\")", 5, "*. +. **. ++. ***."),
+        ("symbols(alphabetic \"a\" \"b\")", 5, "a. b. aa. ab. ba."),
+        ("symbols(numeric \"0\" \"1\")", 5, "1. 10. 11. 100. 101."),
+    ] {
+        let labels = (0..count)
+            .map(|index| format!("item{index}"))
+            .collect::<Vec<_>>();
+        let nodes = [list_container(
+            "ol",
+            &labels.iter().map(String::as_str).collect::<Vec<_>>(),
+        )];
+        let stylesheet = [StyleRule {
+            selectors: vec!["ol".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "list-style-type".to_owned(),
+                value: style_type.to_owned(),
+            }],
+        }];
+        let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+        let text = runs.iter().map(|run| run.text.as_str()).collect::<String>();
+        let expected_text = expected
+            .split_whitespace()
+            .zip(&labels)
+            .map(|(marker, label)| format!("{marker} {label}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert_eq!(text, expected_text, "unexpected {style_type} markers");
+    }
+}
+
+#[test]
+fn list_style_type_ignores_invalid_anonymous_symbols() {
+    for style_type in [
+        "symbols(unknown \"x\")",
+        "symbols(alphabetic \"only-one-symbol\")",
+        "symbols(numeric url(icons.svg))",
+        "symbols(cyclic \"x\") extra",
+    ] {
+        let nodes = [list_container("ul", &["item"])];
+        let stylesheet = [StyleRule {
+            selectors: vec!["ul".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "list-style-type".to_owned(),
+                value: style_type.to_owned(),
+            }],
+        }];
+        let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+        assert_eq!(
+            runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+            "• item",
+            "invalid {style_type} should leave the default marker"
+        );
+    }
+}

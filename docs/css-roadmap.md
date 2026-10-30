@@ -230,9 +230,11 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Korean Hangul formal, Hanja informal, and Hanja formal longhand counter styles through 9,999.
 - [x] `disclosure-open` and `disclosure-closed` list markers with open/down and closed/right triangle glyphs.
 - [x] All simple and complex predefined `list-style-type` and `counter()`/`counters()` styles from CSS Counter Styles Level 3, including disclosure, localized decimal, kana, Ethiopic, Japanese, Chinese, and Korean systems.
+- [x] Anonymous `symbols()` counter styles for cyclic, fixed, symbolic, alphabetic, and numeric systems with string symbols.
 - [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
 - [x] `counter-reset`, `counter-increment`, and `counter-set` with scoped values, plus decimal, decimal-leading-zero, alphabetic, Greek, and Roman `counter()`/`counters()` formatting.
-- [ ] Remaining generated-content values such as typed `attr()` and `target-counter()`, plus author-defined `@counter-style` systems.
+- [x] Typed `attr()` values and fallbacks in generated `content`.
+- [ ] `target-counter()` and author-defined `@counter-style` systems.
 - [ ] Ruby annotations and other specialized typography where relevant.
 
 ## Backgrounds, borders, and visual effects

@@ -1,3 +1,4 @@
+mod anonymous_symbols;
 mod chinese;
 mod ethiopic;
 mod japanese;
@@ -10,6 +11,9 @@ pub(super) fn format_marker(
 ) -> Option<String> {
     let list_style_type =
         list_style_type.unwrap_or(if ordered_parent { "decimal" } else { "disc" });
+    if let Some(marker) = anonymous_symbols::format(list_style_type, index) {
+        return Some(marker);
+    }
     if let Some(marker) = list_style_type.strip_prefix("custom:") {
         return Some(format!("{marker} "));
     }
