@@ -22,11 +22,13 @@ impl MathValue {
 
 pub(crate) fn is_math_function(value: &str) -> bool {
     let value = value.trim_start();
-    ["calc(", "min(", "max(", "clamp("].iter().any(|function| {
-        value
-            .get(..function.len())
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(function))
-    })
+    ["calc(", "min(", "max(", "clamp(", "round("]
+        .iter()
+        .any(|function| {
+            value
+                .get(..function.len())
+                .is_some_and(|prefix| prefix.eq_ignore_ascii_case(function))
+        })
 }
 
 pub fn parse_math_expression(
@@ -61,6 +63,14 @@ fn parse_math_value(
     let result = parser.parse_value()?;
     parser.skip_whitespace();
     (parser.cursor == parser.input.len()).then_some(result)
+}
+
+#[derive(Clone, Copy)]
+enum RoundingStrategy {
+    Nearest,
+    Up,
+    Down,
+    ToZero,
 }
 
 struct MathParser<'a, F> {
@@ -208,8 +218,86 @@ where
                 }
                 self.evaluate_function(&function, &values)
             }
+            "round" => self.parse_round_function(),
             _ => None,
         }
+    }
+
+    fn parse_round_function(&mut self) -> Option<MathValue> {
+        self.skip_whitespace();
+        let strategy_start = self.cursor;
+        while self
+            .peek()
+            .is_some_and(|byte| byte.is_ascii_alphabetic() || byte == b'-')
+        {
+            self.cursor += 1;
+        }
+        let strategy_name = self
+            .input
+            .get(strategy_start..self.cursor)?
+            .to_ascii_lowercase();
+        self.skip_whitespace();
+        let strategy = if self.consume(b',') {
+            match strategy_name.as_str() {
+                "nearest" => RoundingStrategy::Nearest,
+                "up" => RoundingStrategy::Up,
+                "down" => RoundingStrategy::Down,
+                "to-zero" => RoundingStrategy::ToZero,
+                _ => return None,
+            }
+        } else {
+            self.cursor = strategy_start;
+            RoundingStrategy::Nearest
+        };
+
+        let value = self.parse_sum()?;
+        self.skip_whitespace();
+        let interval = if self.consume(b',') {
+            self.parse_sum()?
+        } else {
+            match value {
+                MathValue::Number(_) => MathValue::Number(1.0),
+                MathValue::Dimension(_) => return None,
+            }
+        };
+        self.skip_whitespace();
+        if !self.consume(b')')
+            || std::mem::discriminant(&value) != std::mem::discriminant(&interval)
+            || interval.value() == 0.0
+        {
+            return None;
+        }
+
+        let step = interval.value().abs();
+        let quotient = value.value() / step;
+        if !quotient.is_finite() {
+            return None;
+        }
+        let lower = quotient.floor() * step;
+        let upper = lower + step;
+        let rounded = if lower == value.value() || upper == value.value() {
+            value.value()
+        } else {
+            match strategy {
+                RoundingStrategy::Nearest => {
+                    if (value.value() - lower).abs() < (upper - value.value()).abs() {
+                        lower
+                    } else {
+                        upper
+                    }
+                }
+                RoundingStrategy::Up => upper,
+                RoundingStrategy::Down => lower,
+                RoundingStrategy::ToZero => {
+                    if lower.abs() < upper.abs() {
+                        lower
+                    } else {
+                        upper
+                    }
+                }
+            }
+        };
+        value.map(|_| rounded)
     }
 
     fn evaluate_function(&self, function: &str, values: &[MathValue]) -> Option<MathValue> {
