@@ -611,6 +611,37 @@ fn generated_content_attr_converts_string_number_and_integer_types() {
 }
 
 #[test]
+fn generated_content_attr_converts_supported_css_dimension_types() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![
+            ("length".to_owned(), Some("1.5REM".to_owned())),
+            ("percent".to_owned(), Some("25%".to_owned())),
+            ("angle".to_owned(), Some(".5turn".to_owned())),
+            ("invalid".to_owned(), Some("2s".to_owned())),
+        ],
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["span::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: r#"attr(length type(<length>), "fallback") "/" attr(percent type(<length-percentage>),) "/" attr(angle type(<angle>),) "/" attr(invalid type(<length>), "invalid")"#.to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "1.5rem/25%/0.5turn/ invalid"
+    );
+}
+
+#[test]
 fn display_none_hides_element_descendants_and_generated_content() {
     let nodes = [
         UiNode::Element {

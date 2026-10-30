@@ -220,12 +220,19 @@ fn parse_generated_content(
                         .parse::<i64>()
                         .ok()
                         .map(|value| value.to_string()),
-                    Some(AttrType::Number) => value
-                        .trim()
-                        .parse::<f64>()
-                        .ok()
-                        .filter(|value| value.is_finite())
-                        .map(|value| value.to_string()),
+                    Some(AttrType::Number) => {
+                        ctml_css::parse_css_number(value).map(|value| value.to_string())
+                    }
+                    Some(AttrType::Percentage) => ctml_css::parse_css_percentage(value)
+                        .map(|value| format_css_dimension(value, "%")),
+                    Some(AttrType::Length) => parse_typed_dimension(value, &LENGTH_UNITS),
+                    Some(AttrType::LengthPercentage) => ctml_css::parse_css_percentage(value)
+                        .map(|value| format_css_dimension(value, "%"))
+                        .or_else(|| parse_typed_dimension(value, &LENGTH_UNITS)),
+                    Some(AttrType::Angle) => parse_typed_dimension(value, &ANGLE_UNITS),
+                    Some(AttrType::Time) => parse_typed_dimension(value, &TIME_UNITS),
+                    Some(AttrType::Frequency) => parse_typed_dimension(value, &FREQUENCY_UNITS),
+                    Some(AttrType::Resolution) => parse_typed_dimension(value, &RESOLUTION_UNITS),
                 });
                 if let Some(value) = converted {
                     output.push_str(&value);
@@ -301,6 +308,13 @@ enum AttrType {
     String,
     Integer,
     Number,
+    Percentage,
+    Length,
+    LengthPercentage,
+    Angle,
+    Time,
+    Frequency,
+    Resolution,
 }
 
 impl AttrType {
@@ -309,9 +323,38 @@ impl AttrType {
             "string" => Some(Self::String),
             "integer" => Some(Self::Integer),
             "number" => Some(Self::Number),
+            "percentage" => Some(Self::Percentage),
+            "length" => Some(Self::Length),
+            "length-percentage" => Some(Self::LengthPercentage),
+            "angle" => Some(Self::Angle),
+            "time" => Some(Self::Time),
+            "frequency" => Some(Self::Frequency),
+            "resolution" => Some(Self::Resolution),
             _ => None,
         }
     }
+}
+
+const LENGTH_UNITS: &[&str] = &[
+    "px", "cm", "mm", "q", "in", "pt", "pc", "em", "rem", "ex", "rex", "ch", "rch", "cap", "rcap",
+    "ic", "ric", "lh", "rlh", "vw", "vh", "vi", "vb", "vmin", "vmax", "svw", "svh", "svi", "svb",
+    "svmin", "svmax", "lvw", "lvh", "lvi", "lvb", "lvmin", "lvmax", "dvw", "dvh", "dvi", "dvb",
+    "dvmin", "dvmax",
+];
+const ANGLE_UNITS: &[&str] = &["deg", "grad", "rad", "turn"];
+const TIME_UNITS: &[&str] = &["s", "ms"];
+const FREQUENCY_UNITS: &[&str] = &["hz", "khz"];
+const RESOLUTION_UNITS: &[&str] = &["dpi", "dpcm", "dppx", "x"];
+
+fn parse_typed_dimension(value: &str, units: &[&str]) -> Option<String> {
+    let (number, unit) = ctml_css::parse_css_dimension(value)?;
+    units
+        .contains(&unit.as_str())
+        .then(|| format_css_dimension(number, &unit))
+}
+
+fn format_css_dimension(value: f32, unit: &str) -> String {
+    format!("{value}{unit}")
 }
 
 fn serialize_attr_fallback<'i, 't>(
