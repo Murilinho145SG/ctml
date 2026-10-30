@@ -4,8 +4,29 @@ mod color4;
 mod hdr;
 mod missing;
 mod mix;
+mod profile;
 mod relative;
 mod system;
+
+pub(super) fn valid_icc_profile(data: &[u8]) -> Option<usize> {
+    profile::valid_icc_profile(data)
+}
+
+pub(super) fn custom_profile_to_srgb(
+    data: &[u8],
+    components: &[f32],
+    rendering_intent: &str,
+) -> Option<[f32; 3]> {
+    profile::convert_to_srgb(data, components, rendering_intent)
+}
+
+pub(super) fn srgb_to_custom_profile(
+    data: &[u8],
+    components: [f32; 3],
+    rendering_intent: &str,
+) -> Option<Vec<f32>> {
+    profile::convert_from_srgb(data, components, rendering_intent)
+}
 
 pub fn parse_color(value: &str) -> Option<[u8; 4]> {
     let ([red, green, blue], alpha) = parse_color_with_opacity(value)?;

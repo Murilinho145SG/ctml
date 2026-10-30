@@ -24,6 +24,7 @@ utf8-chars = "3.0.7"
 ctml-compiler = { path = "crates/ctml-compiler" }
 ctml-css = { path = "crates/ctml-css" }
 cssparser = "0.37.0"
+lcms2 = { version = "6.2.0", features = ["static"] }
 png = "0.18.1"
 tokio = { version = "1.54.1", features = ["net", "rt", "time"] }
 unicode-segmentation = "1.13.3"

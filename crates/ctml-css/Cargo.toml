@@ -6,3 +6,4 @@ license = "GPL-2.0-only"
 
 [dependencies]
 cssparser.workspace = true
+lcms2.workspace = true

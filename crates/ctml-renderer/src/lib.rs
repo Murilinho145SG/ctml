@@ -9,6 +9,7 @@ mod style;
 mod ui;
 mod window;
 
+pub use ctml_css::CssColorProfile;
 pub use ui::{StyleDeclaration, StyleRule, UiNode};
 /// A local font loaded from a stylesheet `@font-face` rule.
 #[derive(Clone, Debug)]

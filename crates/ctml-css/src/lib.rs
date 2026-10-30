@@ -50,8 +50,41 @@ mod color_missing_tests;
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
     pub font_faces: Vec<CssFontFace>,
+    pub color_profiles: Vec<CssColorProfile>,
     /// Layer names in normal cascade order, from lowest to highest priority.
     pub layers: Vec<String>,
+}
+
+/// A named ICC color profile declared by a stylesheet `@color-profile` rule.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CssColorProfile {
+    pub name: String,
+    pub source: String,
+    pub rendering_intent: String,
+    pub components: Vec<String>,
+    pub profile_data: Option<Vec<u8>>,
+    /// Source stylesheet, populated by `parse_stylesheet_file`.
+    pub stylesheet_path: Option<std::path::PathBuf>,
+}
+
+impl CssColorProfile {
+    /// Converts this profile's component values to encoded sRGB channels.
+    pub fn to_srgb(&self, components: &[f32]) -> Option<[f32; 3]> {
+        crate::color::custom_profile_to_srgb(
+            self.profile_data.as_deref()?,
+            components,
+            &self.rendering_intent,
+        )
+    }
+
+    /// Converts encoded sRGB channels to this profile's component values.
+    pub fn from_srgb(&self, components: [f32; 3]) -> Option<Vec<f32>> {
+        crate::color::srgb_to_custom_profile(
+            self.profile_data.as_deref()?,
+            components,
+            &self.rendering_intent,
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -106,6 +139,68 @@ fn parse_oblique_angle_range(value: &str) -> Option<(String, String)> {
     Some((format!("{start_degrees}deg"), format!("{end_degrees}deg")))
 }
 
+fn parse_color_profile(prelude: &str, descriptors: Vec<CssDeclaration>) -> Option<CssColorProfile> {
+    let mut source = ParserInput::new(prelude);
+    let mut input = Parser::new(&mut source);
+    match input.next().ok()? {
+        Token::AtKeyword(name) if name.eq_ignore_ascii_case("color-profile") => {}
+        _ => return None,
+    }
+    let name = input.expect_ident_cloned().ok()?.to_string();
+    if !name.starts_with("--") || name.len() <= 2 || !input.is_exhausted() {
+        return None;
+    }
+
+    let source = descriptors
+        .iter()
+        .find(|descriptor| descriptor.property.eq_ignore_ascii_case("src"))
+        .map(|descriptor| descriptor.value.clone())?;
+    crate::parse_css_url(&source)?;
+
+    let rendering_intent = descriptors
+        .iter()
+        .find(|descriptor| descriptor.property.eq_ignore_ascii_case("rendering-intent"))
+        .map(|descriptor| descriptor.value.trim().to_ascii_lowercase())
+        .filter(|value| {
+            matches!(
+                value.as_str(),
+                "relative-colorimetric" | "absolute-colorimetric" | "perceptual" | "saturation"
+            )
+        })
+        .unwrap_or_else(|| "relative-colorimetric".to_owned());
+
+    let components = descriptors
+        .iter()
+        .find(|descriptor| descriptor.property.eq_ignore_ascii_case("components"))
+        .and_then(|descriptor| parse_color_profile_components(&descriptor.value))
+        .unwrap_or_default();
+    Some(CssColorProfile {
+        name,
+        source,
+        rendering_intent,
+        components,
+        profile_data: None,
+        stylesheet_path: None,
+    })
+}
+
+fn parse_color_profile_components(value: &str) -> Option<Vec<String>> {
+    let mut source = ParserInput::new(value);
+    let mut input = Parser::new(&mut source);
+    let mut names = Vec::new();
+    loop {
+        let name = input.expect_ident_cloned().ok()?.to_string();
+        if name.eq_ignore_ascii_case("none") || names.contains(&name) {
+            return None;
+        }
+        names.push(name);
+        if input.is_exhausted() {
+            return Some(names);
+        }
+        input.expect_comma().ok()?;
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CssRule {
     pub selectors: Vec<String>,
@@ -154,6 +249,7 @@ pub(crate) fn parse_stylesheet_with_line_offset(
     Ok(Stylesheet {
         rules,
         font_faces: state.font_faces,
+        color_profiles: state.color_profiles,
         layers,
     })
 }
@@ -164,6 +260,7 @@ struct LayerParseState {
     rules: Vec<(Option<String>, CssRule)>,
     anonymous_layer_count: usize,
     font_faces: Vec<CssFontFace>,
+    color_profiles: Vec<CssColorProfile>,
 }
 
 #[derive(Default)]
@@ -317,6 +414,17 @@ fn parse_rule_list<'i, 't>(
                         .and_then(|item| parse_oblique_angle_range(&item.value)),
                     stylesheet_path: None,
                 });
+            }
+            continue;
+        }
+        if prelude.to_ascii_lowercase().starts_with("@color-profile") && !statement {
+            input.expect_curly_bracket_block()?;
+            let descriptors = input.parse_nested_block(parse_declaration_block)?;
+            if let Some(profile) = parse_color_profile(&prelude, descriptors) {
+                state
+                    .color_profiles
+                    .retain(|existing| existing.name != profile.name);
+                state.color_profiles.push(profile);
             }
             continue;
         }

@@ -20,6 +20,52 @@ fn parses_local_font_face_descriptors() {
 }
 
 #[test]
+fn parses_color_profile_descriptors() {
+    let stylesheet = parse_stylesheet(
+        "@color-profile --brand { src: url(brand.icc); rendering-intent: perceptual; components: red, green, blue; } p { color: color(--brand 1 0 0); }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.color_profiles.len(), 1);
+    let profile = &stylesheet.color_profiles[0];
+    assert_eq!(profile.name, "--brand");
+    assert_eq!(profile.source, "url(brand.icc)");
+    assert_eq!(profile.rendering_intent, "perceptual");
+    assert_eq!(profile.components, ["red", "green", "blue"]);
+    assert!(profile.profile_data.is_none());
+    assert_eq!(stylesheet.rules.len(), 1);
+}
+
+#[test]
+fn keeps_the_last_color_profile_with_a_repeated_name() {
+    let stylesheet = parse_stylesheet(
+        "@color-profile --brand { src: url(old.icc); } @color-profile --brand { src: url(new.icc); rendering-intent: saturation; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.color_profiles.len(), 1);
+    assert_eq!(stylesheet.color_profiles[0].source, "url(new.icc)");
+    assert_eq!(stylesheet.color_profiles[0].rendering_intent, "saturation");
+}
+
+#[test]
+fn ignores_invalid_color_profile_descriptors_and_keeps_later_rules() {
+    let stylesheet = parse_stylesheet(
+        "@color-profile --invalid { src: url(profile.icc); rendering-intent: nearest; } @color-profile --bad { src: local(profile.icc); } p { color: red; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.color_profiles.len(), 1);
+    assert_eq!(stylesheet.color_profiles[0].name, "--invalid");
+    assert_eq!(
+        stylesheet.color_profiles[0].rendering_intent,
+        "relative-colorimetric"
+    );
+    assert_eq!(stylesheet.rules.len(), 1);
+    assert_eq!(stylesheet.rules[0].declarations[0].value, "red");
+}
+
+#[test]
 fn parses_variable_font_weight_and_oblique_style_ranges() {
     let stylesheet = parse_stylesheet(
         "@font-face { font-family: 'Variable Sans'; src: url(variable.woff2); font-weight: 300 700; font-style: oblique 10deg 20deg; }",

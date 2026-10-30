@@ -25,7 +25,19 @@ pub fn parse_stylesheet_file(
         .map_err(|error| format!("cannot resolve stylesheet root: {error}"))?;
     let mut dependencies = Vec::new();
     let mut stack = Vec::new();
-    let stylesheet = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
+    let mut stylesheet = expand_file(path.as_ref(), &root, &mut stack, &mut dependencies)?;
+    for profile in &mut stylesheet.color_profiles {
+        let Some(stylesheet_path) = profile.stylesheet_path.as_deref() else {
+            continue;
+        };
+        let resource = crate::load_css_resource(&profile.source, stylesheet_path, &root)?;
+        if !dependencies.contains(&resource.path) {
+            dependencies.push(resource.path.clone());
+        }
+        if crate::color::valid_icc_profile(&resource.bytes).is_some() {
+            profile.profile_data = Some(resource.bytes);
+        }
+    }
     Ok((stylesheet, dependencies))
 }
 
@@ -67,6 +79,7 @@ fn expand_file(
     let mut stylesheet = Stylesheet {
         rules: Vec::new(),
         font_faces: Vec::new(),
+        color_profiles: Vec::new(),
         layers: Vec::new(),
     };
     let mut copied_until = 0;
@@ -102,6 +115,9 @@ fn parse_source_segment(source: &str, path: &Path, line_offset: u32) -> Result<S
         .map_err(|error| format!("{}: {error}", path.display()))?;
     for face in &mut stylesheet.font_faces {
         face.stylesheet_path = Some(path.to_path_buf());
+    }
+    for profile in &mut stylesheet.color_profiles {
+        profile.stylesheet_path = Some(path.to_path_buf());
     }
     Ok(stylesheet)
 }
@@ -162,6 +178,12 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
     }
     target.rules.extend(source.rules);
     target.font_faces.extend(source.font_faces);
+    for profile in source.color_profiles {
+        target
+            .color_profiles
+            .retain(|existing| existing.name != profile.name);
+        target.color_profiles.push(profile);
+    }
 }
 
 fn is_anonymous_layer_segment(name: &str) -> bool {

@@ -58,6 +58,60 @@ fn loads_relative_local_resources_and_decodes_url_paths() {
 }
 
 #[test]
+fn loads_and_validates_local_color_profiles_from_the_declaring_stylesheet() {
+    let root = temporary_directory("color-profile-resource");
+    std::fs::create_dir_all(root.join("styles")).unwrap();
+    std::fs::create_dir_all(root.join("profiles")).unwrap();
+    let profile_bytes = lcms2::Profile::new_srgb().icc().unwrap();
+    std::fs::write(root.join("profiles/srgb.icc"), &profile_bytes).unwrap();
+    std::fs::write(
+        root.join("styles/profiles.css"),
+        "@color-profile --screen { src: url('https://invalid.example/unused.icc'); } @color-profile --screen { src: url('../profiles/srgb.icc'); components: red, green, blue; }",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("styles/main.css"),
+        "@import 'profiles.css'; p { color: color(--screen 1 0 0); }",
+    )
+    .unwrap();
+
+    let (stylesheet, dependencies) =
+        super::parse_stylesheet_file(root.join("styles/main.css"), &root).unwrap();
+
+    assert_eq!(stylesheet.color_profiles.len(), 1);
+    let profile = &stylesheet.color_profiles[0];
+    assert_eq!(profile.name, "--screen");
+    assert_eq!(
+        profile.profile_data.as_deref(),
+        Some(profile_bytes.as_slice())
+    );
+    let converted = profile
+        .to_srgb(&[1.0, 0.0, 0.0])
+        .expect("loaded ICC profile should convert to sRGB");
+    assert!((converted[0] - 1.0).abs() < 0.001);
+    assert!(converted[1].abs() < 0.001);
+    assert!(converted[2].abs() < 0.001);
+    let round_trip = profile
+        .from_srgb([1.0, 0.0, 0.0])
+        .expect("sRGB should convert back into the loaded ICC profile");
+    assert_eq!(round_trip.len(), 3);
+    assert!((round_trip[0] - 1.0).abs() < 0.001);
+    assert!(round_trip[1].abs() < 0.001);
+    assert!(round_trip[2].abs() < 0.001);
+    assert_eq!(
+        profile.stylesheet_path.as_deref(),
+        Some(
+            root.join("styles/profiles.css")
+                .canonicalize()
+                .unwrap()
+                .as_path()
+        )
+    );
+    assert!(dependencies.iter().any(|path| path.ends_with("srgb.icc")));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn resolves_font_face_sources_from_the_declaring_stylesheet() {
     let root = temporary_directory("font-face-import");
     std::fs::create_dir_all(root.join("styles")).unwrap();
