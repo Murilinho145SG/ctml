@@ -262,6 +262,42 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
     );
 }
 
+#[test]
+fn first_line_resolves_font_optical_sizing_and_variation_settings() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Variable font".to_owned())],
+    }];
+    let stylesheet = [
+        ("p::first-line", "font-optical-sizing", "none"),
+        (
+            "p::first-line",
+            "font-variation-settings",
+            "\"wght\" 650, \"opsz\" 13",
+        ),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    let first_line = runs[0].first_line_font_style.as_ref().unwrap();
+
+    assert!(!first_line.font_optical_sizing);
+    assert_eq!(
+        first_line.font_variation_settings,
+        vec![(*b"wght", 650.0), (*b"opsz", 13.0)]
+    );
+}
+
 fn counter_item(text: &str, nested: Option<UiNode>) -> UiNode {
     let mut children = vec![UiNode::Text(text.to_owned())];
     children.extend(nested);

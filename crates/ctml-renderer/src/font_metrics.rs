@@ -158,7 +158,7 @@ pub(crate) fn normal_line_height(
     ))
 }
 
-fn variation_settings(style: &TextStyle) -> Vec<([u8; 4], f32)> {
+pub(crate) fn variation_settings(style: &TextStyle) -> Vec<([u8; 4], f32)> {
     let mut variations = Vec::new();
     if style.font_optical_sizing
         && !style

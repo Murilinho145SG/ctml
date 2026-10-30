@@ -140,7 +140,7 @@ pub(super) fn draw(
                 first.font_weight,
                 first.variation_key,
             );
-            let typeface = variation_font.as_ref().map_or(typeface.clone(), |font| {
+            let mut typeface = variation_font.as_ref().map_or(typeface.clone(), |font| {
                 let variations = font
                     .variations()
                     .iter()
@@ -148,6 +148,14 @@ pub(super) fn draw(
                     .collect::<Vec<_>>();
                 crate::font_metrics::apply_variations(&typeface, &variations, first.font_weight)
             });
+            if let Some(style) = first_line_style {
+                let variations = crate::font_metrics::variation_settings(style);
+                typeface = crate::font_metrics::apply_variations(
+                    &typeface,
+                    &variations,
+                    fontdb::Weight(style.weight.0),
+                );
+            }
 
             let mut paint = Paint::default();
             paint.set_color(Color::from_argb(
