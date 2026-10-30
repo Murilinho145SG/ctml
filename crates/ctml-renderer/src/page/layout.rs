@@ -201,6 +201,15 @@ pub(super) fn apply_first_line_letter_spacing(
     spans: &[CursorSpan],
 ) -> bool {
     let first_lines = first_formatted_line_ranges(buffer, spans);
+    let first_explicit_lines = spans.iter().filter_map(|span| {
+        let block = span.first_line_block?;
+        span.first_line_font_style.as_ref()?;
+        Some((block, span.line))
+    });
+    let mut first_explicit_line_by_block = HashMap::new();
+    for (block, line) in first_explicit_lines {
+        first_explicit_line_by_block.entry(block).or_insert(line);
+    }
     let mut spacing_by_run: HashMap<usize, Vec<(usize, usize, f32, f32)>> = HashMap::new();
     for span in spans {
         let Some(block) = span.first_line_block else {
@@ -238,11 +247,12 @@ pub(super) fn apply_first_line_letter_spacing(
         // CursorSpan::line counts explicit newlines, while layout_run.line_i also
         // counts soft wraps. First-line styles apply to the first explicit line;
         // the glyph range identifies how far that line reaches after wrapping.
-        let desired_adjustment = if span.line == 0 && span.start < end {
-            pseudo_spacing - base_spacing
-        } else {
-            0.0
-        };
+        let desired_adjustment =
+            if first_explicit_line_by_block.get(&block) == Some(&span.line) && span.start < end {
+                pseudo_spacing - base_spacing
+            } else {
+                0.0
+            };
         let spacing_change = desired_adjustment - current_adjustment;
         if spacing_change.abs() > f32::EPSILON {
             spacing_by_run.entry(span.run_index).or_default().push((

@@ -110,3 +110,87 @@ fn first_line_letter_spacing_can_change_wrapping() {
         "characters after the first line should have normal spacing"
     );
 }
+
+#[test]
+fn first_line_letter_spacing_applies_after_an_explicit_line_break() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("lead".to_owned())],
+            },
+            UiNode::Element {
+                tag: "p".to_owned(),
+                class: Some("target".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+            },
+        ],
+    }];
+    let page_for = |with_spacing| {
+        let mut stylesheet = vec![StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "75px".to_owned(),
+            }],
+        }];
+        if with_spacing {
+            stylesheet.push(StyleRule {
+                selectors: vec![".target::first-line".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "letter-spacing".to_owned(),
+                    value: "4px".to_owned(),
+                }],
+            });
+        }
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(200, 160);
+        let first_line_end = page
+            .buffer
+            .layout_runs()
+            .filter(|line| !line.glyphs.is_empty())
+            .nth(1)
+            .expect("target paragraph should start after the first paragraph")
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.end)
+            .max()
+            .unwrap();
+        (page, first_line_end)
+    };
+
+    let (_, base_end) = page_for(false);
+    let (spaced_page, spaced_end) = page_for(true);
+    let target_block = spaced_page
+        .runs
+        .iter()
+        .filter_map(|run| run.first_line_block)
+        .max()
+        .expect("target paragraph should have a first-line block");
+
+    assert_ne!(
+        base_end, spaced_end,
+        "letter spacing should affect the first line of a later paragraph"
+    );
+    assert!(
+        spaced_page
+            .cursor_spans
+            .iter()
+            .filter(|span| {
+                span.first_line_block == Some(target_block) && span.start >= spaced_end
+            })
+            .all(|span| spaced_page.runs[span.run_index].style.letter_spacing == 0.0),
+        "wrapped text after the later paragraph's first line should have normal spacing"
+    );
+}
