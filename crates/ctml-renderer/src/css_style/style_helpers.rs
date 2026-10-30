@@ -47,6 +47,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "white-space",
     "overflow-wrap",
     "word-break",
+    "line-break",
     "text-decoration",
     "text-decoration-line",
     "text-decoration-style",

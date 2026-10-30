@@ -14,7 +14,7 @@ mod text;
 mod text_style;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
-    FontVariantCaps, FontVariantPosition, LayoutHeight, LayoutSize, OverflowWrap,
+    FontVariantCaps, FontVariantPosition, LayoutHeight, LayoutSize, LineBreak, OverflowWrap,
     TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisStyle,
     TextShadow, TextStyle, TextTransform, WhiteSpace, WordBreak,
 };

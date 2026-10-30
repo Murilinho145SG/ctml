@@ -201,7 +201,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
 - [x] `text-justify`: `auto`, `none`, `inter-word`, `inter-character`, and legacy `distribute`.
 - [x] `white-space` collapsing and preservation (`normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`), `overflow-wrap` (`normal`, `break-word`, `anywhere`), and `word-break` (`normal`, `break-all`, `keep-all`, `break-word`). Intrinsic min-content sizing differences for `anywhere` are not modeled.
-- [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.
+- [x] `line-break`: parses `auto`, `loose`, `normal`, `strict`, and `anywhere`; `anywhere` allows glyph-level breaks. `strict`/`loose` CJK tailoring is not modeled yet.
+- [ ] Soft-hyphen visibility, automatic hyphenation, and language-sensitive shaping controls.
 - [ ] Text overflow and line clamping.
 - [x] Word spacing, including inherited values, lengths and percentages.
 - [ ] Text rendering and text orientation.

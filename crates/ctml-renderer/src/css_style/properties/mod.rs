@@ -2,7 +2,7 @@ use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{
-    FontVariantPosition, OverflowWrap, TextStyle, TextTransform, WhiteSpace, WordBreak,
+    FontVariantPosition, LineBreak, OverflowWrap, TextStyle, TextTransform, WhiteSpace, WordBreak,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -138,6 +138,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "white-space"
             | "overflow-wrap"
             | "word-break"
+            | "line-break"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -244,6 +245,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "white-space" => style.white_space = inherited.white_space,
         "overflow-wrap" => style.overflow_wrap = inherited.overflow_wrap,
         "word-break" => style.word_break = inherited.word_break,
+        "line-break" => style.line_break = inherited.line_break,
         "text-indent" => {
             style.text_indent = inherited.text_indent;
             style.text_indent_percent = inherited.text_indent_percent;
@@ -346,6 +348,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "white-space" => style.white_space = WhiteSpace::Normal,
         "overflow-wrap" => style.overflow_wrap = OverflowWrap::Normal,
         "word-break" => style.word_break = WordBreak::Normal,
+        "line-break" => style.line_break = LineBreak::Auto,
         "text-indent" => {
             style.text_indent = 0.0;
             style.text_indent_percent = 0.0;
@@ -614,6 +617,16 @@ fn apply_declaration(
                 "keep-all" => WordBreak::KeepAll,
                 "break-word" => WordBreak::BreakWord,
                 _ => style.word_break,
+            };
+        }
+        "line-break" => {
+            style.line_break = match value.to_ascii_lowercase().as_str() {
+                "auto" => LineBreak::Auto,
+                "loose" => LineBreak::Loose,
+                "normal" => LineBreak::Normal,
+                "strict" => LineBreak::Strict,
+                "anywhere" => LineBreak::Anywhere,
+                _ => style.line_break,
             };
         }
         "text-indent" => apply_text_indent(style, value),

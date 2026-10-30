@@ -613,6 +613,31 @@ fn resolves_white_space_and_wrapping_modes() {
 }
 
 #[test]
+fn resolves_line_break_modes() {
+    use super::super::style::LineBreak;
+
+    for (value, expected) in [
+        ("auto", LineBreak::Auto),
+        ("loose", LineBreak::Loose),
+        ("normal", LineBreak::Normal),
+        ("strict", LineBreak::Strict),
+        ("anywhere", LineBreak::Anywhere),
+    ] {
+        let style = style_for_declarations(&[("line-break", value)]);
+        assert_eq!(style.line_break, expected, "{value}");
+        assert_eq!(
+            style.wrap_mode(),
+            if value == "anywhere" {
+                cosmic_text::Wrap::Glyph
+            } else {
+                cosmic_text::Wrap::Word
+            },
+            "{value} wrapping"
+        );
+    }
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

@@ -37,6 +37,16 @@ pub(crate) enum WordBreak {
     BreakWord,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum LineBreak {
+    #[default]
+    Auto,
+    Loose,
+    Normal,
+    Strict,
+    Anywhere,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -98,6 +108,7 @@ pub(crate) struct TextStyle {
     pub(crate) white_space: WhiteSpace,
     pub(crate) overflow_wrap: OverflowWrap,
     pub(crate) word_break: WordBreak,
+    pub(crate) line_break: LineBreak,
     pub(crate) text_indent: f32,
     pub(crate) text_indent_percent: f32,
     pub(crate) text_indent_hanging: bool,
@@ -286,6 +297,7 @@ impl Default for TextStyle {
             white_space: WhiteSpace::Normal,
             overflow_wrap: OverflowWrap::Normal,
             word_break: WordBreak::Normal,
+            line_break: LineBreak::Auto,
             text_indent: 0.0,
             text_indent_percent: 0.0,
             text_indent_hanging: false,
@@ -311,6 +323,9 @@ impl TextStyle {
     pub(crate) fn wrap_mode(&self) -> Wrap {
         if matches!(self.white_space, WhiteSpace::NoWrap | WhiteSpace::Pre) {
             return Wrap::None;
+        }
+        if self.line_break == LineBreak::Anywhere {
+            return Wrap::Glyph;
         }
         match self.word_break {
             WordBreak::BreakAll => Wrap::Glyph,
