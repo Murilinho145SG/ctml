@@ -4,8 +4,8 @@ mod parser;
 
 pub use ctml_css::{
     CssColorProfile, CssDeclaration, CssFontFace, CssFontSource, CssRule, Stylesheet,
-    load_css_resource, load_local_resource, parse_font_face_sources, parse_stylesheet,
-    parse_stylesheet_file,
+    load_css_resource, load_local_resource, parse_css_font_weight, parse_font_face_sources,
+    parse_stylesheet, parse_stylesheet_file,
 };
 pub use error::{Error, Result};
 pub use lexer::{Lexer, Position, Span, Token, TokenKind};

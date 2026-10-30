@@ -45,7 +45,7 @@ pub(super) fn parse_font_stretch(value: &str) -> Option<fontdb::Stretch> {
 fn font_face_query_values(font: &FontFace) -> (fontdb::Weight, fontdb::Stretch, fontdb::Style) {
     let weight = font.weight_range.map_or_else(
         || font.weight.map_or(fontdb::Weight::NORMAL, fontdb::Weight),
-        |(start, end)| fontdb::Weight(start + (end - start) / 2),
+        |(start, end)| fontdb::Weight(((start + end) / 2.0).round() as u16),
     );
     let style = match font
         .style
@@ -71,7 +71,7 @@ fn apply_font_face_descriptors(face: &mut fontdb::FaceInfo, font: &FontFace) {
     if let Some(weight) = font.weight {
         face.weight = fontdb::Weight(weight);
     } else if let Some((start, end)) = font.weight_range {
-        face.weight = fontdb::Weight(start + (end - start) / 2);
+        face.weight = fontdb::Weight(((start + end) / 2.0).round() as u16);
     }
     if let Some(style) = font.style.as_deref() {
         face.style = match style

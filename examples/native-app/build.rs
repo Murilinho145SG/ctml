@@ -192,7 +192,7 @@ fn rust_fonts(
         String,
         Vec<(Option<String>, Option<PathBuf>)>,
         Option<String>,
-        Option<(u16, u16)>,
+        Option<(f32, f32)>,
         Option<String>,
         Option<(String, String)>,
         Option<String>,
@@ -245,14 +245,7 @@ fn rust_color_profiles(profiles: &[ctml_compiler::CssColorProfile]) -> String {
 }
 
 fn parse_font_weight(value: &str) -> Option<u16> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "normal" => Some(400),
-        "bold" => Some(700),
-        value => value
-            .parse()
-            .ok()
-            .filter(|weight: &u16| (1..=1000).contains(weight)),
-    }
+    ctml_compiler::parse_css_font_weight(value).map(|weight| weight.round() as u16)
 }
 
 fn is_font_style(value: &str) -> bool {

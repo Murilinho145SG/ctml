@@ -30,7 +30,10 @@ pub use length::{
     parse_signed_length_percentage_with_line_height,
 };
 pub use math::{parse_math_angle, parse_math_expression, parse_math_number, parse_math_percentage};
-pub use numeric::{parse_css_dimension, parse_css_integer, parse_css_number, parse_css_percentage};
+pub use numeric::{
+    parse_css_dimension, parse_css_font_weight, parse_css_integer, parse_css_number,
+    parse_css_percentage,
+};
 pub use resources::{
     CssFontSource, LocalResource, load_css_resource, load_local_resource, parse_css_url,
     parse_font_face_sources,
@@ -49,7 +52,7 @@ mod tests;
 #[path = "tests/color_missing.rs"]
 mod color_missing_tests;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Stylesheet {
     pub rules: Vec<CssRule>,
     pub font_faces: Vec<CssFontFace>,
@@ -95,27 +98,27 @@ impl CssColorProfile {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CssFontFace {
     pub family: String,
     pub source: String,
     pub weight: Option<String>,
     pub style: Option<String>,
     pub stretch: Option<String>,
-    pub weight_range: Option<(u16, u16)>,
+    pub weight_range: Option<(f32, f32)>,
     pub style_range: Option<(String, String)>,
     /// Source stylesheet, populated by `parse_stylesheet_file`.
     pub stylesheet_path: Option<std::path::PathBuf>,
 }
 
-fn parse_font_weight_range(value: &str) -> Option<(u16, u16)> {
+fn parse_font_weight_range(value: &str) -> Option<(f32, f32)> {
     let mut parts = value.split_ascii_whitespace();
-    let start = parts.next()?.parse::<u16>().ok()?;
-    let end = parts.next()?.parse::<u16>().ok()?;
-    if parts.next().is_some() || !(1..=1000).contains(&start) || !(1..=1000).contains(&end) {
+    let start = crate::parse_css_font_weight(parts.next()?)?;
+    let end = crate::parse_css_font_weight(parts.next()?)?;
+    if parts.next().is_some() || start > end {
         return None;
     }
-    (start <= end).then_some((start, end))
+    Some((start, end))
 }
 
 fn parse_oblique_angle_range(value: &str) -> Option<(String, String)> {

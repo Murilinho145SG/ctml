@@ -29,6 +29,15 @@ pub fn parse_css_integer(value: &str) -> Option<String> {
     })
 }
 
+/// Parses a CSS `font-weight` value as a number, resolving its keywords.
+pub fn parse_css_font_weight(value: &str) -> Option<f32> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "normal" => Some(400.0),
+        "bold" => Some(700.0),
+        _ => parse_css_number(value).filter(|weight| (1.0..=1000.0).contains(weight)),
+    }
+}
+
 pub(crate) fn parse_css_numeric_token(value: &str) -> Option<CssNumericToken> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
@@ -69,7 +78,23 @@ pub fn parse_css_dimension(value: &str) -> Option<(f32, String)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_css_integer, parse_css_number, parse_css_percentage};
+    use super::{parse_css_font_weight, parse_css_integer, parse_css_number, parse_css_percentage};
+
+    #[test]
+    fn parses_css_font_weight_numbers_keywords_and_fractional_values() {
+        for (value, expected) in [
+            ("normal", 400.0),
+            ("bold", 700.0),
+            ("+3e2", 300.0),
+            ("300.5", 300.5),
+            ("1000.0", 1000.0),
+        ] {
+            assert_eq!(parse_css_font_weight(value), Some(expected));
+        }
+        for value in ["bolder", "0", "1001", "1e999", "700 extra"] {
+            assert_eq!(parse_css_font_weight(value), None, "{value}");
+        }
+    }
 
     #[test]
     fn parses_css_integers_without_a_machine_range_limit() {

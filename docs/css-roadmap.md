@@ -103,6 +103,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [ ] All standard CSS number, integer, percentage, dimension, string, URL, and identifier value forms.
 - [x] Parse finite CSS numeric tokens for supported lengths and percentages, including signs, decimals, and exponents, while rejecting separated units and trailing tokens.
+- [x] Parse `normal`, `bold`, and finite numeric `@font-face font-weight` range endpoints from 1 to 1000, including fractional and exponent notation; preserve fractional values for variable-axis clamping.
 - [x] Parse finite CSS number and percentage tokens for supported scalar properties such as `opacity`, `line-height`, `font-stretch`, `vertical-align`, and spacing.
 - [x] Absolute lengths: `px`, `cm`, `mm`, `Q`, `in`, `pt`, and `pc` for font sizes and line heights.
 - [x] Font-relative `em` and `rem` lengths for font sizes and line heights.

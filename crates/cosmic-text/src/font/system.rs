@@ -34,21 +34,21 @@ impl FontMatchKey {
         attrs: &Attrs,
         face: &FaceInfo,
         db: &fontdb::Database,
-        ranges: Option<(Option<(u16, u16)>, Option<(f32, f32)>)>,
+        ranges: Option<(Option<(f32, f32)>, Option<(f32, f32)>)>,
     ) -> FontMatchKey {
         // TODO: smarter way of detecting emoji
         let not_emoji = !face.post_script_name.contains("Emoji");
         let font_weight_diff = ranges.and_then(|(weight, _)| weight).map_or_else(
             || attrs.weight.0.abs_diff(face.weight.0),
             |(start, end)| {
-                if (start..=end).contains(&attrs.weight.0) {
+                let requested = f32::from(attrs.weight.0);
+                if (start..=end).contains(&requested) {
                     0
                 } else {
-                    attrs
-                        .weight
-                        .0
-                        .abs_diff(start)
-                        .min(attrs.weight.0.abs_diff(end))
+                    (requested - start)
+                        .abs()
+                        .min((requested - end).abs())
+                        .round() as u16
                 }
             },
         );
@@ -184,7 +184,7 @@ pub struct FontSystem {
 
     /// Cache for font matches.
     font_matches_cache: HashMap<FontMatchAttrs, Arc<Vec<FontMatchKey>>>,
-    font_face_ranges: HashMap<fontdb::ID, (Option<(u16, u16)>, Option<(f32, f32)>)>,
+    font_face_ranges: HashMap<fontdb::ID, (Option<(f32, f32)>, Option<(f32, f32)>)>,
 
     /// Scratch buffer for shaping and laying out.
     pub(crate) shape_buffer: ShapeBuffer,
@@ -334,7 +334,7 @@ impl FontSystem {
     pub fn set_font_face_ranges(
         &mut self,
         id: fontdb::ID,
-        weight_range: Option<(u16, u16)>,
+        weight_range: Option<(f32, f32)>,
         oblique_range: Option<(f32, f32)>,
     ) {
         self.font_face_ranges
@@ -392,9 +392,9 @@ impl FontSystem {
         {
             if let Some(Some((min, max))) = self.font_face_ranges.get(&id).map(|(weight, _)| weight)
             {
-                let selected_weight = weight.0.clamp(*min, *max);
-                if selected_weight != weight.0 {
-                    variations.push(FontVariation::new(*b"wght", f32::from(selected_weight)));
+                let selected_weight = f32::from(weight.0).clamp(*min, *max);
+                if selected_weight != f32::from(weight.0) {
+                    variations.push(FontVariation::new(*b"wght", selected_weight));
                 }
             }
         }
@@ -582,7 +582,7 @@ mod tests {
             .expect("font should have a family")
             .0
             .as_str();
-        let ranges = Some((Some((300, 700)), Some((10.0, 20.0))));
+        let ranges = Some((Some((300.5, 700.75)), Some((10.0, 20.0))));
 
         let inside = Attrs::new()
             .family(Family::Name(family_name))
@@ -597,17 +597,17 @@ mod tests {
             .weight(Weight(200))
             .style(Style::Oblique);
         let key = FontMatchKey::new(&outside, &face, font_system.db(), ranges);
-        assert_eq!(key.font_weight_diff, 100);
+        assert_eq!(key.font_weight_diff, 101);
         assert_eq!(key.font_style_diff, 0);
         let outside_style = FontMatchKey::new(
             &inside,
             &face,
             font_system.db(),
-            Some((Some((300, 700)), Some((20.0, 30.0)))),
+            Some((Some((300.5, 700.75)), Some((20.0, 30.0)))),
         );
         assert_eq!(outside_style.font_style_diff, 2);
 
-        font_system.set_font_face_ranges(face.id, Some((300, 700)), None);
+        font_system.set_font_face_ranges(face.id, Some((300.5, 700.75)), None);
         let font = font_system
             .get_font_with_variations(face.id, Weight(800), &[])
             .expect("registered font should load");
@@ -616,7 +616,7 @@ mod tests {
                 .iter()
                 .find(|variation| variation.tag() == *b"wght")
                 .map(|variation| variation.value()),
-            Some(700.0)
+            Some(700.75)
         );
     }
 }

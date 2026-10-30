@@ -17,7 +17,7 @@ pub struct FontFace {
     pub family: String,
     pub sources: Vec<FontFaceSource>,
     pub weight: Option<u16>,
-    pub weight_range: Option<(u16, u16)>,
+    pub weight_range: Option<(f32, f32)>,
     pub style: Option<String>,
     pub style_range: Option<(String, String)>,
     pub stretch: Option<String>,

@@ -72,11 +72,27 @@ fn parses_variable_font_weight_and_oblique_style_ranges() {
     )
     .unwrap();
     let face = &stylesheet.font_faces[0];
-    assert_eq!(face.weight_range, Some((300, 700)));
+    assert_eq!(face.weight_range, Some((300.0, 700.0)));
     assert_eq!(
         face.style_range,
         Some(("10deg".to_owned(), "20deg".to_owned()))
     );
+}
+
+#[test]
+fn parses_css_number_forms_and_keywords_in_font_weight_ranges() {
+    for (descriptor, expected) in [
+        ("3e2 7e2", (300.0, 700.0)),
+        ("+300.0 7e2", (300.0, 700.0)),
+        ("normal bold", (400.0, 700.0)),
+        ("300.5 700.75", (300.5, 700.75)),
+    ] {
+        let stylesheet = parse_stylesheet(&format!(
+            "@font-face {{ font-family: 'Variable Sans'; src: url(variable.woff2); font-weight: {descriptor}; }}"
+        ))
+        .unwrap();
+        assert_eq!(stylesheet.font_faces[0].weight_range, Some(expected));
+    }
 }
 
 #[test]
