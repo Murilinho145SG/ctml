@@ -106,8 +106,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.
 - [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
 - [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
-- [x] Load local file-backed CSS resources relative to a stylesheet, canonicalize paths within a configured root, and bound resource reads; reject external schemes and root escapes.
-- [ ] Parse and connect CSS `url()` values to resource-consuming properties and at-rules.
+- [x] Parse CSS `url()` token and string forms and load local resources relative to a stylesheet; canonicalize paths within a configured root, bound reads, and reject external schemes and root escapes.
+- [ ] Connect loaded CSS `url()` resources to resource-consuming properties and at-rules.
 - [ ] Locale-independent numeric parsing and well-defined rounding behavior.
 
 ## Colors and color effects

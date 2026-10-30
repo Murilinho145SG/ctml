@@ -42,8 +42,8 @@ fn loads_relative_local_resources_and_decodes_url_paths() {
     std::fs::write(root.join("assets/font file.bin"), [0, 1, 2, 255])
         .expect("resource should be written");
 
-    let resource = crate::load_local_resource(
-        "../assets/font%20file.bin",
+    let resource = crate::load_css_resource(
+        "url('../assets/font%20file.bin')",
         root.join("styles/main.css"),
         &root,
     )
@@ -55,6 +55,38 @@ fn loads_relative_local_resources_and_decodes_url_paths() {
     );
     assert_eq!(resource.bytes, [0, 1, 2, 255]);
     std::fs::remove_dir_all(root).expect("temporary resource root should be removed");
+}
+
+#[test]
+fn parses_css_url_tokens_strings_and_escapes() {
+    assert_eq!(
+        crate::parse_css_url("url(font.woff2)"),
+        Some("font.woff2".to_owned())
+    );
+    assert_eq!(
+        crate::parse_css_url("url('font file.woff2')"),
+        Some("font file.woff2".to_owned())
+    );
+    assert_eq!(
+        crate::parse_css_url("url('font)name.woff2')"),
+        Some("font)name.woff2".to_owned())
+    );
+    assert_eq!(
+        crate::parse_css_url(r"url(font\20 file.woff2)"),
+        Some("font file.woff2".to_owned())
+    );
+    for invalid in [
+        "font.woff2",
+        "url(font.woff2) url(other.woff2)",
+        "url(font.woff2 more)",
+        "url('unterminated)",
+        "url('font.woff2' extra)",
+    ] {
+        assert!(
+            crate::parse_css_url(invalid).is_none(),
+            "accepted {invalid}"
+        );
+    }
 }
 
 #[test]
