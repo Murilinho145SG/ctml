@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
     CursorSpan, PageRasterizer,
-    sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width},
+    sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width, select_axis_size},
 };
 
 pub(super) fn line_alignments(
@@ -248,6 +248,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         .iter()
         .map(|run| resolve_family_list(&run.style.family, &page.font_system))
         .collect::<Vec<_>>();
+    let page_writing_mode = page.writing_mode();
     let attributes = page
         .runs
         .iter()
@@ -255,38 +256,85 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         .map(|(run, family)| {
             let mut style = run.style.clone();
             if let Some(height_size) = &style.empty_block_height {
-                let (block_size, min_block_size, max_block_size) =
-                    if height_size.writing_mode == crate::style::WritingMode::HorizontalTb {
-                        (
-                            height_size
-                                .block_size
-                                .as_deref()
-                                .or(height_size.height.as_deref()),
-                            height_size
-                                .min_block_size
-                                .as_deref()
-                                .or(height_size.min_height.as_deref()),
-                            height_size
-                                .max_block_size
-                                .as_deref()
-                                .or(height_size.max_height.as_deref()),
-                        )
-                    } else {
-                        (
-                            height_size
-                                .block_size
-                                .as_deref()
-                                .or(height_size.width.as_deref()),
-                            height_size
-                                .min_block_size
-                                .as_deref()
-                                .or(height_size.min_width.as_deref()),
-                            height_size
-                                .max_block_size
-                                .as_deref()
-                                .or(height_size.max_width.as_deref()),
-                        )
-                    };
+                let same_axis_orientation = (height_size.writing_mode
+                    != crate::style::WritingMode::HorizontalTb)
+                    == (page_writing_mode != crate::style::WritingMode::HorizontalTb);
+                let (
+                    logical_size,
+                    logical_min,
+                    logical_max,
+                    logical_name,
+                    logical_min_name,
+                    logical_max_name,
+                ) = if same_axis_orientation {
+                    (
+                        &height_size.block_size,
+                        &height_size.min_block_size,
+                        &height_size.max_block_size,
+                        "block-size",
+                        "min-block-size",
+                        "max-block-size",
+                    )
+                } else {
+                    (
+                        &height_size.inline_size,
+                        &height_size.min_inline_size,
+                        &height_size.max_inline_size,
+                        "inline-size",
+                        "min-inline-size",
+                        "max-inline-size",
+                    )
+                };
+                let (
+                    physical_size,
+                    physical_min,
+                    physical_max,
+                    physical_name,
+                    physical_min_name,
+                    physical_max_name,
+                ) = if page_writing_mode == crate::style::WritingMode::HorizontalTb {
+                    (
+                        &height_size.height,
+                        &height_size.min_height,
+                        &height_size.max_height,
+                        "height",
+                        "min-height",
+                        "max-height",
+                    )
+                } else {
+                    (
+                        &height_size.width,
+                        &height_size.min_width,
+                        &height_size.max_width,
+                        "width",
+                        "min-width",
+                        "max-width",
+                    )
+                };
+                let block_size = select_axis_size(
+                    logical_size.as_ref(),
+                    physical_size.as_ref(),
+                    &height_size.size_property_orders,
+                    logical_name,
+                    physical_name,
+                )
+                .flatten();
+                let min_block_size = select_axis_size(
+                    logical_min.as_ref(),
+                    physical_min.as_ref(),
+                    &height_size.size_property_orders,
+                    logical_min_name,
+                    physical_min_name,
+                )
+                .flatten();
+                let max_block_size = select_axis_size(
+                    logical_max.as_ref(),
+                    physical_max.as_ref(),
+                    &height_size.size_property_orders,
+                    logical_max_name,
+                    physical_max_name,
+                )
+                .flatten();
                 style.line_height = resolve_layout_height(
                     block_size,
                     min_block_size,
@@ -364,6 +412,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
     let monospace_width = page.buffer.monospace_width();
     let tab_width = page.buffer.tab_width();
     let hinting = page.buffer.hinting();
+    let page_writing_mode = page.writing_mode();
     for (
         (line, sizes),
         (_, _, _, wrap, _, _, _, ellipsize, indent, indent_percent, hanging, each_line),
@@ -377,7 +426,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         let has_custom_width = !sizes.is_empty();
         line.set_wrap(wrap);
         let line_width = if has_custom_width {
-            resolve_layout_width(&sizes, content_width)
+            resolve_layout_width(&sizes, content_width, page_writing_mode)
         } else {
             content_width
         };

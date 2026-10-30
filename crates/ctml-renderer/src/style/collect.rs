@@ -252,7 +252,13 @@ pub(super) fn collect_runs(
                 }
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
-                    if style.height.is_some()
+                    if style.width.is_some()
+                        || style.min_width.is_some()
+                        || style.max_width.is_some()
+                        || style.inline_size.is_some()
+                        || style.min_inline_size.is_some()
+                        || style.max_inline_size.is_some()
+                        || style.height.is_some()
                         || style.min_height.is_some()
                         || style.max_height.is_some()
                         || style.block_size.is_some()
@@ -306,16 +312,27 @@ pub(super) fn collect_runs(
                     && before_content.is_none()
                     && !has_after_content
                     && !list_item
-                    && (style.height.is_some()
+                    && (style.width.is_some()
+                        || style.min_width.is_some()
+                        || style.max_width.is_some()
+                        || style.inline_size.is_some()
+                        || style.min_inline_size.is_some()
+                        || style.max_inline_size.is_some()
+                        || style.height.is_some()
                         || style.min_height.is_some()
+                        || style.max_height.is_some()
                         || style.block_size.is_some()
-                        || style.min_block_size.is_some())
+                        || style.min_block_size.is_some()
+                        || style.max_block_size.is_some())
                 {
                     let mut spacer_style = style.clone();
                     spacer_style.empty_block_height = Some(LayoutHeight {
                         width: style.width.clone(),
                         min_width: style.min_width.clone(),
                         max_width: style.max_width.clone(),
+                        inline_size: style.inline_size.clone(),
+                        min_inline_size: style.min_inline_size.clone(),
+                        max_inline_size: style.max_inline_size.clone(),
                         height: style.height.clone(),
                         min_height: style.min_height.clone(),
                         max_height: style.max_height.clone(),
