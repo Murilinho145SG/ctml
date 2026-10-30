@@ -182,7 +182,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: block` and `display: inline` override tag-based line separation for rendered text.
 - [x] `display: contents` removes tag-based line separation while preserving child text flow.
 - [x] `display: flow-root` and `display: inline-block` use block and inline text flow, respectively.
-- [x] Supported multi-keyword `display` forms `block flow`, `block flow-root`, `inline flow`, and `inline flow-root` map to the equivalent supported single-keyword flow modes.
+- [x] Supported multi-keyword `display` forms accept order-independent block/inline outer and flow/flow-root inner values, including `list-item`; `inline list-item` participates in inline text flow.
 - [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-greek`, `lower-roman`, and `upper-roman`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
 - [ ] Remaining `display` values and CSS formatting box generation.
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` size the inline axis for horizontal and page-root vertical writing modes.

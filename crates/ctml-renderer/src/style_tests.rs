@@ -1016,6 +1016,11 @@ fn explicit_list_item_uses_a_bullet_and_block_flow() {
     );
 }
 
+#[test]
+fn inline_list_item_keeps_its_marker_in_inline_text_flow() {
+    assert_display_flow("span", "inline list-item", "before• middleafter");
+}
+
 fn assert_display_flow(tag: &str, display: &str, expected: &str) {
     let nodes = [
         UiNode::Text("before".to_owned()),

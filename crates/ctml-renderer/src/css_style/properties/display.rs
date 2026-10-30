@@ -6,43 +6,59 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         .map(str::to_ascii_lowercase)
         .collect::<Vec<_>>();
     let value = value.iter().map(String::as_str).collect::<Vec<_>>();
-    match value.as_slice() {
-        ["none"] => {
-            style.display_none = true;
-            style.display_block = None;
+    if let Some(is_block) = parse_list_item(&value) {
+        style.display_none = false;
+        style.display_block = Some(is_block);
+        style.display_list_item = Some(true);
+        return;
+    }
+    match parse_flow_display(&value) {
+        Some((none, block)) => {
+            style.display_none = none;
+            style.display_block = block;
             style.display_list_item = Some(false);
         }
-        ["block"] | ["block", "flow"] | ["block", "flow-root"] => {
-            style.display_none = false;
-            style.display_block = Some(true);
-            style.display_list_item = Some(false);
+        None => {}
+    }
+}
+
+fn parse_list_item(tokens: &[&str]) -> Option<bool> {
+    let mut remaining = tokens.to_vec();
+    let item_position = remaining.iter().position(|token| *token == "list-item")?;
+    remaining.remove(item_position);
+    if remaining.len() > 2 {
+        return None;
+    }
+
+    let mut outside = None;
+    let mut inside = None;
+    for token in remaining {
+        match token {
+            "block" | "inline" if outside.is_none() => outside = Some(token),
+            "flow" | "flow-root" if inside.is_none() => inside = Some(token),
+            _ => return None,
         }
-        ["flow-root"] => {
-            style.display_none = false;
-            style.display_block = Some(true);
-            style.display_list_item = Some(false);
-        }
-        ["inline"] | ["inline", "flow"] => {
-            style.display_none = false;
-            style.display_block = Some(false);
-            style.display_list_item = Some(false);
-        }
-        ["inline-block"] | ["inline", "flow-root"] => {
-            style.display_none = false;
-            style.display_block = Some(false);
-            style.display_list_item = Some(false);
-        }
-        ["contents"] => {
-            style.display_none = false;
-            style.display_block = Some(false);
-            style.display_list_item = Some(false);
-        }
-        ["list-item"] | ["block", "flow", "list-item"] => {
-            style.display_none = false;
-            style.display_block = Some(true);
-            style.display_list_item = Some(true);
-        }
-        _ => {}
+    }
+    Some(outside.unwrap_or("block") == "block")
+}
+
+fn parse_flow_display(tokens: &[&str]) -> Option<(bool, Option<bool>)> {
+    match tokens {
+        ["none"] => Some((true, None)),
+        ["contents"] => Some((false, Some(false))),
+        ["flow-root"] => Some((false, Some(true))),
+        ["inline-block"] => Some((false, Some(false))),
+        ["block"]
+        | ["block", "flow"]
+        | ["flow", "block"]
+        | ["block", "flow-root"]
+        | ["flow-root", "block"] => Some((false, Some(true))),
+        ["inline"]
+        | ["inline", "flow"]
+        | ["flow", "inline"]
+        | ["inline", "flow-root"]
+        | ["flow-root", "inline"] => Some((false, Some(false))),
+        _ => None,
     }
 }
 
@@ -62,4 +78,49 @@ pub(super) fn revert_display(style: &mut TextStyle) {
     style.display_none = false;
     style.display_block = None;
     style.display_list_item = None;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_flow_display, parse_list_item};
+
+    #[test]
+    fn parses_list_item_outer_and_inner_values_in_any_order() {
+        for tokens in [
+            &["list-item"][..],
+            &["inline", "list-item"],
+            &["flow-root", "block", "list-item"],
+            &["list-item", "flow", "inline"],
+        ] {
+            assert!(parse_list_item(tokens).is_some(), "{tokens:?}");
+        }
+        assert_eq!(parse_list_item(&["inline", "list-item"]), Some(false));
+        assert_eq!(
+            parse_list_item(&["flow-root", "block", "list-item"]),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_or_unknown_list_item_components() {
+        assert_eq!(parse_list_item(&["inline", "block", "list-item"]), None);
+        assert_eq!(parse_list_item(&["flow", "flow-root", "list-item"]), None);
+        assert_eq!(parse_list_item(&["grid", "list-item"]), None);
+    }
+
+    #[test]
+    fn accepts_multi_keyword_flow_components_in_any_order() {
+        assert_eq!(
+            parse_flow_display(&["inline", "flow-root"]),
+            Some((false, Some(false)))
+        );
+        assert_eq!(
+            parse_flow_display(&["flow-root", "inline"]),
+            Some((false, Some(false)))
+        );
+        assert_eq!(
+            parse_flow_display(&["flow", "block"]),
+            Some((false, Some(true)))
+        );
+    }
 }
