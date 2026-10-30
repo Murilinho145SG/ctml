@@ -79,3 +79,32 @@ fn rejects_invalid_css_round_arguments() {
         assert_eq!(parse(value), None, "{value}");
     }
 }
+
+#[test]
+fn evaluates_css_mod_and_rem_with_signed_values_and_dimensions() {
+    assert_eq!(parse_math_number("mod(18, 5)"), Some(3.0));
+    assert_eq!(parse_math_number("mod(-18, 5)"), Some(2.0));
+    assert_eq!(parse_math_number("mod(18, -5)"), Some(-2.0));
+    assert_eq!(parse_math_number("mod(-18, -5)"), Some(-3.0));
+    assert_eq!(parse_math_number("rem(-18, 5)"), Some(-3.0));
+    assert_eq!(parse_math_number("rem(18, -5)"), Some(3.0));
+    assert_eq!(parse_math_number("rem(-18, -5)"), Some(-3.0));
+    assert_eq!(parse("mod(-18px, 5px)"), Some(2.0));
+    assert_eq!(parse("rem(-18px, 5px)"), Some(-3.0));
+}
+
+#[test]
+fn rejects_invalid_css_mod_and_rem_arguments() {
+    for value in [
+        "mod(1)",
+        "rem(1)",
+        "mod(1, 0)",
+        "rem(1, 0)",
+        "mod(1px, 1)",
+        "rem(1, 2, 3)",
+        "mod(1, 2) trailing",
+    ] {
+        assert_eq!(parse_math_number(value), None, "{value}");
+        assert_eq!(parse(value), None, "{value}");
+    }
+}

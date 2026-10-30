@@ -22,7 +22,7 @@ impl MathValue {
 
 pub(crate) fn is_math_function(value: &str) -> bool {
     let value = value.trim_start();
-    ["calc(", "min(", "max(", "clamp(", "round("]
+    ["calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem("]
         .iter()
         .any(|function| {
             value
@@ -219,8 +219,37 @@ where
                 self.evaluate_function(&function, &values)
             }
             "round" => self.parse_round_function(),
+            "mod" => self.parse_remainder_function(true),
+            "rem" => self.parse_remainder_function(false),
             _ => None,
         }
+    }
+
+    fn parse_remainder_function(&mut self, euclidean: bool) -> Option<MathValue> {
+        let dividend = self.parse_sum()?;
+        self.skip_whitespace();
+        if !self.consume(b',') {
+            return None;
+        }
+        let divisor = self.parse_sum()?;
+        self.skip_whitespace();
+        if !self.consume(b')')
+            || std::mem::discriminant(&dividend) != std::mem::discriminant(&divisor)
+            || divisor.value() == 0.0
+        {
+            return None;
+        }
+
+        let remainder = dividend.value() % divisor.value();
+        let result = if euclidean
+            && remainder != 0.0
+            && remainder.is_sign_negative() != divisor.value().is_sign_negative()
+        {
+            remainder + divisor.value()
+        } else {
+            remainder
+        };
+        dividend.map(|_| result)
     }
 
     fn parse_round_function(&mut self) -> Option<MathValue> {

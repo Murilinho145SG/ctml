@@ -115,6 +115,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.
 - [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
 - [x] Support CSS `round()` for numbers and supported length dimensions, including all rounding strategies and number-only default intervals.
+- [x] Support typed `mod()` and `rem()` calculations for numbers and supported length dimensions.
 - [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
 - [x] Parse CSS `url()` token and string forms and load local resources relative to a stylesheet; canonicalize paths within a configured root, bound reads, and reject external schemes and root escapes.
 - [x] Connect local `url()` resources to `@font-face` font loading.
