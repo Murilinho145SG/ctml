@@ -62,6 +62,8 @@ mod selection;
 mod sizing;
 #[path = "page_tests/sizing_overflow.rs"]
 mod sizing_overflow;
+#[path = "page_tests/sizing_percentages.rs"]
+mod sizing_percentages;
 #[path = "page_tests/viewport_units.rs"]
 mod viewport_units;
 

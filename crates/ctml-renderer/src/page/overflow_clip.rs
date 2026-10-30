@@ -107,11 +107,6 @@ pub(super) fn block_geometries(
             continue;
         };
         for size in &style_run.style.layout_sizes {
-            if size.overflow_x == crate::style::Overflow::Visible
-                && size.overflow_y == crate::style::Overflow::Visible
-            {
-                continue;
-            }
             extents
                 .entry(size.node_id)
                 .and_modify(|extent| {
@@ -183,14 +178,12 @@ pub(super) fn block_geometries(
     let available_width = (width as f32 - PAGE_PADDING * 2.0).max(0.0);
     let available_height = (height as f32 - PAGE_PADDING * 2.0).max(0.0);
     extents
-        .into_iter()
-        .map(|(node_id, extent)| {
-            let block_height = used_block_height(
-                &extent.size,
-                extent.content_height,
-                available_height,
-                page_writing_mode,
-            );
+        .iter()
+        .filter(|(_, extent)| {
+            extent.size.overflow_x != crate::style::Overflow::Visible
+                || extent.size.overflow_y != crate::style::Overflow::Visible
+        })
+        .map(|(&node_id, extent)| {
             let sizes = runs
                 .iter()
                 .find(|run| {
@@ -209,6 +202,13 @@ pub(super) fn block_geometries(
                     run.style.layout_sizes[..=end].to_vec()
                 })
                 .unwrap_or_default();
+            let block_height = used_block_height_for_path(
+                node_id,
+                &sizes,
+                &extents,
+                available_height,
+                page_writing_mode,
+            );
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode);
             let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
@@ -249,6 +249,34 @@ pub(super) fn block_geometries(
             )
         })
         .collect()
+}
+
+fn used_block_height_for_path(
+    target_node_id: usize,
+    sizes: &[LayoutSize],
+    extents: &HashMap<usize, BlockExtent>,
+    available_height: f32,
+    page_writing_mode: WritingMode,
+) -> f32 {
+    let mut containing_height = available_height;
+    for size in sizes {
+        let Some(extent) = extents.get(&size.node_id) else {
+            continue;
+        };
+        let used_height = used_block_height(
+            size,
+            extent.content_height,
+            containing_height,
+            page_writing_mode,
+        );
+        if size.node_id == target_node_id {
+            return used_height;
+        }
+        if is_vertical(size.writing_mode) == is_vertical(page_writing_mode) {
+            containing_height = used_height;
+        }
+    }
+    0.0
 }
 
 fn used_block_height(
