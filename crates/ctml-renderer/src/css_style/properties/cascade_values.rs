@@ -10,6 +10,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
         }
         "contain" => {
             style.paint_contained = inherited.paint_contained;
+            style.layout_contained = inherited.layout_contained;
             style.size_contained = inherited.size_contained;
             style.inline_size_contained = inherited.inline_size_contained;
             style.style_contained = inherited.style_contained;
@@ -245,6 +246,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "contain" => {
             style.paint_contained = false;
+            style.layout_contained = false;
             style.size_contained = false;
             style.inline_size_contained = false;
             style.style_contained = false;

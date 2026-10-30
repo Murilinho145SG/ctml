@@ -142,11 +142,13 @@ pub(super) fn collect_runs(
                     inherited.content_skipped || style.content_visibility_hidden;
                 if style.content_visibility_hidden {
                     style.paint_contained = true;
+                    style.layout_contained = true;
                     style.size_contained = true;
                     style.inline_size_contained = true;
                     style.style_contained = true;
                 } else if style.content_visibility_auto {
                     style.paint_contained = true;
+                    style.layout_contained = true;
                     style.style_contained = true;
                 }
                 if style.user_select == UserSelect::All {

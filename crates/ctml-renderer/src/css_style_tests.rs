@@ -1150,9 +1150,12 @@ fn contain_tracks_paint_containment_and_resets_with_css_wide_values() {
     assert!(style_for_declarations(&[("contain", "paint")]).paint_contained);
     assert!(style_for_declarations(&[("contain", "content")]).paint_contained);
     assert!(style_for_declarations(&[("contain", "content")]).style_contained);
+    assert!(style_for_declarations(&[("contain", "content")]).layout_contained);
     assert!(style_for_declarations(&[("contain", "strict")]).paint_contained);
     assert!(style_for_declarations(&[("contain", "strict")]).style_contained);
+    assert!(style_for_declarations(&[("contain", "strict")]).layout_contained);
     assert!(style_for_declarations(&[("contain", "style")]).style_contained);
+    assert!(style_for_declarations(&[("contain", "layout")]).layout_contained);
     assert!(style_for_declarations(&[("contain", "size style")]).style_contained);
     assert!(style_for_declarations(&[("contain", "size")]).size_contained);
     assert!(style_for_declarations(&[("contain", "strict")]).size_contained);
@@ -1161,6 +1164,8 @@ fn contain_tracks_paint_containment_and_resets_with_css_wide_values() {
     assert!(style_for_declarations(&[("contain", "size paint")]).paint_contained);
     assert!(style_for_declarations(&[("contain", "size paint")]).size_contained);
     assert!(!style_for_declarations(&[("contain", "layout")]).paint_contained);
+    assert!(!style_for_declarations(&[("contain", "layout")]).size_contained);
+    assert!(!style_for_declarations(&[("contain", "none")]).layout_contained);
     assert!(!style_for_declarations(&[("contain", "none")]).paint_contained);
     assert!(!style_for_declarations(&[("contain", "none")]).style_contained);
     assert!(!style_for_declarations(&[("contain", "inline-size")]).size_contained);
@@ -1169,6 +1174,9 @@ fn contain_tracks_paint_containment_and_resets_with_css_wide_values() {
     );
     assert!(
         !style_for_declarations(&[("contain", "paint"), ("contain", "initial")]).size_contained
+    );
+    assert!(
+        !style_for_declarations(&[("contain", "layout"), ("contain", "initial")]).layout_contained
     );
     assert!(
         !style_for_declarations(&[("contain", "style"), ("contain", "initial")]).style_contained

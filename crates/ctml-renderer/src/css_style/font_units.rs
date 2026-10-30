@@ -96,6 +96,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.content_skipped = false;
     style.content_skipped_by_ancestor = false;
     style.paint_contained = false;
+    style.layout_contained = false;
     style.size_contained = false;
     style.inline_size_contained = false;
     style.style_contained = false;

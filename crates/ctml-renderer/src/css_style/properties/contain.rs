@@ -1,17 +1,16 @@
 use super::*;
 
 pub(super) fn apply_contain(style: &mut TextStyle, value: &str) {
-    if let Some((paint_contained, size_contained, inline_size_contained, style_contained)) =
-        parse_contain(value)
-    {
-        style.paint_contained = paint_contained;
-        style.size_contained = size_contained;
-        style.inline_size_contained = inline_size_contained;
-        style.style_contained = style_contained;
+    if let Some((paint, layout, size, inline_size, style_containment)) = parse_contain(value) {
+        style.paint_contained = paint;
+        style.layout_contained = layout;
+        style.size_contained = size;
+        style.inline_size_contained = inline_size;
+        style.style_contained = style_containment;
     }
 }
 
-fn parse_contain(value: &str) -> Option<(bool, bool, bool, bool)> {
+fn parse_contain(value: &str) -> Option<(bool, bool, bool, bool, bool)> {
     let values = value
         .split_ascii_whitespace()
         .map(str::to_ascii_lowercase)
@@ -21,13 +20,14 @@ fn parse_contain(value: &str) -> Option<(bool, bool, bool, bool)> {
     }
     if values.len() == 1 {
         return match values[0].as_str() {
-            "none" | "layout" => Some((false, false, false, false)),
-            "style" => Some((false, false, false, true)),
-            "inline-size" => Some((false, false, true, false)),
-            "size" => Some((false, true, true, false)),
-            "paint" => Some((true, false, false, false)),
-            "content" => Some((true, false, false, true)),
-            "strict" => Some((true, true, true, true)),
+            "none" => Some((false, false, false, false, false)),
+            "layout" => Some((false, true, false, false, false)),
+            "style" => Some((false, false, false, false, true)),
+            "inline-size" => Some((false, false, false, true, false)),
+            "size" => Some((false, false, true, true, false)),
+            "paint" => Some((true, false, false, false, false)),
+            "content" => Some((true, true, false, false, true)),
+            "strict" => Some((true, true, true, true, true)),
             _ => None,
         };
     }
@@ -57,6 +57,7 @@ fn parse_contain(value: &str) -> Option<(bool, bool, bool, bool)> {
     let contains_size = values.iter().any(|value| value == "size");
     Some((
         values.iter().any(|value| value == "paint"),
+        values.iter().any(|value| value == "layout"),
         contains_size,
         contains_size || values.iter().any(|value| value == "inline-size"),
         values.iter().any(|value| value == "style"),
