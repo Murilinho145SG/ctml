@@ -60,90 +60,22 @@ pub(super) fn block_spacer_heights(
     for node_id in block_ids {
         let size = &block_sizes[&node_id];
         let content_height = content_heights.get(&node_id).copied().unwrap_or_default();
-        let same_axis_orientation =
-            is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
-        let (
-            logical_size,
-            logical_min,
-            logical_max,
-            logical_name,
-            logical_min_name,
-            logical_max_name,
-        ) = if same_axis_orientation {
-            (
-                &size.block_size,
-                &size.min_block_size,
-                &size.max_block_size,
-                "block-size",
-                "min-block-size",
-                "max-block-size",
-            )
-        } else {
-            (
-                &size.inline_size,
-                &size.min_inline_size,
-                &size.max_inline_size,
-                "inline-size",
-                "min-inline-size",
-                "max-inline-size",
-            )
-        };
-        let (
-            physical_size,
-            physical_min,
-            physical_max,
-            physical_name,
-            physical_min_name,
-            physical_max_name,
-        ) = if is_vertical(page_writing_mode) {
-            (
-                &size.width,
-                &size.min_width,
-                &size.max_width,
-                "width",
-                "min-width",
-                "max-width",
-            )
-        } else {
-            (
-                &size.height,
-                &size.min_height,
-                &size.max_height,
-                "height",
-                "min-height",
-                "max-height",
-            )
-        };
-        let block_size = select_axis_size(
-            logical_size.as_ref(),
-            physical_size.as_ref(),
-            &size.size_property_orders,
-            logical_name,
-            physical_name,
-        )
-        .flatten();
-        let min_block_size = select_axis_size(
-            logical_min.as_ref(),
-            physical_min.as_ref(),
-            &size.size_property_orders,
-            logical_min_name,
-            physical_min_name,
-        )
-        .flatten();
-        let max_block_size = select_axis_size(
-            logical_max.as_ref(),
-            physical_max.as_ref(),
-            &size.size_property_orders,
-            logical_max_name,
-            physical_max_name,
-        )
-        .flatten();
+        let (block_size, min_block_size, max_block_size) =
+            block_size_constraints(size, page_writing_mode);
+        let containing_height = containing_block_height(
+            node_id,
+            &parents,
+            &block_sizes,
+            &content_heights,
+            available_height,
+            page_writing_mode,
+        );
         let requested_height = resolve_content_block_height(
             block_size,
             min_block_size,
             max_block_size,
             content_height,
-            available_height,
+            containing_height,
             size.font_size,
             size.line_height,
             size.font_relative_units,
@@ -163,6 +95,128 @@ pub(super) fn block_spacer_heights(
         }
     }
     spacers
+}
+
+fn block_size_constraints(
+    size: &LayoutSize,
+    page_writing_mode: WritingMode,
+) -> (Option<&str>, Option<&str>, Option<&str>) {
+    let same_axis_orientation = is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
+    let (logical_size, logical_min, logical_max, logical_name, logical_min_name, logical_max_name) =
+        if same_axis_orientation {
+            (
+                &size.block_size,
+                &size.min_block_size,
+                &size.max_block_size,
+                "block-size",
+                "min-block-size",
+                "max-block-size",
+            )
+        } else {
+            (
+                &size.inline_size,
+                &size.min_inline_size,
+                &size.max_inline_size,
+                "inline-size",
+                "min-inline-size",
+                "max-inline-size",
+            )
+        };
+    let (
+        physical_size,
+        physical_min,
+        physical_max,
+        physical_name,
+        physical_min_name,
+        physical_max_name,
+    ) = if is_vertical(page_writing_mode) {
+        (
+            &size.width,
+            &size.min_width,
+            &size.max_width,
+            "width",
+            "min-width",
+            "max-width",
+        )
+    } else {
+        (
+            &size.height,
+            &size.min_height,
+            &size.max_height,
+            "height",
+            "min-height",
+            "max-height",
+        )
+    };
+    (
+        select_axis_size(
+            logical_size.as_ref(),
+            physical_size.as_ref(),
+            &size.size_property_orders,
+            logical_name,
+            physical_name,
+        )
+        .flatten(),
+        select_axis_size(
+            logical_min.as_ref(),
+            physical_min.as_ref(),
+            &size.size_property_orders,
+            logical_min_name,
+            physical_min_name,
+        )
+        .flatten(),
+        select_axis_size(
+            logical_max.as_ref(),
+            physical_max.as_ref(),
+            &size.size_property_orders,
+            logical_max_name,
+            physical_max_name,
+        )
+        .flatten(),
+    )
+}
+
+fn containing_block_height(
+    node_id: usize,
+    parents: &HashMap<usize, usize>,
+    block_sizes: &HashMap<usize, LayoutSize>,
+    content_heights: &HashMap<usize, f32>,
+    available_height: f32,
+    page_writing_mode: WritingMode,
+) -> f32 {
+    let mut ancestors = Vec::new();
+    let mut ancestor = parents.get(&node_id).copied();
+    while let Some(ancestor_id) = ancestor {
+        ancestors.push(ancestor_id);
+        ancestor = parents.get(&ancestor_id).copied();
+    }
+    ancestors.reverse();
+
+    let mut containing_height = available_height;
+    for ancestor_id in ancestors {
+        let Some(size) = block_sizes.get(&ancestor_id) else {
+            continue;
+        };
+        let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
+        if height.is_none() && min_height.is_none() && max_height.is_none() {
+            continue;
+        }
+        containing_height = resolve_content_block_height(
+            height,
+            min_height,
+            max_height,
+            content_heights
+                .get(&ancestor_id)
+                .copied()
+                .unwrap_or_default(),
+            containing_height,
+            size.font_size,
+            size.line_height,
+            size.font_relative_units,
+            size.viewport_size,
+        );
+    }
+    containing_height
 }
 
 pub(super) fn insert_block_spacers(
