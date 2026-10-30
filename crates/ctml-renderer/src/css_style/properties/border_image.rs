@@ -1,4 +1,6 @@
-use crate::style::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, TextStyle};
+use crate::style::{
+    BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth, TextStyle,
+};
 
 pub(super) fn apply_border_image_source(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
@@ -83,6 +85,48 @@ pub(super) fn apply_border_image_width(style: &mut TextStyle, value: &str) {
         [top, right, bottom, left] => [Some(*top), Some(*right), Some(*bottom), Some(*left)],
         _ => return,
     };
+}
+
+pub(super) fn apply_border_image_outset(style: &mut TextStyle, value: &str) {
+    let outsets = value
+        .split_ascii_whitespace()
+        .map(|value| parse_outset(style, value))
+        .collect::<Option<Vec<_>>>();
+    let Some(outsets) = outsets else {
+        return;
+    };
+    style.border_image_outset = match outsets.as_slice() {
+        [one] => [Some(*one); 4],
+        [vertical, horizontal] => [
+            Some(*vertical),
+            Some(*horizontal),
+            Some(*vertical),
+            Some(*horizontal),
+        ],
+        [top, horizontal, bottom] => [
+            Some(*top),
+            Some(*horizontal),
+            Some(*bottom),
+            Some(*horizontal),
+        ],
+        [top, right, bottom, left] => [Some(*top), Some(*right), Some(*bottom), Some(*left)],
+        _ => return,
+    };
+}
+
+fn parse_outset(style: &TextStyle, value: &str) -> Option<BorderImageOutset> {
+    if let Some(number) = ctml_css::parse_css_number(value) {
+        return (number >= 0.0 && number.is_finite()).then_some(BorderImageOutset::Number(number));
+    }
+    ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+    .filter(|length| length.is_finite())
+    .map(BorderImageOutset::Length)
 }
 
 fn parse_width(style: &TextStyle, value: &str) -> Option<BorderImageWidth> {

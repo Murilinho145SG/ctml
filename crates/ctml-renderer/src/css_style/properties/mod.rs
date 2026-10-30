@@ -32,8 +32,8 @@ use border::{
     apply_logical_border_width_shorthand,
 };
 use border_image::{
-    apply_border_image_repeat, apply_border_image_slice, apply_border_image_source,
-    apply_border_image_width,
+    apply_border_image_outset, apply_border_image_repeat, apply_border_image_slice,
+    apply_border_image_source, apply_border_image_width,
 };
 use border_radius::{apply_border_radius, apply_corner_radius};
 use box_decoration::apply_box_decoration_break;

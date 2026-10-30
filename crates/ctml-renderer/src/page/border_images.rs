@@ -1,4 +1,4 @@
-use crate::style::{BorderImageRepeat, LayoutSize};
+use crate::style::{BorderImageOutset, BorderImageRepeat, LayoutSize};
 use skia_safe::{
     AlphaType, ColorSpace, ColorType, Data, Image, ImageInfo, Paint, Rect,
     canvas::SrcRectConstraint, surfaces,
@@ -58,10 +58,15 @@ pub(super) fn draw(
     (slices[3], slices[1]) = scale_opposing_slices(slices[3], slices[1], image_width);
     (slices[0], slices[2]) = scale_opposing_slices(slices[0], slices[2], image_height);
 
-    let left = rect.left;
-    let top = rect.top;
-    let right = rect.right;
-    let bottom = rect.bottom;
+    let outsets: [f32; 4] = std::array::from_fn(|side| match size.border_image_outset[side] {
+        Some(BorderImageOutset::Number(multiplier)) => border_widths[side] * multiplier,
+        Some(BorderImageOutset::Length(length)) => length,
+        None => 0.0,
+    });
+    let left = rect.left - outsets[3];
+    let top = rect.top - outsets[0];
+    let right = rect.right + outsets[1];
+    let bottom = rect.bottom + outsets[2];
     let image_widths: [f32; 4] = std::array::from_fn(|side| {
         let border_width = border_widths[side];
         match size.border_image_width[side] {

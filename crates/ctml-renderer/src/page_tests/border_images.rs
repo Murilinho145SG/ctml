@@ -119,6 +119,21 @@ fn border_image_width_axis_pairs_and_percentages_resolve_per_side() {
 }
 
 #[test]
+fn border_image_outset_extends_paint_bounds_without_changing_slice_content() {
+    let (rect, pixels) = render_with_outset("2");
+    assert_eq!(
+        sample_at(&pixels, rect.right + 6.0, rect.top + 20.0),
+        [255, 0, 255]
+    );
+
+    let (rect, pixels) = render_with_outset("3px");
+    assert_eq!(
+        sample_at(&pixels, rect.right + 1.0, rect.top + 20.0),
+        [255, 0, 255]
+    );
+}
+
+#[test]
 fn border_image_repeat_tiles_the_middle_source_strip() {
     let (rect, pixels) = render_repeated_border("repeat stretch", "1");
     let sample = |x: f32| sample_at(&pixels, rect.left + x, rect.top + 1.0);
@@ -207,6 +222,18 @@ fn render_with_width(
     slice: &str,
     image_width: Option<&str>,
 ) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
+    render_with_border_geometry(slice, image_width, None)
+}
+
+fn render_with_outset(outset: &str) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
+    render_with_border_geometry("1", None, Some(outset))
+}
+
+fn render_with_border_geometry(
+    slice: &str,
+    image_width: Option<&str>,
+    image_outset: Option<&str>,
+) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("image-border".to_owned()),
@@ -225,6 +252,9 @@ fn render_with_width(
     ];
     if let Some(image_width) = image_width {
         declarations.push(("border-image-width", image_width));
+    }
+    if let Some(image_outset) = image_outset {
+        declarations.push(("border-image-outset", image_outset));
     }
     let stylesheet = [StyleRule {
         selectors: vec![".image-border".to_owned()],

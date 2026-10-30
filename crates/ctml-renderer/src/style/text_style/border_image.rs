@@ -21,6 +21,12 @@ pub(crate) enum BorderImageWidth {
     Auto,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum BorderImageOutset {
+    Number(f32),
+    Length(f32),
+}
+
 impl Default for BorderImageSlice {
     fn default() -> Self {
         Self {

@@ -4,8 +4,8 @@ use ctml_css::{FontRelativeUnits, ViewportSize};
 
 use super::{
     BackgroundAttachment, BackgroundBox, BackgroundImage, BackgroundPosition, BackgroundRepeat,
-    BackgroundSize, BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle,
-    Overflow, WritingMode,
+    BackgroundSize, BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
+    BorderLineStyle, Overflow, WritingMode,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -29,6 +29,7 @@ pub(crate) struct LayoutSize {
     pub(crate) border_image_fill: bool,
     pub(crate) border_image_repeat: [BorderImageRepeat; 2],
     pub(crate) border_image_width: [Option<BorderImageWidth>; 4],
+    pub(crate) border_image_outset: [Option<BorderImageOutset>; 4],
     pub(crate) border_width: [Option<String>; 4],
     pub(crate) border_style: [BorderLineStyle; 4],
     pub(crate) border_color: [Option<[u8; 4]>; 4],

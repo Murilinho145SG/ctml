@@ -20,7 +20,9 @@ pub(crate) use background::{
     BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient, LinearGradient,
     RadialGradient, RadialGradientExtent, RadialGradientShape,
 };
-pub(crate) use border_image::{BorderImageRepeat, BorderImageSlice, BorderImageWidth};
+pub(crate) use border_image::{
+    BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
+};
 pub(crate) use core::TextStyle;
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};
 

@@ -89,6 +89,7 @@ pub(super) fn apply_declaration(
         "border-image-slice" => apply_border_image_slice(style, value),
         "border-image-repeat" => apply_border_image_repeat(style, value),
         "border-image-width" => apply_border_image_width(style, value),
+        "border-image-outset" => apply_border_image_outset(style, value),
         "border-top-left-radius" => apply_corner_radius(style, 0, value),
         "border-top-right-radius" => apply_corner_radius(style, 1, value),
         "border-bottom-right-radius" => apply_corner_radius(style, 2, value),
