@@ -1,8 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use ctml_css::{FontRelativeUnits, ViewportSize};
 
-use super::{BorderLineStyle, Overflow, WritingMode};
+use super::{BackgroundImage, BorderLineStyle, Overflow, WritingMode};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutSize {
@@ -31,7 +31,7 @@ pub(crate) struct LayoutSize {
     pub(crate) aspect_ratio: Option<f32>,
     pub(crate) box_shadows: Vec<BoxShadow>,
     pub(crate) background_layers: Vec<[u8; 4]>,
-    pub(crate) background_images: Vec<Arc<[u8]>>,
+    pub(crate) background_images: Vec<BackgroundImage>,
     pub(crate) opacity: f32,
     pub(crate) visibility_hidden: bool,
     pub(crate) content_skipped: bool,

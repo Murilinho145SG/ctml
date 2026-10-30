@@ -220,7 +220,7 @@ pub(super) fn draw(
                         clip,
                     );
                 }
-                super::background_images::draw_repeating_images(
+                super::background_images::draw_background_image_layers(
                     &style.background_images,
                     style.opacity,
                     pixels,

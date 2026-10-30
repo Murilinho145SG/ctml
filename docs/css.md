@@ -130,7 +130,7 @@ Malformed declarations and selector rules are skipped without a warning, and par
 
 ### Painting and colors
 
-- Multiple backgrounds, repeat, position, size, attachment, and origin/clip are still in progress. `background-image` decodes embedded base64 PNG and JPEG `data:` URLs, paints comma-separated layers in CSS order, and repeats each image at its intrinsic size. The `background` shorthand accepts one embedded image URL or a supported color/`none`. Block backgrounds paint across used border boxes, including padding, for both empty and content-bearing blocks; inline backgrounds paint through their padding on each text fragment, and empty inline elements with decoration paint their line box.
+- Multiple backgrounds, repeat, position, size, attachment, and origin/clip are still in progress. `background-image` decodes embedded base64 PNG and JPEG `data:` URLs, paints comma-separated layers in CSS order, and repeats each image at its intrinsic size. `linear-gradient()` supports directions, angle units, CSS colors, and percentage color-stop positions. The `background` shorthand accepts one embedded image URL, a linear gradient, or a supported color/`none`. Block backgrounds paint across used border boxes, including padding, for both empty and content-bearing blocks; inline backgrounds paint through their padding on each text fragment, and empty inline elements with decoration paint their line box.
 - Background images, gradients, and the `opacity` property.
 - Other predefined/custom color spaces.
 - Vertical text-emphasis side placement.

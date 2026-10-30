@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
-    BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps,
+    BackgroundImage, BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps,
     FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, Overflow, OverflowWrap,
     TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
     TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextTransform,
@@ -31,7 +31,7 @@ pub(crate) struct TextStyle {
     pub(crate) background: [u8; 3],
     pub(crate) background_color: Option<[u8; 4]>,
     pub(crate) background_layers: Vec<[u8; 4]>,
-    pub(crate) background_images: Vec<Arc<[u8]>>,
+    pub(crate) background_images: Vec<BackgroundImage>,
     pub(crate) display_none: bool,
     pub(crate) visibility_hidden: bool,
     pub(crate) content_visibility_hidden: bool,

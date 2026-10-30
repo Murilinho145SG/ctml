@@ -67,7 +67,7 @@ pub(super) fn draw_block_boxes(
                     clip,
                 );
             }
-            super::background_images::draw_repeating_images(
+            super::background_images::draw_background_image_layers(
                 &size.background_images,
                 size.opacity,
                 pixels,
@@ -239,7 +239,7 @@ pub(super) fn draw(
                     .and_then(|run| {
                         overflow_clip::clip_for_path(&run.element_path, overflow_clips)
                     });
-                super::background_images::draw_repeating_images(
+                super::background_images::draw_background_image_layers(
                     &style.background_images,
                     style.opacity,
                     pixels,
