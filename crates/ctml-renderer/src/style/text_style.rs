@@ -82,6 +82,8 @@ pub(crate) enum Overflow {
     Visible,
     Hidden,
     Clip,
+    Auto,
+    Scroll,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

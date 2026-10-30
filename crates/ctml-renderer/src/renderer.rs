@@ -161,6 +161,14 @@ impl Renderer {
         (cursor, visible, hover_changed || selection_changed)
     }
 
+    pub(super) fn scroll_by(&mut self, delta_x: f32, delta_y: f32) -> bool {
+        if !self.page.scroll_by(delta_x, delta_y) {
+            return false;
+        }
+        self.page.redraw(&self.queue, &self.page_texture);
+        true
+    }
+
     pub(super) fn pointer_left(&mut self) -> bool {
         self.page.clear_hover()
     }

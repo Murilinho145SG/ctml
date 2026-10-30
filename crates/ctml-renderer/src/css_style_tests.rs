@@ -1133,6 +1133,10 @@ fn overflow_modes_parse_and_do_not_inherit_by_default() {
     assert_eq!(axes.overflow_x, Overflow::Hidden);
     assert_eq!(axes.overflow_y, Overflow::Clip);
 
+    let scroll_modes = style_for_declarations(&[("overflow", "auto scroll")]);
+    assert_eq!(scroll_modes.overflow_x, Overflow::Auto);
+    assert_eq!(scroll_modes.overflow_y, Overflow::Scroll);
+
     let longhands = style_for_declarations(&[("overflow-x", "clip"), ("overflow-y", "hidden")]);
     assert_eq!(longhands.overflow_x, Overflow::Clip);
     assert_eq!(longhands.overflow_y, Overflow::Hidden);

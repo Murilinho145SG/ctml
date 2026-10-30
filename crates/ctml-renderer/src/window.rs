@@ -8,7 +8,7 @@ use winit::{
     application::ApplicationHandler,
     dpi::{PhysicalPosition, PhysicalSize},
     error::{EventLoopError, OsError},
-    event::WindowEvent,
+    event::{MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{Key, ModifiersState, NamedKey},
     window::{CursorIcon, Window as NativeWindow, WindowId},
@@ -183,6 +183,19 @@ impl ApplicationHandler for WindowApplication {
             WindowEvent::Resized(size) => {
                 if let Some(renderer) = self.renderer.as_mut() {
                     renderer.resize(size);
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. } => {
+                let (delta_x, delta_y) = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => (x * 40.0, y * 40.0),
+                    MouseScrollDelta::PixelDelta(position) => {
+                        (position.x as f32, position.y as f32)
+                    }
+                };
+                if let Some(renderer) = self.renderer.as_mut()
+                    && renderer.scroll_by(delta_x, delta_y)
+                {
                     window.request_redraw();
                 }
             }

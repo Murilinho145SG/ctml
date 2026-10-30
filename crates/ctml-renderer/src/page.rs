@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, SwashCache};
+use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, Scroll, SwashCache};
 use winit::window::CursorIcon;
 
 use crate::{
@@ -26,6 +26,7 @@ mod local_writing;
 mod overflow_clip;
 mod pixel;
 mod render;
+mod scrolling;
 mod selection_backgrounds;
 mod sizing;
 mod sizing_height;
@@ -50,6 +51,7 @@ pub(crate) struct PageRasterizer {
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
     overflow_clips: HashMap<usize, overflow_clip::ClipRect>,
+    root_scroll: Scroll,
     spacer_line_flags: Vec<bool>,
     font_system: FontSystem,
     cache: SwashCache,
@@ -143,6 +145,7 @@ impl PageRasterizer {
             runs,
             cursor_spans,
             overflow_clips: HashMap::new(),
+            root_scroll: Scroll::default(),
             spacer_line_flags: Vec::new(),
             font_system,
             cache: SwashCache::new(),
@@ -356,6 +359,15 @@ impl PageRasterizer {
         });
         self.selection_anchor = selection_anchor
             .map(|cursor| cursor_with_flow_spacers(cursor, &self.spacer_line_flags));
+        if !scrolling::has_user_scrollable_axis(
+            self.root_style.overflow_x,
+            self.root_style.overflow_y,
+        ) {
+            self.root_scroll = Scroll::default();
+        }
+        self.buffer.set_scroll(self.root_scroll);
+        self.buffer.shape_until_scroll(&mut self.font_system, false);
+        self.root_scroll = self.buffer.scroll();
         let (layout_width, layout_height) =
             vertical::layout_dimensions(self.writing_mode(), width, height);
         self.overflow_clips = overflow_clip::block_clip_rects(

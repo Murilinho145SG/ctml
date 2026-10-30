@@ -922,6 +922,8 @@ fn parse_overflow_keyword(value: &str) -> Option<Overflow> {
         "visible" => Some(Overflow::Visible),
         "hidden" => Some(Overflow::Hidden),
         "clip" => Some(Overflow::Clip),
+        "auto" => Some(Overflow::Auto),
+        "scroll" => Some(Overflow::Scroll),
         _ => None,
     }
 }

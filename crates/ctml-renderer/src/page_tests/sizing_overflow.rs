@@ -304,6 +304,35 @@ fn overflow_hidden_clips_nested_orthogonal_writing_mode_bounds() {
     }
 }
 
+#[test]
+fn root_overflow_auto_scrolls_with_wheel_offsets_but_hidden_does_not() {
+    let nodes = (0..40)
+        .map(|index| text_paragraph(&format!("scroll line {index}")))
+        .collect::<Vec<_>>();
+    let body_rule = |overflow: &str| StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "overflow-y".to_owned(),
+            value: overflow.to_owned(),
+        }],
+    };
+    let mut scrollable = PageRasterizer::new(&nodes, &[body_rule("auto")]);
+    let before = scrollable.snapshot_pixels(220, 100);
+    assert!(scrollable.scroll_by(0.0, -36.0));
+    let after = scrollable.snapshot_pixels(220, 100);
+    assert_ne!(
+        before, after,
+        "root scrolling should move the viewport content"
+    );
+    let offset = scrollable.buffer.scroll();
+    assert!(offset.line > 0 || offset.vertical > 0.0);
+
+    let mut clipped = PageRasterizer::new(&nodes, &[body_rule("hidden")]);
+    clipped.snapshot_pixels(220, 100);
+    assert!(!clipped.scroll_by(0.0, -36.0));
+}
+
 fn size_rule(property: &str, value: &str) -> StyleRule {
     StyleRule {
         selectors: vec!["div".to_owned()],
