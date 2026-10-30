@@ -69,6 +69,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.border_box = false;
     style.empty_block_height = None;
     style.layout_end_sizes.clear();
+    style.user_select = crate::style::UserSelect::Auto;
     style.flow_spacer = false;
     apply_matching_styles_with_inline_context(
         &mut style,

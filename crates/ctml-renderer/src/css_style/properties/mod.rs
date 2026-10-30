@@ -3,8 +3,8 @@ use winit::window::CursorIcon;
 
 use crate::style::{
     Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
-    TextOverflow, TextRendering, TextStyle, TextTransform, UnicodeBidi, WhiteSpace, WordBreak,
-    WritingMode,
+    TextOverflow, TextRendering, TextStyle, TextTransform, UnicodeBidi, UserSelect, WhiteSpace,
+    WordBreak, WritingMode,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -68,6 +68,10 @@ pub(super) fn apply_declaration_with_inherited(
     inherited: &TextStyle,
 ) {
     let Some(keyword) = css_wide_keyword(value) else {
+        if property == "user-select" && value.trim().eq_ignore_ascii_case("auto") {
+            style.user_select_none = inherited.user_select_none;
+            style.user_select_all_owner = inherited.user_select_all_owner;
+        }
         if is_valid_size_declaration(style, property, value) {
             style.record_size_property_order(property);
         }
@@ -118,6 +122,10 @@ pub(super) fn apply_declaration_with_inherited(
         style.max_block_size = None;
     } else {
         initial_property(style, property);
+        if property == "user-select" {
+            style.user_select_none = inherited.user_select_none;
+            style.user_select_all_owner = inherited.user_select_all_owner;
+        }
     }
 }
 
@@ -203,6 +211,11 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
         "pointer-events" => style.pointer_events_none = inherited.pointer_events_none,
+        "user-select" => {
+            style.user_select = inherited.user_select;
+            style.user_select_none = inherited.user_select_none;
+            style.user_select_all_owner = inherited.user_select_all_owner;
+        }
         "background-color" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -337,6 +350,11 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
         "pointer-events" => style.pointer_events_none = false,
+        "user-select" => {
+            style.user_select = UserSelect::Auto;
+            style.user_select_none = false;
+            style.user_select_all_owner = None;
+        }
         "background-color" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -489,6 +507,22 @@ fn apply_declaration(
         "pointer-events" => match value.to_ascii_lowercase().as_str() {
             "auto" => style.pointer_events_none = false,
             "none" => style.pointer_events_none = true,
+            _ => {}
+        },
+        "user-select" => match value.to_ascii_lowercase().as_str() {
+            "auto" => style.user_select = UserSelect::Auto,
+            "text" => {
+                style.user_select = UserSelect::Text;
+                style.user_select_none = false;
+            }
+            "none" => {
+                style.user_select = UserSelect::None;
+                style.user_select_none = true;
+            }
+            "all" => {
+                style.user_select = UserSelect::All;
+                style.user_select_none = false;
+            }
             _ => {}
         },
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),

@@ -134,6 +134,109 @@ fn pointer_events_auto_descendant_restores_pointer_targeting() {
 }
 
 #[test]
+fn user_select_none_blocks_selection_but_keeps_pointer_interaction() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![],
+        children: vec![UiNode::Text("Not selectable".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "user-select".to_owned(),
+                value: "none".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p:hover".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(160, 50);
+
+    assert!(page.update_hover(10.0, 14.0));
+    assert_eq!(page.runs[0].style.color, [255, 0, 0, 255]);
+    page.begin_selection(10.0, 14.0);
+    assert_eq!(page.selection, None);
+    assert_eq!(page.selection_anchor, None);
+}
+
+#[test]
+fn user_select_text_overrides_an_ancestor_none_value() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![],
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: vec![],
+            children: vec![UiNode::Text("Selectable child".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "user-select".to_owned(),
+                value: "none".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "user-select".to_owned(),
+                value: "text".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(160, 50);
+
+    assert!(page.select_word_at(10.0, 14.0));
+    let (start, end) = page.selection.unwrap();
+    assert_eq!((start.index, end.index), (0, 10));
+}
+
+#[test]
+fn user_select_all_selects_the_element_contents_atomically() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![],
+        children: vec![UiNode::Text("Select all".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "user-select".to_owned(),
+            value: "all".to_owned(),
+        }],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(160, 50);
+
+    assert!(page.begin_selection(10.0, 14.0));
+    let (start, end) = page.selection.unwrap();
+    assert_eq!((start.index, end.index), (0, 10));
+}
+
+#[test]
 fn direction_rtl_sets_the_paragraph_base_bidi_level() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

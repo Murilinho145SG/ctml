@@ -19,11 +19,9 @@ impl PageRasterizer {
                 continue;
             }
             let mut groups = Vec::new();
-            for span in self
-                .cursor_spans
-                .iter()
-                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
-            {
+            for span in self.cursor_spans.iter().filter(|span| {
+                span.line == run.line_i && !span.visibility_hidden && !span.user_select_none
+            }) {
                 if (start.line == run.line_i && span.end <= start.index)
                     || (end.line == run.line_i && span.start >= end.index)
                 {

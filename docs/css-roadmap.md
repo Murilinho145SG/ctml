@@ -283,7 +283,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Standard cursor keywords, including context-menu, grab/grabbing, column and row resize, plus the platform cursor extensions `all-resize` and `dnd-ask`.
 - [ ] Custom cursor images and hotspot coordinates.
 - [x] `pointer-events: auto|none` for rendered text targets, including descendant overrides.
-- [ ] `user-select`, `caret-color`, and `accent-color`.
+- [x] `user-select: auto|text|none|all` for rendered text, including descendant overrides and atomic element selection.
+- [ ] `caret-color` and `accent-color`.
 - [ ] Focus indicators, outlines, and keyboard navigation states.
 - [ ] Form control appearance, sizing, and styling if CTML provides native form controls.
 - [ ] Resize behavior and `resize` property.

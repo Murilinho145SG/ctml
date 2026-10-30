@@ -88,13 +88,16 @@ impl PageRasterizer {
         if active_changed || focus_changed || modality_changed {
             self.rebuild_interaction_styles();
         }
-        let Some(cursor) = self.hit(x, y) else {
+        let Some(cursor) = self.selection_hit(x, y) else {
             let changed = self.selection.take().is_some();
             self.selection_anchor = None;
             return changed || active_changed || focus_changed || modality_changed;
         };
         self.selection_anchor = Some(cursor);
-        self.selection = Some((cursor, cursor));
+        self.selection = self
+            .user_select_owner_at(cursor)
+            .and_then(|owner| self.user_select_owner_range(owner))
+            .or(Some((cursor, cursor)));
         true
     }
 
@@ -102,10 +105,21 @@ impl PageRasterizer {
         let Some(anchor) = self.selection_anchor else {
             return false;
         };
-        let Some(cursor) = self.hit(x, y) else {
+        let Some(cursor) = self.selection_hit(x, y) else {
             return false;
         };
-        let selection = (anchor, cursor);
+        let selection = self
+            .user_select_owner_at(anchor)
+            .and_then(|owner| self.user_select_owner_range(owner))
+            .map_or((anchor, cursor), |(owner_start, owner_end)| {
+                if cursor < owner_start {
+                    (cursor, owner_end)
+                } else if cursor > owner_end {
+                    (owner_start, cursor)
+                } else {
+                    (owner_start, owner_end)
+                }
+            });
         if self.selection == Some(selection) {
             return false;
         }
@@ -114,11 +128,19 @@ impl PageRasterizer {
     }
 
     pub(crate) fn select_word_at(&mut self, x: f64, y: f64) -> bool {
-        let Some(cursor) = self.hit(x, y) else {
+        let Some(cursor) = self.selection_hit(x, y) else {
             let changed = self.selection.take().is_some();
             self.selection_anchor = None;
             return changed;
         };
+        if let Some(selection) = self
+            .user_select_owner_at(cursor)
+            .and_then(|owner| self.user_select_owner_range(owner))
+        {
+            self.selection = Some(selection);
+            self.selection_anchor = None;
+            return true;
+        }
         let Some(text) = self
             .buffer
             .layout_runs()
@@ -208,6 +230,43 @@ impl PageRasterizer {
                         && !span.pointer_events_none
                 })
             })
+    }
+
+    fn selection_hit(&self, x: f64, y: f64) -> Option<Cursor> {
+        self.hit(x, y).filter(|cursor| {
+            self.cursor_spans.iter().any(|span| {
+                span.line == cursor.line
+                    && cursor.index >= span.start
+                    && cursor.index < span.end
+                    && !span.user_select_none
+            })
+        })
+    }
+
+    fn user_select_owner_at(&self, cursor: Cursor) -> Option<usize> {
+        self.cursor_spans
+            .iter()
+            .find(|span| {
+                span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
+            })
+            .and_then(|span| span.user_select_all_owner)
+    }
+
+    fn user_select_owner_range(&self, owner: usize) -> Option<(Cursor, Cursor)> {
+        let mut spans = self.cursor_spans.iter().filter(|span| {
+            span.user_select_all_owner == Some(owner)
+                && !span.visibility_hidden
+                && !span.user_select_none
+        });
+        let first = spans.next()?;
+        let mut last = first;
+        for span in spans {
+            last = span;
+        }
+        Some((
+            Cursor::new_with_affinity(first.line, first.start, Affinity::Before),
+            Cursor::new_with_affinity(last.line, last.end, Affinity::After),
+        ))
     }
 
     fn layout_point(&self, x: f32, y: f32) -> (f32, f32) {

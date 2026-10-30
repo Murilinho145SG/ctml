@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{TextDecorationStyle, TextStyle},
+    style::{TextDecorationStyle, TextStyle, UserSelect},
 };
 
 pub(super) fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle {
@@ -987,6 +987,28 @@ fn pointer_events_accepts_auto_none_and_css_wide_keywords() {
     let initial =
         style_for_declarations(&[("pointer-events", "none"), ("pointer-events", "initial")]);
     assert!(!initial.pointer_events_none);
+}
+
+#[test]
+fn user_select_parses_supported_modes_and_css_wide_reset() {
+    let none = style_for_declarations(&[("user-select", "none")]);
+    assert_eq!(none.user_select, UserSelect::None);
+    assert!(none.user_select_none);
+
+    let text = style_for_declarations(&[("user-select", "text")]);
+    assert_eq!(text.user_select, UserSelect::Text);
+    assert!(!text.user_select_none);
+
+    let all = style_for_declarations(&[("user-select", "all")]);
+    assert_eq!(all.user_select, UserSelect::All);
+
+    let initial = style_for_declarations(&[("user-select", "none"), ("user-select", "initial")]);
+    assert_eq!(initial.user_select, UserSelect::Auto);
+    assert!(!initial.user_select_none);
+
+    let auto = style_for_declarations(&[("user-select", "none"), ("user-select", "auto")]);
+    assert_eq!(auto.user_select, UserSelect::Auto);
+    assert!(!auto.user_select_none);
 }
 
 #[test]

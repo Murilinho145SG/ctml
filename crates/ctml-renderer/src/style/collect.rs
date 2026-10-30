@@ -6,8 +6,8 @@ use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 use std::collections::HashMap;
 
 use super::{
-    LayoutHeight, LayoutSize, TextRun, TextStyle, append_text, list_marker::format_marker, pseudo,
-    push_line_break, selector_sibling_contexts,
+    LayoutHeight, LayoutSize, TextRun, TextStyle, UserSelect, append_text,
+    list_marker::format_marker, pseudo, push_line_break, selector_sibling_contexts,
 };
 
 pub(super) fn is_block(tag: &str) -> bool {
@@ -136,6 +136,10 @@ pub(super) fn collect_runs(
                     stylesheet,
                     local_font_units,
                 );
+                if style.user_select == UserSelect::All {
+                    style.user_select_all_owner = Some(sibling.node_id);
+                    style.user_select_none = false;
+                }
                 if let Some((_, language)) = attributes
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case("lang"))
