@@ -110,6 +110,7 @@ enum AttrType {
     Length,
     LengthPercentage,
     Color,
+    CustomIdent,
 }
 
 impl AttrType {
@@ -122,6 +123,7 @@ impl AttrType {
             "length" => Some(Self::Length),
             "length-percentage" => Some(Self::LengthPercentage),
             "color" => Some(Self::Color),
+            "custom-ident" => Some(Self::CustomIdent),
             _ => None,
         }
     }
@@ -155,7 +157,36 @@ fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String>
                 color[0], color[1], color[2], color[3]
             )
         }),
+        Some(AttrType::CustomIdent) => parse_custom_ident(value),
     }
+}
+
+fn parse_custom_ident(value: &str) -> Option<String> {
+    let mut input = ParserInput::new(value);
+    let mut parser = Parser::new(&mut input);
+    let Token::Ident(identifier) = parser.next().ok()? else {
+        return None;
+    };
+    let identifier = identifier.to_string();
+    if !parser.is_exhausted()
+        || [
+            "initial",
+            "inherit",
+            "unset",
+            "revert",
+            "revert-layer",
+            "default",
+        ]
+        .iter()
+        .any(|keyword| identifier.eq_ignore_ascii_case(keyword))
+    {
+        return None;
+    }
+    let mut serialized = String::new();
+    Token::Ident(identifier.into())
+        .to_css(&mut serialized)
+        .expect("writing CSS tokens into a String cannot fail");
+    Some(serialized)
 }
 
 fn parse_dimension(value: &str, units: &[&str]) -> Option<String> {

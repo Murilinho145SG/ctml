@@ -63,6 +63,14 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
                 value: "attr(data-color type(<color>), red)".to_owned(),
             },
             StyleDeclaration {
+                property: "font-family".to_owned(),
+                value: "attr(data-family type(<custom-ident>), serif)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "attr(data-weight type(<custom-ident>), 700)".to_owned(),
+            },
+            StyleDeclaration {
                 property: "text-decoration-color".to_owned(),
                 value: "attr(data-invalid-color type(<color>), blue)".to_owned(),
             },
@@ -87,6 +95,8 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
             "data-color".to_owned(),
             Some("rgb(255 0 0 / 50%)".to_owned()),
         ),
+        ("data-family".to_owned(), Some("CTMLSans".to_owned())),
+        ("data-weight".to_owned(), Some("default".to_owned())),
         ("data-opacity".to_owned(), Some("invalid".to_owned())),
         (
             "data-invalid-color".to_owned(),
@@ -99,6 +109,8 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
 
     assert_eq!(style.font_size, 22.0);
     assert_eq!(style.color, [255, 0, 0, 128]);
+    assert_eq!(style.family, "CTMLSans");
+    assert_eq!(style.weight.0, 700);
     assert_eq!(style.text_decoration_color, Some([0, 0, 255, 255]));
     assert_eq!(style.opacity, 0.5);
     assert_eq!(style.letter_spacing, 3.0);

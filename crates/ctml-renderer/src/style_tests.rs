@@ -642,6 +642,36 @@ fn generated_content_attr_converts_supported_css_dimension_types() {
 }
 
 #[test]
+fn generated_content_attr_converts_custom_ident_values_and_uses_fallbacks() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![
+            ("valid".to_owned(), Some("north-star".to_owned())),
+            ("reserved".to_owned(), Some("default".to_owned())),
+            ("multiple".to_owned(), Some("two words".to_owned())),
+        ],
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["span::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: r#"attr(valid type(<custom-ident>), fallback) "/" attr(reserved type(<custom-ident>), fallback) "/" attr(multiple type(<custom-ident>), fallback)"#.to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "north-star/ fallback/ fallback"
+    );
+}
+
+#[test]
 fn display_none_hides_element_descendants_and_generated_content() {
     let nodes = [
         UiNode::Element {

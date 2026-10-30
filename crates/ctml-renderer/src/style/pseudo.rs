@@ -233,6 +233,7 @@ fn parse_generated_content(
                     Some(AttrType::Time) => parse_typed_dimension(value, &TIME_UNITS),
                     Some(AttrType::Frequency) => parse_typed_dimension(value, &FREQUENCY_UNITS),
                     Some(AttrType::Resolution) => parse_typed_dimension(value, &RESOLUTION_UNITS),
+                    Some(AttrType::CustomIdent) => parse_custom_ident(value),
                 });
                 if let Some(value) = converted {
                     output.push_str(&value);
@@ -315,6 +316,7 @@ enum AttrType {
     Time,
     Frequency,
     Resolution,
+    CustomIdent,
 }
 
 impl AttrType {
@@ -330,9 +332,34 @@ impl AttrType {
             "time" => Some(Self::Time),
             "frequency" => Some(Self::Frequency),
             "resolution" => Some(Self::Resolution),
+            "custom-ident" => Some(Self::CustomIdent),
             _ => None,
         }
     }
+}
+
+fn parse_custom_ident(value: &str) -> Option<String> {
+    let mut input = ParserInput::new(value);
+    let mut parser = Parser::new(&mut input);
+    let Token::Ident(identifier) = parser.next().ok()? else {
+        return None;
+    };
+    let identifier = identifier.to_string();
+    if !parser.is_exhausted()
+        || [
+            "initial",
+            "inherit",
+            "unset",
+            "revert",
+            "revert-layer",
+            "default",
+        ]
+        .iter()
+        .any(|keyword| identifier.eq_ignore_ascii_case(keyword))
+    {
+        return None;
+    }
+    Some(identifier.to_string())
 }
 
 const LENGTH_UNITS: &[&str] = &[
