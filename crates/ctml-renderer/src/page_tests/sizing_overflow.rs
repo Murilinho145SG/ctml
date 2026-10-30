@@ -304,6 +304,96 @@ fn overflow_hidden_clips_nested_orthogonal_writing_mode_bounds() {
     }
 }
 
+#[test]
+fn overflow_hidden_clips_horizontal_child_blocks_in_a_vertical_page_root() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("orthogonal overflow ".repeat(100))],
+    }];
+    for writing_mode in ["vertical-rl", "vertical-lr"] {
+        let rule = |with_overflow: bool| {
+            let mut declarations = vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "horizontal-tb".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "width".to_owned(),
+                    value: "40px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "height".to_owned(),
+                    value: "80px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "#00ff00".to_owned(),
+                },
+            ];
+            if with_overflow {
+                declarations.push(StyleDeclaration {
+                    property: "overflow".to_owned(),
+                    value: "hidden".to_owned(),
+                });
+            }
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations,
+            }
+        };
+        let root_rule = StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: writing_mode.to_owned(),
+            }],
+        };
+        let mut clipped_page = PageRasterizer::new(&nodes, &[root_rule.clone(), rule(true)]);
+        let clipped_pixels = clipped_page.snapshot_pixels(240, 240);
+        let geometry = clipped_page.overflow_geometry[&1];
+        let visible_pixels =
+            PageRasterizer::new(&nodes, &[root_rule, rule(false)]).snapshot_pixels(240, 240);
+        let page_mode = if writing_mode == "vertical-rl" {
+            crate::style::WritingMode::VerticalRl
+        } else {
+            crate::style::WritingMode::VerticalLr
+        };
+        let has_paint_outside_clip = |pixels: &[u8]| {
+            pixels.chunks_exact(4).enumerate().any(|(index, pixel)| {
+                let x = (index % 240) as f32;
+                let y = (index / 240) as f32;
+                let (layout_x, layout_y) = match page_mode {
+                    crate::style::WritingMode::VerticalRl => (y, 239.0 - x),
+                    crate::style::WritingMode::VerticalLr => (239.0 - y, x),
+                    crate::style::WritingMode::HorizontalTb => unreachable!(),
+                };
+                (layout_x < geometry.clip.left
+                    || layout_x >= geometry.clip.right
+                    || layout_y < geometry.clip.top
+                    || layout_y >= geometry.clip.bottom)
+                    && (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245)
+            })
+        };
+        assert!(has_paint_outside_clip(&visible_pixels), "{writing_mode}");
+        assert!(!has_paint_outside_clip(&clipped_pixels), "{writing_mode}");
+        let layout_outside_point = (geometry.clip.left + 4.0, geometry.clip.bottom + 4.0);
+        let outside_point = if writing_mode == "vertical-rl" {
+            (239.0 - layout_outside_point.1, layout_outside_point.0)
+        } else {
+            (layout_outside_point.1, 239.0 - layout_outside_point.0)
+        };
+        assert!(
+            !clipped_page.begin_selection(outside_point.0.into(), outside_point.1.into()),
+            "{writing_mode}"
+        );
+    }
+}
+
 fn size_rule(property: &str, value: &str) -> StyleRule {
     StyleRule {
         selectors: vec!["div".to_owned()],
