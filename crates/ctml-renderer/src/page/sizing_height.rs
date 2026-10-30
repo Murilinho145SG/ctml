@@ -1,6 +1,8 @@
 use ctml_css::{FontRelativeUnits, ViewportSize};
 
-use super::sizing::resolve_width;
+use crate::style::{LayoutSize, WritingMode};
+
+use super::sizing::{block_size_constraints, resolve_width};
 
 pub(super) fn resolve_layout_height(
     height: Option<&str>,
@@ -42,6 +44,48 @@ pub(super) fn resolve_content_block_height(
         max_height,
         content_height,
         available_height,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    )
+}
+
+pub(super) fn resolve_layout_height_with_ancestors(
+    height: Option<&str>,
+    min_height: Option<&str>,
+    max_height: Option<&str>,
+    available_height: f32,
+    ancestors: &[LayoutSize],
+    page_writing_mode: WritingMode,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: FontRelativeUnits,
+    viewport_size: ViewportSize,
+) -> f32 {
+    let mut containing_height = available_height;
+    for ancestor in ancestors.iter().take(ancestors.len().saturating_sub(1)) {
+        let (height, min_height, max_height) = block_size_constraints(ancestor, page_writing_mode);
+        if height.is_none() && min_height.is_none() && max_height.is_none() {
+            continue;
+        }
+        containing_height = resolve_content_block_height(
+            height,
+            min_height,
+            max_height,
+            0.0,
+            containing_height,
+            ancestor.font_size,
+            ancestor.line_height,
+            ancestor.font_relative_units,
+            ancestor.viewport_size,
+        );
+    }
+    resolve_layout_height(
+        height,
+        min_height,
+        max_height,
+        containing_height,
         font_size,
         line_height,
         font_relative_units,

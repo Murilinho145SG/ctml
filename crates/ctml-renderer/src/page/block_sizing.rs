@@ -3,10 +3,7 @@ use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun, WritingMode};
 
-use super::{
-    sizing::{is_vertical, select_axis_size},
-    sizing_height::resolve_content_block_height,
-};
+use super::{sizing::block_size_constraints, sizing_height::resolve_content_block_height};
 
 pub(super) fn block_spacer_heights(
     runs: &[TextRun],
@@ -95,85 +92,6 @@ pub(super) fn block_spacer_heights(
         }
     }
     spacers
-}
-
-fn block_size_constraints(
-    size: &LayoutSize,
-    page_writing_mode: WritingMode,
-) -> (Option<&str>, Option<&str>, Option<&str>) {
-    let same_axis_orientation = is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
-    let (logical_size, logical_min, logical_max, logical_name, logical_min_name, logical_max_name) =
-        if same_axis_orientation {
-            (
-                &size.block_size,
-                &size.min_block_size,
-                &size.max_block_size,
-                "block-size",
-                "min-block-size",
-                "max-block-size",
-            )
-        } else {
-            (
-                &size.inline_size,
-                &size.min_inline_size,
-                &size.max_inline_size,
-                "inline-size",
-                "min-inline-size",
-                "max-inline-size",
-            )
-        };
-    let (
-        physical_size,
-        physical_min,
-        physical_max,
-        physical_name,
-        physical_min_name,
-        physical_max_name,
-    ) = if is_vertical(page_writing_mode) {
-        (
-            &size.width,
-            &size.min_width,
-            &size.max_width,
-            "width",
-            "min-width",
-            "max-width",
-        )
-    } else {
-        (
-            &size.height,
-            &size.min_height,
-            &size.max_height,
-            "height",
-            "min-height",
-            "max-height",
-        )
-    };
-    (
-        select_axis_size(
-            logical_size.as_ref(),
-            physical_size.as_ref(),
-            &size.size_property_orders,
-            logical_name,
-            physical_name,
-        )
-        .flatten(),
-        select_axis_size(
-            logical_min.as_ref(),
-            physical_min.as_ref(),
-            &size.size_property_orders,
-            logical_min_name,
-            physical_min_name,
-        )
-        .flatten(),
-        select_axis_size(
-            logical_max.as_ref(),
-            physical_max.as_ref(),
-            &size.size_property_orders,
-            logical_max_name,
-            physical_max_name,
-        )
-        .flatten(),
-    )
 }
 
 fn containing_block_height(

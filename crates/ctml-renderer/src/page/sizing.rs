@@ -128,6 +128,79 @@ pub(super) fn select_axis_size<'a>(
     }
 }
 
+pub(super) fn block_size_constraints(
+    size: &LayoutSize,
+    page_writing_mode: WritingMode,
+) -> (Option<&str>, Option<&str>, Option<&str>) {
+    let same_axis_orientation = is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
+    let (logical, logical_min, logical_max, logical_name, logical_min_name, logical_max_name) =
+        if same_axis_orientation {
+            (
+                &size.block_size,
+                &size.min_block_size,
+                &size.max_block_size,
+                "block-size",
+                "min-block-size",
+                "max-block-size",
+            )
+        } else {
+            (
+                &size.inline_size,
+                &size.min_inline_size,
+                &size.max_inline_size,
+                "inline-size",
+                "min-inline-size",
+                "max-inline-size",
+            )
+        };
+    let (physical, physical_min, physical_max, physical_name, physical_min_name, physical_max_name) =
+        if is_vertical(page_writing_mode) {
+            (
+                &size.width,
+                &size.min_width,
+                &size.max_width,
+                "width",
+                "min-width",
+                "max-width",
+            )
+        } else {
+            (
+                &size.height,
+                &size.min_height,
+                &size.max_height,
+                "height",
+                "min-height",
+                "max-height",
+            )
+        };
+    (
+        select_axis_size(
+            logical.as_ref(),
+            physical.as_ref(),
+            &size.size_property_orders,
+            logical_name,
+            physical_name,
+        )
+        .flatten(),
+        select_axis_size(
+            logical_min.as_ref(),
+            physical_min.as_ref(),
+            &size.size_property_orders,
+            logical_min_name,
+            physical_min_name,
+        )
+        .flatten(),
+        select_axis_size(
+            logical_max.as_ref(),
+            physical_max.as_ref(),
+            &size.size_property_orders,
+            logical_max_name,
+            physical_max_name,
+        )
+        .flatten(),
+    )
+}
+
 pub(super) fn resolve_layout_width(
     sizes: &[LayoutSize],
     available_width: f32,
