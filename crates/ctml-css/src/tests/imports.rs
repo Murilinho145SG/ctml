@@ -99,6 +99,32 @@ fn loads_and_validates_local_color_profiles_from_the_declaring_stylesheet() {
     assert!(round_trip[1].abs() < 0.001);
     assert!(round_trip[2].abs() < 0.001);
     assert_eq!(
+        crate::parse_color_with_profiles("color(--screen 1 0 0 / 50%)", &stylesheet.color_profiles),
+        Some([255, 0, 0, 128])
+    );
+    assert_eq!(
+        crate::parse_color_with_profiles(
+            "color-mix(in --screen, color(--screen 1 0 0), blue)",
+            &stylesheet.color_profiles,
+        ),
+        Some([127, 0, 128, 255])
+    );
+    assert_eq!(
+        crate::parse_color_with_profiles(
+            "color(from red --screen red green blue / alpha)",
+            &stylesheet.color_profiles,
+        ),
+        Some([255, 0, 0, 255])
+    );
+    assert_eq!(
+        crate::parse_color_with_profiles("color(--missing 1 0 0)", &stylesheet.color_profiles),
+        None
+    );
+    assert_eq!(
+        crate::parse_color_with_profiles("color(--Screen 1 0 0)", &stylesheet.color_profiles),
+        None
+    );
+    assert_eq!(
         profile.stylesheet_path.as_deref(),
         Some(
             root.join("styles/profiles.css")

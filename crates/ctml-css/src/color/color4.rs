@@ -1,6 +1,9 @@
 use cssparser::{Parser, ParserInput, Token};
 
-pub(super) fn parse_color_function(value: &str) -> Option<([u8; 3], f32)> {
+pub(super) fn parse_color_function(
+    value: &str,
+    profiles: &[super::super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
@@ -16,7 +19,7 @@ pub(super) fn parse_color_function(value: &str) -> Option<([u8; 3], f32)> {
             "lch" => parse_lab(input, true),
             "oklab" => parse_oklab(input, false),
             "oklch" => parse_oklab(input, true),
-            "color" => parse_color_space(input),
+            "color" => parse_color_space(input, profiles),
             _ => Err(input.new_custom_error(())),
         })
         .ok()?;
@@ -75,8 +78,13 @@ fn parse_oklab<'i, 't>(
 
 fn parse_color_space<'i, 't>(
     input: &mut Parser<'i, 't>,
+    profiles: &[super::super::CssColorProfile],
 ) -> Result<([u8; 3], f32), cssparser::ParseError<'i, ()>> {
-    let space = input.expect_ident_cloned()?.to_ascii_lowercase();
+    let space_name = input.expect_ident_cloned()?.to_string();
+    if space_name.starts_with("--") {
+        return parse_custom_color_space(input, profiles, &space_name);
+    }
+    let space = space_name.to_ascii_lowercase();
     let red = parse_scaled_component(input, 1.0)?;
     let green = parse_scaled_component(input, 1.0)?;
     let blue = parse_scaled_component(input, 1.0)?;
@@ -106,6 +114,61 @@ fn parse_color_space<'i, 't>(
         "xyz-d50" => xyz_d50_to_srgb([red, green, blue]),
         _ => return Err(input.new_custom_error(())),
     };
+    Ok((rgb, alpha))
+}
+
+fn parse_custom_color_space<'i, 't>(
+    input: &mut Parser<'i, 't>,
+    profiles: &[super::super::CssColorProfile],
+    name: &str,
+) -> Result<([u8; 3], f32), cssparser::ParseError<'i, ()>> {
+    let Some(profile) = profiles.iter().rev().find(|profile| profile.name == name) else {
+        return Err(input.new_custom_error(()));
+    };
+    let Some(channel_count) = profile.channel_count() else {
+        return Err(input.new_custom_error(()));
+    };
+    let mut components = Vec::with_capacity(channel_count);
+    let mut component_count = 0;
+    let mut alpha = 1.0;
+    while !input.is_exhausted() {
+        match input.next()? {
+            Token::Delim('/') => {
+                alpha = parse_color_alpha_value(input)?;
+                break;
+            }
+            Token::Number { value, .. } if value.is_finite() => {
+                if components.len() < channel_count {
+                    components.push(value.clamp(0.0, 1.0));
+                }
+                component_count += 1;
+            }
+            Token::Percentage { unit_value, .. } if unit_value.is_finite() => {
+                if components.len() < channel_count {
+                    components.push(unit_value.clamp(0.0, 1.0));
+                }
+                component_count += 1;
+            }
+            Token::Ident(value) if value.eq_ignore_ascii_case("none") => {
+                if components.len() < channel_count {
+                    components.push(0.0);
+                }
+                component_count += 1;
+            }
+            _ => return Err(input.new_custom_error(())),
+        }
+    }
+    if component_count == 0 {
+        return Err(input.new_custom_error(()));
+    }
+    components.resize(channel_count, 0.0);
+    if !input.is_exhausted() {
+        return Err(input.new_custom_error(()));
+    }
+    let rgb = profile
+        .to_srgb(&components)
+        .ok_or_else(|| input.new_custom_error(()))?
+        .map(component_to_byte);
     Ok((rgb, alpha))
 }
 
@@ -143,6 +206,12 @@ fn parse_color_alpha<'i, 't>(
         return Ok(1.0);
     }
     input.expect_delim('/')?;
+    parse_color_alpha_value(input)
+}
+
+fn parse_color_alpha_value<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let alpha = match input.next()? {
         Token::Number { value, .. } if value.is_finite() => *value,
         Token::Percentage { unit_value, .. } if unit_value.is_finite() => *unit_value,

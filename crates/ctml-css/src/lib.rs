@@ -12,7 +12,10 @@ mod numeric;
 mod resources;
 mod selector;
 
-pub use color::{parse_color, parse_color_with_opacity};
+pub use color::{
+    parse_color, parse_color_with_opacity, parse_color_with_opacity_and_profiles,
+    parse_color_with_profiles,
+};
 pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
 pub use font_variations::parse_font_variation_settings;
@@ -68,6 +71,11 @@ pub struct CssColorProfile {
 }
 
 impl CssColorProfile {
+    /// Returns this profile's number of color components when its ICC data is loaded.
+    pub fn channel_count(&self) -> Option<usize> {
+        crate::color::valid_icc_profile(self.profile_data.as_deref()?)
+    }
+
     /// Converts this profile's component values to encoded sRGB channels.
     pub fn to_srgb(&self, components: &[f32]) -> Option<[f32; 3]> {
         crate::color::custom_profile_to_srgb(

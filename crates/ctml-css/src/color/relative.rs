@@ -1,6 +1,6 @@
 use cssparser::{Parser, ParserInput, Token};
 
-use super::parse_color_with_opacity_depth;
+use super::parse_color_with_opacity_depth_and_profiles;
 
 #[derive(Clone, Copy)]
 enum ColorSpace {
@@ -16,9 +16,14 @@ enum ColorSpace {
     Rec2020Linear,
     XyzD50,
     XyzD65,
+    Custom(usize),
 }
 
-pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
+pub(super) fn parse_relative_color(
+    value: &str,
+    depth: usize,
+    profiles: &[super::super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let function = parser.expect_function().ok()?.to_ascii_lowercase();
@@ -44,9 +49,9 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
     let color = parser
         .parse_nested_block(|input| {
             input.expect_ident_matching("from")?;
-            let source_color = parse_source_color(input, depth)?;
+            let source_color = parse_source_color(input, depth, profiles)?;
             let color_space = if is_color {
-                Some(parse_color_space(input)?)
+                Some(parse_color_space(input, profiles)?)
             } else {
                 None
             };
@@ -99,17 +104,38 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
                 let hue = parse_hue_channel(input, source_hue)?.to_radians();
                 super::color4::oklab_to_srgb((lightness, chroma * hue.cos(), chroma * hue.sin()))
             } else if let Some(space) = color_space {
-                let source_components = convert_source_color(space, source_color.0);
-                let names = match space {
-                    ColorSpace::XyzD50 | ColorSpace::XyzD65 => ["x", "y", "z"],
-                    _ => ["r", "g", "b"],
-                };
-                let components = [
-                    parse_color_component(input, source_components, names)?,
-                    parse_color_component(input, source_components, names)?,
-                    parse_color_component(input, source_components, names)?,
-                ];
-                convert_color_space(space, components)
+                if let ColorSpace::Custom(index) = space {
+                    let profile = &profiles[index];
+                    let source_components = profile
+                        .from_srgb(source_color.0.map(|channel| channel as f32 / 255.0))
+                        .ok_or_else(|| input.new_custom_error(()))?;
+                    let names = profile
+                        .components
+                        .iter()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>();
+                    let components = profile
+                        .components
+                        .iter()
+                        .map(|_| parse_color_component(input, &source_components, &names))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    profile
+                        .to_srgb(&components)
+                        .ok_or_else(|| input.new_custom_error(()))?
+                        .map(|channel| (channel * 255.0).round().clamp(0.0, 255.0) as u8)
+                } else {
+                    let source_components = convert_source_color(space, source_color.0);
+                    let names = match space {
+                        ColorSpace::XyzD50 | ColorSpace::XyzD65 => ["x", "y", "z"],
+                        _ => ["r", "g", "b"],
+                    };
+                    let components = [
+                        parse_color_component(input, &source_components, &names)?,
+                        parse_color_component(input, &source_components, &names)?,
+                        parse_color_component(input, &source_components, &names)?,
+                    ];
+                    convert_color_space(space, components)
+                }
             } else {
                 [
                     parse_channel(input, source_color)?,
@@ -135,8 +161,8 @@ pub(super) fn parse_relative_color(value: &str, depth: usize) -> Option<([u8; 3]
 
 fn parse_color_component<'i, 't>(
     input: &mut Parser<'i, 't>,
-    source_components: [f32; 3],
-    names: [&str; 3],
+    source_components: &[f32],
+    names: &[&str],
 ) -> Result<f32, cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
@@ -151,11 +177,11 @@ fn parse_color_component<'i, 't>(
         Token::Function(_) => evaluate_math_component(
             input,
             start,
-            &[
-                (names[0], source_components[0]),
-                (names[1], source_components[1]),
-                (names[2], source_components[2]),
-            ],
+            &names
+                .iter()
+                .zip(source_components.iter())
+                .map(|(name, value)| (*name, *value))
+                .collect::<Vec<_>>(),
             1.0,
         ),
         _ => Err(input.new_custom_error(())),
@@ -164,8 +190,18 @@ fn parse_color_component<'i, 't>(
 
 fn parse_color_space<'i, 't>(
     input: &mut Parser<'i, 't>,
+    profiles: &[super::super::CssColorProfile],
 ) -> Result<ColorSpace, cssparser::ParseError<'i, ()>> {
-    match input.expect_ident_cloned()?.to_ascii_lowercase().as_str() {
+    let name = input.expect_ident_cloned()?.to_string();
+    if name.starts_with("--") {
+        return profiles
+            .iter()
+            .rposition(|profile| profile.name == name)
+            .filter(|index| profiles[*index].channel_count().is_some())
+            .map(ColorSpace::Custom)
+            .ok_or_else(|| input.new_custom_error(()));
+    }
+    match name.to_ascii_lowercase().as_str() {
         "srgb" => Ok(ColorSpace::Srgb),
         "srgb-linear" => Ok(ColorSpace::SrgbLinear),
         "display-p3" => Ok(ColorSpace::DisplayP3),
@@ -198,6 +234,9 @@ fn convert_source_color(space: ColorSpace, color: [u8; 3]) -> [f32; 3] {
         ColorSpace::Rec2020Linear => super::color4::srgb_to_rec2020_linear(color),
         ColorSpace::XyzD50 => super::color4::srgb_to_xyz_d50(color),
         ColorSpace::XyzD65 => super::color4::srgb_to_xyz_d65(color),
+        ColorSpace::Custom(_) => {
+            unreachable!("custom color spaces are converted with their ICC profile")
+        }
     }
 }
 
@@ -217,6 +256,9 @@ fn convert_color_space(space: ColorSpace, components: [f32; 3]) -> [u8; 3] {
         ColorSpace::Rec2020Linear => super::color4::rec2020_linear_to_srgb(components),
         ColorSpace::XyzD50 => super::color4::xyz_d50_to_srgb(components),
         ColorSpace::XyzD65 => super::color4::xyz_d65_to_srgb(components),
+        ColorSpace::Custom(_) => {
+            unreachable!("custom color spaces are converted with their ICC profile")
+        }
     }
 }
 
@@ -418,6 +460,7 @@ fn parse_hsl_unit_channel<'i, 't>(
 fn parse_source_color<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
+    profiles: &[super::super::CssColorProfile],
 ) -> Result<([u8; 3], f32), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
@@ -427,7 +470,7 @@ fn parse_source_color<'i, 't>(
         _ => {}
     }
     let end = input.position();
-    parse_color_with_opacity_depth(input.slice(start..end).trim(), depth + 1)
+    parse_color_with_opacity_depth_and_profiles(input.slice(start..end).trim(), depth + 1, profiles)
         .ok_or_else(|| input.new_custom_error(()))
 }
 

@@ -147,7 +147,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Perceptual gamut mapping to sRGB with OklCh chroma reduction and local MINDE.
 - [ ] Other predefined and custom color profiles.
 - [x] Parse `@color-profile` descriptors and load valid local ICC profiles relative to the declaring stylesheet, bounded to the configured resource root.
-- [ ] Resolve custom `color()` spaces and `color-mix()` interpolation through registered ICC profiles.
+- [x] Expose profile-aware parsing for absolute and relative custom `color()` spaces and custom `color-mix()` interpolation through loaded ICC profiles.
+- [ ] Pass registered custom color profiles through native renderer style resolution.
 - [x] CSS HDR `rec2100-linear` profile in absolute `color()`, relative colors, and interpolation; other HDR color spaces and custom ICC profiles are not implemented.
 - [x] CSS HDR `rec2100-pq` and `rec2100-hlg` profiles in absolute `color()`, relative colors, and interpolation.
 - [x] Render absolute modern color functions with missing (`none`) components treated as zero, including hue and alpha.

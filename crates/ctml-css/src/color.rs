@@ -37,7 +37,35 @@ pub fn parse_color_with_opacity(value: &str) -> Option<([u8; 3], f32)> {
     parse_color_with_opacity_depth(value, 0)
 }
 
+/// Parses a color using ICC profiles loaded from the stylesheet that declared it.
+///
+/// Custom `color()` spaces, relative custom colors, and custom `color-mix()` spaces are
+/// available when the matching profile is included in `profiles`.
+pub fn parse_color_with_profiles(
+    value: &str,
+    profiles: &[super::CssColorProfile],
+) -> Option<[u8; 4]> {
+    let ([red, green, blue], alpha) = parse_color_with_opacity_and_profiles(value, profiles)?;
+    Some([red, green, blue, (alpha * 255.0).round() as u8])
+}
+
+/// Parses a color and preserves its floating-point alpha using loaded ICC profiles.
+pub fn parse_color_with_opacity_and_profiles(
+    value: &str,
+    profiles: &[super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
+    parse_color_with_opacity_depth_and_profiles(value, 0, profiles)
+}
+
 pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
+    parse_color_with_opacity_depth_and_profiles(value, depth, &[])
+}
+
+pub(super) fn parse_color_with_opacity_depth_and_profiles(
+    value: &str,
+    depth: usize,
+    profiles: &[super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
     if depth > 32 {
         return None;
     }
@@ -59,17 +87,21 @@ pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Optio
         return Some(([red, green, blue], 1.0));
     }
 
-    parse_function_color(value, depth)
+    parse_function_color(value, depth, profiles)
 }
 
-fn parse_function_color(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
-    if let Some(color) = mix::parse_color_mix(value, depth) {
+fn parse_function_color(
+    value: &str,
+    depth: usize,
+    profiles: &[super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
+    if let Some(color) = mix::parse_color_mix(value, depth, profiles) {
         return Some(color);
     }
-    if let Some(color) = relative::parse_relative_color(value, depth) {
+    if let Some(color) = relative::parse_relative_color(value, depth, profiles) {
         return Some(color);
     }
-    if let Some(color) = color4::parse_color_function(value) {
+    if let Some(color) = color4::parse_color_function(value, profiles) {
         return Some(color);
     }
     let mut source = ParserInput::new(value);

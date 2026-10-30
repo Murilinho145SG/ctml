@@ -2,12 +2,16 @@ use cssparser::{Parser, ParserInput, Token};
 
 use super::{
     missing::{MissingComponents, component_space, parse_missing_components},
-    parse_color_with_opacity_depth,
+    parse_color_with_opacity_depth_and_profiles,
 };
 mod hue;
 use hue::{HueInterpolation, interpolate_hue};
 
-pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
+pub(super) fn parse_color_mix(
+    value: &str,
+    depth: usize,
+    profiles: &[super::super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     if !parser
@@ -42,6 +46,10 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
             let srgb = interpolation_space.eq_ignore_ascii_case("srgb");
+            let custom_profile = profiles
+                .iter()
+                .rev()
+                .find(|profile| profile.name == interpolation_space.as_ref());
             if !interpolation_space.eq_ignore_ascii_case("srgb")
                 && !linear_srgb
                 && !lab
@@ -60,6 +68,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !rec2020_linear
                 && !hsl
                 && !hwb
+                && custom_profile.is_none()
             {
                 return Err(input.new_custom_error(()));
             }
@@ -81,9 +90,11 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             };
             input.expect_comma()?;
 
-            let (first, first_percentage, first_missing) = parse_mix_component(input, depth)?;
+            let (first, first_percentage, first_missing) =
+                parse_mix_component(input, depth, profiles)?;
             input.expect_comma()?;
-            let (second, second_percentage, second_missing) = parse_mix_component(input, depth)?;
+            let (second, second_percentage, second_missing) =
+                parse_mix_component(input, depth, profiles)?;
             if !input.is_exhausted() {
                 return Err(input.new_custom_error(()));
             }
@@ -136,6 +147,25 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let alpha = (first_alpha + second_alpha) * (weight_sum / 100.0).min(1.0);
             let channels = if alpha == 0.0 {
                 [0; 3]
+            } else if let Some(profile) = custom_profile {
+                let first_components = profile
+                    .from_srgb(first.0.map(|value| value as f32 / 255.0))
+                    .ok_or_else(|| input.new_custom_error(()))?;
+                let second_components = profile
+                    .from_srgb(second.0.map(|value| value as f32 / 255.0))
+                    .ok_or_else(|| input.new_custom_error(()))?;
+                let alpha_sum = first_alpha + second_alpha;
+                let mixed = first_components
+                    .iter()
+                    .zip(second_components.iter())
+                    .map(|(first, second)| {
+                        (first * first_alpha + second * second_alpha) / alpha_sum
+                    })
+                    .collect::<Vec<_>>();
+                profile
+                    .to_srgb(&mixed)
+                    .ok_or_else(|| input.new_custom_error(()))?
+                    .map(|channel| (channel * 255.0).round().clamp(0.0, 255.0) as u8)
             } else if display_p3 {
                 let mut first_p3 = super::color4::srgb_to_display_p3(first.0);
                 let mut second_p3 = super::color4::srgb_to_display_p3(second.0);
@@ -430,6 +460,7 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
 fn parse_mix_component<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
+    profiles: &[super::super::CssColorProfile],
 ) -> Result<(([u8; 3], f32), Option<f32>, MissingComponents), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
@@ -441,7 +472,7 @@ fn parse_mix_component<'i, 't>(
     }
     let color_end = input.position();
     let color_value = input.slice(start..color_end).trim();
-    let color = parse_color_with_opacity_depth(color_value, depth + 1)
+    let color = parse_color_with_opacity_depth_and_profiles(color_value, depth + 1, profiles)
         .ok_or_else(|| input.new_custom_error(()))?;
     let missing = parse_missing_components(color_value);
     let percentage = input
