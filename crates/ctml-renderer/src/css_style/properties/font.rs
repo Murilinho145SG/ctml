@@ -3,6 +3,47 @@ use cosmic_text::{Stretch, Style, Weight};
 use crate::style::{FontVariantCaps, FontVariantPosition, TextStyle};
 use ctml_css::{FontRelativeUnits, ViewportSize, parse_font_relative_length_with_viewport};
 
+pub(super) fn parse_oblique_angle(value: &str) -> Option<f32> {
+    let value = value.trim();
+    let angle = ctml_css::parse_math_angle(value)
+        .map(f32::to_degrees)
+        .or_else(|| ctml_css::parse_css_number(value).filter(|value| *value == 0.0))
+        .or_else(|| {
+            let (number, unit) = ctml_css::parse_css_dimension(value)?;
+            Some(match unit.as_str() {
+                "deg" => number,
+                "grad" => number * 0.9,
+                "rad" => number.to_degrees(),
+                "turn" => number * 360.0,
+                _ => return None,
+            })
+        })?;
+    (angle.is_finite() && (-90.0..=90.0).contains(&angle)).then_some(angle)
+}
+
+pub(super) fn apply_font_style(style: &mut TextStyle, value: &str) {
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("normal") {
+        style.font_style = Style::Normal;
+        style.font_oblique_angle = None;
+    } else if value.eq_ignore_ascii_case("italic") {
+        style.font_style = Style::Italic;
+        style.font_oblique_angle = None;
+    } else if value.eq_ignore_ascii_case("oblique") {
+        style.font_style = Style::Oblique;
+        style.font_oblique_angle = None;
+    } else if value
+        .get(..7)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("oblique"))
+        && value.as_bytes().get(7).is_some_and(u8::is_ascii_whitespace)
+    {
+        if let Some(angle) = parse_oblique_angle(value[7..].trim()) {
+            style.font_style = Style::Oblique;
+            style.font_oblique_angle = Some(angle);
+        }
+    }
+}
+
 pub(super) fn relative_font_weight(inherited: Weight, bolder: bool) -> Weight {
     let weight = inherited.0;
     let resolved = match (bolder, weight) {
@@ -86,6 +127,7 @@ pub(super) fn apply_font_shorthand(
     };
 
     let mut font_style = None;
+    let mut font_oblique_angle = None;
     let mut variant_caps = None;
     let mut weight = None;
     let mut stretch = None;
@@ -111,6 +153,11 @@ pub(super) fn apply_font_shorthand(
             } else {
                 Style::Oblique
             });
+        } else if font_style == Some(Style::Oblique)
+            && font_oblique_angle.is_none()
+            && let Some(angle) = parse_oblique_angle(component)
+        {
+            font_oblique_angle = Some(angle);
         } else if lower == "small-caps" {
             if variant_caps.replace(FontVariantCaps::SmallCaps).is_some() {
                 return;
@@ -228,6 +275,7 @@ pub(super) fn apply_font_shorthand(
     style.font_size = font_size;
     style.weight = weight.unwrap_or(Weight::NORMAL);
     style.font_style = font_style.unwrap_or(Style::Normal);
+    style.font_oblique_angle = font_oblique_angle;
     style.stretch = stretch.unwrap_or(Stretch::Normal);
     style.font_variant_caps = variant_caps.unwrap_or(FontVariantCaps::Normal);
     if let Some(Some(line_height)) = line_height {
@@ -246,6 +294,7 @@ pub(super) fn reset_font(style: &mut TextStyle) {
     style.line_height_normal = true;
     style.weight = Weight::NORMAL;
     style.font_style = Style::Normal;
+    style.font_oblique_angle = None;
     style.stretch = Stretch::Normal;
     style.kerning = None;
     style.common_ligatures = None;
@@ -270,6 +319,7 @@ pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
     style.line_height_normal = inherited.line_height_normal;
     style.weight = inherited.weight;
     style.font_style = inherited.font_style;
+    style.font_oblique_angle = inherited.font_oblique_angle;
     style.stretch = inherited.stretch;
     style.kerning = inherited.kerning;
     style.common_ligatures = inherited.common_ligatures;

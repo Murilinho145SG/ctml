@@ -113,6 +113,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Container query units, if container queries are implemented.
 - [ ] Angles, times, frequencies, and resolutions where relevant.
 - [x] Parse finite `deg`, `grad`, `rad`, and `turn` angle tokens for CSS colors and oblique `@font-face` ranges.
+- [x] Apply `font-style: oblique <angle>` to the OpenType `slnt` axis, including angle calculations and explicit-angle validation.
+- [x] Evaluate supported angle calculations for `font-style: oblique` and normalize angle units to degrees.
 - [ ] `calc()`, `min()`, `max()`, and `clamp()`.
 - [ ] Typed arithmetic and calculation functions from newer CSS Values modules.
 - [x] Support CSS `round()` for numbers and supported length dimensions, including all rounding strategies and number-only default intervals.
@@ -208,6 +210,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `color`, `font-family`, `font-size` in supported lengths and percentages relative to the inherited size, numeric `font-weight` values from 1 to 1000, `normal`/`bold`, and relative `bolder`/`lighter`, `font-style` (`normal`, `italic`, `oblique`), `font-stretch` keywords and percentages mapped to available widths, `line-height`, and `letter-spacing`.
 - [x] `text-transform` and basic `text-decoration` line values.
 - [x] `font-kerning` (`auto`, `normal`, and `none`).
+- [x] `font-style: oblique <angle>` from -90deg to 90deg, including conversion to the opposite-sign OpenType `slnt` axis.
 - [x] Common, discretionary, and contextual ligature controls through `font-variant-ligatures`.
 - [x] Subscript and superscript glyph variants through `font-variant-position`.
 - [x] Numeric glyph variants through `font-variant-numeric` for lining/oldstyle, proportional/tabular, fraction, ordinal, and slashed-zero features.

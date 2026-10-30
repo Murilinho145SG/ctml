@@ -1,4 +1,4 @@
-use super::{parse_math_expression, parse_math_number};
+use super::{parse_math_angle, parse_math_expression, parse_math_number};
 
 fn parse(value: &str) -> Option<f32> {
     parse_math_expression(value, |dimension| {
@@ -20,6 +20,19 @@ fn evaluates_calc_with_dimension_arithmetic_and_precedence() {
     assert_eq!(parse("calc(2 * 5px + 25%)"), Some(22.5));
     assert_eq!(parse("calc((10px - 2px) / 2)"), Some(4.0));
     assert_eq!(parse("calc(1e1px + 2.5px)"), Some(12.5));
+}
+
+#[test]
+fn parses_angle_calculations_as_radians() {
+    assert_eq!(
+        parse_math_angle("calc(10deg + 5deg)"),
+        Some(15.0_f32.to_radians())
+    );
+    assert_eq!(
+        parse_math_angle("calc(2 * 0.25turn)"),
+        Some(std::f32::consts::PI)
+    );
+    assert_eq!(parse_math_angle("calc(10px + 5px)"), None);
 }
 
 #[test]

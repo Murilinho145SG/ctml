@@ -57,6 +57,13 @@ pub fn parse_math_number(value: &str) -> Option<f32> {
     }
 }
 
+pub fn parse_math_angle(value: &str) -> Option<f32> {
+    match parse_math_value(value, |_| None)? {
+        MathValue::Angle(radians) if radians.is_finite() => Some(radians),
+        _ => None,
+    }
+}
+
 fn parse_math_value(
     value: &str,
     parse_dimension: impl FnMut(&str) -> Option<f32>,

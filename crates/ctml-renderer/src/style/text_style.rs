@@ -422,7 +422,10 @@ impl TextStyle {
                 .iter()
                 .any(|(tag, _)| *tag == *b"slnt")
         {
-            variations.push(cosmic_text::FontVariation::new(*b"slnt", -14.0));
+            variations.push(cosmic_text::FontVariation::new(
+                *b"slnt",
+                -self.font_oblique_angle.unwrap_or(14.0),
+            ));
         }
         variations.extend(
             self.font_variation_settings

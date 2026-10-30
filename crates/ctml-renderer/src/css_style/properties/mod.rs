@@ -21,8 +21,8 @@ use display::{apply_display, inherit_display, reset_display, revert_display};
 #[cfg(test)]
 pub(super) use font::parse_font_size;
 use font::{
-    apply_font_shorthand, inherit_font, parse_font_size_with_font_units, parse_font_stretch,
-    relative_font_weight, reset_font,
+    apply_font_shorthand, apply_font_style, inherit_font, parse_font_size_with_font_units,
+    parse_font_stretch, relative_font_weight, reset_font,
 };
 use font_feature_settings::apply_font_feature_settings;
 use font_variation_settings::apply_font_variation_settings;
@@ -251,7 +251,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.line_height_normal = inherited.line_height_normal;
         }
         "font-weight" => style.weight = inherited.weight,
-        "font-style" => style.font_style = inherited.font_style,
+        "font-style" => {
+            style.font_style = inherited.font_style;
+            style.font_oblique_angle = inherited.font_oblique_angle;
+        }
         "font-stretch" => style.stretch = inherited.stretch,
         "font-kerning" => style.kerning = inherited.kerning,
         "font-variant" => {
@@ -387,7 +390,10 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             }
         }
         "font-weight" => style.weight = Weight::NORMAL,
-        "font-style" => style.font_style = Style::Normal,
+        "font-style" => {
+            style.font_style = Style::Normal;
+            style.font_oblique_angle = None;
+        }
         "font-stretch" => style.stretch = Stretch::Normal,
         "font-kerning" => style.kerning = None,
         "font-variant" => {
@@ -626,14 +632,7 @@ fn apply_declaration(
                     .map_or(style.weight, Weight),
             };
         }
-        "font-style" => {
-            style.font_style = match value.to_ascii_lowercase().as_str() {
-                "normal" => Style::Normal,
-                "italic" => Style::Italic,
-                "oblique" => Style::Oblique,
-                _ => style.font_style,
-            };
-        }
+        "font-style" => apply_font_style(style, value),
         "font-stretch" => {
             if let Some(stretch) = parse_font_stretch(value) {
                 style.stretch = stretch;

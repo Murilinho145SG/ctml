@@ -1241,6 +1241,80 @@ fn resolves_optical_sizing_and_variation_settings() {
             .iter()
             .any(|setting| setting.tag() == *b"ital" && setting.value() == 1.0)
     );
+
+    for (value, expected_angle) in [
+        ("oblique 0", 0.0),
+        ("oblique 10deg", 10.0),
+        ("oblique 100grad", 90.0),
+        ("oblique calc(5deg + 10deg)", 15.0),
+        ("oblique -0.25turn", -90.0),
+    ] {
+        let style = style_for_declarations(&[("font-style", value)]);
+        assert_eq!(style.font_style, Style::Oblique, "{value}");
+        assert!(
+            (style.font_oblique_angle.unwrap() - expected_angle).abs() < 0.001,
+            "{value}: {:?}",
+            style.font_oblique_angle
+        );
+        let attrs = style.to_attrs("sans-serif");
+        assert!(attrs.font_variations.iter().any(|setting| {
+            setting.tag() == *b"slnt" && (setting.value() + expected_angle).abs() < 0.001
+        }));
+    }
+
+    let shorthand = style_for_declarations(&[("font", "oblique 12deg 16px sans-serif")]);
+    assert_eq!(shorthand.font_style, Style::Oblique);
+    assert_eq!(shorthand.font_oblique_angle, Some(12.0));
+
+    let invalid = style_for_declarations(&[("font-style", "oblique 91deg")]);
+    assert_eq!(invalid.font_style, Style::Normal);
+    assert_eq!(invalid.font_oblique_angle, None);
+
+    let fallback = style_for_declarations(&[
+        ("font-style", "oblique 12deg"),
+        ("font-style", "oblique 91deg"),
+    ]);
+    assert_eq!(fallback.font_oblique_angle, Some(12.0));
+}
+
+#[test]
+fn font_style_angle_obeys_css_wide_keywords() {
+    let inherited = TextStyle {
+        font_style: Style::Oblique,
+        font_oblique_angle: Some(-8.5),
+        ..TextStyle::default()
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let body = ElementIdentity {
+        tag: "body".to_owned(),
+        class: None,
+        id: None,
+    };
+    let declaration = |value: &str| StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "font-style".to_owned(),
+            value: value.to_owned(),
+        }],
+    };
+
+    let inherited_style = resolve_style(
+        &inherited,
+        &paragraph,
+        &[body.clone()],
+        &[declaration("inherit")],
+    );
+    let initial_style = resolve_style(&inherited, &paragraph, &[body], &[declaration("initial")]);
+
+    assert_eq!(inherited_style.font_style, Style::Oblique);
+    assert_eq!(inherited_style.font_oblique_angle, Some(-8.5));
+    assert_eq!(initial_style.font_style, Style::Normal);
+    assert_eq!(initial_style.font_oblique_angle, None);
 }
 
 #[test]

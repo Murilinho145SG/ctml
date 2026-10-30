@@ -236,6 +236,7 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
         children: vec![UiNode::Text("Variable font".to_owned())],
     }];
     let stylesheet = [
+        ("p::first-letter", "font-style", "oblique 18deg"),
         ("p::first-letter", "font-optical-sizing", "none"),
         ("p::first-letter", "text-rendering", "optimizeSpeed"),
         (
@@ -257,6 +258,15 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
     let first_letter = runs.iter().find(|run| run.text == "V").unwrap();
 
     assert!(!first_letter.style.font_optical_sizing);
+    assert_eq!(first_letter.style.font_oblique_angle, Some(18.0));
+    assert!(
+        first_letter
+            .style
+            .to_attrs("sans-serif")
+            .font_variations
+            .iter()
+            .any(|setting| setting.tag() == *b"slnt" && setting.value() == -18.0)
+    );
     assert_eq!(
         first_letter.style.text_rendering,
         TextRendering::OptimizeSpeed

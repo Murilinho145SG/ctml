@@ -125,6 +125,7 @@ fn apply_first_letter_style(
     style.font_scale = pseudo_style.font_scale;
     style.weight = pseudo_style.weight;
     style.font_style = pseudo_style.font_style;
+    style.font_oblique_angle = pseudo_style.font_oblique_angle;
     style.stretch = pseudo_style.stretch;
     style.kerning = pseudo_style.kerning;
     style.common_ligatures = pseudo_style.common_ligatures;
