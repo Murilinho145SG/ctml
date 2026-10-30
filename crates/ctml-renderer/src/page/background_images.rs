@@ -1,6 +1,6 @@
 use skia_safe::{
     AlphaType, ClipOp, Color4f, ColorSpace, ColorType, Data, Image, ImageInfo, Matrix, Paint,
-    Point, Rect, SamplingOptions, TileMode, gradient, surfaces,
+    Point, RRect, Rect, SamplingOptions, TileMode, Vector, gradient, surfaces,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -30,6 +30,7 @@ pub(super) fn draw_background_image_layers(
     height: u32,
     boxes: BackgroundBoxes,
     clip: Option<ClipRect>,
+    border_radii: Option<[[f32; 2]; 4]>,
     image_cache: &mut ImageCache,
 ) {
     if images.is_empty() || opacity <= 0.0 || width == 0 || height == 0 {
@@ -174,6 +175,18 @@ pub(super) fn draw_background_image_layers(
         let Some(shader) = shader else { continue };
         canvas.save();
         canvas.clip_rect(layer_rect, ClipOp::Intersect, false);
+        if let Some(radii) = border_radii {
+            let rounded_rect = RRect::new_rect_radii(
+                layer_rect,
+                &[
+                    Vector::new(radii[0][0], radii[0][1]),
+                    Vector::new(radii[1][0], radii[1][1]),
+                    Vector::new(radii[2][0], radii[2][1]),
+                    Vector::new(radii[3][0], radii[3][1]),
+                ],
+            );
+            canvas.clip_rrect(rounded_rect, ClipOp::Intersect, true);
+        }
         if let Some(tile_clip) = tile_clip {
             canvas.clip_rect(tile_clip, ClipOp::Intersect, false);
         }

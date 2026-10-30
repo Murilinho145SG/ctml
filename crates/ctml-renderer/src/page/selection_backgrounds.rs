@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
-use cosmic_text::Cursor;
-
 use super::local_writing::{self, LocalVerticalTransform};
 use super::{
     PageRasterizer,
+    highlight_paint::{draw_highlight_background_images, fill_highlight},
     highlights::{first_formatted_letters, first_formatted_line_ranges},
-    overflow_clip::{self, BackgroundBoxes, ClipRect},
-    pixel::fill_rect_alpha_clipped,
+    overflow_clip::{self, ClipRect},
 };
 
 impl PageRasterizer {
@@ -102,6 +100,7 @@ impl PageRasterizer {
                         self.writing_mode(),
                     )
                     .1,
+                    None,
                 );
             }
         }
@@ -190,6 +189,10 @@ impl PageRasterizer {
                     self.writing_mode(),
                 );
                 let clip = overflow_clip::clip_for_path(&path, clips);
+                let pseudo_style = self
+                    .runs
+                    .get(style_run)
+                    .and_then(|run| run.first_line_font_style.as_ref());
                 if let Some(background) = background {
                     fill_highlight(
                         run.line_i,
@@ -206,13 +209,10 @@ impl PageRasterizer {
                         clip,
                         scroll_x,
                         scroll_y,
+                        pseudo_style,
                     );
                 }
-                if let Some(style) = self
-                    .runs
-                    .get(style_run)
-                    .and_then(|run| run.first_line_font_style.as_ref())
-                {
+                if let Some(style) = pseudo_style {
                     let element_scroll = path.last().map_or((0.0, 0.0), |node_id| {
                         overflow_clip::scroll_translation_for_path(
                             &[*node_id],
@@ -331,133 +331,9 @@ impl PageRasterizer {
                         self.writing_mode(),
                     )
                     .1,
+                    None,
                 );
             }
         }
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn draw_highlight_background_images(
-    style: &crate::style::TextStyle,
-    opacity: f32,
-    line: usize,
-    line_top: f32,
-    line_height: f32,
-    start: usize,
-    end: usize,
-    run: &cosmic_text::LayoutRun<'_>,
-    local_transform: Option<LocalVerticalTransform>,
-    scroll_translation: (f32, f32),
-    element_scroll: (f32, f32),
-    clip: Option<ClipRect>,
-    pixels: &mut [u8],
-    width: u32,
-    height: u32,
-    image_cache: &mut super::background_images::ImageCache,
-) {
-    if style.background_images.is_empty() {
-        return;
-    }
-    let start = Cursor {
-        line,
-        index: start,
-        affinity: cosmic_text::Affinity::Before,
-    };
-    let end = Cursor {
-        line,
-        index: end,
-        affinity: cosmic_text::Affinity::After,
-    };
-    for (left, span_width) in run.highlight(start, end) {
-        let (left, top, span_width, span_height) =
-            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
-                transform.map_rect(
-                    left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
-                    span_width,
-                    line_height,
-                )
-            });
-        let rect = ClipRect {
-            left: left - super::PAGE_PADDING - scroll_translation.0,
-            top: top - super::PAGE_PADDING - scroll_translation.1,
-            right: left + span_width - super::PAGE_PADDING - scroll_translation.0,
-            bottom: top + span_height - super::PAGE_PADDING - scroll_translation.1,
-        };
-        let boxes = BackgroundBoxes {
-            border: rect,
-            padding: rect,
-            content: rect,
-        };
-        super::background_images::draw_background_image_layers(
-            &style.background_images,
-            &style.background_repeats,
-            &style.background_positions,
-            &style.background_sizes,
-            &style.background_attachments,
-            &style.background_origins,
-            &style.background_clips,
-            scroll_translation,
-            element_scroll,
-            opacity,
-            pixels,
-            width,
-            height,
-            boxes,
-            clip,
-            image_cache,
-        );
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn fill_highlight(
-    line: usize,
-    line_top: f32,
-    line_height: f32,
-    start: usize,
-    end: usize,
-    color: [u8; 4],
-    run: &cosmic_text::LayoutRun<'_>,
-    pixels: &mut [u8],
-    width: u32,
-    height: u32,
-    local_transform: Option<LocalVerticalTransform>,
-    clip: Option<ClipRect>,
-    translate_x: f32,
-    translate_y: f32,
-) {
-    let start = Cursor {
-        line,
-        index: start,
-        affinity: cosmic_text::Affinity::Before,
-    };
-    let end = Cursor {
-        line,
-        index: end,
-        affinity: cosmic_text::Affinity::After,
-    };
-    for (left, span_width) in run.highlight(start, end) {
-        let (left, top, span_width, line_height) =
-            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
-                transform.map_rect(
-                    left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
-                    span_width,
-                    line_height,
-                )
-            });
-        fill_rect_alpha_clipped(
-            pixels,
-            width,
-            height,
-            left - super::PAGE_PADDING - translate_x,
-            top - super::PAGE_PADDING - translate_y,
-            span_width,
-            line_height,
-            color,
-            clip,
-        );
     }
 }

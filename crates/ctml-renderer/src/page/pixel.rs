@@ -181,6 +181,87 @@ pub(super) fn fill_rect_alpha_clipped(
     }
 }
 
+pub(super) fn fill_rounded_rect_alpha_clipped(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    rect: ClipRect,
+    radii: [[f32; 2]; 4],
+    color: [u8; 4],
+    clip: Option<ClipRect>,
+) {
+    let left = (rect.left.floor() as i32).clamp(0, width as i32);
+    let top = (rect.top.floor() as i32).clamp(0, height as i32);
+    let right = (rect.right.ceil() as i32).clamp(0, width as i32);
+    let bottom = (rect.bottom.ceil() as i32).clamp(0, height as i32);
+    let left = clip.map_or(left, |clip| left.max(clip.left.floor() as i32));
+    let top = clip.map_or(top, |clip| top.max(clip.top.floor() as i32));
+    let right = clip.map_or(right, |clip| right.min(clip.right.ceil() as i32));
+    let bottom = clip.map_or(bottom, |clip| bottom.min(clip.bottom.ceil() as i32));
+    let source = Color::rgba(color[0], color[1], color[2], color[3]);
+    let samples = [0.125, 0.375, 0.625, 0.875];
+    for y in top..bottom {
+        for x in left..right {
+            let coverage = samples
+                .iter()
+                .flat_map(|sample_y| {
+                    samples.iter().filter(move |sample_x| {
+                        point_in_rounded_rect(
+                            x as f32 + **sample_x,
+                            y as f32 + *sample_y,
+                            rect,
+                            radii,
+                        )
+                    })
+                })
+                .count();
+            if coverage > 0 {
+                let alpha = (u16::from(source.a()) * coverage as u16 / 16) as u8;
+                blend_pixel_rounded(pixels, width, height, x, y, source, alpha);
+            }
+        }
+    }
+}
+
+fn point_in_rounded_rect(x: f32, y: f32, rect: ClipRect, radii: [[f32; 2]; 4]) -> bool {
+    let corners = [
+        (
+            rect.left + radii[0][0],
+            rect.top + radii[0][1],
+            radii[0],
+            x < rect.left + radii[0][0] && y < rect.top + radii[0][1],
+        ),
+        (
+            rect.right - radii[1][0],
+            rect.top + radii[1][1],
+            radii[1],
+            x > rect.right - radii[1][0] && y < rect.top + radii[1][1],
+        ),
+        (
+            rect.right - radii[2][0],
+            rect.bottom - radii[2][1],
+            radii[2],
+            x > rect.right - radii[2][0] && y > rect.bottom - radii[2][1],
+        ),
+        (
+            rect.left + radii[3][0],
+            rect.bottom - radii[3][1],
+            radii[3],
+            x < rect.left + radii[3][0] && y > rect.bottom - radii[3][1],
+        ),
+    ];
+    for (center_x, center_y, [radius_x, radius_y], in_corner) in corners {
+        if in_corner && radius_x > 0.0 && radius_y > 0.0 {
+            let dx = (x - center_x) / radius_x;
+            let dy = (y - center_y) / radius_y;
+            if dx * dx + dy * dy > 1.0 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 fn rgba_channel(rgba: (u8, u8, u8, u8), channel: usize) -> u8 {
     match channel {
         0 => rgba.0,

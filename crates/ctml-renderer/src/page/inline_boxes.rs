@@ -277,6 +277,7 @@ pub(super) fn draw(
                     height,
                     background_boxes,
                     clip,
+                    None,
                     image_cache,
                 );
             }

@@ -24,6 +24,7 @@ mod focus;
 mod font_faces;
 mod font_features;
 mod font_raster;
+mod highlight_paint;
 mod highlights;
 mod hyphenation;
 mod inline_boxes;

@@ -106,6 +106,7 @@ pub(super) fn draw_block_boxes(
                 height,
                 boxes,
                 clip,
+                None,
                 image_cache,
             );
         }
@@ -310,6 +311,7 @@ pub(super) fn draw(
                         },
                     },
                     clip,
+                    None,
                     image_cache,
                 );
             }

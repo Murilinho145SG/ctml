@@ -69,6 +69,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-letter` physical border shorthands, side shorthands, and side longhands for width, style, and color paint around the initial glyph.
 - [x] `::first-letter` outer and inset `box-shadow` paint around the initial letter's inline box.
 - [x] `::first-letter` border-radius values round the initial glyph's painted border.
+- [x] `::first-line` border-radius rounds its supported background colors and images.
 - [x] `::first-letter` supports `outline` and its width, style, color, and offset properties.
 - [x] `::first-letter` physical and logical `margin` and `padding` properties adjust inline spacing; block padding expands its painted background and border area.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.

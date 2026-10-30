@@ -2,6 +2,41 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
+fn first_line_border_radius_rounds_its_background() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Rounded first line".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-line".to_owned()],
+        layer: None,
+        declarations: [("background-color", "red"), ("border-radius", "12px")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(180, 70);
+    assert!(page.runs.iter().any(|run| {
+        run.first_line_font_style
+            .as_ref()
+            .is_some_and(|style| style.border_radius[0][0].is_some())
+    }));
+    let pixel_at = |x: usize, y: usize| &pixels[(y * 180 + x) * 4..][..3];
+
+    let rounded_corner = pixel_at(1, 1);
+    assert_eq!(rounded_corner[0], 255);
+    assert!(rounded_corner[1] > 200 && rounded_corner[1] < 255);
+    assert_eq!(pixel_at(20, 8), [255, 0, 0]);
+}
+
+#[test]
 fn first_line_paints_background_images_only_on_the_formatted_line() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
@@ -22,10 +57,16 @@ fn first_line_paints_background_images_only_on_the_formatted_line() {
         StyleRule {
             selectors: vec!["p::first-line".to_owned()],
             layer: None,
-            declarations: vec![StyleDeclaration {
-                property: "background".to_owned(),
-                value: "linear-gradient(red, red)".to_owned(),
-            }],
+            declarations: [
+                ("background", "linear-gradient(red, red)"),
+                ("border-radius", "12px"),
+            ]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
         },
     ];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
@@ -62,6 +103,8 @@ fn first_line_paints_background_images_only_on_the_formatted_line() {
         red_after_first_line, 0,
         "later lines must not get the pseudo background"
     );
+    assert_eq!(&pixels[(1 * 180 + 10) * 4..][..3], [255, 255, 255]);
+    assert_eq!(&pixels[(8 * 180 + 20) * 4..][..3], [255, 0, 0]);
 }
 
 #[test]
