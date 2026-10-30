@@ -76,7 +76,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-line` inline-axis margin and padding adjust the first formatted line's inline advance.
 - [x] `::first-letter` supports `outline` and its width, style, color, and offset properties.
 - [x] `::first-letter` physical and logical `margin` and `padding` properties adjust inline spacing; block padding expands its painted background and border area.
-- [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
+- [x] Apply all currently supported CSS properties that are valid on `::first-line` and `::first-letter`; other properties follow their corresponding renderer roadmap items.
   - [x] `box-shadow` paints outer and inset shadows around the first formatted line, respecting supported corner radii.
   - [x] `outline`, `outline-width`, `outline-style`, `outline-color`, and signed `outline-offset` paint around the first formatted line.
   - [x] Physical and logical border shorthands and side longhands paint around the first formatted line and add inline border widths to its advance.
