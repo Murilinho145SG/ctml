@@ -121,7 +121,11 @@ fn containing_block_height(
         };
         let (height, min_height, max_height) =
             super::sizing::block_size_constraints(size, page_writing_mode);
-        if height.is_none() && min_height.is_none() && max_height.is_none() {
+        if height.is_none()
+            && min_height.is_none()
+            && max_height.is_none()
+            && size.aspect_ratio.is_none()
+        {
             continue;
         }
         let containing_width = containing_block_width(

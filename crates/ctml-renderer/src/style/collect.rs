@@ -231,6 +231,7 @@ pub(super) fn collect_runs(
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
+                        || style.aspect_ratio.is_some()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
                         || style
@@ -264,6 +265,7 @@ pub(super) fn collect_runs(
                         outline_style: style.outline_style,
                         outline_color: style.outline_color,
                         outline_offset: style.outline_offset.clone(),
+                        aspect_ratio: style.aspect_ratio,
                         padding: style.padding.clone(),
                         margin: style.margin.clone(),
                         intrinsic_min_content_width: None,
@@ -339,6 +341,7 @@ pub(super) fn collect_runs(
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
+                        || style.aspect_ratio.is_some()
                         || style.margin.iter().flatten().any(|margin| margin != "0")
                         || style.padding.iter().flatten().any(|padding| padding != "0")
                         || style
@@ -360,6 +363,7 @@ pub(super) fn collect_runs(
                         block_size: style.block_size.clone(),
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
+                        aspect_ratio: style.aspect_ratio,
                         border_box: style.border_box,
                         border_width: style.border_width.clone(),
                         border_style: style.border_style,

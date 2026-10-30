@@ -161,6 +161,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                     &style.layout_sizes,
                     page_writing_mode,
                     height_size.border_box,
+                    height_size.aspect_ratio,
                     &height_size.border_width,
                     &height_size.border_style,
                     &height_size.padding,

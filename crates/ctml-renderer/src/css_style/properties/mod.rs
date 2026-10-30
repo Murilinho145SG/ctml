@@ -14,6 +14,7 @@ use super::font_variant::{
     apply_font_variant_ligatures, apply_font_variant_numeric,
 };
 use apply::apply_declaration;
+use aspect_ratio::apply_aspect_ratio;
 use background::{apply_background_color, apply_background_shorthand};
 use border::{
     apply_border_color, apply_border_color_side, apply_border_shorthand, apply_border_side,
@@ -64,6 +65,7 @@ use text_indent::apply_text_indent;
 use text_shadow::apply_text_shadow;
 
 mod apply;
+mod aspect_ratio;
 mod background;
 mod border;
 mod border_cascade;

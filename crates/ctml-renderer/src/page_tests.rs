@@ -30,6 +30,8 @@ const CHROMIUM_VERSION: &str = "156.0.8078.47";
 const CHROMIUM_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(300);
 const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
+#[path = "page_tests/aspect_ratio.rs"]
+mod aspect_ratio;
 #[path = "page_tests/backgrounds.rs"]
 mod backgrounds;
 #[path = "page_tests/border_radius.rs"]

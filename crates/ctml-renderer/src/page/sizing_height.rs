@@ -38,6 +38,7 @@ pub(super) fn resolve_layout_height_with_ancestors(
     ancestors: &[LayoutSize],
     page_writing_mode: WritingMode,
     border_box: bool,
+    aspect_ratio: Option<f32>,
     border_width: &[Option<String>; 4],
     border_style: &[BorderLineStyle; 4],
     padding: &[Option<String>; 4],
@@ -56,7 +57,11 @@ pub(super) fn resolve_layout_height_with_ancestors(
             page_writing_mode,
         );
         let (height, min_height, max_height) = block_size_constraints(ancestor, page_writing_mode);
-        if height.is_none() && min_height.is_none() && max_height.is_none() {
+        if height.is_none()
+            && min_height.is_none()
+            && max_height.is_none()
+            && ancestor.aspect_ratio.is_none()
+        {
             containing_width = next_width;
             continue;
         }
@@ -69,34 +74,47 @@ pub(super) fn resolve_layout_height_with_ancestors(
         );
         containing_width = next_width;
     }
+    let padding = resolve_padding_values(
+        padding,
+        containing_width,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    );
+    let borders = resolve_border_values(
+        border_width,
+        border_style,
+        containing_width,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    );
+    let block_decoration = block_padding_extent(padding, page_writing_mode)
+        + block_border_extent(borders, page_writing_mode);
+    let inline_decoration = if page_writing_mode == WritingMode::HorizontalTb {
+        padding[1] + padding[3] + borders[1] + borders[3]
+    } else {
+        padding[0] + padding[2] + borders[0] + borders[2]
+    };
+    let aspect_height = if height.is_none() && page_writing_mode == WritingMode::HorizontalTb {
+        aspect_ratio.map(|ratio| {
+            let inline_size =
+                super::sizing::resolve_layout_width(ancestors, available_width, page_writing_mode)
+                    + if border_box { inline_decoration } else { 0.0 };
+            (inline_size / ratio - if border_box { block_decoration } else { 0.0 }).max(0.0)
+        })
+    } else {
+        None
+    };
     resolve_block_size(
         height,
         min_height,
         max_height,
-        0.0,
+        aspect_height.unwrap_or_default(),
         containing_height,
-        block_padding_extent(
-            resolve_padding_values(
-                padding,
-                containing_width,
-                font_size,
-                line_height,
-                font_relative_units,
-                viewport_size,
-            ),
-            page_writing_mode,
-        ) + block_border_extent(
-            resolve_border_values(
-                border_width,
-                border_style,
-                containing_width,
-                font_size,
-                line_height,
-                font_relative_units,
-                viewport_size,
-            ),
-            page_writing_mode,
-        ),
+        block_decoration,
         border_box,
         font_size,
         line_height,
@@ -139,11 +157,40 @@ pub(super) fn resolve_block_box_extent(
     } else {
         0.0
     };
+    let aspect_height = if height.is_none()
+        && page_writing_mode == WritingMode::HorizontalTb
+        && size.writing_mode == WritingMode::HorizontalTb
+    {
+        size.aspect_ratio.map(|ratio| {
+            let inline_content = super::sizing::resolve_layout_width(
+                std::slice::from_ref(size),
+                containing_width,
+                page_writing_mode,
+            );
+            let inline_decoration = padding[1] + padding[3] + borders[1] + borders[3];
+            let block_decoration = padding[0] + padding[2] + borders[0] + borders[2];
+            let inline_size = inline_content
+                + if size.border_box {
+                    inline_decoration
+                } else {
+                    0.0
+                };
+            (inline_size / ratio
+                - if size.border_box {
+                    block_decoration
+                } else {
+                    0.0
+                })
+            .max((content_height - padding_start).max(0.0))
+        })
+    } else {
+        None
+    };
     resolve_block_size(
         height,
         min_height,
         max_height,
-        (content_height - padding_start).max(0.0),
+        aspect_height.unwrap_or((content_height - padding_start).max(0.0)),
         available_height,
         block_padding_extent(padding, page_writing_mode)
             + block_border_extent(borders, page_writing_mode),

@@ -328,8 +328,45 @@ pub(super) fn resolve_layout_width(
         .flatten();
         let min_width = inline_min.and_then(resolve_inline_size);
         let max_width = inline_max.and_then(resolve_inline_size);
+        let ratio_width = if inline_size.is_none()
+            && page_writing_mode == WritingMode::HorizontalTb
+            && size.writing_mode == WritingMode::HorizontalTb
+        {
+            let (specified_block_size, _, _) = block_size_constraints(size, page_writing_mode);
+            specified_block_size
+                .filter(|value| !value.contains('%'))
+                .and_then(|value| {
+                    resolve_width(
+                        value,
+                        0.0,
+                        size.font_size,
+                        size.line_height,
+                        size.font_relative_units,
+                        size.viewport_size,
+                    )
+                })
+                .zip(size.aspect_ratio)
+                .map(|(height, ratio)| {
+                    let block_padding = padding[0] + padding[2];
+                    let block_border = borders[0] + borders[2];
+                    let ratio_block_size = if size.border_box {
+                        height
+                    } else {
+                        height + block_padding + block_border
+                    };
+                    let ratio_inline_size = ratio_block_size * ratio;
+                    if size.border_box {
+                        (ratio_inline_size - inline_padding - inline_border).max(0.0)
+                    } else {
+                        ratio_inline_size
+                    }
+                })
+        } else {
+            None
+        };
         let specified_width = inline_size
             .and_then(resolve_inline_size)
+            .or(ratio_width)
             .unwrap_or(available_content_width);
         content_width = match (min_width, max_width) {
             (Some(min), Some(max)) if min > max => specified_width.max(min),
