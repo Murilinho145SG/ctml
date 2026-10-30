@@ -157,3 +157,31 @@ fn rejects_invalid_css_exponential_function_arguments() {
         assert_eq!(parse_math_number(value), None, "{value}");
     }
 }
+
+#[test]
+fn evaluates_css_trigonometric_functions_with_angles() {
+    assert!((parse_math_number("sin(30deg)").unwrap() - 0.5).abs() < 0.00001);
+    assert!((parse_math_number("cos(0.5turn)").unwrap() + 1.0).abs() < 0.00001);
+    assert!((parse_math_number("tan(200grad)").unwrap()).abs() < 0.00001);
+    assert!((parse_math_number("sin(asin(0.5))").unwrap() - 0.5).abs() < 0.00001);
+    assert!((parse_math_number("sin(atan2(1, 1))").unwrap() - 0.70710677).abs() < 0.00001);
+    assert!((parse_math_number("sin(calc(30deg + 30deg))").unwrap() - 0.8660254).abs() < 0.00001);
+    assert!((parse_math_number("sin(round(12deg, 5deg))").unwrap() - 0.17364818).abs() < 0.00001);
+    assert!((parse("calc(20px * cos(60deg))").unwrap() - 10.0).abs() < 0.00001);
+}
+
+#[test]
+fn rejects_invalid_css_trigonometric_input_types_and_ranges() {
+    for value in [
+        "sin(10px)",
+        "asin(1.1)",
+        "acos(-1.1)",
+        "atan(1, 2)",
+        "atan2(1, 2px)",
+        "atan2(1)",
+        "cos(1) trailing",
+    ] {
+        assert_eq!(parse_math_number(value), None, "{value}");
+    }
+    assert_eq!(parse("calc(1px + 30deg)"), None);
+}

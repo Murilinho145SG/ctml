@@ -2,12 +2,16 @@
 enum MathValue {
     Number(f32),
     Dimension(f32),
+    Angle(f32),
 }
+
+#[path = "math_functions.rs"]
+mod functions;
 
 impl MathValue {
     fn value(self) -> f32 {
         match self {
-            Self::Number(value) | Self::Dimension(value) => value,
+            Self::Number(value) | Self::Dimension(value) | Self::Angle(value) => value,
         }
     }
 
@@ -16,6 +20,7 @@ impl MathValue {
         value.is_finite().then_some(match self {
             Self::Number(_) => Self::Number(value),
             Self::Dimension(_) => Self::Dimension(value),
+            Self::Angle(_) => Self::Angle(value),
         })
     }
 }
@@ -24,7 +29,8 @@ pub(crate) fn is_math_function(value: &str) -> bool {
     let value = value.trim_start();
     [
         "calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem(", "abs(", "sign(", "sqrt(",
-        "pow(", "hypot(", "log(", "exp(",
+        "pow(", "hypot(", "log(", "exp(", "sin(", "cos(", "tan(", "asin(", "acos(", "atan(",
+        "atan2(",
     ]
     .iter()
     .any(|function| {
@@ -139,6 +145,10 @@ where
                         | (MathValue::Number(right), MathValue::Dimension(left)) => {
                             MathValue::Dimension(left * right)
                         }
+                        (MathValue::Angle(left), MathValue::Number(right))
+                        | (MathValue::Number(right), MathValue::Angle(left)) => {
+                            MathValue::Angle(left * right)
+                        }
                         _ => return None,
                     }
                     .map(|value| value)?;
@@ -146,13 +156,22 @@ where
                 Some(b'/') => {
                     self.cursor += 1;
                     let right = self.parse_unary()?;
-                    let MathValue::Number(divisor) = right else {
-                        return None;
+                    value = match (value, right) {
+                        (MathValue::Angle(left), MathValue::Angle(divisor)) => {
+                            if divisor == 0.0 {
+                                return None;
+                            }
+                            let result = left / divisor;
+                            result.is_finite().then_some(MathValue::Number(result))?
+                        }
+                        (left, MathValue::Number(divisor)) => {
+                            if divisor == 0.0 {
+                                return None;
+                            }
+                            left.map(|left| left / divisor)?
+                        }
+                        _ => return None,
                     };
-                    if divisor == 0.0 {
-                        return None;
-                    }
-                    value = value.map(|left| left / divisor)?;
                 }
                 _ => return Some(value),
             }
@@ -226,136 +245,11 @@ where
             "rem" => self.parse_remainder_function(false),
             "abs" => self.parse_sign_function(true),
             "sign" => self.parse_sign_function(false),
+            "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" => {
+                self.parse_trigonometric_function(&function)
+            }
             _ => None,
         }
-    }
-
-    fn parse_sign_function(&mut self, absolute: bool) -> Option<MathValue> {
-        let value = self.parse_sum()?;
-        self.skip_whitespace();
-        if !self.consume(b')') {
-            return None;
-        }
-        if absolute {
-            value.map(f32::abs)
-        } else {
-            let number = if value.value() == 0.0 {
-                if value.value().is_sign_negative() {
-                    -0.0
-                } else {
-                    0.0
-                }
-            } else if value.value().is_sign_negative() {
-                -1.0
-            } else {
-                1.0
-            };
-            Some(MathValue::Number(number))
-        }
-    }
-
-    fn parse_remainder_function(&mut self, euclidean: bool) -> Option<MathValue> {
-        let dividend = self.parse_sum()?;
-        self.skip_whitespace();
-        if !self.consume(b',') {
-            return None;
-        }
-        let divisor = self.parse_sum()?;
-        self.skip_whitespace();
-        if !self.consume(b')')
-            || std::mem::discriminant(&dividend) != std::mem::discriminant(&divisor)
-            || divisor.value() == 0.0
-        {
-            return None;
-        }
-
-        let remainder = dividend.value() % divisor.value();
-        let result = if euclidean
-            && remainder != 0.0
-            && remainder.is_sign_negative() != divisor.value().is_sign_negative()
-        {
-            remainder + divisor.value()
-        } else {
-            remainder
-        };
-        dividend.map(|_| result)
-    }
-
-    fn parse_round_function(&mut self) -> Option<MathValue> {
-        self.skip_whitespace();
-        let strategy_start = self.cursor;
-        while self
-            .peek()
-            .is_some_and(|byte| byte.is_ascii_alphabetic() || byte == b'-')
-        {
-            self.cursor += 1;
-        }
-        let strategy_name = self
-            .input
-            .get(strategy_start..self.cursor)?
-            .to_ascii_lowercase();
-        self.skip_whitespace();
-        let strategy = if self.consume(b',') {
-            match strategy_name.as_str() {
-                "nearest" => RoundingStrategy::Nearest,
-                "up" => RoundingStrategy::Up,
-                "down" => RoundingStrategy::Down,
-                "to-zero" => RoundingStrategy::ToZero,
-                _ => return None,
-            }
-        } else {
-            self.cursor = strategy_start;
-            RoundingStrategy::Nearest
-        };
-
-        let value = self.parse_sum()?;
-        self.skip_whitespace();
-        let interval = if self.consume(b',') {
-            self.parse_sum()?
-        } else {
-            match value {
-                MathValue::Number(_) => MathValue::Number(1.0),
-                MathValue::Dimension(_) => return None,
-            }
-        };
-        self.skip_whitespace();
-        if !self.consume(b')')
-            || std::mem::discriminant(&value) != std::mem::discriminant(&interval)
-            || interval.value() == 0.0
-        {
-            return None;
-        }
-
-        let step = interval.value().abs();
-        let quotient = value.value() / step;
-        if !quotient.is_finite() {
-            return None;
-        }
-        let lower = quotient.floor() * step;
-        let upper = lower + step;
-        let rounded = if lower == value.value() || upper == value.value() {
-            value.value()
-        } else {
-            match strategy {
-                RoundingStrategy::Nearest => {
-                    if (value.value() - lower).abs() < (upper - value.value()).abs() {
-                        lower
-                    } else {
-                        upper
-                    }
-                }
-                RoundingStrategy::Up => upper,
-                RoundingStrategy::Down => lower,
-                RoundingStrategy::ToZero => {
-                    if lower.abs() < upper.abs() {
-                        lower
-                    } else {
-                        upper
-                    }
-                }
-            }
-        };
-        value.map(|_| rounded)
     }
 
     fn evaluate_function(&self, function: &str, values: &[MathValue]) -> Option<MathValue> {
@@ -455,6 +349,21 @@ where
             Some(MathValue::Number(number))
         } else {
             let dimension = self.input.get(start..cursor)?;
+            if let Some((number, unit)) = crate::parse_css_dimension(dimension) {
+                let radians = match unit.as_str() {
+                    "deg" => number.to_radians(),
+                    "grad" => number * std::f32::consts::PI / 200.0,
+                    "rad" => number,
+                    "turn" => number * std::f32::consts::TAU,
+                    _ => {
+                        return (self.parse_dimension)(dimension)
+                            .filter(|value| value.is_finite())
+                            .map(MathValue::Dimension);
+                    }
+                };
+                self.cursor = cursor;
+                return radians.is_finite().then_some(MathValue::Angle(radians));
+            }
             (self.parse_dimension)(dimension)
                 .filter(|value| value.is_finite())
                 .map(MathValue::Dimension)
