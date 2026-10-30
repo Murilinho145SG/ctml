@@ -62,11 +62,28 @@ pub(super) fn draw(
     let top = rect.top;
     let right = rect.right;
     let bottom = rect.bottom;
+    let image_widths: [f32; 4] = std::array::from_fn(|side| {
+        let border_width = border_widths[side];
+        match size.border_image_width[side] {
+            Some(crate::style::BorderImageWidth::Number(multiplier)) => border_width * multiplier,
+            Some(crate::style::BorderImageWidth::Length(length)) => length,
+            Some(crate::style::BorderImageWidth::Percentage(percentage)) => {
+                let axis_size = if side % 2 == 0 {
+                    bottom - top
+                } else {
+                    right - left
+                };
+                axis_size * percentage
+            }
+            Some(crate::style::BorderImageWidth::Auto) => slices[side],
+            None => border_width,
+        }
+    });
     let mut dest = [
-        border_widths[3],
-        border_widths[1],
-        border_widths[0],
-        border_widths[2],
+        image_widths[3],
+        image_widths[1],
+        image_widths[0],
+        image_widths[2],
     ];
     (dest[0], dest[1]) = scale_opposing_slices(dest[0], dest[1], (right - left).max(0.0));
     (dest[2], dest[3]) = scale_opposing_slices(dest[2], dest[3], (bottom - top).max(0.0));

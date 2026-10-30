@@ -99,6 +99,26 @@ fn border_image_slice_leaves_center_unpainted_without_fill() {
 }
 
 #[test]
+fn border_image_width_number_scales_the_painted_border_area() {
+    let (rect, pixels) = render_with_width("1 fill", Some("2"));
+    let extended_corner = sample_at(&pixels, rect.left + 6.0, rect.top + 6.0);
+    assert_eq!(extended_corner, [255, 0, 0]);
+}
+
+#[test]
+fn border_image_width_axis_pairs_and_percentages_resolve_per_side() {
+    let (rect, pixels) = render_with_width("1 fill", Some("2 1"));
+    let top_strip = sample_at(&pixels, rect.left + 6.0, rect.top + 6.0);
+    let corner = sample_at(&pixels, rect.left + 2.0, rect.top + 6.0);
+    assert_eq!(top_strip, [0, 255, 0]);
+    assert_eq!(corner, [255, 0, 0]);
+
+    let (rect, pixels) = render_with_width("1 fill", Some("25%"));
+    let extended_corner = sample_at(&pixels, rect.left + 8.0, rect.top + 8.0);
+    assert_eq!(extended_corner, [255, 0, 0]);
+}
+
+#[test]
 fn border_image_repeat_tiles_the_middle_source_strip() {
     let (rect, pixels) = render_repeated_border("repeat stretch", "1");
     let sample = |x: f32| sample_at(&pixels, rect.left + x, rect.top + 1.0);
@@ -180,6 +200,13 @@ fn render_repeated_border(
 }
 
 fn render(slice: &str) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
+    render_with_width(slice, None)
+}
+
+fn render_with_width(
+    slice: &str,
+    image_width: Option<&str>,
+) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("image-border".to_owned()),
@@ -188,23 +215,27 @@ fn render(slice: &str) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
         children: Vec::new(),
     }];
     let source = border_image_url();
+    let mut declarations = vec![
+        ("width", "40px"),
+        ("height", "32px"),
+        ("border-width", "4px"),
+        ("background-color", "cyan"),
+        ("border-image-source", source.as_str()),
+        ("border-image-slice", slice),
+    ];
+    if let Some(image_width) = image_width {
+        declarations.push(("border-image-width", image_width));
+    }
     let stylesheet = [StyleRule {
         selectors: vec![".image-border".to_owned()],
         layer: None,
-        declarations: [
-            ("width", "40px"),
-            ("height", "32px"),
-            ("border-width", "4px"),
-            ("background-color", "cyan"),
-            ("border-image-source", source.as_str()),
-            ("border-image-slice", slice),
-        ]
-        .into_iter()
-        .map(|(property, value)| StyleDeclaration {
-            property: property.to_owned(),
-            value: value.to_owned(),
-        })
-        .collect(),
+        declarations: declarations
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
     page.prepare_layout(100, 70);

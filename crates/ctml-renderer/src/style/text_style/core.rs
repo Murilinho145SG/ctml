@@ -5,12 +5,12 @@ use winit::window::CursorIcon;
 
 use super::{
     BackgroundAttachment, BackgroundBox, BackgroundImage, BackgroundPosition, BackgroundRepeat,
-    BackgroundSize, BorderImageRepeat, BorderImageSlice, BorderLineStyle, BoxDecorationBreak,
-    BoxShadow, Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize,
-    LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle,
-    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
-    TextRendering, TextShadow, TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace,
-    WordBreak, WritingMode,
+    BackgroundSize, BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle,
+    BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps, FontVariantPosition, Hyphens,
+    LayoutHeight, LayoutSize, LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk,
+    TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
+    TextOrientation, TextOverflow, TextRendering, TextShadow, TextTransform, TextWrapMode,
+    UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -69,6 +69,7 @@ pub(crate) struct TextStyle {
     pub(crate) border_image_slice: [BorderImageSlice; 4],
     pub(crate) border_image_fill: bool,
     pub(crate) border_image_repeat: [BorderImageRepeat; 2],
+    pub(crate) border_image_width: [Option<BorderImageWidth>; 4],
     pub(crate) border_width: [Option<String>; 4],
     pub(crate) logical_border_width: [Option<String>; 4],
     pub(crate) physical_border_width_orders: [usize; 4],
@@ -245,6 +246,7 @@ impl Default for TextStyle {
             border_image_slice: [BorderImageSlice::default(); 4],
             border_image_fill: false,
             border_image_repeat: [BorderImageRepeat::Stretch; 2],
+            border_image_width: [None; 4],
             border_width: std::array::from_fn(|_| None),
             logical_border_width: std::array::from_fn(|_| None),
             physical_border_width_orders: [0; 4],

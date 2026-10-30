@@ -13,6 +13,14 @@ pub(crate) enum BorderImageRepeat {
     Space,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum BorderImageWidth {
+    Number(f32),
+    Length(f32),
+    Percentage(f32),
+    Auto,
+}
+
 impl Default for BorderImageSlice {
     fn default() -> Self {
         Self {

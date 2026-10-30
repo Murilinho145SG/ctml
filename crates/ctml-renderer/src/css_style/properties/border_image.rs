@@ -1,4 +1,4 @@
-use crate::style::{BorderImageRepeat, BorderImageSlice, TextStyle};
+use crate::style::{BorderImageRepeat, BorderImageSlice, BorderImageWidth, TextStyle};
 
 pub(super) fn apply_border_image_source(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
@@ -56,6 +56,54 @@ pub(super) fn apply_border_image_repeat(style: &mut TextStyle, value: &str) {
         [horizontal, vertical] => [*horizontal, *vertical],
         _ => return,
     };
+}
+
+pub(super) fn apply_border_image_width(style: &mut TextStyle, value: &str) {
+    let widths = value
+        .split_ascii_whitespace()
+        .map(|value| parse_width(style, value))
+        .collect::<Option<Vec<_>>>();
+    let Some(widths) = widths else {
+        return;
+    };
+    style.border_image_width = match widths.as_slice() {
+        [one] => [Some(*one); 4],
+        [vertical, horizontal] => [
+            Some(*vertical),
+            Some(*horizontal),
+            Some(*vertical),
+            Some(*horizontal),
+        ],
+        [top, horizontal, bottom] => [
+            Some(*top),
+            Some(*horizontal),
+            Some(*bottom),
+            Some(*horizontal),
+        ],
+        [top, right, bottom, left] => [Some(*top), Some(*right), Some(*bottom), Some(*left)],
+        _ => return,
+    };
+}
+
+fn parse_width(style: &TextStyle, value: &str) -> Option<BorderImageWidth> {
+    if value.eq_ignore_ascii_case("auto") {
+        return Some(BorderImageWidth::Auto);
+    }
+    if let Some(percentage) = ctml_css::parse_css_percentage(value) {
+        return (percentage >= 0.0).then_some(BorderImageWidth::Percentage(percentage / 100.0));
+    }
+    if let Some(number) = ctml_css::parse_css_number(value) {
+        return (number >= 0.0 && number.is_finite()).then_some(BorderImageWidth::Number(number));
+    }
+    ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+    .filter(|length| length.is_finite())
+    .map(BorderImageWidth::Length)
 }
 
 fn parse_slice(value: &str) -> Option<BorderImageSlice> {

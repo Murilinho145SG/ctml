@@ -323,6 +323,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Border images and nine-slice behavior.
   - [x] Decode embedded PNG/JPEG `data:` sources and paint the nine stretched source regions using numeric or percentage `border-image-slice` values, including optional center fill.
   - [x] `border-image-repeat` accepts one or two `stretch`, `repeat`, `round`, or `space` modes for edge and filled center tiles.
+  - [x] `border-image-width` accepts one-to-four `auto`, number multipliers, lengths, or percentages.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
 - [ ] Transform properties, transform origin, and transform box.

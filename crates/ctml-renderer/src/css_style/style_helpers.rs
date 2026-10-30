@@ -29,6 +29,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "border-image-source",
     "border-image-slice",
     "border-image-repeat",
+    "border-image-width",
     "outline",
     "outline-width",
     "outline-style",
