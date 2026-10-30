@@ -59,8 +59,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Apply the optional left/right side in `text-emphasis-position` on `::first-line` and `::first-letter`.
 - [x] Pseudo-element text decorations honor `text-decoration-skip-ink` values `auto`, `none`, and `all`.
 - [x] `text-underline-offset` moves underlines on `::first-line` and `::first-letter`.
-- [x] Apply the supported color-only `background` shorthand to `::first-line` and `::first-letter`.
-- [x] `::first-letter` supports background images and their repeat, position, size, attachment, and origin/clip properties on its inline box.
+- [x] Apply supported `background` shorthand layers, including colors, images, repeat, position/size, attachment, and origin/clip values, to `::first-line` and `::first-letter`.
 - [x] Apply inherited and overridden `text-transform` to the `::first-letter` source character, including case expansion.
 - [x] Apply `text-transform` to `::first-line` text during line formation and reshape the resulting lines.
 - [x] Apply `line-height` from `::first-line` to the first line box.

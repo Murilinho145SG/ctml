@@ -90,7 +90,13 @@ impl PageRasterizer {
             &self.overflow_geometry,
             &self.overflow_clips,
         );
-        self.draw_first_line_backgrounds(&mut pixels, width, height, &overflow_clips);
+        self.draw_first_line_backgrounds(
+            &mut pixels,
+            width,
+            height,
+            &overflow_clips,
+            &mut background_image_cache,
+        );
         self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
         box_shadows::draw_first_letter(
             &self.runs,

@@ -6,7 +6,7 @@ use super::local_writing::{self, LocalVerticalTransform};
 use super::{
     PageRasterizer,
     highlights::{first_formatted_letters, first_formatted_line_ranges},
-    overflow_clip::{self, ClipRect},
+    overflow_clip::{self, BackgroundBoxes, ClipRect},
     pixel::fill_rect_alpha_clipped,
 };
 
@@ -113,12 +113,14 @@ impl PageRasterizer {
         width: u32,
         height: u32,
         clips: &HashMap<usize, ClipRect>,
+        image_cache: &mut super::background_images::ImageCache,
     ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let vertical_origins =
             local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
-            let mut groups: Vec<(usize, usize, usize, [u8; 4], Vec<usize>)> = Vec::new();
+            let mut groups: Vec<(usize, usize, usize, Option<[u8; 4]>, Vec<usize>, usize, f32)> =
+                Vec::new();
             for span in self
                 .cursor_spans
                 .iter()
@@ -127,12 +129,21 @@ impl PageRasterizer {
                 let Some(block) = span.first_line_block else {
                     continue;
                 };
-                let Some(mut background) = span.first_line_background else {
+                let background_style = self
+                    .runs
+                    .get(span.run_index)
+                    .and_then(|run| run.first_line_font_style.as_ref());
+                let has_background_images =
+                    background_style.is_some_and(|style| !style.background_images.is_empty());
+                let background = span.first_line_background.map(|mut background| {
+                    background[3] = (f32::from(background[3]) * span.opacity)
+                        .round()
+                        .clamp(0.0, 255.0) as u8;
+                    background
+                });
+                if background.is_none() && !has_background_images {
                     continue;
-                };
-                background[3] = (f32::from(background[3]) * span.opacity)
-                    .round()
-                    .clamp(0.0, 255.0) as u8;
+                }
                 let Some((line, end)) = first_lines.get(&block).copied() else {
                     continue;
                 };
@@ -140,12 +151,15 @@ impl PageRasterizer {
                     continue;
                 }
                 let span_end = span.end.min(end);
-                if let Some((_, group_end, group_block, group_background, group_path)) =
+                let opacity =
+                    span.opacity * self.runs[span.run_index].first_line_opacity.unwrap_or(1.0);
+                if let Some((_, group_end, group_block, group_background, group_path, group_run, _)) =
                     groups.last_mut()
                     && *group_end == span.start
                     && *group_block == block
                     && *group_background == background
                     && *group_path == span.element_path
+                    && *group_run == span.run_index
                 {
                     *group_end = span_end;
                 } else {
@@ -155,10 +169,12 @@ impl PageRasterizer {
                         block,
                         background,
                         span.element_path.clone(),
+                        span.run_index,
+                        opacity,
                     ));
                 }
             }
-            for (group_start, group_end, _, background, path) in groups {
+            for (group_start, group_end, _, background, path, style_run, opacity) in groups {
                 let local_transform = LocalVerticalTransform::from_run(
                     &self.runs,
                     &self.buffer,
@@ -168,32 +184,61 @@ impl PageRasterizer {
                     height,
                     &vertical_origins,
                 );
-                fill_highlight(
-                    run.line_i,
-                    run.line_top,
-                    run.line_height,
-                    group_start,
-                    group_end,
-                    background,
-                    &run,
-                    pixels,
-                    width,
-                    height,
-                    local_transform,
-                    overflow_clip::clip_for_path(&path, clips),
-                    overflow_clip::scroll_translation_for_path(
-                        &path,
-                        &self.nested_scroll,
-                        self.writing_mode(),
-                    )
-                    .0,
-                    overflow_clip::scroll_translation_for_path(
-                        &path,
-                        &self.nested_scroll,
-                        self.writing_mode(),
-                    )
-                    .1,
+                let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+                    &path,
+                    &self.nested_scroll,
+                    self.writing_mode(),
                 );
+                let clip = overflow_clip::clip_for_path(&path, clips);
+                if let Some(background) = background {
+                    fill_highlight(
+                        run.line_i,
+                        run.line_top,
+                        run.line_height,
+                        group_start,
+                        group_end,
+                        background,
+                        &run,
+                        pixels,
+                        width,
+                        height,
+                        local_transform,
+                        clip,
+                        scroll_x,
+                        scroll_y,
+                    );
+                }
+                if let Some(style) = self
+                    .runs
+                    .get(style_run)
+                    .and_then(|run| run.first_line_font_style.as_ref())
+                {
+                    let element_scroll = path.last().map_or((0.0, 0.0), |node_id| {
+                        overflow_clip::scroll_translation_for_path(
+                            &[*node_id],
+                            &self.nested_scroll,
+                            self.writing_mode(),
+                        )
+                    });
+                    draw_highlight_background_images(
+                        style,
+                        opacity,
+                        run.line_i,
+                        run.line_top,
+                        run.line_height,
+                        group_start,
+                        group_end,
+                        &run,
+                        local_transform,
+                        (scroll_x, scroll_y),
+                        element_scroll,
+                        clip,
+                        pixels,
+                        width,
+                        height,
+                        image_cache,
+                    );
+                }
             }
         }
     }
@@ -289,6 +334,80 @@ impl PageRasterizer {
                 );
             }
         }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_highlight_background_images(
+    style: &crate::style::TextStyle,
+    opacity: f32,
+    line: usize,
+    line_top: f32,
+    line_height: f32,
+    start: usize,
+    end: usize,
+    run: &cosmic_text::LayoutRun<'_>,
+    local_transform: Option<LocalVerticalTransform>,
+    scroll_translation: (f32, f32),
+    element_scroll: (f32, f32),
+    clip: Option<ClipRect>,
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    image_cache: &mut super::background_images::ImageCache,
+) {
+    if style.background_images.is_empty() {
+        return;
+    }
+    let start = Cursor {
+        line,
+        index: start,
+        affinity: cosmic_text::Affinity::Before,
+    };
+    let end = Cursor {
+        line,
+        index: end,
+        affinity: cosmic_text::Affinity::After,
+    };
+    for (left, span_width) in run.highlight(start, end) {
+        let (left, top, span_width, span_height) =
+            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
+                transform.map_rect(
+                    left + super::PAGE_PADDING,
+                    line_top + super::PAGE_PADDING,
+                    span_width,
+                    line_height,
+                )
+            });
+        let rect = ClipRect {
+            left: left - super::PAGE_PADDING - scroll_translation.0,
+            top: top - super::PAGE_PADDING - scroll_translation.1,
+            right: left + span_width - super::PAGE_PADDING - scroll_translation.0,
+            bottom: top + span_height - super::PAGE_PADDING - scroll_translation.1,
+        };
+        let boxes = BackgroundBoxes {
+            border: rect,
+            padding: rect,
+            content: rect,
+        };
+        super::background_images::draw_background_image_layers(
+            &style.background_images,
+            &style.background_repeats,
+            &style.background_positions,
+            &style.background_sizes,
+            &style.background_attachments,
+            &style.background_origins,
+            &style.background_clips,
+            scroll_translation,
+            element_scroll,
+            opacity,
+            pixels,
+            width,
+            height,
+            boxes,
+            clip,
+            image_cache,
+        );
     }
 }
 

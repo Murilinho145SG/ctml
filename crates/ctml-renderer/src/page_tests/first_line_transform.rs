@@ -2,6 +2,69 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
+fn first_line_paints_background_images_only_on_the_formatted_line() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("alpha beta gamma delta epsilon".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "72px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background".to_owned(),
+                value: "linear-gradient(red, red)".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(180, 120);
+    let mut lines = page.buffer.layout_runs();
+    let first_line = lines.next().expect("paragraph should have a line");
+    let second_line = lines.next().expect("narrow paragraph should wrap");
+    assert!(
+        page.runs.iter().any(|run| {
+            run.first_line_font_style
+                .as_ref()
+                .is_some_and(|style| !style.background_images.is_empty())
+        }),
+        "the first-line pseudo style should retain its background image"
+    );
+    let first_line_bottom =
+        (first_line.line_top + first_line.line_height + crate::page::PAGE_PADDING) as usize;
+    let second_line_top = (second_line.line_top + crate::page::PAGE_PADDING) as usize;
+    let red_in_first_line = pixels
+        .chunks_exact(4)
+        .enumerate()
+        .filter(|(index, pixel)| index / 180 < first_line_bottom && pixel[..3] == [255, 0, 0])
+        .count();
+    let red_after_first_line = pixels
+        .chunks_exact(4)
+        .enumerate()
+        .filter(|(index, pixel)| index / 180 >= second_line_top && pixel[..3] == [255, 0, 0])
+        .count();
+    assert!(
+        red_in_first_line > 0,
+        "the first formatted line should be painted"
+    );
+    assert_eq!(
+        red_after_first_line, 0,
+        "later lines must not get the pseudo background"
+    );
+}
+
+#[test]
 fn first_line_text_transform_changes_only_the_formatted_first_line() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
