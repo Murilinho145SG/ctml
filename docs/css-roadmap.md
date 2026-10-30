@@ -145,7 +145,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `hwb()` colors with optional alpha.
 - [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-pq`, `rec2100-hlg`, `rec2100-linear`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
 - [x] Perceptual gamut mapping to sRGB with OklCh chroma reduction and local MINDE.
-- [ ] Other predefined and custom color profiles.
+- [x] Other predefined and custom color profiles, including ICC grayscale, RGB, CMYK, and multichannel device spaces.
 - [x] Parse `@color-profile` descriptors and load valid local ICC profiles relative to the declaring stylesheet, bounded to the configured resource root.
 - [x] Expose profile-aware parsing for absolute and relative custom `color()` spaces and custom `color-mix()` interpolation through loaded ICC profiles.
 - [x] Pass registered custom color profiles through native renderer style resolution.
