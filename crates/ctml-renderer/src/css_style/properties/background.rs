@@ -6,24 +6,6 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use cssparser::{Parser, ParserInput, Token};
 use ctml_css::parse_color_with_opacity_and_profiles;
 
-pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
-    if value.eq_ignore_ascii_case("none") {
-        super::background_box::reset_background_image_layers(style);
-        style.background = [255, 255, 255];
-        style.background_color = None;
-    } else if let Some(images) = parse_background_images(style, value) {
-        super::background_box::reset_background_image_layers(style);
-        style.background_images = images;
-        style.background = [255, 255, 255];
-        style.background_color = None;
-    } else if let Some((channels, alpha)) = parse_background_color(style, value) {
-        super::background_box::reset_background_image_layers(style);
-        set_background_color(style, channels, alpha);
-    } else {
-        return;
-    }
-}
-
 pub(super) fn apply_background_image(style: &mut TextStyle, value: &str) {
     let Some(images) = parse_background_images(style, value) else {
         return;
@@ -61,7 +43,10 @@ pub(super) fn apply_background_size(style: &mut TextStyle, value: &str) {
     }
 }
 
-fn parse_background_size_layer(style: &TextStyle, value: &str) -> Option<BackgroundSize> {
+pub(super) fn parse_background_size_layer(
+    style: &TextStyle,
+    value: &str,
+) -> Option<BackgroundSize> {
     let mut components = value.split_ascii_whitespace();
     let first = components.next()?;
     let second = components.next();
@@ -127,7 +112,10 @@ fn parse_background_size_axis(
     })
 }
 
-fn parse_background_position_layer(style: &TextStyle, value: &str) -> Option<BackgroundPosition> {
+pub(super) fn parse_background_position_layer(
+    style: &TextStyle,
+    value: &str,
+) -> Option<BackgroundPosition> {
     let mut components = value.split_ascii_whitespace().collect::<Vec<_>>();
     if components.is_empty() || components.len() > 2 {
         return None;
@@ -190,7 +178,7 @@ fn parse_position_axis(style: &TextStyle, value: &str, horizontal: bool) -> Opti
     }
 }
 
-fn parse_background_repeat_layer(value: &str) -> Option<BackgroundRepeat> {
+pub(super) fn parse_background_repeat_layer(value: &str) -> Option<BackgroundRepeat> {
     let mut values = value.split_ascii_whitespace();
     let first = values.next()?.to_ascii_lowercase();
     let second = values.next().map(str::to_ascii_lowercase);
@@ -215,7 +203,10 @@ fn parse_background_repeat_layer(value: &str) -> Option<BackgroundRepeat> {
     }
 }
 
-fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<BackgroundImage>> {
+pub(super) fn parse_background_images(
+    style: &TextStyle,
+    value: &str,
+) -> Option<Vec<BackgroundImage>> {
     if value.eq_ignore_ascii_case("none") {
         return Some(Vec::new());
     }
@@ -323,7 +314,7 @@ pub(super) fn apply_background_color(style: &mut TextStyle, value: &str) {
     }
 }
 
-fn parse_background_color(style: &TextStyle, value: &str) -> Option<([u8; 3], f32)> {
+pub(super) fn parse_background_color(style: &TextStyle, value: &str) -> Option<([u8; 3], f32)> {
     if value.eq_ignore_ascii_case("currentcolor") {
         Some((
             [style.color[0], style.color[1], style.color[2]],
@@ -334,7 +325,7 @@ fn parse_background_color(style: &TextStyle, value: &str) -> Option<([u8; 3], f3
     }
 }
 
-fn set_background_color(style: &mut TextStyle, channels: [u8; 3], alpha: f32) {
+pub(super) fn set_background_color(style: &mut TextStyle, channels: [u8; 3], alpha: f32) {
     style.background_color = Some([
         channels[0],
         channels[1],

@@ -100,6 +100,7 @@ pub(super) fn draw_background_image_layers(
             .copied()
             .unwrap_or_default();
         let (shader, tile_clip) = match background {
+            BackgroundImage::None => continue,
             BackgroundImage::Encoded(encoded) => {
                 let image = image_cache
                     .entry(Arc::clone(encoded))

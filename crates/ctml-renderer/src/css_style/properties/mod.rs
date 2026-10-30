@@ -17,12 +17,13 @@ use apply::apply_declaration;
 use aspect_ratio::apply_aspect_ratio;
 use background::{
     apply_background_color, apply_background_image, apply_background_position,
-    apply_background_repeat, apply_background_shorthand, apply_background_size,
+    apply_background_repeat, apply_background_size,
 };
 use background_attachment::apply_background_attachment;
 use background_box::{
     apply_background_clip, apply_background_origin, reset_background_box_properties,
 };
+use background_shorthand::apply_background_shorthand;
 use border::{
     apply_border_color, apply_border_color_side, apply_border_shorthand, apply_border_side,
     apply_border_style, apply_border_style_side, apply_border_width, apply_border_width_side,
@@ -87,6 +88,7 @@ mod background;
 mod background_attachment;
 mod background_box;
 mod background_gradients;
+mod background_shorthand;
 mod border;
 mod border_cascade;
 mod border_image;

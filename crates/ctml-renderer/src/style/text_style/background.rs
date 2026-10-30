@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum BackgroundImage {
+    None,
     Encoded(Arc<[u8]>),
     LinearGradient(LinearGradient),
     RadialGradient(RadialGradient),
