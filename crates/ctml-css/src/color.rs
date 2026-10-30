@@ -504,6 +504,26 @@ mod tests {
     }
 
     #[test]
+    fn color_mix_carries_forward_xyz_components_across_xyz_spaces() {
+        for (space, profile) in [
+            ("xyz", "xyz"),
+            ("xyz-d50", "xyz-d50"),
+            ("xyz-d65", "xyz-d65"),
+        ] {
+            let mixed = parse_color(&format!(
+                "color-mix(in {space}, color({profile} none 0 0), color({profile} 1 0 0))"
+            ));
+            let zero_component = parse_color(&format!(
+                "color-mix(in {space}, color({profile} 0 0 0), color({profile} 1 0 0))"
+            ));
+            assert_ne!(
+                mixed, zero_component,
+                "missing XYZ component was treated as zero in {space}"
+            );
+        }
+    }
+
+    #[test]
     fn color_mix_carries_missing_components_from_nested_mixes() {
         assert_eq!(
             parse_color(

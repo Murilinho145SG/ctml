@@ -191,8 +191,14 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 } else {
                     super::color4::srgb_to_xyz_d65
                 };
-                let first_xyz = convert(first.0);
-                let second_xyz = convert(second.0);
+                let mut first_xyz = convert(first.0);
+                let mut second_xyz = convert(second.0);
+                carry_missing_components(
+                    &mut first_xyz,
+                    &mut second_xyz,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let mixed_xyz = std::array::from_fn(|index| {
                     (first_xyz[index] * first_alpha + second_xyz[index] * second_alpha) / alpha_sum

@@ -34,13 +34,13 @@ fn parse_color_components<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<[bool; 4], cssparser::ParseError<'i, ()>> {
     let profile = input.expect_ident_cloned()?.to_ascii_lowercase();
-    let rgb_profile = is_rgb_profile(&profile);
+    let propagates_components = is_rgb_profile(&profile) || is_xyz_profile(&profile);
     let mut missing = [false; 4];
     for component in &mut missing[..3] {
         let is_missing = input
             .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok();
-        *component = is_missing && rgb_profile;
+        *component = is_missing && propagates_components;
         if !is_missing {
             input.next()?;
         }
@@ -118,6 +118,10 @@ fn is_rgb_profile(profile: &str) -> bool {
             | "prophoto-rgb"
             | "rec2020"
     )
+}
+
+fn is_xyz_profile(profile: &str) -> bool {
+    matches!(profile, "xyz" | "xyz-d50" | "xyz-d65")
 }
 
 fn consume_all_tokens<'i, 't>(

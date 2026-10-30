@@ -130,7 +130,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Carry missing alpha components from direct `color(srgb ...)` inputs through other supported `color-mix()` spaces.
 - [x] Carry matching missing components from direct predefined RGB-profile colors through supported RGB interpolation spaces.
 - [x] Propagate missing components through nested mixes in supported RGB interpolation spaces.
-- [ ] Propagate missing components through non-RGB color spaces and powerless components.
+- [x] Carry matching missing `x`, `y`, and `z` components from direct XYZ-profile colors through XYZ interpolation spaces.
+- [ ] Propagate missing components through Lab/LCH and powerless components.
 - [x] Standard and deprecated system color keywords using CTML's fixed light fallback palette.
 - [ ] Respond to OS forced-color palettes and element color schemes when the host exposes them.
 - [x] Alpha colors for text and page background, including page-background compositing over white.
