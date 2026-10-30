@@ -205,7 +205,7 @@ fn first_line_paints_background_images_only_on_the_formatted_line() {
         "later lines must not get the pseudo background"
     );
     assert_eq!(&pixels[(1 * 180 + 10) * 4..][..3], [255, 255, 255]);
-    assert_eq!(&pixels[(8 * 180 + 20) * 4..][..3], [255, 0, 0]);
+    assert_eq!(&pixels[(12 * 180 + 20) * 4..][..3], [255, 0, 0]);
 }
 
 #[test]
