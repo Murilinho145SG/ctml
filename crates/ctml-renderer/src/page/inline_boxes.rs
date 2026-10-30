@@ -67,9 +67,7 @@ pub(super) fn draw(
                     run.style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
-            let has_background = run.first_letter_block.is_none()
-                && (!run.style.background_layers.is_empty()
-                    || !run.style.background_images.is_empty());
+            let has_background = has_inline_background(run);
             if !has_border && !has_outline && !has_background {
                 continue;
             }
@@ -113,8 +111,7 @@ pub(super) fn draw(
                     style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
-            let has_background = run.first_letter_block.is_none()
-                && (!style.background_layers.is_empty() || !style.background_images.is_empty());
+            let has_background = has_inline_background(run);
             let widths: [f32; 4] = std::array::from_fn(|side| {
                 if style.border_style[side] == BorderLineStyle::None {
                     return 0.0;
@@ -274,7 +271,7 @@ pub(super) fn draw(
                     &style.background_clips,
                     (scroll_x, scroll_y),
                     element_scroll,
-                    style.opacity,
+                    style.opacity * run.first_letter_opacity.unwrap_or(1.0),
                     pixels,
                     width,
                     height,
@@ -369,6 +366,17 @@ pub(super) fn draw(
                 );
             }
         }
+    }
+}
+
+fn has_inline_background(run: &TextRun) -> bool {
+    if run.first_letter_block.is_some() {
+        run.style
+            .background_images
+            .iter()
+            .any(|image| !matches!(image, crate::style::BackgroundImage::None))
+    } else {
+        !run.style.background_layers.is_empty() || !run.style.background_images.is_empty()
     }
 }
 

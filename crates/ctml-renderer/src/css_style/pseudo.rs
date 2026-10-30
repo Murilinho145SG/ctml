@@ -99,6 +99,13 @@ fn resolve_pseudo_style(
                             "opacity",
                             "background",
                             "background-color",
+                            "background-image",
+                            "background-repeat",
+                            "background-position",
+                            "background-size",
+                            "background-attachment",
+                            "background-origin",
+                            "background-clip",
                             "font",
                             "font-family",
                             "font-size",
@@ -222,6 +229,13 @@ fn resolve_pseudo_style(
         .collect::<Vec<_>>();
     let mut inherited = inherited.clone();
     inherited.background_color = None;
+    inherited.background_images.clear();
+    inherited.background_repeats.clear();
+    inherited.background_positions.clear();
+    inherited.background_sizes.clear();
+    inherited.background_attachments.clear();
+    inherited.background_origins.clear();
+    inherited.background_clips.clear();
     let resolved = super::resolve_style_with_selector_tree_context(
         &inherited,
         current,
@@ -260,6 +274,15 @@ fn resolve_pseudo_style(
             .any(|declaration| {
                 [
                     "font",
+                    "background",
+                    "background-color",
+                    "background-image",
+                    "background-repeat",
+                    "background-position",
+                    "background-size",
+                    "background-attachment",
+                    "background-origin",
+                    "background-clip",
                     "font-family",
                     "font-size",
                     "font-weight",

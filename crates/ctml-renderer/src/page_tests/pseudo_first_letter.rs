@@ -54,6 +54,34 @@ fn first_letter_foreground_and_background_apply_to_one_character() {
 }
 
 #[test]
+fn first_letter_paints_supported_background_images() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "background".to_owned(),
+            value: "linear-gradient(red, red)".to_owned(),
+        }],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = page.snapshot_pixels(140, 70);
+
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0]),
+        "the first-letter background image should be painted behind its glyph"
+    );
+}
+
+#[test]
 fn first_letter_text_shadow_is_rasterized() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

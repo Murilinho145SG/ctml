@@ -166,6 +166,27 @@ fn apply_first_letter_style(
     style.text_emphasis_position = pseudo_style.text_emphasis_position;
     style.text_emphasis_side = pseudo_style.text_emphasis_side;
     style.inline_box = true;
+    style
+        .background_images
+        .clone_from(&pseudo_style.background_images);
+    style
+        .background_repeats
+        .clone_from(&pseudo_style.background_repeats);
+    style
+        .background_positions
+        .clone_from(&pseudo_style.background_positions);
+    style
+        .background_sizes
+        .clone_from(&pseudo_style.background_sizes);
+    style
+        .background_attachments
+        .clone_from(&pseudo_style.background_attachments);
+    style
+        .background_origins
+        .clone_from(&pseudo_style.background_origins);
+    style
+        .background_clips
+        .clone_from(&pseudo_style.background_clips);
     style.border_width.clone_from(&pseudo_style.border_width);
     style.border_style = pseudo_style.border_style;
     style.border_color = pseudo_style.border_color;
