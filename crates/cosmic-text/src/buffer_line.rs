@@ -6,7 +6,7 @@ use core::mem;
 
 use crate::{
     Align, Attrs, AttrsList, Cached, Ellipsize, FontSystem, Hinting, LayoutLine, LayoutRunIter,
-    LineEnding, ShapeLine, Shaping, Wrap,
+    LineEnding, ShapeLine, Shaping, TextJustify, Wrap,
 };
 
 /// A line (or paragraph) of text that is shaped and laid out
@@ -20,6 +20,7 @@ pub struct BufferLine {
     indent: f32,
     indent_hanging: bool,
     indent_each_line: bool,
+    text_justify: TextJustify,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -45,6 +46,7 @@ impl BufferLine {
             indent: 0.0,
             indent_hanging: false,
             indent_each_line: false,
+            text_justify: TextJustify::Auto,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -70,6 +72,7 @@ impl BufferLine {
         self.indent = 0.0;
         self.indent_hanging = false;
         self.indent_each_line = false;
+        self.text_justify = TextJustify::Auto;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -194,6 +197,17 @@ impl BufferLine {
         }
     }
 
+    /// Set the justification method used when laying out this line.
+    pub fn set_text_justify(&mut self, text_justify: TextJustify) -> bool {
+        if self.text_justify != text_justify {
+            self.text_justify = text_justify;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Append line at end of this line
     ///
     /// The wrap setting of the appended line will be lost
@@ -233,6 +247,7 @@ impl BufferLine {
         new.indent = self.indent;
         new.indent_hanging = self.indent_hanging;
         new.indent_each_line = self.indent_each_line;
+        new.text_justify = self.text_justify;
         new
     }
 
@@ -302,6 +317,7 @@ impl BufferLine {
             let indent = self.indent;
             let indent_hanging = self.indent_hanging;
             let indent_each_line = self.indent_each_line;
+            let text_justify = self.text_justify;
             let mut layout = self
                 .layout_opt
                 .take_unused()
@@ -318,6 +334,7 @@ impl BufferLine {
                 indent,
                 indent_hanging,
                 indent_each_line,
+                text_justify,
                 &mut layout,
                 match_mono_width,
                 hinting,
@@ -361,6 +378,7 @@ impl BufferLine {
             indent: 0.0,
             indent_hanging: false,
             indent_each_line: false,
+            text_justify: TextJustify::Auto,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -483,5 +501,34 @@ mod tests {
             .expect("second visual line should contain glyphs");
         assert!(first_left < 12.0);
         assert!(second_left >= 12.0);
+    }
+
+    #[test]
+    fn applies_inter_character_justification_without_word_spaces() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(120.0), None);
+        buffer.set_text(
+            "abcdefgh",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+        buffer.lines[0].set_align_last(Some(Align::JustifiedLast));
+
+        buffer.lines[0].set_text_justify(TextJustify::None);
+        buffer.shape_until_scroll(&mut font_system, false);
+        let unexpanded_width = buffer.layout_runs().next().unwrap().line_w;
+        assert!(unexpanded_width < 120.0);
+
+        buffer.lines[0].set_text_justify(TextJustify::InterWord);
+        buffer.shape_until_scroll(&mut font_system, false);
+        let inter_word_width = buffer.layout_runs().next().unwrap().line_w;
+        assert!((inter_word_width - unexpanded_width).abs() < 0.01);
+
+        buffer.lines[0].set_text_justify(TextJustify::InterCharacter);
+        buffer.shape_until_scroll(&mut font_system, false);
+        let inter_character_width = buffer.layout_runs().next().unwrap().line_w;
+        assert!((inter_character_width - 120.0).abs() < 0.01);
     }
 }

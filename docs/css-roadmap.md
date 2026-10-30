@@ -199,7 +199,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Text alignment: left, right, center, justify, start, and end.
 - [x] `text-align-last` for automatic, logical and physical edge, centered, and justified final lines.
 - [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
-- [ ] Advanced `text-justify` controls.
+- [x] `text-justify`: `auto`, `none`, `inter-word`, `inter-character`, and legacy `distribute`.
 - [ ] White-space collapsing/wrapping controls, including `white-space`, `overflow-wrap`, and `word-break`.
 - [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.
 - [ ] Text overflow and line clamping.

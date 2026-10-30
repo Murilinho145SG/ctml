@@ -542,6 +542,28 @@ fn resolves_supported_text_alignment_values() {
 }
 
 #[test]
+fn resolves_text_justify_methods_and_legacy_distribute_alias() {
+    for (value, expected) in [
+        ("auto", cosmic_text::TextJustify::Auto),
+        ("none", cosmic_text::TextJustify::None),
+        ("inter-word", cosmic_text::TextJustify::InterWord),
+        ("inter-character", cosmic_text::TextJustify::InterCharacter),
+        ("distribute", cosmic_text::TextJustify::InterCharacter),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("text-justify", value)]).text_justify,
+            expected,
+            "{value}"
+        );
+    }
+    assert_eq!(
+        style_for_declarations(&[("text-justify", "none"), ("text-justify", "invalid")])
+            .text_justify,
+        cosmic_text::TextJustify::None
+    );
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

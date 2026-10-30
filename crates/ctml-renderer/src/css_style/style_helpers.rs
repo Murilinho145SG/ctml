@@ -42,6 +42,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-transform",
     "text-align",
     "text-align-last",
+    "text-justify",
     "text-indent",
     "text-decoration",
     "text-decoration-line",

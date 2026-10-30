@@ -176,6 +176,20 @@ impl Display for Align {
     }
 }
 
+/// Selects the opportunities used when expanding justified text.
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Default)]
+pub enum TextJustify {
+    /// Use the engine's default justification method.
+    #[default]
+    Auto,
+    /// Do not expand text when it is justified.
+    None,
+    /// Expand word separators.
+    InterWord,
+    /// Expand between shaped glyph clusters.
+    InterCharacter,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Ellipsize {
     /// No Ellipsizing

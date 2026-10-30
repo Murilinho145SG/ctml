@@ -433,6 +433,7 @@ fn line_alignments(
 ) -> Vec<(
     cosmic_text::Align,
     Option<cosmic_text::Align>,
+    cosmic_text::TextJustify,
     f32,
     f32,
     bool,
@@ -442,13 +443,22 @@ fn line_alignments(
         (
             style.text_align,
             style.text_align_last,
+            style.text_justify,
             style.text_indent,
             style.text_indent_percent,
             style.text_indent_hanging,
             style.text_indent_each_line,
         )
     };
-    let mut alignments = vec![(cosmic_text::Align::Left, None, 0.0, 0.0, false, false)];
+    let mut alignments = vec![(
+        cosmic_text::Align::Left,
+        None,
+        cosmic_text::TextJustify::Auto,
+        0.0,
+        0.0,
+        false,
+        false,
+    )];
     let mut line_has_text = false;
     for run in runs {
         for character in run.text.chars() {

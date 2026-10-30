@@ -6,7 +6,7 @@ use crate::fallback::FontFallbackIter;
 use crate::{
     math, Align, Attrs, AttrsList, CacheKeyFlags, Color, DecorationMetrics, DecorationSpan,
     Ellipsize, EllipsizeHeightLimit, Family, Font, FontSystem, GlyphDecorationData, Hinting,
-    LayoutGlyph, LayoutLine, Metrics, Wrap,
+    LayoutGlyph, LayoutLine, Metrics, TextJustify, Wrap,
 };
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
@@ -2345,6 +2345,7 @@ impl ShapeLine {
             0.0,
             false,
             false,
+            TextJustify::Auto,
             layout_lines,
             match_mono_width,
             hinting,
@@ -2363,6 +2364,7 @@ impl ShapeLine {
         indent: f32,
         indent_hanging: bool,
         indent_each_line: bool,
+        text_justify: TextJustify,
         layout_lines: &mut Vec<LayoutLine>,
         match_mono_width: Option<f32>,
         hinting: Hinting,
@@ -2923,13 +2925,48 @@ impl ShapeLine {
             // (also some spaces aren't followed by potential linebreaks but they could
             //  still be expanded)
 
-            // Amount of extra width added to each blank space within a line.
+            // Amount of extra width added at each selected justification opportunity.
             let should_justify = matches!(line_align, Align::JustifiedLast)
                 || (matches!(line_align, Align::Justified) && index != number_of_visual_lines - 1);
-            let justification_expansion = if should_justify && visual_line.spaces > 0 {
-                (line_width - visual_line.w) / visual_line.spaces as f32
+            let justification_expansion = if should_justify
+                && !matches!(
+                    text_justify,
+                    TextJustify::None | TextJustify::InterCharacter
+                )
+                && visual_line.spaces > 0
+            {
+                (alignment_width - visual_line.w).max(0.0) / visual_line.spaces as f32
             } else {
                 0.
+            };
+            let mut remaining_character_opportunities = visual_line
+                .ranges
+                .iter()
+                .filter(|range| range.span != ELLIPSIS_SPAN)
+                .map(|range| {
+                    let words = self.get_span_words(range.span);
+                    (range.start.word..range.end.word + usize::from(range.end.glyph != 0))
+                        .map(|word_index| {
+                            let word = &words[word_index];
+                            match (word_index == range.start.word, word_index == range.end.word) {
+                                (false, false) => word.glyphs.len(),
+                                (true, false) => word.glyphs.len() - range.start.glyph,
+                                (false, true) => range.end.glyph,
+                                (true, true) => range.end.glyph.saturating_sub(range.start.glyph),
+                            }
+                        })
+                        .sum::<usize>()
+                })
+                .sum::<usize>()
+                .saturating_sub(1);
+            let character_expansion = if should_justify
+                && matches!(text_justify, TextJustify::InterCharacter)
+                && remaining_character_opportunities > 0
+            {
+                (alignment_width - visual_line.w).max(0.0)
+                    / remaining_character_opportunities as f32
+            } else {
+                0.0
             };
 
             let elided_byte_range = if visual_line.ellipsized {
@@ -2940,13 +2977,13 @@ impl ShapeLine {
 
             let mut decorations: Vec<DecorationSpan> = Vec::new();
 
-            let process_range = |range: Range<usize>,
-                                 x: &mut f32,
-                                 y: &mut f32,
-                                 glyphs: &mut Vec<LayoutGlyph>,
-                                 decorations: &mut Vec<DecorationSpan>,
-                                 max_ascent: &mut f32,
-                                 max_descent: &mut f32| {
+            let mut process_range = |range: Range<usize>,
+                                     x: &mut f32,
+                                     y: &mut f32,
+                                     glyphs: &mut Vec<LayoutGlyph>,
+                                     decorations: &mut Vec<DecorationSpan>,
+                                     max_ascent: &mut f32,
+                                     max_descent: &mut f32| {
                 for r in visual_line.ranges[range.clone()].iter() {
                     let is_ellipsis = r.span == ELLIPSIS_SPAN;
                     let span_words = self.get_span_words(r.span);
@@ -2994,14 +3031,17 @@ impl ShapeLine {
                                 _ => font_size,
                             };
 
-                            let mut x_advance = glyph_font_size.mul_add(
-                                glyph.x_advance,
-                                if word.blank {
-                                    justification_expansion
-                                } else {
-                                    0.0
-                                },
-                            );
+                            let mut extra_advance = if word.blank {
+                                justification_expansion
+                            } else {
+                                0.0
+                            };
+                            if character_expansion > 0.0 && remaining_character_opportunities > 0 {
+                                extra_advance += character_expansion;
+                                remaining_character_opportunities -= 1;
+                            }
+                            let mut x_advance =
+                                glyph_font_size.mul_add(glyph.x_advance, extra_advance);
                             if let Some(match_em_width) = match_mono_em_width {
                                 // Round to nearest monospace width
                                 x_advance = ((x_advance / match_em_width).round()) * match_em_width;

@@ -131,6 +131,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-transform"
             | "text-align"
             | "text-align-last"
+            | "text-justify"
             | "text-indent"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
@@ -234,6 +235,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "text-transform" => style.text_transform = inherited.text_transform,
         "text-align" => style.text_align = inherited.text_align,
         "text-align-last" => style.text_align_last = inherited.text_align_last,
+        "text-justify" => style.text_justify = inherited.text_justify,
         "text-indent" => {
             style.text_indent = inherited.text_indent;
             style.text_indent_percent = inherited.text_indent_percent;
@@ -332,6 +334,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-transform" => style.text_transform = TextTransform::None,
         "text-align" => style.text_align = cosmic_text::Align::Left,
         "text-align-last" => style.text_align_last = None,
+        "text-justify" => style.text_justify = cosmic_text::TextJustify::Auto,
         "text-indent" => {
             style.text_indent = 0.0;
             style.text_indent_percent = 0.0;
@@ -563,6 +566,15 @@ fn apply_declaration(
                 "center" => Some(Align::Center),
                 "justify" => Some(Align::JustifiedLast),
                 _ => style.text_align_last,
+            };
+        }
+        "text-justify" => {
+            style.text_justify = match value.to_ascii_lowercase().as_str() {
+                "auto" => cosmic_text::TextJustify::Auto,
+                "none" => cosmic_text::TextJustify::None,
+                "inter-word" => cosmic_text::TextJustify::InterWord,
+                "inter-character" | "distribute" => cosmic_text::TextJustify::InterCharacter,
+                _ => style.text_justify,
             };
         }
         "text-indent" => apply_text_indent(style, value),
