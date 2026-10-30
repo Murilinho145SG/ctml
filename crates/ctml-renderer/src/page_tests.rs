@@ -54,6 +54,8 @@ mod first_line_transform;
 mod font_relative_units;
 #[path = "page_tests/hyphens.rs"]
 mod hyphens;
+#[path = "page_tests/inline_boxes.rs"]
+mod inline_boxes;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
 #[path = "page_tests/outline.rs"]

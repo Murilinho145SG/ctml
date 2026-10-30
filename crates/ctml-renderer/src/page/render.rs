@@ -1,6 +1,6 @@
 use super::{
     PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, borders, box_shadows, decorations,
-    font_raster,
+    font_raster, inline_boxes,
 };
 use cosmic_text::Color;
 
@@ -36,6 +36,15 @@ impl PageRasterizer {
             writing_mode,
             &overflow_clips,
             nested_scroll,
+        );
+        inline_boxes::draw(
+            &self.runs,
+            &self.buffer,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
         );
         box_shadows::draw_inset(
             &self.runs,

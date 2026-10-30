@@ -91,6 +91,8 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.outline_offset = None;
     style.aspect_ratio = None;
     style.box_shadows.clear();
+    style.box_decoration_break = crate::style::BoxDecorationBreak::Slice;
+    style.inline_box = false;
     style.margin = std::array::from_fn(|_| None);
     style.logical_margin = std::array::from_fn(|_| None);
     style.physical_margin_orders = [0; 4];

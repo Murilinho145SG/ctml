@@ -218,6 +218,7 @@ pub(super) fn collect_runs(
                 )
                 .is_some();
                 let block = style.display_block.unwrap_or_else(|| is_block(tag));
+                style.inline_box = !block;
                 let has_block_size = block
                     && (style.width.is_some()
                         || style.min_width.is_some()

@@ -450,6 +450,9 @@ mod border_radius_tests;
 #[path = "css_style_border_tests.rs"]
 mod border_tests;
 #[cfg(test)]
+#[path = "css_style_box_decoration_tests.rs"]
+mod box_decoration_tests;
+#[cfg(test)]
 #[path = "css_style_box_shadow_tests.rs"]
 mod box_shadow_tests;
 #[cfg(test)]

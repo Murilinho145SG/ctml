@@ -28,6 +28,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "outline-offset",
     "aspect-ratio",
     "box-shadow",
+    "box-decoration-break",
     "border",
     "border-top",
     "border-right",

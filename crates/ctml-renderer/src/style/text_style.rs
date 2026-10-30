@@ -67,6 +67,13 @@ pub(crate) enum BorderLineStyle {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BoxDecorationBreak {
+    #[default]
+    Slice,
+    Clone,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum LineBreak {
     #[default]
     Auto,

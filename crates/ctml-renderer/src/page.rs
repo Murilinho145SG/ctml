@@ -23,6 +23,7 @@ mod font_features;
 mod font_raster;
 mod highlights;
 mod hyphenation;
+mod inline_boxes;
 mod interactions;
 mod layout;
 mod local_writing;
