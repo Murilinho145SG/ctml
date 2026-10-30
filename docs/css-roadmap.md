@@ -47,6 +47,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-decoration-line` values `underline`, `overline`, and `line-through` on `::first-line` and `::first-letter`, with supported decoration style, color, and thickness.
 - [x] `::first-letter` applies `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch` to its first non-whitespace character.
 - [x] `::first-letter` also applies supported font kerning, variant, feature, line-height, letter-spacing, text-shadow, and text-emphasis properties to that character.
+- [x] `::first-letter` applies `font-optical-sizing` and `font-variation-settings` to the initial glyph.
 - [x] `::first-line` font family, size, weight, style, stretch, kerning, supported variants/features, and letter spacing in glyph rendering; wrapping and line metrics still come from the base text layout.
 - [x] `::first-line` text shadow and emphasis marks in glyph rendering.
 - [x] Pseudo-element text decorations honor `text-decoration-skip-ink` values `auto`, `none`, and `all`.

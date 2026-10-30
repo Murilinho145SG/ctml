@@ -71,6 +71,11 @@ pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
             first_letter.style.contextual_alternates = pseudo_style.contextual_alternates;
             first_letter.style.font_variant_caps = pseudo_style.font_variant_caps;
             first_letter.style.font_variant_position = pseudo_style.font_variant_position;
+            first_letter.style.font_optical_sizing = pseudo_style.font_optical_sizing;
+            first_letter
+                .style
+                .font_variation_settings
+                .clone_from(&pseudo_style.font_variation_settings);
             first_letter
                 .style
                 .font_variant_numeric

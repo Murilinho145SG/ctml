@@ -226,6 +226,42 @@ fn generated_counters_support_alpha_greek_and_roman_styles() {
     );
 }
 
+#[test]
+fn first_letter_applies_font_optical_sizing_and_variation_settings() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Variable font".to_owned())],
+    }];
+    let stylesheet = [
+        ("p::first-letter", "font-optical-sizing", "none"),
+        (
+            "p::first-letter",
+            "font-variation-settings",
+            "\"wght\" 725, \"wdth\" 90",
+        ),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    let first_letter = runs.iter().find(|run| run.text == "V").unwrap();
+
+    assert!(!first_letter.style.font_optical_sizing);
+    assert_eq!(
+        first_letter.style.font_variation_settings,
+        vec![(*b"wght", 725.0), (*b"wdth", 90.0)]
+    );
+}
+
 fn counter_item(text: &str, nested: Option<UiNode>) -> UiNode {
     let mut children = vec![UiNode::Text(text.to_owned())];
     children.extend(nested);
