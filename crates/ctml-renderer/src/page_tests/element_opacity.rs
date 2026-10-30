@@ -371,6 +371,80 @@ fn overlapping_sibling_opacity_groups_compose_in_document_order() {
 }
 
 #[test]
+fn opacity_group_paint_order_respects_later_non_opacity_siblings() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: Some("group".to_owned()),
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("Group".to_owned())],
+            },
+            UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: Some("ordinary".to_owned()),
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("Ordinary".to_owned())],
+            },
+        ],
+    }];
+    let stylesheet = |opacity: &str| {
+        [
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations: vec![
+                    declaration("width", "90px"),
+                    declaration("height", "44px"),
+                    declaration("margin-top", "-20px"),
+                ],
+            },
+            StyleRule {
+                selectors: vec!["#group".to_owned()],
+                layer: None,
+                declarations: vec![
+                    declaration("background-color", "red"),
+                    declaration("box-shadow", "0 25px 0 0 red"),
+                    declaration("opacity", opacity),
+                ],
+            },
+            StyleRule {
+                selectors: vec!["#ordinary".to_owned()],
+                layer: None,
+                declarations: vec![declaration("background-color", "blue")],
+            },
+        ]
+    };
+    let hidden = PageRasterizer::new(&nodes, &stylesheet("0")).snapshot_pixels(160, 90);
+    let opaque = PageRasterizer::new(&nodes, &stylesheet("1")).snapshot_pixels(160, 90);
+    let translucent = PageRasterizer::new(&nodes, &stylesheet("0.5")).snapshot_pixels(160, 90);
+
+    let max_error = hidden
+        .chunks_exact(4)
+        .zip(opaque.chunks_exact(4))
+        .zip(translucent.chunks_exact(4))
+        .flat_map(|((hidden, opaque), actual)| {
+            hidden[..3].iter().zip(&opaque[..3]).zip(&actual[..3]).map(
+                |((hidden, opaque), actual)| {
+                    let expected = (f32::from(*hidden)
+                        + (f32::from(*opaque) - f32::from(*hidden)) * 0.5)
+                        .round() as u8;
+                    actual.abs_diff(expected)
+                },
+            )
+        })
+        .max()
+        .unwrap_or_default();
+    assert!(max_error <= 1, "maximum channel error was {max_error}");
+}
+
+#[test]
 fn element_opacity_scales_text_decorations() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

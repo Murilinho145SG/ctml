@@ -18,6 +18,8 @@ impl PageRasterizer {
             width,
             height,
             writing_mode,
+            true,
+            false,
         );
         if self.root_opacity == 0.0 {
             for pixel in pixels.chunks_exact_mut(4) {
@@ -25,15 +27,20 @@ impl PageRasterizer {
             }
             return pixels;
         }
-        let mut top_level_groups = self
-            .opacity_group_children(None)
-            .into_iter()
-            .filter(|node_id| self.opacity_groups[node_id] > 0.0)
-            .collect::<Vec<_>>();
-        top_level_groups.sort_unstable();
-        for node_id in top_level_groups {
-            let (black, white) = self.render_group_layer(node_id, width, height, writing_mode);
-            composite_group_layer(&mut pixels, &black, &white, self.opacity_groups[&node_id]);
+        for node_id in self.root_child_ids() {
+            if let Some(opacity) = self.opacity_groups.get(&node_id).copied() {
+                if opacity > 0.0 && opacity < 1.0 {
+                    let (black, white) =
+                        self.render_group_layer(node_id, width, height, writing_mode);
+                    composite_group_layer(&mut pixels, &black, &white, opacity);
+                } else if opacity == 0.0 {
+                    continue;
+                } else {
+                    self.composite_node_layer(node_id, &mut pixels, width, height, writing_mode);
+                }
+            } else {
+                self.composite_node_layer(node_id, &mut pixels, width, height, writing_mode);
+            }
         }
         if self.root_opacity < 1.0 {
             for pixel in pixels.chunks_exact_mut(4) {
@@ -67,17 +74,29 @@ impl PageRasterizer {
         height: u32,
         writing_mode: WritingMode,
     ) -> Vec<u8> {
-        let mut pixels =
-            self.render_scoped_raw(Some(node_id), background, width, height, writing_mode);
-        let mut child_groups = self
-            .opacity_group_children(Some(node_id))
-            .into_iter()
-            .filter(|child| self.opacity_groups[child] > 0.0)
-            .collect::<Vec<_>>();
-        child_groups.sort_unstable();
-        for child in child_groups {
-            let (black, white) = self.render_group_layer(child, width, height, writing_mode);
-            composite_group_layer(&mut pixels, &black, &white, self.opacity_groups[&child]);
+        let mut pixels = self.render_scoped_raw(
+            Some(node_id),
+            background,
+            width,
+            height,
+            writing_mode,
+            false,
+            true,
+        );
+        for child in self.child_ids(node_id) {
+            if let Some(opacity) = self.opacity_groups.get(&child).copied() {
+                if opacity > 0.0 && opacity < 1.0 {
+                    let (black, white) =
+                        self.render_group_layer(child, width, height, writing_mode);
+                    composite_group_layer(&mut pixels, &black, &white, opacity);
+                } else if opacity == 0.0 {
+                    continue;
+                } else {
+                    self.composite_node_layer(child, &mut pixels, width, height, writing_mode);
+                }
+            } else {
+                self.composite_node_layer(child, &mut pixels, width, height, writing_mode);
+            }
         }
         pixels
     }
@@ -89,6 +108,8 @@ impl PageRasterizer {
         width: u32,
         height: u32,
         writing_mode: WritingMode,
+        root_only: bool,
+        own_only: bool,
     ) -> Vec<u8> {
         let original_runs = std::mem::take(&mut self.runs);
         let original_cursor_spans = std::mem::take(&mut self.cursor_spans);
@@ -104,16 +125,9 @@ impl PageRasterizer {
                     .position(|path_node| *path_node == node_id)
             });
             run.style.opacity = match scope_index {
-                Some(scope_index)
-                    if !has_opacity_group(
-                        &run.element_path[scope_index + 1..],
-                        &self.opacity_groups,
-                    ) =>
-                {
-                    1.0
-                }
+                Some(scope_index) if !own_only || scope_index + 1 == run.element_path.len() => 1.0,
                 Some(_) => 0.0,
-                None if scope.is_some() => 0.0,
+                None if scope.is_some() || (root_only && !run.element_path.is_empty()) => 0.0,
                 None if has_opacity_group(&run.element_path, &self.opacity_groups) => 0.0,
                 None => 1.0,
             };
@@ -130,6 +144,7 @@ impl PageRasterizer {
                     continue;
                 };
                 let visible_in_scope = match scope_index {
+                    Some(scope_index) if own_only => size_index == scope_index,
                     Some(scope_index) => {
                         size_index >= scope_index
                             && (size_index == scope_index
@@ -138,7 +153,7 @@ impl PageRasterizer {
                                     &self.opacity_groups,
                                 ))
                     }
-                    None if scope.is_some() => false,
+                    None if scope.is_some() || root_only => false,
                     None => {
                         !has_opacity_group(&run.element_path[..=size_index], &self.opacity_groups)
                     }
@@ -163,26 +178,76 @@ impl PageRasterizer {
         pixels
     }
 
-    fn opacity_group_children(&self, scope: Option<usize>) -> HashSet<usize> {
+    fn composite_node_layer(
+        &mut self,
+        node_id: usize,
+        pixels: &mut [u8],
+        width: u32,
+        height: u32,
+        writing_mode: WritingMode,
+    ) {
+        let black = self.render_scoped_raw(
+            Some(node_id),
+            BLACK,
+            width,
+            height,
+            writing_mode,
+            false,
+            true,
+        );
+        let white = self.render_scoped_raw(
+            Some(node_id),
+            WHITE,
+            width,
+            height,
+            writing_mode,
+            false,
+            true,
+        );
+        composite_group_layer(pixels, &black, &white, 1.0);
+        for child in self.child_ids(node_id) {
+            if let Some(opacity) = self.opacity_groups.get(&child).copied() {
+                if opacity > 0.0 && opacity < 1.0 {
+                    let (black, white) =
+                        self.render_group_layer(child, width, height, writing_mode);
+                    composite_group_layer(pixels, &black, &white, opacity);
+                } else if opacity == 0.0 {
+                    continue;
+                } else {
+                    self.composite_node_layer(child, pixels, width, height, writing_mode);
+                }
+            } else {
+                self.composite_node_layer(child, pixels, width, height, writing_mode);
+            }
+        }
+    }
+
+    fn child_ids(&self, scope: usize) -> Vec<usize> {
         let mut children = HashSet::new();
         for run in &self.runs {
-            let start = scope.map_or(0, |scope| {
-                run.element_path
-                    .iter()
-                    .position(|node_id| *node_id == scope)
-                    .map_or(run.element_path.len(), |index| index + 1)
-            });
-            if start == run.element_path.len() {
-                continue;
+            if let Some(index) = run
+                .element_path
+                .iter()
+                .position(|node_id| *node_id == scope)
+                && let Some(child) = run.element_path.get(index + 1)
+            {
+                children.insert(*child);
             }
-            if let Some(node_id) = run.element_path[start..].iter().find(|node_id| {
-                self.opacity_groups
-                    .get(node_id)
-                    .is_some_and(|opacity| *opacity < 1.0)
-            }) {
+        }
+        let mut children = children.into_iter().collect::<Vec<_>>();
+        children.sort_unstable();
+        children
+    }
+
+    fn root_child_ids(&self) -> Vec<usize> {
+        let mut children = HashSet::new();
+        for run in &self.runs {
+            if let Some(node_id) = run.element_path.first() {
                 children.insert(*node_id);
             }
         }
+        let mut children = children.into_iter().collect::<Vec<_>>();
+        children.sort_unstable();
         children
     }
 }
