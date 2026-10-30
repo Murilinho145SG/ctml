@@ -275,6 +275,47 @@ fn nested_orthogonal_writing_mode_wraps_on_its_inline_axis() {
 }
 
 #[test]
+fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Vertical text column ".repeat(16))],
+    }];
+    for writing_mode in ["vertical-rl", "vertical-lr"] {
+        let stylesheet = [StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: writing_mode.to_owned(),
+            }],
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        let pixels = page.snapshot_pixels(160, 400);
+        let mut bounds = (160_u32, 400_u32, 0_u32, 0_u32);
+        for y in 0..400 {
+            for x in 0..160 {
+                let index = ((y * 160 + x) * 4) as usize;
+                if pixels[index] < 220 || pixels[index + 1] < 220 || pixels[index + 2] < 220 {
+                    bounds.0 = bounds.0.min(x);
+                    bounds.1 = bounds.1.min(y);
+                    bounds.2 = bounds.2.max(x);
+                    bounds.3 = bounds.3.max(y);
+                }
+            }
+        }
+        let painted_width = bounds.2.saturating_sub(bounds.0);
+        let painted_height = bounds.3.saturating_sub(bounds.1);
+        assert!(
+            painted_height > painted_width * 2,
+            "{writing_mode}: {bounds:?}"
+        );
+    }
+}
+
+#[test]
 fn vertical_root_block_size_constrains_the_block_flow_axis() {
     let text = "block size limits vertical column flow ".repeat(20);
     let nodes = [UiNode::Element {

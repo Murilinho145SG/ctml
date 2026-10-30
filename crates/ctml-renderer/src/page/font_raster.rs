@@ -61,6 +61,29 @@ pub(super) fn draw(
     let line_starts = text_line_starts(runs);
     let shaper = skia_safe::shapers::hb::shape_dont_wrap_or_reorder(None::<FontMgr>);
     let canvas = surface.canvas();
+    let mut vertical_block_origins = HashMap::<usize, f32>::new();
+    if writing_mode == WritingMode::HorizontalTb {
+        for layout_run in buffer.layout_runs() {
+            let line_start = line_starts.get(layout_run.line_i).copied().unwrap_or(0);
+            for glyph in layout_run.glyphs {
+                let Some(index) = style_index_at(&style_ranges, line_start + glyph.start) else {
+                    continue;
+                };
+                let Some(style_run) = runs.get(index) else {
+                    continue;
+                };
+                if style_run.style.writing_mode == WritingMode::HorizontalTb {
+                    continue;
+                }
+                if let Some(block) = style_run.first_line_block {
+                    vertical_block_origins
+                        .entry(block)
+                        .and_modify(|origin| *origin = origin.min(layout_run.line_y))
+                        .or_insert(layout_run.line_y);
+                }
+            }
+        }
+    }
     for run in buffer.layout_runs() {
         let line_start = line_starts.get(run.line_i).copied().unwrap_or(0);
         let mut start = 0;
@@ -86,7 +109,13 @@ pub(super) fn draw(
                     .and_then(|index| runs.get(index))
                     .map(|run| &run.style)
             });
-            let first_upright = glyph_is_upright(&run, first, orientation_style, writing_mode);
+            let orientation_mode = orientation_style
+                .map(|style| style.writing_mode)
+                .filter(|mode| {
+                    *mode != WritingMode::HorizontalTb && writing_mode == WritingMode::HorizontalTb
+                })
+                .unwrap_or(writing_mode);
+            let first_upright = glyph_is_upright(&run, first, orientation_style, orientation_mode);
             let opacity = pseudo_opacity_at(
                 cursor_spans,
                 &first_line_by_block,
@@ -133,8 +162,18 @@ pub(super) fn draw(
                     || glyph.level != first.level
                     || glyph_style_index != style_index
                     || glyph_first_line_style.is_some() != first_line_style.is_some()
-                    || glyph_is_upright(&run, glyph, glyph_orientation_style, writing_mode)
-                        != first_upright
+                    || glyph_is_upright(
+                        &run,
+                        glyph,
+                        glyph_orientation_style,
+                        glyph_orientation_style
+                            .map(|style| style.writing_mode)
+                            .filter(|mode| {
+                                *mode != WritingMode::HorizontalTb
+                                    && writing_mode == WritingMode::HorizontalTb
+                            })
+                            .unwrap_or(writing_mode),
+                    ) != first_upright
                     || glyph_color.unwrap_or(cosmic_text::Color::rgb(0, 0, 0)) != color
                     || pseudo_opacity_at(
                         cursor_spans,
@@ -192,6 +231,37 @@ pub(super) fn draw(
                     .and_then(|index| runs.get(index))
                     .map(|run| &run.style)
             });
+            let local_vertical_mode = text_style.map(|style| style.writing_mode).filter(|mode| {
+                *mode != WritingMode::HorizontalTb && writing_mode == WritingMode::HorizontalTb
+            });
+            let has_local_vertical_transform = if let Some(mode) = local_vertical_mode {
+                let origin_y = style_index
+                    .and_then(|index| runs.get(index))
+                    .and_then(|style_run| style_run.first_line_block)
+                    .and_then(|block| vertical_block_origins.get(&block).copied())
+                    .unwrap_or(run.line_y);
+                let source = Point::new(PAGE_PADDING, origin_y);
+                let target = match mode {
+                    WritingMode::VerticalRl => Point::new(width as f32 - origin_y, PAGE_PADDING),
+                    WritingMode::VerticalLr => Point::new(origin_y, height as f32 - PAGE_PADDING),
+                    WritingMode::HorizontalTb => unreachable!(),
+                };
+                canvas.save();
+                canvas.translate((target.x, target.y));
+                canvas.rotate(
+                    match mode {
+                        WritingMode::VerticalRl => 90.0,
+                        WritingMode::VerticalLr => -90.0,
+                        WritingMode::HorizontalTb => unreachable!(),
+                    },
+                    None,
+                );
+                canvas.translate((-source.x, -source.y));
+                true
+            } else {
+                false
+            };
+            let glyph_writing_mode = local_vertical_mode.unwrap_or(writing_mode);
             let font_size = text_style.map_or(first.font_size, |style| style.font_size);
             let mut font = Font::from_typeface(typeface, font_size);
             configure_font(&mut font);
@@ -236,11 +306,19 @@ pub(super) fn draw(
                     baseline,
                     &paint,
                     text_style,
-                    writing_mode,
+                    glyph_writing_mode,
                     opacity,
                 );
                 if let Some(style) = text_style {
-                    draw_text_emphasis(canvas, &run, group, style, writing_mode, &font, opacity);
+                    draw_text_emphasis(
+                        canvas,
+                        &run,
+                        group,
+                        style,
+                        glyph_writing_mode,
+                        &font,
+                        opacity,
+                    );
                 }
             } else if let Some(blob) = blob {
                 if let Some(style) = text_style {
@@ -248,7 +326,15 @@ pub(super) fn draw(
                 }
                 canvas.draw_text_blob(blob, Point::default(), &paint);
                 if let Some(style) = text_style {
-                    draw_text_emphasis(canvas, &run, group, style, writing_mode, &font, opacity);
+                    draw_text_emphasis(
+                        canvas,
+                        &run,
+                        group,
+                        style,
+                        glyph_writing_mode,
+                        &font,
+                        opacity,
+                    );
                 }
             } else {
                 let mut builder = TextBlobBuilder::new();
@@ -271,7 +357,7 @@ pub(super) fn draw(
                             &run,
                             group,
                             style,
-                            writing_mode,
+                            glyph_writing_mode,
                             &font,
                             opacity,
                         );
@@ -290,6 +376,9 @@ pub(super) fn draw(
                     color,
                     opacity,
                 );
+            }
+            if has_local_vertical_transform {
+                canvas.restore();
             }
             start = end;
         }
