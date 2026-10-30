@@ -6,6 +6,7 @@ use super::super::{
     PageRasterizer,
     sizing::{line_layout_sizes, resolve_layout_width, resolve_width, select_axis_size},
     sizing_height::resolve_layout_height_with_ancestors,
+    sizing_intrinsic::measure_intrinsic_widths,
     sizing_padding::{inline_margin, inline_padding},
 };
 use super::{line_alignments, line_writing_modes, paragraph_directions};
@@ -184,6 +185,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                 .unwrap_or(root_style.font_size * 1.2);
     }
     let root_attributes = root_style.to_attrs(&root_family);
+    measure_intrinsic_widths(page, &attributes, &root_attributes);
     page.buffer.set_rich_text(
         page.runs
             .iter()

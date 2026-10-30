@@ -21,7 +21,7 @@ fn parse_size_value(style: &TextStyle, value: &str) -> Option<Option<String>> {
     let value = value.trim();
     if value.eq_ignore_ascii_case("auto") {
         Some(None)
-    } else if is_size_expression(style, value) {
+    } else if is_size_expression(style, value) || is_intrinsic_size_keyword(style, value) {
         Some(Some(value.to_ascii_lowercase()))
     } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
@@ -54,6 +54,7 @@ pub(super) fn is_valid_size_declaration(style: &TextStyle, property: &str, value
             };
             value.eq_ignore_ascii_case(reset)
                 || is_size_expression(style, value)
+                || is_intrinsic_size_keyword(style, value)
                 || parse_nonnegative_font_relative_length_with_viewport(
                     value,
                     style.font_size,
@@ -201,6 +202,14 @@ fn apply_dimension_limit(
         viewport_size,
     ) {
         *target = Some(value.to_ascii_lowercase());
+    } else if is_intrinsic_size_keyword_with_metrics(
+        value,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    ) {
+        *target = Some(value.to_ascii_lowercase());
     } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
         font_size,
@@ -222,6 +231,52 @@ fn is_size_expression(style: &TextStyle, value: &str) -> bool {
         style.font_relative_units,
         style.viewport_size,
     )
+}
+
+fn is_intrinsic_size_keyword(style: &TextStyle, value: &str) -> bool {
+    is_intrinsic_size_keyword_with_metrics(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+}
+
+fn is_intrinsic_size_keyword_with_metrics(
+    value: &str,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: ctml_css::FontRelativeUnits,
+    viewport_size: ctml_css::ViewportSize,
+) -> bool {
+    let value = value.trim().to_ascii_lowercase();
+    if matches!(
+        value.as_str(),
+        "min-content" | "max-content" | "fit-content"
+    ) {
+        return true;
+    }
+    let Some(argument) = value
+        .strip_prefix("fit-content(")
+        .and_then(|value| value.strip_suffix(')'))
+    else {
+        return false;
+    };
+    is_size_expression_with_metrics(
+        argument.trim(),
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    ) || parse_nonnegative_font_relative_length_with_viewport(
+        argument.trim(),
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    )
+    .is_some()
 }
 
 fn is_size_expression_with_metrics(

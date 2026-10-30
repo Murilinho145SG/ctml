@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use crate::style::WritingMode;
 use crate::style::{LayoutSize, TextRun};
 
+use super::sizing_intrinsic::resolve_intrinsic_width;
 use super::sizing_padding::{resolve_margin, resolve_padding};
 pub(super) fn resolve_width(
     value: &str,
@@ -223,20 +224,30 @@ pub(super) fn resolve_layout_width(
         };
         let available_content_width = (content_width - inline_padding - inline_margin).max(0.0);
         let resolve_inline_size = |value: &str| {
-            resolve_width(
+            let width = resolve_intrinsic_width(
                 value,
-                content_width,
+                available_content_width,
+                size.intrinsic_min_content_width,
+                size.intrinsic_max_content_width,
                 size.font_size,
                 size.line_height,
                 size.font_relative_units,
                 size.viewport_size,
             )
-            .map(|width| {
-                if size.border_box {
-                    (width - inline_padding).max(0.0)
-                } else {
-                    width
-                }
+            .or_else(|| {
+                resolve_width(
+                    value,
+                    content_width,
+                    size.font_size,
+                    size.line_height,
+                    size.font_relative_units,
+                    size.viewport_size,
+                )
+            })?;
+            Some(if size.border_box {
+                (width - inline_padding).max(0.0)
+            } else {
+                width
             })
         };
         let same_axis_orientation =

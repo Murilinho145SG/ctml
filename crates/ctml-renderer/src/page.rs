@@ -31,6 +31,7 @@ mod scrolling;
 mod selection_backgrounds;
 mod sizing;
 mod sizing_height;
+mod sizing_intrinsic;
 mod sizing_padding;
 mod vertical;
 mod viewport;
@@ -44,6 +45,9 @@ use layout::shape_buffer;
 use sizing::{
     cursor_with_flow_spacers, cursor_without_flow_spacers, flow_spacer_lines, line_layout_sizes,
     resolve_constrained_size, select_axis_size,
+};
+use sizing_intrinsic::{
+    measure_root_intrinsic_widths, resolve_constrained_size as resolve_intrinsic_size,
 };
 
 pub(crate) struct PageRasterizer {
@@ -204,6 +208,7 @@ impl PageRasterizer {
         let available_width = (layout_width as f32 - PAGE_PADDING * 2.0).max(1.0);
         let available_height = (layout_height as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
+        let root_intrinsic_widths = measure_root_intrinsic_widths(self);
         let vertical = self.writing_mode() != crate::style::WritingMode::HorizontalTb;
         let (
             inline_physical,
@@ -305,7 +310,7 @@ impl PageRasterizer {
             block_max_name,
         )
         .flatten();
-        let content_width = resolve_constrained_size(
+        let content_width = resolve_intrinsic_size(
             inline_size,
             min_inline_size,
             max_inline_size,
@@ -314,6 +319,7 @@ impl PageRasterizer {
             self.root_style.line_height,
             self.root_style.font_relative_units,
             viewport_size,
+            root_intrinsic_widths,
         );
         let content_height = resolve_constrained_size(
             block_size,

@@ -143,6 +143,8 @@ pub(crate) struct LayoutSize {
     pub(crate) border_box: bool,
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
+    pub(crate) intrinsic_min_content_width: Option<f32>,
+    pub(crate) intrinsic_max_content_width: Option<f32>,
     pub(crate) overflow_x: Overflow,
     pub(crate) overflow_y: Overflow,
     pub(crate) size_property_orders: HashMap<String, usize>,

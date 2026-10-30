@@ -201,7 +201,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and `border-box` includes supported physical padding in width and block-size calculations.
 - [x] Physical `padding` shorthand and `padding-top/right/bottom/left` accept non-negative font-relative lengths and percentages of the containing block's inline size, inset text, and add to block flow.
-- [ ] Apply `border-box` to borders; intrinsic sizing keywords.
+- [x] `min-content`, `max-content`, and `fit-content()` sizing for text-bearing widths, including logical inline-size and min/max constraints.
+- [ ] Apply `border-box` to borders.
 - [x] Percentage physical padding resolves against the containing block's inline size.
 - [x] Logical `padding-inline` and `padding-block` shorthand, including start/end longhands, map through `writing-mode` and `direction` and follow declaration order with physical padding.
 - [x] Physical and logical margin shorthands and sides accept signed font-relative lengths and percentages, follow writing mode, direction, and source order, and adjust text flow. `auto` currently resolves to zero.

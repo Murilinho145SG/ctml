@@ -62,6 +62,8 @@ mod scrolling;
 mod selection;
 #[path = "page_tests/sizing.rs"]
 mod sizing;
+#[path = "page_tests/sizing_intrinsic.rs"]
+mod sizing_intrinsic;
 #[path = "page_tests/sizing_overflow.rs"]
 mod sizing_overflow;
 #[path = "page_tests/sizing_percentages.rs"]
