@@ -117,3 +117,66 @@ fn padding_shorthand_expands_in_physical_side_order_and_longhands_override_it() 
         std::array::from_fn(|_| None)
     );
 }
+
+#[test]
+fn logical_padding_maps_after_writing_mode_and_respects_cascade_order() {
+    let current = ElementIdentity {
+        tag: "div".to_owned(),
+        class: Some("case".to_owned()),
+        id: None,
+    };
+    let stylesheet = [StyleRule {
+        selectors: vec![".case".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            },
+            StyleDeclaration {
+                property: "direction".to_owned(),
+                value: "rtl".to_owned(),
+            },
+            StyleDeclaration {
+                property: "padding-inline-start".to_owned(),
+                value: "3px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "padding-block".to_owned(),
+                value: "4px 5px".to_owned(),
+            },
+        ],
+    }];
+    let style = resolve_style(&TextStyle::default(), &current, &[], &stylesheet);
+    assert_eq!(
+        style.padding,
+        [
+            None,
+            Some("4px".to_owned()),
+            Some("3px".to_owned()),
+            Some("5px".to_owned()),
+        ]
+    );
+
+    let stylesheet = [StyleRule {
+        selectors: vec![".case".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "padding-inline".to_owned(),
+                value: "1px 2px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "padding-left".to_owned(),
+                value: "8px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "padding-inline-start".to_owned(),
+                value: "6px".to_owned(),
+            },
+        ],
+    }];
+    let style = resolve_style(&TextStyle::default(), &current, &[], &stylesheet);
+    assert_eq!(style.padding[3].as_deref(), Some("6px"));
+    assert_eq!(style.padding[1].as_deref(), Some("2px"));
+}

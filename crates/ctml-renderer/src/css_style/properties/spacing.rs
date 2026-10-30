@@ -31,11 +31,64 @@ pub(super) fn apply_padding(style: &mut TextStyle, value: &str) {
         _ => return,
     };
     style.padding = [Some(top), Some(right), Some(bottom), Some(left)];
+    style.physical_padding_orders = [style.current_declaration_order.saturating_add(1); 4];
 }
 
 pub(super) fn apply_padding_side(style: &mut TextStyle, side: usize, value: &str) {
     if let Some(padding) = parse_padding_value(style, value) {
         style.padding[side] = Some(padding);
+        style.physical_padding_orders[side] = style.current_declaration_order.saturating_add(1);
+    }
+}
+
+pub(super) fn apply_logical_padding(style: &mut TextStyle, side: usize, value: &str) {
+    if let Some(padding) = parse_padding_value(style, value) {
+        style.logical_padding[side] = Some(padding);
+        style.logical_padding_orders[side] = style.current_declaration_order.saturating_add(1);
+    }
+}
+
+pub(super) fn apply_logical_padding_shorthand(style: &mut TextStyle, inline: bool, value: &str) {
+    let values = value
+        .split_whitespace()
+        .map(|part| parse_padding_value(style, part))
+        .collect::<Option<Vec<_>>>();
+    let Some(values) = values.filter(|values| (1..=2).contains(&values.len())) else {
+        return;
+    };
+    let (first, second) = match values.as_slice() {
+        [value] => (value.clone(), value.clone()),
+        [first, second] => (first.clone(), second.clone()),
+        _ => return,
+    };
+    let start = if inline { 0 } else { 2 };
+    let order = style.current_declaration_order.saturating_add(1);
+    style.logical_padding[start] = Some(first);
+    style.logical_padding[start + 1] = Some(second);
+    style.logical_padding_orders[start] = order;
+    style.logical_padding_orders[start + 1] = order;
+}
+
+pub(super) fn resolve_logical_padding(style: &mut TextStyle) {
+    use crate::style::{Direction, WritingMode};
+
+    let (inline_start, inline_end, block_start, block_end) = match style.writing_mode {
+        WritingMode::HorizontalTb if style.direction == Direction::Ltr => (3, 1, 0, 2),
+        WritingMode::HorizontalTb => (1, 3, 0, 2),
+        WritingMode::VerticalRl if style.direction == Direction::Ltr => (0, 2, 1, 3),
+        WritingMode::VerticalRl => (2, 0, 1, 3),
+        WritingMode::VerticalLr if style.direction == Direction::Ltr => (0, 2, 3, 1),
+        WritingMode::VerticalLr => (2, 0, 3, 1),
+    };
+    let physical_sides = [inline_start, inline_end, block_start, block_end];
+    for (logical_side, physical_side) in physical_sides.into_iter().enumerate() {
+        let logical_order = style.logical_padding_orders[logical_side];
+        if logical_order > style.physical_padding_orders[physical_side]
+            && let Some(value) = &style.logical_padding[logical_side]
+        {
+            style.padding[physical_side] = Some(value.clone());
+            style.physical_padding_orders[physical_side] = logical_order;
+        }
     }
 }
 

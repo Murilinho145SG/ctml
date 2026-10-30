@@ -68,6 +68,9 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.current_declaration_order = 0;
     style.border_box = false;
     style.padding = std::array::from_fn(|_| None);
+    style.logical_padding = std::array::from_fn(|_| None);
+    style.physical_padding_orders = [0; 4];
+    style.logical_padding_orders = [0; 4];
     style.empty_block_height = None;
     style.layout_end_sizes.clear();
     style.user_select = crate::style::UserSelect::Auto;
@@ -87,5 +90,6 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
         Some(inherited),
         stylesheet,
     );
+    super::resolve_logical_padding(&mut style);
     style
 }

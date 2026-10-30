@@ -190,6 +190,34 @@ fn percentage_padding_uses_the_containing_block_inline_size() {
 }
 
 #[test]
+fn logical_block_start_padding_insets_content_and_adds_to_flow() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("inside".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "padding-block-start".to_owned(),
+            value: "12px".to_owned(),
+        }],
+    }];
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    let mut padded = PageRasterizer::new(&nodes, &stylesheet);
+    natural.prepare_layout(300, 300);
+    padded.prepare_layout(300, 300);
+    let offset = text_line_y(&padded, "inside") - text_line_y(&natural, "inside");
+    assert!(
+        (offset - 12.0).abs() < 2.0,
+        "expected 12px inset, got {offset}px"
+    );
+}
+
+#[test]
 fn zero_padding_does_not_insert_an_empty_flow_line() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
