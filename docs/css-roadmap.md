@@ -169,8 +169,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: flow-root` and `display: inline-block` use block and inline text flow, respectively.
 - [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-greek`, `lower-roman`, and `upper-roman`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
 - [ ] Remaining `display` values and CSS formatting box generation.
-- [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` map to these properties in horizontal writing mode.
-- [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; content-bearing block `height` and `min-height` reserve remaining space, and `max-height` caps the requested space when content fits. `block-size` and its min/max forms map to these properties in horizontal writing mode.
+- [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` size the inline axis for horizontal and page-root vertical writing modes.
+- [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; content-bearing block `height` and `min-height` reserve remaining space, and `max-height` caps the requested space when content fits. `block-size` and its min/max forms size the block axis for horizontal and page-root vertical writing modes.
 - [ ] Fixed and maximum height overflow behavior for content-bearing blocks, and sizing behavior beyond text flow.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.
 - [ ] Apply `border-box` to padding and borders; intrinsic sizing keywords.
@@ -197,7 +197,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Tables and table layout, if CTML supports table elements.
 - [ ] Overflow, clipping, scrolling, scrollbars, and scroll snapping.
 - [ ] Fragmentation, page breaks, and paged media where relevant.
-- [ ] Logical properties and writing-mode-aware layout.
+- [ ] Logical properties beyond `inline-size`/`block-size` and writing-mode-aware layout on nested blocks.
 - [ ] Anchor positioning and advanced layout modules if they become stable and useful.
 
 ## Text, fonts, and writing systems
@@ -240,7 +240,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `direction: ltr|rtl` establishes the inherited base bidi direction for each rendered paragraph.
 - [x] `unicode-bidi: isolate` adds Unicode isolate controls around the styled inline range without adding controls to rendered text.
 - [x] Page-root `writing-mode: vertical-rl|vertical-lr` creates vertical columns and maps pointer coordinates through the rendered orientation.
-- [ ] Apply vertical flow independently to nested block elements and logical sizing properties.
+- [x] Resolve logical `inline-size`/`block-size` and their min/max forms against page-root horizontal or vertical flow axes, including nested block sizes.
+- [ ] Apply a nested block's own `writing-mode` and vertical flow independently of the page root; other logical properties remain unsupported.
 - [x] Apply `text-orientation: mixed|upright|sideways` per glyph in vertical writing, using Unicode Vertical_Orientation data.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.

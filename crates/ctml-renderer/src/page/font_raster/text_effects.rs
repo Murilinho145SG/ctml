@@ -39,6 +39,7 @@ pub(super) fn draw_text_emphasis(
     line: &cosmic_text::LayoutRun<'_>,
     glyphs: &[cosmic_text::LayoutGlyph],
     style: &TextStyle,
+    writing_mode: WritingMode,
     font: &Font,
     opacity: f32,
 ) {
@@ -66,7 +67,7 @@ pub(super) fn draw_text_emphasis(
         let radius = (glyph.font_size * 0.14).clamp(1.0, 2.5);
         let center = Point::new(
             glyph.x + glyph.w * 0.5 + PAGE_PADDING,
-            match emphasis_position(style) {
+            match emphasis_position(style, writing_mode) {
                 TextEmphasisPosition::Over => line.line_top + radius + PAGE_PADDING,
                 TextEmphasisPosition::Under => {
                     line.line_top + line.line_height - radius - 1.0 + PAGE_PADDING
@@ -84,8 +85,11 @@ pub(super) fn draw_text_emphasis(
     }
 }
 
-fn emphasis_position(style: &TextStyle) -> TextEmphasisPosition {
-    match (style.writing_mode, style.text_emphasis_side) {
+fn emphasis_position(style: &TextStyle, writing_mode: WritingMode) -> TextEmphasisPosition {
+    if style.writing_mode != writing_mode || writing_mode == WritingMode::HorizontalTb {
+        return style.text_emphasis_position;
+    }
+    match (writing_mode, style.text_emphasis_side) {
         (WritingMode::VerticalRl, Some(TextEmphasisSide::Left))
         | (WritingMode::VerticalLr, Some(TextEmphasisSide::Right)) => TextEmphasisPosition::Under,
         (WritingMode::VerticalRl, Some(TextEmphasisSide::Right))
@@ -193,16 +197,28 @@ mod tests {
             text_emphasis_side: Some(TextEmphasisSide::Left),
             ..TextStyle::default()
         };
-        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Under);
+        assert_eq!(
+            emphasis_position(&style, WritingMode::VerticalRl),
+            TextEmphasisPosition::Under
+        );
 
         style.text_emphasis_side = Some(TextEmphasisSide::Right);
-        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Over);
+        assert_eq!(
+            emphasis_position(&style, WritingMode::VerticalRl),
+            TextEmphasisPosition::Over
+        );
 
         style.writing_mode = WritingMode::VerticalLr;
         style.text_emphasis_side = Some(TextEmphasisSide::Left);
-        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Over);
+        assert_eq!(
+            emphasis_position(&style, WritingMode::VerticalLr),
+            TextEmphasisPosition::Over
+        );
 
         style.text_emphasis_side = Some(TextEmphasisSide::Right);
-        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Under);
+        assert_eq!(
+            emphasis_position(&style, WritingMode::VerticalLr),
+            TextEmphasisPosition::Under
+        );
     }
 }

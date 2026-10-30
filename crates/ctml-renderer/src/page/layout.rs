@@ -255,10 +255,42 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         .map(|(run, family)| {
             let mut style = run.style.clone();
             if let Some(height_size) = &style.empty_block_height {
+                let (block_size, min_block_size, max_block_size) =
+                    if height_size.writing_mode == crate::style::WritingMode::HorizontalTb {
+                        (
+                            height_size
+                                .block_size
+                                .as_deref()
+                                .or(height_size.height.as_deref()),
+                            height_size
+                                .min_block_size
+                                .as_deref()
+                                .or(height_size.min_height.as_deref()),
+                            height_size
+                                .max_block_size
+                                .as_deref()
+                                .or(height_size.max_height.as_deref()),
+                        )
+                    } else {
+                        (
+                            height_size
+                                .block_size
+                                .as_deref()
+                                .or(height_size.width.as_deref()),
+                            height_size
+                                .min_block_size
+                                .as_deref()
+                                .or(height_size.min_width.as_deref()),
+                            height_size
+                                .max_block_size
+                                .as_deref()
+                                .or(height_size.max_width.as_deref()),
+                        )
+                    };
                 style.line_height = resolve_layout_height(
-                    height_size.height.as_deref(),
-                    height_size.min_height.as_deref(),
-                    height_size.max_height.as_deref(),
+                    block_size,
+                    min_block_size,
+                    max_block_size,
                     content_height,
                     style.font_size,
                     style.line_height,

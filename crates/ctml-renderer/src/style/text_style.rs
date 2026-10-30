@@ -124,11 +124,19 @@ pub(crate) struct TextStyle {
     pub(crate) width: Option<String>,
     pub(crate) min_width: Option<String>,
     pub(crate) max_width: Option<String>,
+    pub(crate) inline_size: Option<String>,
+    pub(crate) min_inline_size: Option<String>,
+    pub(crate) max_inline_size: Option<String>,
     pub(crate) border_box: bool,
     pub(crate) layout_sizes: Vec<LayoutSize>,
     pub(crate) height: Option<String>,
     pub(crate) min_height: Option<String>,
     pub(crate) max_height: Option<String>,
+    pub(crate) block_size: Option<String>,
+    pub(crate) min_block_size: Option<String>,
+    pub(crate) max_block_size: Option<String>,
+    pub(crate) size_property_orders: HashMap<String, usize>,
+    pub(crate) current_declaration_order: usize,
     pub(crate) empty_block_height: Option<LayoutHeight>,
     pub(crate) layout_end_sizes: Vec<LayoutSize>,
     pub(crate) flow_spacer: bool,
@@ -197,15 +205,30 @@ pub(crate) struct TextStyle {
     pub(crate) custom_properties: HashMap<String, String>,
 }
 
+impl TextStyle {
+    pub(crate) fn record_size_property_order(&mut self, property: &str) {
+        self.size_property_orders
+            .insert(property.to_owned(), self.current_declaration_order);
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutSize {
     pub(crate) node_id: usize,
     pub(crate) width: Option<String>,
     pub(crate) min_width: Option<String>,
     pub(crate) max_width: Option<String>,
+    pub(crate) inline_size: Option<String>,
+    pub(crate) min_inline_size: Option<String>,
+    pub(crate) max_inline_size: Option<String>,
     pub(crate) height: Option<String>,
     pub(crate) min_height: Option<String>,
     pub(crate) max_height: Option<String>,
+    pub(crate) block_size: Option<String>,
+    pub(crate) min_block_size: Option<String>,
+    pub(crate) max_block_size: Option<String>,
+    pub(crate) size_property_orders: HashMap<String, usize>,
+    pub(crate) writing_mode: WritingMode,
     pub(crate) font_size: f32,
     pub(crate) line_height: f32,
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -214,9 +237,17 @@ pub(crate) struct LayoutSize {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutHeight {
+    pub(crate) width: Option<String>,
+    pub(crate) min_width: Option<String>,
+    pub(crate) max_width: Option<String>,
     pub(crate) height: Option<String>,
     pub(crate) min_height: Option<String>,
     pub(crate) max_height: Option<String>,
+    pub(crate) block_size: Option<String>,
+    pub(crate) min_block_size: Option<String>,
+    pub(crate) max_block_size: Option<String>,
+    pub(crate) size_property_orders: HashMap<String, usize>,
+    pub(crate) writing_mode: WritingMode,
     pub(crate) font_size: f32,
     pub(crate) line_height: f32,
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -334,11 +365,19 @@ impl Default for TextStyle {
             width: None,
             min_width: None,
             max_width: None,
+            inline_size: None,
+            min_inline_size: None,
+            max_inline_size: None,
             border_box: false,
             layout_sizes: Vec::new(),
             height: None,
             min_height: None,
             max_height: None,
+            block_size: None,
+            min_block_size: None,
+            max_block_size: None,
+            size_property_orders: HashMap::new(),
+            current_declaration_order: 0,
             empty_block_height: None,
             layout_end_sizes: Vec::new(),
             flow_spacer: false,

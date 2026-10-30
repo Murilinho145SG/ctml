@@ -5,6 +5,7 @@ use ctml_css::{
 };
 use std::collections::HashMap;
 
+use crate::style::WritingMode;
 use crate::style::{LayoutSize, TextRun};
 
 pub(super) fn resolve_width(
@@ -54,10 +55,133 @@ pub(super) fn resolve_width(
     )
 }
 
+pub(super) fn resolve_constrained_size(
+    specified: Option<&str>,
+    min: Option<&str>,
+    max: Option<&str>,
+    available: f32,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: FontRelativeUnits,
+    viewport_size: ViewportSize,
+) -> f32 {
+    let min = min.and_then(|value| {
+        resolve_width(
+            value,
+            available,
+            font_size,
+            line_height,
+            font_relative_units,
+            viewport_size,
+        )
+    });
+    let max = max.and_then(|value| {
+        resolve_width(
+            value,
+            available,
+            font_size,
+            line_height,
+            font_relative_units,
+            viewport_size,
+        )
+    });
+    let specified = specified
+        .and_then(|value| {
+            resolve_width(
+                value,
+                available,
+                font_size,
+                line_height,
+                font_relative_units,
+                viewport_size,
+            )
+        })
+        .unwrap_or(available);
+    match (min, max) {
+        (Some(min), Some(max)) if min > max => specified.max(min),
+        (Some(min), Some(max)) => specified.max(min).min(max),
+        (Some(min), None) => specified.max(min),
+        (None, Some(max)) => specified.min(max),
+        (None, None) => specified,
+    }
+    .max(1.0)
+}
+
+pub(super) fn select_axis_size<'a>(
+    logical: Option<&'a String>,
+    physical: Option<&'a String>,
+    orders: &HashMap<String, usize>,
+    logical_property: &str,
+    physical_property: &str,
+) -> Option<Option<&'a str>> {
+    match (orders.get(logical_property), orders.get(physical_property)) {
+        (Some(logical_order), Some(physical_order)) if logical_order > physical_order => {
+            Some(logical.map(String::as_str))
+        }
+        (Some(_), Some(_)) => Some(physical.map(String::as_str)),
+        (Some(_), None) => Some(logical.map(String::as_str)),
+        (None, Some(_)) => Some(physical.map(String::as_str)),
+        (None, None) => logical
+            .map(String::as_str)
+            .or_else(|| physical.map(String::as_str))
+            .map(Some),
+    }
+}
+
 pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -> f32 {
     let mut content_width = available_width;
     for size in sizes {
-        let min_width = size.min_width.as_deref().and_then(|value| {
+        let (
+            physical_size,
+            physical_min,
+            physical_max,
+            physical_name,
+            physical_min_name,
+            physical_max_name,
+        ) = if size.writing_mode == WritingMode::HorizontalTb {
+            (
+                &size.width,
+                &size.min_width,
+                &size.max_width,
+                "width",
+                "min-width",
+                "max-width",
+            )
+        } else {
+            (
+                &size.height,
+                &size.min_height,
+                &size.max_height,
+                "height",
+                "min-height",
+                "max-height",
+            )
+        };
+        let inline_min = select_axis_size(
+            size.min_inline_size.as_ref(),
+            physical_min.as_ref(),
+            &size.size_property_orders,
+            "min-inline-size",
+            physical_min_name,
+        )
+        .flatten();
+        let inline_max = select_axis_size(
+            size.max_inline_size.as_ref(),
+            physical_max.as_ref(),
+            &size.size_property_orders,
+            "max-inline-size",
+            physical_max_name,
+        )
+        .flatten();
+        let inline_size = select_axis_size(
+            size.inline_size.as_ref(),
+            physical_size.as_ref(),
+            &size.size_property_orders,
+            "inline-size",
+            physical_name,
+        )
+        .flatten();
+        let min_width = inline_min.and_then(|value| {
             resolve_width(
                 value,
                 content_width,
@@ -67,7 +191,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
                 size.viewport_size,
             )
         });
-        let max_width = size.max_width.as_deref().and_then(|value| {
+        let max_width = inline_max.and_then(|value| {
             resolve_width(
                 value,
                 content_width,
@@ -77,9 +201,7 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
                 size.viewport_size,
             )
         });
-        let specified_width = size
-            .width
-            .as_deref()
+        let specified_width = inline_size
             .and_then(|value| {
                 resolve_width(
                     value,
@@ -104,8 +226,9 @@ pub(super) fn resolve_layout_width(sizes: &[LayoutSize], available_width: f32) -
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_width;
+    use super::{resolve_width, select_axis_size};
     use ctml_css::{FontRelativeUnits, ViewportSize};
+    use std::collections::HashMap;
 
     #[test]
     fn resolves_font_metric_units_for_box_dimensions() {
@@ -146,6 +269,34 @@ mod tests {
         assert_eq!(
             resolve_width("clamp(10px, 25%, 50px)", 200.0, 20.0, 24.0, units, viewport),
             Some(50.0)
+        );
+    }
+
+    #[test]
+    fn physical_and_logical_axis_sizes_follow_declaration_order() {
+        let mut orders = HashMap::new();
+        orders.insert("width".to_owned(), 0);
+        orders.insert("inline-size".to_owned(), 1);
+        assert_eq!(
+            select_axis_size(
+                Some(&"50px".to_owned()),
+                Some(&"100px".to_owned()),
+                &orders,
+                "inline-size",
+                "width",
+            ),
+            Some(Some("50px"))
+        );
+        orders.insert("inline-size".to_owned(), 2);
+        assert_eq!(
+            select_axis_size(
+                None,
+                Some(&"100px".to_owned()),
+                &orders,
+                "inline-size",
+                "width"
+            ),
+            Some(None)
         );
     }
 }
@@ -321,10 +472,60 @@ pub(super) fn block_spacer_heights(
     for node_id in block_ids {
         let size = &block_sizes[&node_id];
         let content_height = content_heights.get(&node_id).copied().unwrap_or_default();
+        let (
+            physical_size,
+            physical_min,
+            physical_max,
+            physical_name,
+            physical_min_name,
+            physical_max_name,
+        ) = if size.writing_mode == WritingMode::HorizontalTb {
+            (
+                &size.height,
+                &size.min_height,
+                &size.max_height,
+                "height",
+                "min-height",
+                "max-height",
+            )
+        } else {
+            (
+                &size.width,
+                &size.min_width,
+                &size.max_width,
+                "width",
+                "min-width",
+                "max-width",
+            )
+        };
+        let block_size = select_axis_size(
+            size.block_size.as_ref(),
+            physical_size.as_ref(),
+            &size.size_property_orders,
+            "block-size",
+            physical_name,
+        )
+        .flatten();
+        let min_block_size = select_axis_size(
+            size.min_block_size.as_ref(),
+            physical_min.as_ref(),
+            &size.size_property_orders,
+            "min-block-size",
+            physical_min_name,
+        )
+        .flatten();
+        let max_block_size = select_axis_size(
+            size.max_block_size.as_ref(),
+            physical_max.as_ref(),
+            &size.size_property_orders,
+            "max-block-size",
+            physical_max_name,
+        )
+        .flatten();
         let requested_height = resolve_layout_height(
-            size.height.as_deref(),
-            size.min_height.as_deref(),
-            size.max_height.as_deref(),
+            block_size,
+            min_block_size,
+            max_block_size,
             available_height,
             size.font_size,
             size.line_height,

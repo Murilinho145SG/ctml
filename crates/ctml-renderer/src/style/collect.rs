@@ -218,18 +218,32 @@ pub(super) fn collect_runs(
                     && (style.width.is_some()
                         || style.min_width.is_some()
                         || style.max_width.is_some()
+                        || style.inline_size.is_some()
+                        || style.min_inline_size.is_some()
+                        || style.max_inline_size.is_some()
                         || style.height.is_some()
                         || style.min_height.is_some()
-                        || style.max_height.is_some())
+                        || style.max_height.is_some()
+                        || style.block_size.is_some()
+                        || style.min_block_size.is_some()
+                        || style.max_block_size.is_some())
                 {
                     style.layout_sizes.push(LayoutSize {
                         node_id: sibling.node_id,
                         width: style.width.clone(),
                         min_width: style.min_width.clone(),
                         max_width: style.max_width.clone(),
+                        inline_size: style.inline_size.clone(),
+                        min_inline_size: style.min_inline_size.clone(),
+                        max_inline_size: style.max_inline_size.clone(),
                         height: style.height.clone(),
                         min_height: style.min_height.clone(),
                         max_height: style.max_height.clone(),
+                        block_size: style.block_size.clone(),
+                        min_block_size: style.min_block_size.clone(),
+                        max_block_size: style.max_block_size.clone(),
+                        size_property_orders: style.size_property_orders.clone(),
+                        writing_mode: style.writing_mode,
                         font_size: style.font_size,
                         line_height: style.line_height,
                         font_relative_units: style.font_relative_units,
@@ -241,6 +255,9 @@ pub(super) fn collect_runs(
                     if style.height.is_some()
                         || style.min_height.is_some()
                         || style.max_height.is_some()
+                        || style.block_size.is_some()
+                        || style.min_block_size.is_some()
+                        || style.max_block_size.is_some()
                     {
                         if let Some(layout_size) = style
                             .layout_sizes
@@ -289,13 +306,24 @@ pub(super) fn collect_runs(
                     && before_content.is_none()
                     && !has_after_content
                     && !list_item
-                    && (style.height.is_some() || style.min_height.is_some())
+                    && (style.height.is_some()
+                        || style.min_height.is_some()
+                        || style.block_size.is_some()
+                        || style.min_block_size.is_some())
                 {
                     let mut spacer_style = style.clone();
                     spacer_style.empty_block_height = Some(LayoutHeight {
+                        width: style.width.clone(),
+                        min_width: style.min_width.clone(),
+                        max_width: style.max_width.clone(),
                         height: style.height.clone(),
                         min_height: style.min_height.clone(),
                         max_height: style.max_height.clone(),
+                        block_size: style.block_size.clone(),
+                        min_block_size: style.min_block_size.clone(),
+                        max_block_size: style.max_block_size.clone(),
+                        size_property_orders: style.size_property_orders.clone(),
+                        writing_mode: style.writing_mode,
                         font_size: style.font_size,
                         line_height: style.line_height,
                         font_relative_units: style.font_relative_units,

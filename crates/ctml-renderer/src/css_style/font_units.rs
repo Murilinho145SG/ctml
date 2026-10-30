@@ -55,9 +55,17 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.width = None;
     style.min_width = None;
     style.max_width = None;
+    style.inline_size = None;
+    style.min_inline_size = None;
+    style.max_inline_size = None;
     style.height = None;
     style.min_height = None;
     style.max_height = None;
+    style.block_size = None;
+    style.min_block_size = None;
+    style.max_block_size = None;
+    style.size_property_orders.clear();
+    style.current_declaration_order = 0;
     style.border_box = false;
     style.empty_block_height = None;
     style.layout_end_sizes.clear();

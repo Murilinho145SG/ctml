@@ -31,7 +31,7 @@ use font_faces::register_font_faces;
 use layout::shape_buffer;
 use sizing::{
     block_spacer_heights, cursor_with_flow_spacers, cursor_without_flow_spacers, flow_spacer_lines,
-    insert_block_spacers, line_layout_sizes, resolve_width,
+    insert_block_spacers, line_layout_sizes, resolve_constrained_size, select_axis_size,
 };
 
 pub(crate) struct PageRasterizer {
@@ -168,51 +168,129 @@ impl PageRasterizer {
         let (layout_width, layout_height) =
             vertical::layout_dimensions(self.writing_mode(), width, height);
         let available_width = (layout_width as f32 - PAGE_PADDING * 2.0).max(1.0);
+        let available_height = (layout_height as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
-        let min_width = self.root_style.min_width.as_deref().and_then(|value| {
-            resolve_width(
-                value,
-                available_width,
-                font_size,
-                self.root_style.line_height,
-                self.root_style.font_relative_units,
-                viewport_size,
+        let vertical = self.writing_mode() != crate::style::WritingMode::HorizontalTb;
+        let (
+            inline_physical,
+            inline_min_physical,
+            inline_max_physical,
+            inline_name,
+            inline_min_name,
+            inline_max_name,
+        ) = if vertical {
+            (
+                &self.root_style.height,
+                &self.root_style.min_height,
+                &self.root_style.max_height,
+                "height",
+                "min-height",
+                "max-height",
             )
-        });
-        let max_width = self.root_style.max_width.as_deref().and_then(|value| {
-            resolve_width(
-                value,
-                available_width,
-                font_size,
-                self.root_style.line_height,
-                self.root_style.font_relative_units,
-                viewport_size,
+        } else {
+            (
+                &self.root_style.width,
+                &self.root_style.min_width,
+                &self.root_style.max_width,
+                "width",
+                "min-width",
+                "max-width",
             )
-        });
-        let mut content_width = self
-            .root_style
-            .width
-            .as_deref()
-            .and_then(|value| {
-                resolve_width(
-                    value,
-                    available_width,
-                    font_size,
-                    self.root_style.line_height,
-                    self.root_style.font_relative_units,
-                    viewport_size,
-                )
-            })
-            .unwrap_or(available_width);
-        match (min_width, max_width) {
-            (Some(min), Some(max)) if min > max => content_width = content_width.max(min),
-            (Some(min), Some(max)) => content_width = content_width.max(min).min(max),
-            (Some(min), None) => content_width = content_width.max(min),
-            (None, Some(max)) => content_width = content_width.min(max),
-            (None, None) => {}
-        }
-        let content_width = content_width.max(1.0);
-        let content_height = (layout_height as f32 - PAGE_PADDING * 2.0).max(1.0);
+        };
+        let inline_size = select_axis_size(
+            self.root_style.inline_size.as_ref(),
+            inline_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "inline-size",
+            inline_name,
+        )
+        .flatten();
+        let min_inline_size = select_axis_size(
+            self.root_style.min_inline_size.as_ref(),
+            inline_min_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "min-inline-size",
+            inline_min_name,
+        )
+        .flatten();
+        let max_inline_size = select_axis_size(
+            self.root_style.max_inline_size.as_ref(),
+            inline_max_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "max-inline-size",
+            inline_max_name,
+        )
+        .flatten();
+        let (
+            block_physical,
+            block_min_physical,
+            block_max_physical,
+            block_name,
+            block_min_name,
+            block_max_name,
+        ) = if vertical {
+            (
+                &self.root_style.width,
+                &self.root_style.min_width,
+                &self.root_style.max_width,
+                "width",
+                "min-width",
+                "max-width",
+            )
+        } else {
+            (
+                &self.root_style.height,
+                &self.root_style.min_height,
+                &self.root_style.max_height,
+                "height",
+                "min-height",
+                "max-height",
+            )
+        };
+        let block_size = select_axis_size(
+            self.root_style.block_size.as_ref(),
+            block_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "block-size",
+            block_name,
+        )
+        .flatten();
+        let min_block_size = select_axis_size(
+            self.root_style.min_block_size.as_ref(),
+            block_min_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "min-block-size",
+            block_min_name,
+        )
+        .flatten();
+        let max_block_size = select_axis_size(
+            self.root_style.max_block_size.as_ref(),
+            block_max_physical.as_ref(),
+            &self.root_style.size_property_orders,
+            "max-block-size",
+            block_max_name,
+        )
+        .flatten();
+        let content_width = resolve_constrained_size(
+            inline_size,
+            min_inline_size,
+            max_inline_size,
+            available_width,
+            font_size,
+            self.root_style.line_height,
+            self.root_style.font_relative_units,
+            viewport_size,
+        );
+        let content_height = resolve_constrained_size(
+            block_size,
+            min_block_size,
+            max_block_size,
+            available_height,
+            font_size,
+            self.root_style.line_height,
+            self.root_style.font_relative_units,
+            viewport_size,
+        );
         self.cursor_spans = cursor_spans(&self.runs);
         shape_buffer(self, content_width, content_height);
         let metrics = self.buffer.metrics();
@@ -328,11 +406,16 @@ impl PageRasterizer {
     fn render_pixels(&mut self, width: u32, height: u32) -> Vec<u8> {
         let mode = self.writing_mode();
         let (layout_width, layout_height) = vertical::layout_dimensions(mode, width, height);
-        let pixels = self.render_layout_pixels(layout_width, layout_height);
+        let pixels = self.render_layout_pixels(layout_width, layout_height, mode);
         vertical::orient_pixels(mode, pixels, width, height)
     }
 
-    fn render_layout_pixels(&mut self, width: u32, height: u32) -> Vec<u8> {
+    fn render_layout_pixels(
+        &mut self,
+        width: u32,
+        height: u32,
+        writing_mode: crate::style::WritingMode,
+    ) -> Vec<u8> {
         let mut pixels = vec![0_u8; width as usize * height as usize * 4];
         for pixel in pixels.chunks_exact_mut(4) {
             pixel[..3].copy_from_slice(&self.root_style.background);
@@ -373,6 +456,7 @@ impl PageRasterizer {
             height,
             selection,
             cursor_spans,
+            writing_mode,
         );
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];

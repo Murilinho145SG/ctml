@@ -29,8 +29,10 @@ use font_variation_settings::apply_font_variation_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
 use quotes::apply_quotes;
 use size::{
-    apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
-    apply_min_width, apply_width, inherit_width,
+    apply_block_size, apply_box_sizing, apply_height, apply_inline_size, apply_max_block_size,
+    apply_max_height, apply_max_inline_size, apply_max_width, apply_min_block_size,
+    apply_min_height, apply_min_inline_size, apply_min_width, apply_width, inherit_inline_size,
+    inherit_width,
 };
 use spacing::{apply_letter_spacing, apply_word_spacing};
 use text_decoration::{
@@ -57,6 +59,7 @@ mod text_decoration;
 mod text_emphasis;
 mod text_indent;
 mod text_shadow;
+use size::is_valid_size_declaration;
 
 pub(super) fn apply_declaration_with_inherited(
     style: &mut TextStyle,
@@ -65,6 +68,9 @@ pub(super) fn apply_declaration_with_inherited(
     inherited: &TextStyle,
 ) {
     let Some(keyword) = css_wide_keyword(value) else {
+        if is_valid_size_declaration(style, property, value) {
+            style.record_size_property_order(property);
+        }
         apply_declaration(
             style,
             property,
@@ -75,6 +81,9 @@ pub(super) fn apply_declaration_with_inherited(
         );
         return;
     };
+    if is_valid_size_declaration(style, property, value) || is_size_property(property) {
+        style.record_size_property_order(property);
+    }
     let inherit_value =
         keyword == "inherit" || (keyword == "unset" && is_inherited_property(property));
     if inherit_value {
@@ -83,21 +92,51 @@ pub(super) fn apply_declaration_with_inherited(
         revert_display(style);
     } else if keyword == "revert" && matches!(property, "list-style" | "list-style-type") {
         style.list_style_type = None;
-    } else if keyword == "revert" && matches!(property, "width" | "inline-size") {
+    } else if keyword == "revert" && property == "width" {
         style.width = None;
-    } else if keyword == "revert" && matches!(property, "min-width" | "min-inline-size") {
+    } else if keyword == "revert" && property == "inline-size" {
+        style.inline_size = None;
+    } else if keyword == "revert" && property == "min-width" {
         style.min_width = None;
-    } else if keyword == "revert" && matches!(property, "max-width" | "max-inline-size") {
+    } else if keyword == "revert" && property == "min-inline-size" {
+        style.min_inline_size = None;
+    } else if keyword == "revert" && property == "max-width" {
         style.max_width = None;
-    } else if keyword == "revert" && matches!(property, "height" | "block-size") {
+    } else if keyword == "revert" && property == "max-inline-size" {
+        style.max_inline_size = None;
+    } else if keyword == "revert" && property == "height" {
         style.height = None;
-    } else if keyword == "revert" && matches!(property, "min-height" | "min-block-size") {
+    } else if keyword == "revert" && property == "block-size" {
+        style.block_size = None;
+    } else if keyword == "revert" && property == "min-height" {
         style.min_height = None;
-    } else if keyword == "revert" && matches!(property, "max-height" | "max-block-size") {
+    } else if keyword == "revert" && property == "min-block-size" {
+        style.min_block_size = None;
+    } else if keyword == "revert" && property == "max-height" {
         style.max_height = None;
+    } else if keyword == "revert" && property == "max-block-size" {
+        style.max_block_size = None;
     } else {
         initial_property(style, property);
     }
+}
+
+fn is_size_property(property: &str) -> bool {
+    matches!(
+        property,
+        "width"
+            | "min-width"
+            | "max-width"
+            | "inline-size"
+            | "min-inline-size"
+            | "max-inline-size"
+            | "height"
+            | "min-height"
+            | "max-height"
+            | "block-size"
+            | "min-block-size"
+            | "max-block-size"
+    )
 }
 
 fn css_wide_keyword(value: &str) -> Option<&str> {
@@ -165,17 +204,19 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
             style.background_color = inherited.background_color;
         }
         "display" => inherit_display(style, inherited),
-        "width" | "inline-size" => inherit_width(style, inherited),
+        "width" => inherit_width(style, inherited),
+        "inline-size" => inherit_inline_size(style, inherited),
         "box-sizing" => style.border_box = inherited.border_box,
-        "min-width" | "min-inline-size" => style.min_width.clone_from(&inherited.min_width),
-        "max-width" | "max-inline-size" => style.max_width.clone_from(&inherited.max_width),
-        "height" | "block-size" => style.height.clone_from(&inherited.height),
-        "min-height" | "min-block-size" => {
-            style.min_height.clone_from(&inherited.min_height);
-        }
-        "max-height" | "max-block-size" => {
-            style.max_height.clone_from(&inherited.max_height);
-        }
+        "min-width" => style.min_width.clone_from(&inherited.min_width),
+        "min-inline-size" => style.min_inline_size.clone_from(&inherited.min_inline_size),
+        "max-width" => style.max_width.clone_from(&inherited.max_width),
+        "max-inline-size" => style.max_inline_size.clone_from(&inherited.max_inline_size),
+        "height" => style.height.clone_from(&inherited.height),
+        "block-size" => style.block_size.clone_from(&inherited.block_size),
+        "min-height" => style.min_height.clone_from(&inherited.min_height),
+        "min-block-size" => style.min_block_size.clone_from(&inherited.min_block_size),
+        "max-height" => style.max_height.clone_from(&inherited.max_height),
+        "max-block-size" => style.max_block_size.clone_from(&inherited.max_block_size),
         "list-style" | "list-style-type" => {
             style.list_style_type.clone_from(&inherited.list_style_type);
         }
@@ -295,13 +336,19 @@ fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "display" => reset_display(style),
-        "width" | "inline-size" => style.width = None,
+        "width" => style.width = None,
+        "inline-size" => style.inline_size = None,
         "box-sizing" => style.border_box = false,
-        "min-width" | "min-inline-size" => style.min_width = None,
-        "max-width" | "max-inline-size" => style.max_width = None,
-        "height" | "block-size" => style.height = None,
-        "min-height" | "min-block-size" => style.min_height = None,
-        "max-height" | "max-block-size" => style.max_height = None,
+        "min-width" => style.min_width = None,
+        "min-inline-size" => style.min_inline_size = None,
+        "max-width" => style.max_width = None,
+        "max-inline-size" => style.max_inline_size = None,
+        "height" => style.height = None,
+        "block-size" => style.block_size = None,
+        "min-height" => style.min_height = None,
+        "min-block-size" => style.min_block_size = None,
+        "max-height" => style.max_height = None,
+        "max-block-size" => style.max_block_size = None,
         "list-style" | "list-style-type" => reset_list_style_type(style),
         "background" => {
             style.background = [255, 255, 255];
@@ -430,13 +477,19 @@ fn apply_declaration(
         }
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),
         "display" => apply_display(style, value),
-        "width" | "inline-size" => apply_width(style, value),
+        "width" => apply_width(style, value),
+        "inline-size" => apply_inline_size(style, value),
         "box-sizing" => apply_box_sizing(style, value),
-        "min-width" | "min-inline-size" => apply_min_width(style, value),
-        "max-width" | "max-inline-size" => apply_max_width(style, value),
-        "height" | "block-size" => apply_height(style, value),
-        "min-height" | "min-block-size" => apply_min_height(style, value),
-        "max-height" | "max-block-size" => apply_max_height(style, value),
+        "min-width" => apply_min_width(style, value),
+        "min-inline-size" => apply_min_inline_size(style, value),
+        "max-width" => apply_max_width(style, value),
+        "max-inline-size" => apply_max_inline_size(style, value),
+        "height" => apply_height(style, value),
+        "block-size" => apply_block_size(style, value),
+        "min-height" => apply_min_height(style, value),
+        "min-block-size" => apply_min_block_size(style, value),
+        "max-height" => apply_max_height(style, value),
+        "max-block-size" => apply_max_block_size(style, value),
         "list-style-type" => apply_list_style_type(style, value),
         "list-style" => apply_list_style_shorthand(style, value),
         "background" => apply_background_shorthand(style, value),

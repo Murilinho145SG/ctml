@@ -2,11 +2,27 @@ use crate::style::TextStyle;
 use ctml_css::{parse_math_expression, parse_nonnegative_font_relative_length_with_viewport};
 
 pub(super) fn apply_width(style: &mut TextStyle, value: &str) {
+    if let Some(width) = parse_size_value(style, value) {
+        style.width = width;
+    }
+}
+
+pub(super) fn apply_inline_size(style: &mut TextStyle, value: &str) {
+    if let Some(size) = parse_size_value(style, value) {
+        style.inline_size = size;
+    }
+}
+
+pub(super) fn inherit_inline_size(style: &mut TextStyle, inherited: &TextStyle) {
+    style.inline_size.clone_from(&inherited.inline_size);
+}
+
+fn parse_size_value(style: &TextStyle, value: &str) -> Option<Option<String>> {
     let value = value.trim();
     if value.eq_ignore_ascii_case("auto") {
-        style.width = None;
+        Some(None)
     } else if is_size_expression(style, value) {
-        style.width = Some(value.to_ascii_lowercase());
+        Some(Some(value.to_ascii_lowercase()))
     } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
         style.font_size,
@@ -16,7 +32,38 @@ pub(super) fn apply_width(style: &mut TextStyle, value: &str) {
     )
     .is_some()
     {
-        style.width = Some(value.to_ascii_lowercase());
+        Some(Some(value.to_ascii_lowercase()))
+    } else {
+        None
+    }
+}
+
+pub(super) fn is_valid_size_declaration(style: &TextStyle, property: &str, value: &str) -> bool {
+    let value = value.trim();
+    match property {
+        "width" | "inline-size" => parse_size_value(style, value).is_some(),
+        "height" | "block-size" | "min-width" | "min-inline-size" | "max-width"
+        | "max-inline-size" | "min-height" | "min-block-size" | "max-height" | "max-block-size" => {
+            let reset = if matches!(
+                property,
+                "max-width" | "max-inline-size" | "max-height" | "max-block-size"
+            ) {
+                "none"
+            } else {
+                "auto"
+            };
+            value.eq_ignore_ascii_case(reset)
+                || is_size_expression(style, value)
+                || parse_nonnegative_font_relative_length_with_viewport(
+                    value,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+                .is_some()
+        }
+        _ => false,
     }
 }
 
@@ -42,6 +89,16 @@ pub(super) fn apply_min_width(style: &mut TextStyle, value: &str) {
     apply_dimension_limit(&mut style.min_width, value, "auto", metrics);
 }
 
+pub(super) fn apply_min_inline_size(style: &mut TextStyle, value: &str) {
+    let metrics = (
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    );
+    apply_dimension_limit(&mut style.min_inline_size, value, "auto", metrics);
+}
+
 pub(super) fn apply_max_width(style: &mut TextStyle, value: &str) {
     let metrics = (
         style.font_size,
@@ -52,6 +109,16 @@ pub(super) fn apply_max_width(style: &mut TextStyle, value: &str) {
     apply_dimension_limit(&mut style.max_width, value, "none", metrics);
 }
 
+pub(super) fn apply_max_inline_size(style: &mut TextStyle, value: &str) {
+    let metrics = (
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    );
+    apply_dimension_limit(&mut style.max_inline_size, value, "none", metrics);
+}
+
 pub(super) fn apply_height(style: &mut TextStyle, value: &str) {
     let metrics = (
         style.font_size,
@@ -60,6 +127,36 @@ pub(super) fn apply_height(style: &mut TextStyle, value: &str) {
         style.viewport_size,
     );
     apply_dimension_limit(&mut style.height, value, "auto", metrics);
+}
+
+pub(super) fn apply_block_size(style: &mut TextStyle, value: &str) {
+    let metrics = (
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    );
+    apply_dimension_limit(&mut style.block_size, value, "auto", metrics);
+}
+
+pub(super) fn apply_min_block_size(style: &mut TextStyle, value: &str) {
+    let metrics = (
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    );
+    apply_dimension_limit(&mut style.min_block_size, value, "auto", metrics);
+}
+
+pub(super) fn apply_max_block_size(style: &mut TextStyle, value: &str) {
+    let metrics = (
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    );
+    apply_dimension_limit(&mut style.max_block_size, value, "none", metrics);
 }
 
 pub(super) fn apply_min_height(style: &mut TextStyle, value: &str) {

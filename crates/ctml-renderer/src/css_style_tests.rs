@@ -920,6 +920,48 @@ fn resolves_vertical_writing_mode_values() {
 }
 
 #[test]
+fn keeps_logical_sizes_distinct_from_physical_sizes() {
+    let style = style_for_declarations(&[
+        ("width", "100px"),
+        ("inline-size", "50px"),
+        ("height", "80px"),
+        ("block-size", "40px"),
+    ]);
+    assert_eq!(style.width.as_deref(), Some("100px"));
+    assert_eq!(style.inline_size.as_deref(), Some("50px"));
+    assert_eq!(style.height.as_deref(), Some("80px"));
+    assert_eq!(style.block_size.as_deref(), Some("40px"));
+
+    let reset = style_for_declarations(&[
+        ("inline-size", "50px"),
+        ("block-size", "40px"),
+        ("inline-size", "initial"),
+        ("block-size", "unset"),
+    ]);
+    assert_eq!(reset.inline_size, None);
+    assert_eq!(reset.block_size, None);
+}
+
+#[test]
+fn logical_and_physical_size_aliases_keep_declaration_order() {
+    let logical_last = style_for_declarations(&[("width", "100px"), ("inline-size", "50px")]);
+    assert!(
+        logical_last.size_property_orders["inline-size"]
+            > logical_last.size_property_orders["width"]
+    );
+
+    let reset_last = style_for_declarations(&[
+        ("inline-size", "50px"),
+        ("width", "100px"),
+        ("inline-size", "auto"),
+    ]);
+    assert_eq!(reset_last.inline_size, None);
+    assert!(
+        reset_last.size_property_orders["inline-size"] > reset_last.size_property_orders["width"]
+    );
+}
+
+#[test]
 fn resolves_custom_css_quote_pairs() {
     let quotes = style_for_declarations(&[("quotes", "\"«\" \"»\" \"‹\" \"›\"")]);
     assert_eq!(

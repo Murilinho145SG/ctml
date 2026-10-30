@@ -381,11 +381,14 @@ fn apply_matching_styles_inner(
             apply_color_declaration(style, "unset", inherited_color);
         }
     }
-    for (important, _, layer, _, _, _, declaration) in
-        matches.iter().filter(|(_, _, _, _, _, _, declaration)| {
+    for (declaration_order, (important, _, layer, _, _, _, declaration)) in matches
+        .iter()
+        .filter(|(_, _, _, _, _, _, declaration)| {
             declaration.property != "color" && !is_custom_property(&declaration.property)
         })
+        .enumerate()
     {
+        style.current_declaration_order = declaration_order;
         if rollback_layers
             .get(&canonical_property_name(&declaration.property))
             .is_some_and(|layers| layers.contains(&(*important, *layer)))

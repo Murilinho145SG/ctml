@@ -11,7 +11,7 @@ use skia_safe::{
 };
 
 use crate::page::{CursorSpan, PAGE_PADDING};
-use crate::style::{TextRun, TextStyle};
+use crate::style::{TextRun, TextStyle, WritingMode};
 
 mod highlight;
 mod orientation;
@@ -30,6 +30,7 @@ pub(super) fn draw(
     height: u32,
     selection: Option<(Cursor, Cursor)>,
     cursor_spans: &[CursorSpan],
+    writing_mode: WritingMode,
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let first_letters = super::highlights::first_formatted_letters(cursor_spans);
@@ -85,7 +86,7 @@ pub(super) fn draw(
                     .and_then(|index| runs.get(index))
                     .map(|run| &run.style)
             });
-            let first_upright = glyph_is_upright(&run, first, orientation_style);
+            let first_upright = glyph_is_upright(&run, first, orientation_style, writing_mode);
             let opacity = pseudo_opacity_at(
                 cursor_spans,
                 &first_line_by_block,
@@ -126,7 +127,8 @@ pub(super) fn draw(
                     || glyph.level != first.level
                     || glyph_style_index != style_index
                     || glyph_first_line_style.is_some() != first_line_style.is_some()
-                    || glyph_is_upright(&run, glyph, glyph_orientation_style) != first_upright
+                    || glyph_is_upright(&run, glyph, glyph_orientation_style, writing_mode)
+                        != first_upright
                     || glyph_color.unwrap_or(cosmic_text::Color::rgb(0, 0, 0)) != color
                     || pseudo_opacity_at(
                         cursor_spans,
@@ -221,9 +223,18 @@ pub(super) fn draw(
                 )
             });
             if first_upright {
-                draw_upright_glyphs(canvas, group, &font, baseline, &paint, text_style, opacity);
+                draw_upright_glyphs(
+                    canvas,
+                    group,
+                    &font,
+                    baseline,
+                    &paint,
+                    text_style,
+                    writing_mode,
+                    opacity,
+                );
                 if let Some(style) = text_style {
-                    draw_text_emphasis(canvas, &run, group, style, &font, opacity);
+                    draw_text_emphasis(canvas, &run, group, style, writing_mode, &font, opacity);
                 }
             } else if let Some(blob) = blob {
                 if let Some(style) = text_style {
@@ -231,7 +242,7 @@ pub(super) fn draw(
                 }
                 canvas.draw_text_blob(blob, Point::default(), &paint);
                 if let Some(style) = text_style {
-                    draw_text_emphasis(canvas, &run, group, style, &font, opacity);
+                    draw_text_emphasis(canvas, &run, group, style, writing_mode, &font, opacity);
                 }
             } else {
                 let mut builder = TextBlobBuilder::new();
@@ -249,7 +260,15 @@ pub(super) fn draw(
                     }
                     canvas.draw_text_blob(blob, Point::default(), &paint);
                     if let Some(style) = text_style {
-                        draw_text_emphasis(canvas, &run, group, style, &font, opacity);
+                        draw_text_emphasis(
+                            canvas,
+                            &run,
+                            group,
+                            style,
+                            writing_mode,
+                            &font,
+                            opacity,
+                        );
                     }
                 }
             }

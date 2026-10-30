@@ -11,10 +11,14 @@ pub(super) fn glyph_is_upright(
     line: &cosmic_text::LayoutRun<'_>,
     glyph: &LayoutGlyph,
     style: Option<&TextStyle>,
+    writing_mode: WritingMode,
 ) -> bool {
     let Some(style) = style else {
         return false;
     };
+    if style.writing_mode != writing_mode || writing_mode == WritingMode::HorizontalTb {
+        return false;
+    }
     let Some(text) = line.text.get(glyph.start..glyph.end) else {
         return false;
     };
@@ -56,11 +60,12 @@ pub(super) fn draw_upright_glyphs(
     baseline: f32,
     paint: &Paint,
     style: Option<&TextStyle>,
+    writing_mode: WritingMode,
     opacity: f32,
 ) {
-    let angle = match style.map(|style| style.writing_mode) {
-        Some(WritingMode::VerticalRl) => -90.0,
-        Some(WritingMode::VerticalLr) => 90.0,
+    let angle = match writing_mode {
+        WritingMode::VerticalRl => -90.0,
+        WritingMode::VerticalLr => 90.0,
         _ => return,
     };
     for glyph in glyphs {

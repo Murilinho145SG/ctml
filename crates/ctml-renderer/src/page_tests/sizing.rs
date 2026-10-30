@@ -182,6 +182,192 @@ fn logical_inline_size_properties_use_the_horizontal_width_axis() {
 }
 
 #[test]
+fn vertical_writing_uses_inline_size_on_the_column_flow_axis() {
+    let text = "logical vertical size constrains column text flow ".repeat(10);
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(text)],
+    }];
+    let vertical_root = StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "writing-mode".to_owned(),
+            value: "vertical-rl".to_owned(),
+        }],
+    };
+    let mut unconstrained = PageRasterizer::new(&nodes, std::slice::from_ref(&vertical_root));
+    unconstrained.prepare_layout(1000, 500);
+    let unconstrained_lines = unconstrained.buffer.layout_runs().count();
+
+    let root_with_inline_size = [
+        vertical_root.clone(),
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "inline-size".to_owned(),
+                value: "40px".to_owned(),
+            }],
+        },
+    ];
+    let mut root_sized = PageRasterizer::new(&nodes, &root_with_inline_size);
+    root_sized.prepare_layout(1000, 500);
+    let root_sized_lines = root_sized.buffer.layout_runs().count();
+    assert!(
+        root_sized_lines > unconstrained_lines,
+        "root inline-size should constrain columns ({root_sized_lines} vs {unconstrained_lines}, {:?})",
+        root_sized.root_style.inline_size
+    );
+
+    let nested_with_inline_size = [
+        vertical_root,
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "inline-size".to_owned(),
+                value: "40px".to_owned(),
+            }],
+        },
+    ];
+    let mut nested_sized = PageRasterizer::new(&nodes, &nested_with_inline_size);
+    nested_sized.prepare_layout(1000, 500);
+    assert!(nested_sized.buffer.layout_runs().count() > unconstrained_lines);
+}
+
+#[test]
+fn vertical_root_block_size_constrains_the_block_flow_axis() {
+    let text = "block size limits vertical column flow ".repeat(20);
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(text)],
+    }];
+    let root_style = |block_size: Option<&str>| {
+        let mut declarations = vec![
+            StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            },
+            StyleDeclaration {
+                property: "inline-size".to_owned(),
+                value: "40px".to_owned(),
+            },
+        ];
+        if let Some(block_size) = block_size {
+            declarations.push(StyleDeclaration {
+                property: "block-size".to_owned(),
+                value: block_size.to_owned(),
+            });
+        }
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations,
+        }
+    };
+    let mut natural = PageRasterizer::new(&nodes, &[root_style(None)]);
+    natural.prepare_layout(300, 300);
+    let natural_lines = natural.buffer.layout_runs().count();
+    let mut constrained = PageRasterizer::new(&nodes, &[root_style(Some("60px"))]);
+    constrained.prepare_layout(300, 300);
+
+    assert!(constrained.buffer.layout_runs().count() < natural_lines);
+}
+
+#[test]
+fn nested_vertical_block_size_reserves_additional_column_flow() {
+    let nodes = [
+        UiNode::Element {
+            tag: "p".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("first".to_owned())],
+        },
+        UiNode::Element {
+            tag: "p".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("second".to_owned())],
+        },
+    ];
+    let vertical_root = StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "writing-mode".to_owned(),
+            value: "vertical-rl".to_owned(),
+        }],
+    };
+    let mut natural = PageRasterizer::new(&nodes, std::slice::from_ref(&vertical_root));
+    natural.prepare_layout(300, 300);
+    let natural_lines = natural.buffer.layout_runs().count();
+    let stylesheet = [
+        vertical_root,
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "block-size".to_owned(),
+                value: "120px".to_owned(),
+            }],
+        },
+    ];
+    let mut sized = PageRasterizer::new(&nodes, &stylesheet);
+    sized.prepare_layout(300, 300);
+
+    assert!(sized.buffer.layout_runs().count() > natural_lines);
+}
+
+#[test]
+fn empty_block_size_reserves_space_on_the_vertical_block_axis() {
+    let nodes = [
+        text_paragraph("before"),
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        text_paragraph("after"),
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "block-size".to_owned(),
+                value: "100px".to_owned(),
+            }],
+        },
+    ];
+    let mut natural = PageRasterizer::new(&nodes, &stylesheet[..1]);
+    natural.prepare_layout(300, 300);
+    let natural_columns = natural.buffer.layout_runs().count();
+    let mut sized = PageRasterizer::new(&nodes, &stylesheet);
+    sized.prepare_layout(300, 300);
+
+    assert!(sized.buffer.layout_runs().count() > natural_columns);
+}
+
+#[test]
 fn empty_block_height_reserves_vertical_flow_space() {
     let natural_after_y = empty_block_after_y(Vec::new());
     let zero_height_after_y = empty_block_after_y(vec![StyleDeclaration {
@@ -218,8 +404,14 @@ fn empty_block_height_reserves_vertical_flow_space() {
                 value: "40px".to_owned(),
             },
         ]);
-        assert!(max_capped_after_y >= natural_after_y + 20.0);
-        assert!(max_capped_after_y < natural_after_y + 60.0);
+        assert!(
+            max_capped_after_y >= natural_after_y + 20.0,
+            "{property}: {max_capped_after_y} vs {natural_after_y}"
+        );
+        assert!(
+            max_capped_after_y < natural_after_y + 60.0,
+            "{property}: {max_capped_after_y} vs {natural_after_y}"
+        );
     }
 }
 
