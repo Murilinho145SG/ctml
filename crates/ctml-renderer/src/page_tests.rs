@@ -58,6 +58,8 @@ mod containment;
 mod css_math;
 #[path = "page_tests/element_opacity.rs"]
 mod element_opacity;
+#[path = "page_tests/first_letter_logical_box.rs"]
+mod first_letter_logical_box;
 #[path = "page_tests/first_letter_transform.rs"]
 mod first_letter_transform;
 #[path = "page_tests/first_line_spacing.rs"]
