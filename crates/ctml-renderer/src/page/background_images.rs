@@ -227,12 +227,29 @@ fn linear_gradient_shader(gradient: &LinearGradient, rect: Rect) -> Option<skia_
             )
         })
         .collect::<Vec<_>>();
-    let positions = gradient
+    let raw_positions = gradient
         .stops
         .iter()
         .map(|(_, position)| *position)
         .collect::<Vec<_>>();
-    let colors = gradient::Colors::new(&colors, Some(&positions), TileMode::Clamp, None);
+    let first_position = *raw_positions.first()?;
+    let last_position = *raw_positions.last()?;
+    let (positions, tile_mode) = if gradient.repeating {
+        let period = last_position - first_position;
+        if period <= 0.0 {
+            return None;
+        }
+        (
+            raw_positions
+                .iter()
+                .map(|position| (position - first_position) / period)
+                .collect::<Vec<_>>(),
+            TileMode::Repeat,
+        )
+    } else {
+        (raw_positions, TileMode::Clamp)
+    };
+    let colors = gradient::Colors::new(&colors, Some(&positions), tile_mode, None);
     let shader_gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
     let angle = gradient.angle_degrees.to_radians();
     let direction = (angle.sin(), -angle.cos());
@@ -241,13 +258,27 @@ fn linear_gradient_shader(gradient: &LinearGradient, rect: Rect) -> Option<skia_
     let line_length = (width * direction.0.abs() + height * direction.1.abs()).max(1.0);
     let center = (rect.center_x(), rect.center_y());
     let half_length = line_length / 2.0;
-    let start = Point::new(
+    let base_start = Point::new(
         center.0 - direction.0 * half_length,
         center.1 - direction.1 * half_length,
     );
-    let end = Point::new(
+    let base_end = Point::new(
         center.0 + direction.0 * half_length,
         center.1 + direction.1 * half_length,
     );
+    let (start, end) = if gradient.repeating {
+        let period = last_position - first_position;
+        let start = Point::new(
+            base_start.x + direction.0 * line_length * first_position,
+            base_start.y + direction.1 * line_length * first_position,
+        );
+        let end = Point::new(
+            start.x + direction.0 * line_length * period,
+            start.y + direction.1 * line_length * period,
+        );
+        (start, end)
+    } else {
+        (base_start, base_end)
+    };
     gradient::shaders::linear_gradient((start, end), &shader_gradient, None)
 }

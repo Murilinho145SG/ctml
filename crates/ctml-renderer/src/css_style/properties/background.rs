@@ -222,10 +222,9 @@ fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<Backgro
     let layers = split_top_level_commas(value);
     let mut images = Vec::with_capacity(layers.len());
     for layer in layers {
-        if layer
-            .trim_start()
-            .get(..15)
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("linear-gradient"))
+        let layer_name = layer.trim_start().to_ascii_lowercase();
+        if layer_name.starts_with("linear-gradient(")
+            || layer_name.starts_with("repeating-linear-gradient(")
         {
             images.push(BackgroundImage::LinearGradient(parse_linear_gradient(
                 style, layer,
@@ -258,7 +257,12 @@ fn parse_data_url(value: &str) -> Option<std::sync::Arc<[u8]>> {
 fn parse_linear_gradient(style: &TextStyle, value: &str) -> Option<LinearGradient> {
     let value = value.trim();
     let opening = value.find('(')?;
-    if !value[..opening].eq_ignore_ascii_case("linear-gradient") || !value.ends_with(')') {
+    let repeating = match value[..opening].to_ascii_lowercase().as_str() {
+        "linear-gradient" => false,
+        "repeating-linear-gradient" => true,
+        _ => return None,
+    };
+    if !value.ends_with(')') {
         return None;
     }
     let arguments = &value[opening + 1..value.len() - 1];
@@ -287,6 +291,7 @@ fn parse_linear_gradient(style: &TextStyle, value: &str) -> Option<LinearGradien
     Some(LinearGradient {
         angle_degrees: angle.rem_euclid(360.0),
         stops,
+        repeating,
     })
 }
 

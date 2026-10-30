@@ -10,6 +10,7 @@ pub(crate) enum BackgroundImage {
 pub(crate) struct LinearGradient {
     pub(crate) angle_degrees: f32,
     pub(crate) stops: Vec<([u8; 4], f32)>,
+    pub(crate) repeating: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

@@ -66,6 +66,8 @@ mod hyphens;
 mod inline_boxes;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
+#[path = "page_tests/linear_gradients.rs"]
+mod linear_gradients;
 #[path = "page_tests/outline.rs"]
 mod outline;
 #[path = "page_tests/parity.rs"]

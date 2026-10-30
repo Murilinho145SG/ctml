@@ -315,6 +315,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `background-origin` and `background-clip` support per-layer border-box, padding-box, and content-box geometry; background colors use the final clip value.
 - [ ] Linear, radial, conic, and repeating gradients.
   - [x] `linear-gradient()` with direction or angle, CSS colors, and optional percentage stop positions.
+  - [x] `repeating-linear-gradient()` repeats the pattern between its first and last color stops.
 - [ ] Border images and nine-slice behavior.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
