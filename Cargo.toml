@@ -4,9 +4,13 @@ members = [
     "crates/ctml-compiler",
     "crates/ctml-css",
     "crates/ctml-renderer",
+    "crates/cosmic-text",
     "examples/native-app",
 ]
 resolver = "3"
+
+[patch.crates-io]
+cosmic-text = { path = "crates/cosmic-text" }
 
 [workspace.dependencies]
 cosmic-text = "0.19.0"

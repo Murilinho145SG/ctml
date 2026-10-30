@@ -613,5 +613,48 @@ fn applies_text_decoration_color_to_active_lines() {
     assert_eq!(style.text_decoration_color, Some([255, 0, 128, 128]));
 }
 
+#[test]
+fn resolves_optical_sizing_and_variation_settings() {
+    let style = style_for_declarations(&[
+        ("font-size", "18px"),
+        ("font-optical-sizing", "auto"),
+        ("font-variation-settings", "\"wght\" 620, \"opsz\" 16.5"),
+    ]);
+    assert!(style.font_optical_sizing);
+    assert_eq!(
+        style.font_variation_settings,
+        vec![(*b"wght", 620.0), (*b"opsz", 16.5)]
+    );
+    let attrs = style.to_attrs("sans-serif");
+    assert_eq!(attrs.font_variations.len(), 2);
+    assert_eq!(attrs.font_variations[0].tag(), *b"wght");
+    assert_eq!(attrs.font_variations[1].tag(), *b"opsz");
+    assert_eq!(attrs.font_variations[1].value(), 16.5);
+}
+
+#[test]
+fn optical_sizing_defaults_to_auto_and_variation_settings_reset() {
+    let default = TextStyle::default();
+    assert!(default.font_optical_sizing);
+    assert!(default.font_variation_settings.is_empty());
+
+    let style = style_for_declarations(&[
+        ("font-optical-sizing", "none"),
+        ("font-variation-settings", "\"wght\" 500"),
+        ("font", "italic 700 20px serif"),
+    ]);
+    assert!(style.font_optical_sizing);
+    assert!(style.font_variation_settings.is_empty());
+}
+
+#[test]
+fn rejects_invalid_font_variation_settings_without_changing_previous_value() {
+    let style = style_for_declarations(&[
+        ("font-variation-settings", "\"wght\" 620"),
+        ("font-variation-settings", "\"wght\" 620,"),
+    ]);
+    assert_eq!(style.font_variation_settings, vec![(*b"wght", 620.0)]);
+}
+
 #[path = "css_style_decoration_inherit_tests.rs"]
 mod decoration_inherit;

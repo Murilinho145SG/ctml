@@ -4,6 +4,7 @@ mod color;
 mod comments;
 mod css_string;
 mod font_features;
+mod font_variations;
 mod imports;
 mod length;
 mod math;
@@ -13,6 +14,7 @@ mod selector;
 pub use color::{parse_color, parse_color_with_opacity};
 pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
+pub use font_variations::parse_font_variation_settings;
 pub use imports::parse_stylesheet_file;
 pub use length::{
     FontRelativeUnits, ViewportSize, parse_font_relative_length,

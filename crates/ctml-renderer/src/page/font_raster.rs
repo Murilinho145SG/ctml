@@ -21,7 +21,7 @@ use text_effects::{draw_text_emphasis, draw_text_shadows, scale_alpha};
 
 pub(super) fn draw(
     runs: &[TextRun],
-    font_system: &FontSystem,
+    font_system: &mut FontSystem,
     buffer: &Buffer,
     pixels: &mut [u8],
     width: u32,
@@ -135,6 +135,19 @@ pub(super) fn draw(
                 start = end;
                 continue;
             };
+            let variation_font = font_system.get_font_with_variation_key(
+                first.font_id,
+                first.font_weight,
+                first.variation_key,
+            );
+            let typeface = variation_font.as_ref().map_or(typeface.clone(), |font| {
+                let variations = font
+                    .variations()
+                    .iter()
+                    .map(|setting| (setting.tag(), setting.value()))
+                    .collect::<Vec<_>>();
+                crate::font_metrics::apply_variations(&typeface, &variations, first.font_weight)
+            });
 
             let mut paint = Paint::default();
             paint.set_color(Color::from_argb(

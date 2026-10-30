@@ -255,6 +255,8 @@ pub(super) fn reset_font(style: &mut TextStyle) {
     style.font_variant_numeric.clear();
     style.font_variant_east_asian.clear();
     style.font_feature_settings.clear();
+    style.font_optical_sizing = true;
+    style.font_variation_settings.clear();
 }
 
 pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
@@ -283,6 +285,10 @@ pub(super) fn inherit_font(style: &mut TextStyle, inherited: &TextStyle) {
     style
         .font_feature_settings
         .clone_from(&inherited.font_feature_settings);
+    style.font_optical_sizing = inherited.font_optical_sizing;
+    style
+        .font_variation_settings
+        .clone_from(&inherited.font_variation_settings);
 }
 
 fn parse_following_line_height(

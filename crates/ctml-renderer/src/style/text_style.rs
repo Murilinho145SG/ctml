@@ -54,6 +54,8 @@ pub(crate) struct TextStyle {
     pub(crate) font_variant_numeric: Vec<String>,
     pub(crate) font_variant_east_asian: Vec<String>,
     pub(crate) font_feature_settings: Vec<([u8; 4], u32)>,
+    pub(crate) font_optical_sizing: bool,
+    pub(crate) font_variation_settings: Vec<([u8; 4], f32)>,
     pub(crate) cursor: CursorIcon,
     pub(crate) cursor_hidden: bool,
     pub(crate) letter_spacing: f32,
@@ -231,6 +233,8 @@ impl Default for TextStyle {
             font_variant_numeric: Vec::new(),
             font_variant_east_asian: Vec::new(),
             font_feature_settings: Vec::new(),
+            font_optical_sizing: true,
+            font_variation_settings: Vec::new(),
             cursor: CursorIcon::Text,
             cursor_hidden: false,
             letter_spacing: 0.0,
@@ -371,6 +375,21 @@ impl TextStyle {
             .stretch(self.stretch)
             .style(self.font_style);
         attrs = attrs.font_features(self.font_features());
+        let mut variations = Vec::new();
+        if self.font_optical_sizing
+            && !self
+                .font_variation_settings
+                .iter()
+                .any(|(tag, _)| *tag == *b"opsz")
+        {
+            variations.push(cosmic_text::FontVariation::new(*b"opsz", self.font_size));
+        }
+        variations.extend(
+            self.font_variation_settings
+                .iter()
+                .map(|(tag, value)| cosmic_text::FontVariation::new(*tag, *value)),
+        );
+        attrs = attrs.font_variations(variations);
         let mut decoration_metadata =
             (self.decoration_style as u64) | ((self.decoration_skip_ink as u64) << 4);
         if let Some(thickness) = self.decoration_thickness {

@@ -20,6 +20,7 @@ use font::{
     relative_font_weight, reset_font,
 };
 use font_feature_settings::apply_font_feature_settings;
+use font_variation_settings::apply_font_variation_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
 use size::{
     apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
@@ -39,6 +40,7 @@ mod cursor;
 mod display;
 mod font;
 mod font_feature_settings;
+mod font_variation_settings;
 mod list_style;
 mod size;
 mod spacing;
@@ -112,6 +114,8 @@ fn is_inherited_property(property: &str) -> bool {
             | "font-variant-numeric"
             | "font-variant-east-asian"
             | "font-feature-settings"
+            | "font-optical-sizing"
+            | "font-variation-settings"
             | "list-style"
             | "list-style-type"
             | "text-shadow"
@@ -200,6 +204,10 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "font-feature-settings" => style
             .font_feature_settings
             .clone_from(&inherited.font_feature_settings),
+        "font-optical-sizing" => style.font_optical_sizing = inherited.font_optical_sizing,
+        "font-variation-settings" => style
+            .font_variation_settings
+            .clone_from(&inherited.font_variation_settings),
         "text-shadow" => style.text_shadows.clone_from(&inherited.text_shadows),
         "text-emphasis"
         | "text-emphasis-style"
@@ -290,6 +298,8 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "font-variant-numeric" => style.font_variant_numeric.clear(),
         "font-variant-east-asian" => style.font_variant_east_asian.clear(),
         "font-feature-settings" => style.font_feature_settings.clear(),
+        "font-optical-sizing" => style.font_optical_sizing = true,
+        "font-variation-settings" => style.font_variation_settings.clear(),
         "text-shadow" => style.text_shadows.clear(),
         "text-emphasis"
         | "text-emphasis-style"
@@ -484,6 +494,12 @@ fn apply_declaration(
         "font-variant-numeric" => apply_font_variant_numeric(style, value),
         "font-variant-east-asian" => apply_font_variant_east_asian(style, value),
         "font-feature-settings" => apply_font_feature_settings(style, value),
+        "font-optical-sizing" => match value.to_ascii_lowercase().as_str() {
+            "auto" => style.font_optical_sizing = true,
+            "none" => style.font_optical_sizing = false,
+            _ => {}
+        },
+        "font-variation-settings" => apply_font_variation_settings(style, value),
         "text-shadow" => apply_text_shadow(style, value),
         "text-emphasis"
         | "text-emphasis-style"

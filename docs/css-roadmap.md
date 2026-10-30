@@ -191,7 +191,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Numeric glyph variants through `font-variant-numeric` for lining/oldstyle, proportional/tabular, fraction, ordinal, and slashed-zero features.
 - [x] East Asian glyph variants through `font-variant-east-asian` for JIS encodings, simplified/traditional forms, full/proportional width, and ruby.
 - [x] Low-level `font-feature-settings` with four-character OpenType tags, numeric settings, `on`, and `off`.
-- [ ] Optical sizing and font variation settings.
+- [x] Optical sizing and font variation settings.
 - [x] Local `@font-face` loading with a CSS family alias and static weight, style, and stretch descriptors.
 - [ ] Variable font weight/style ranges.
 - [x] `@font-face` tries `local()` and local URL candidates in source order, aliases the first available font to the declared family, and matches static weight/style/stretch descriptors through the native font database.

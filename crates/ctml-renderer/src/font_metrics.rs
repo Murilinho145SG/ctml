@@ -2,6 +2,7 @@ use cosmic_text::{
     FontSystem, fontdb,
     fontdb::{Family as DatabaseFamily, Query as FontQuery},
 };
+use skia_safe::font_arguments::{FontArguments, VariationPosition, variation_position::Coordinate};
 use skia_safe::{Font, FontHinting, FontMgr};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -45,6 +46,8 @@ pub(crate) fn font_relative_units(
         return ctml_css::FontRelativeUnits::default();
     };
     let font_size = style.font_size.max(1.0);
+    let variations = variation_settings(style);
+    let typeface = apply_variations(&typeface, &variations, style.weight);
     let mut font = Font::from_typeface(typeface, font_size);
     font.set_hinting(FontHinting::None);
     font.set_force_auto_hinting(true);
@@ -85,11 +88,13 @@ impl<'a> FontRelativeUnitsContext<'a> {
     pub(crate) fn resolve(&self, style: &TextStyle) -> ctml_css::FontRelativeUnits {
         let family = resolve_family_list(&style.family, self.font_system);
         let key = format!(
-            "{family}|{}|{:?}|{:?}|{}",
+            "{family}|{}|{:?}|{:?}|{}|{}|{:?}",
             style.weight.0,
             style.stretch,
             style.font_style,
-            style.font_size.to_bits()
+            style.font_size.to_bits(),
+            style.font_optical_sizing,
+            style.font_variation_settings
         );
         if let Some(metrics) = self.cache.borrow().get(&key) {
             return *metrics;
@@ -136,6 +141,8 @@ pub(crate) fn normal_line_height(
             font_manager.new_from_bytes(data, Some(index))
         })
         .flatten()?;
+    let variations = variation_settings(style);
+    let typeface = apply_variations(&typeface, &variations, style.weight);
     let mut font = Font::from_typeface(typeface, style.font_size);
     font.set_hinting(FontHinting::None);
     font.set_force_auto_hinting(true);
@@ -149,6 +156,59 @@ pub(crate) fn normal_line_height(
         false,
         true,
     ))
+}
+
+fn variation_settings(style: &TextStyle) -> Vec<([u8; 4], f32)> {
+    let mut variations = Vec::new();
+    if style.font_optical_sizing
+        && !style
+            .font_variation_settings
+            .iter()
+            .any(|(tag, _)| *tag == *b"opsz")
+    {
+        variations.push((*b"opsz", style.font_size));
+    }
+    variations.extend(style.font_variation_settings.iter().copied());
+    variations
+}
+
+pub(crate) fn apply_variations(
+    typeface: &skia_safe::Typeface,
+    variations: &[([u8; 4], f32)],
+    weight: fontdb::Weight,
+) -> skia_safe::Typeface {
+    let Some(axes) = typeface.variation_design_parameters() else {
+        return typeface.clone();
+    };
+    if axes.is_empty() {
+        return typeface.clone();
+    }
+    let mut coordinates: Vec<Coordinate> = axes
+        .iter()
+        .map(|axis| Coordinate {
+            axis: axis.tag,
+            value: if axis.tag == Coordinate::wght {
+                f32::from(weight.0).clamp(axis.min, axis.max)
+            } else {
+                axis.def
+            },
+        })
+        .collect();
+    for (tag, value) in variations {
+        let axis = skia_safe::FourByteTag::new(u32::from_be_bytes(*tag));
+        if let Some(coordinate) = coordinates.iter_mut().find(|coord| coord.axis == axis)
+            && let Some(metadata) = axes.iter().find(|metadata| metadata.tag == axis)
+        {
+            coordinate.value = value.clamp(metadata.min, metadata.max);
+        }
+    }
+    typeface
+        .clone_with_arguments(&FontArguments::new().set_variation_design_position(
+            VariationPosition {
+                coordinates: &coordinates,
+            },
+        ))
+        .unwrap_or_else(|| typeface.clone())
 }
 
 fn normal_line_height_from_metrics(
