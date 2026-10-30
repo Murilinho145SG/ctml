@@ -8,20 +8,38 @@ use super::{
 };
 
 pub(super) fn resolve_radii(size: &LayoutSize, rect: overflow_clip::ClipRect) -> [[f32; 2]; 4] {
+    resolve_radii_values(
+        &size.border_radius,
+        size.font_size,
+        size.line_height,
+        size.font_relative_units,
+        size.viewport_size,
+        rect,
+    )
+}
+
+pub(super) fn resolve_radii_values(
+    values: &[[Option<String>; 2]; 4],
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: ctml_css::FontRelativeUnits,
+    viewport_size: ctml_css::ViewportSize,
+    rect: overflow_clip::ClipRect,
+) -> [[f32; 2]; 4] {
     let width = rect.right - rect.left;
     let height = rect.bottom - rect.top;
     let mut radii = std::array::from_fn(|corner| {
         std::array::from_fn(|axis| {
-            size.border_radius[corner][axis]
+            values[corner][axis]
                 .as_deref()
                 .and_then(|value| {
                     super::sizing::resolve_width(
                         value,
                         if axis == 0 { width } else { height },
-                        size.font_size,
-                        size.line_height,
-                        size.font_relative_units,
-                        size.viewport_size,
+                        font_size,
+                        line_height,
+                        font_relative_units,
+                        viewport_size,
                     )
                 })
                 .unwrap_or_default()

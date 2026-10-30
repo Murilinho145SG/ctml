@@ -144,6 +144,37 @@ pub(super) fn draw(
             let top = fragment.top + PAGE_PADDING;
             let length = (fragment.right - fragment.left).max(0.0);
             let fragment_height = (fragment.bottom - fragment.top).max(0.0);
+            if run.first_letter_block.is_some()
+                && style.border_radius.iter().flatten().any(Option::is_some)
+            {
+                let rect = overflow_clip::ClipRect {
+                    left,
+                    top,
+                    right: left + length,
+                    bottom: top + fragment_height,
+                };
+                let radii = super::border_radius::resolve_radii_values(
+                    &style.border_radius,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                    rect,
+                );
+                super::border_radius::draw_rounded_border(
+                    pixels,
+                    width,
+                    height,
+                    rect,
+                    widths,
+                    radii,
+                    style.border_style,
+                    colors,
+                    style.opacity,
+                    clip,
+                );
+                continue;
+            }
             for side in 0..4 {
                 if !sides[side] {
                     continue;

@@ -556,3 +556,49 @@ fn first_letter_box_shadow_paints_outside_the_initial_glyph_box() {
         "the initial glyph should receive its box shadow"
     );
 }
+
+#[test]
+fn first_letter_border_radius_rounds_the_border_corner() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Wider text".to_owned())],
+    }];
+    let make_page = |radius: Option<&str>| {
+        let mut declarations = vec![StyleDeclaration {
+            property: "border".to_owned(),
+            value: "3px solid red".to_owned(),
+        }];
+        if let Some(radius) = radius {
+            declarations.push(StyleDeclaration {
+                property: "border-radius".to_owned(),
+                value: radius.to_owned(),
+            });
+        }
+        let stylesheet = [StyleRule {
+            selectors: vec!["p::first-letter".to_owned()],
+            layer: None,
+            declarations,
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(140, 70);
+        let line = page.buffer.layout_runs().next().unwrap();
+        let glyph = line.glyphs.first().unwrap();
+        let x = (glyph.x + crate::page::PAGE_PADDING).floor() as u32;
+        let y = (line.line_top + crate::page::PAGE_PADDING).floor() as u32;
+        let pixels = page.snapshot_pixels(140, 70);
+        let pixel = &pixels[((y * 140 + x) * 4) as usize..][..3];
+        pixel == [255, 0, 0]
+    };
+
+    assert!(
+        make_page(None),
+        "square border should paint its top-left corner"
+    );
+    assert!(
+        !make_page(Some("50%")),
+        "rounded border should leave its outer top-left corner clear"
+    );
+}

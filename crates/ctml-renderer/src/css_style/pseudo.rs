@@ -179,6 +179,11 @@ fn resolve_pseudo_style(
                             "border-block-start-style",
                             "border-block-end-style",
                             "box-shadow",
+                            "border-radius",
+                            "border-top-left-radius",
+                            "border-top-right-radius",
+                            "border-bottom-right-radius",
+                            "border-bottom-left-radius",
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -301,6 +306,11 @@ fn resolve_pseudo_style(
                     "border-block-start-style",
                     "border-block-end-style",
                     "box-shadow",
+                    "border-radius",
+                    "border-top-left-radius",
+                    "border-top-right-radius",
+                    "border-bottom-right-radius",
+                    "border-bottom-left-radius",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))
