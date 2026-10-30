@@ -21,6 +21,7 @@ mod interactions;
 mod layout;
 mod pixel;
 mod sizing;
+mod vertical;
 mod viewport;
 
 const PAGE_PADDING: f32 = 8.0;
@@ -164,7 +165,9 @@ impl PageRasterizer {
             .selection_anchor
             .map(|cursor| cursor_without_flow_spacers(cursor, &self.spacer_line_flags));
         let viewport_size = viewport::resize_styles(self, width, height);
-        let available_width = (width as f32 - PAGE_PADDING * 2.0).max(1.0);
+        let (layout_width, layout_height) =
+            vertical::layout_dimensions(self.writing_mode(), width, height);
+        let available_width = (layout_width as f32 - PAGE_PADDING * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
         let min_width = self.root_style.min_width.as_deref().and_then(|value| {
             resolve_width(
@@ -209,7 +212,7 @@ impl PageRasterizer {
             (None, None) => {}
         }
         let content_width = content_width.max(1.0);
-        let content_height = (height as f32 - PAGE_PADDING * 2.0).max(1.0);
+        let content_height = (layout_height as f32 - PAGE_PADDING * 2.0).max(1.0);
         self.cursor_spans = cursor_spans(&self.runs);
         shape_buffer(self, content_width, content_height);
         let metrics = self.buffer.metrics();
@@ -323,6 +326,13 @@ impl PageRasterizer {
     }
 
     fn render_pixels(&mut self, width: u32, height: u32) -> Vec<u8> {
+        let mode = self.writing_mode();
+        let (layout_width, layout_height) = vertical::layout_dimensions(mode, width, height);
+        let pixels = self.render_layout_pixels(layout_width, layout_height);
+        vertical::orient_pixels(mode, pixels, width, height)
+    }
+
+    fn render_layout_pixels(&mut self, width: u32, height: u32) -> Vec<u8> {
         let mut pixels = vec![0_u8; width as usize * height as usize * 4];
         for pixel in pixels.chunks_exact_mut(4) {
             pixel[..3].copy_from_slice(&self.root_style.background);
@@ -424,74 +434,14 @@ impl PageRasterizer {
         self.draw_pseudo_decorations(&mut pixels, width, height, &auto_ink_mask, &all_ink_mask);
         pixels
     }
+
+    fn writing_mode(&self) -> crate::style::WritingMode {
+        self.root_style.writing_mode
+    }
 }
 
 fn is_underline_descender(character: char) -> bool {
     matches!(character, 'g' | 'j' | 'p' | 'q' | 'y')
-}
-
-fn line_alignments(
-    runs: &[TextRun],
-) -> Vec<(
-    cosmic_text::Align,
-    Option<cosmic_text::Align>,
-    cosmic_text::TextJustify,
-    cosmic_text::Wrap,
-    bool,
-    bool,
-    bool,
-    cosmic_text::Ellipsize,
-    f32,
-    f32,
-    bool,
-    bool,
-)> {
-    let line_style = |style: &TextStyle| {
-        (
-            style.text_align,
-            style.text_align_last,
-            style.text_justify,
-            style.wrap_mode(),
-            style.word_break == crate::style::WordBreak::KeepAll,
-            style.hyphens == crate::style::Hyphens::None,
-            matches!(
-                style.white_space,
-                crate::style::WhiteSpace::PreWrap | crate::style::WhiteSpace::BreakSpaces
-            ),
-            style.ellipsize_mode(),
-            style.text_indent,
-            style.text_indent_percent,
-            style.text_indent_hanging,
-            style.text_indent_each_line,
-        )
-    };
-    let mut alignments = vec![(
-        cosmic_text::Align::Left,
-        None,
-        cosmic_text::TextJustify::Auto,
-        cosmic_text::Wrap::Word,
-        false,
-        false,
-        false,
-        cosmic_text::Ellipsize::None,
-        0.0,
-        0.0,
-        false,
-        false,
-    )];
-    let mut line_has_text = false;
-    for run in runs {
-        for character in run.text.chars() {
-            if character == '\n' {
-                alignments.push(line_style(&run.style));
-                line_has_text = false;
-            } else if !line_has_text {
-                *alignments.last_mut().expect("at least one text line") = line_style(&run.style);
-                line_has_text = true;
-            }
-        }
-    }
-    alignments
 }
 
 #[cfg(test)]

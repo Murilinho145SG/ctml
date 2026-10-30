@@ -12,9 +12,6 @@ impl PageRasterizer {
             self.root_style.cursor
         };
         let fallback_visible = !self.root_style.cursor_hidden;
-        if x < PAGE_PADDING as f64 || y < PAGE_PADDING as f64 {
-            return (fallback, fallback_visible);
-        }
         let Some(cursor) = self.hit(x, y) else {
             return (fallback, fallback_visible);
         };
@@ -177,8 +174,9 @@ impl PageRasterizer {
     }
 
     fn hit(&self, x: f64, y: f64) -> Option<Cursor> {
-        let x = x as f32 - PAGE_PADDING;
-        let y = y as f32 - PAGE_PADDING;
+        let (x, y) = self.layout_point(x as f32, y as f32);
+        let x = x - PAGE_PADDING;
+        let y = y - PAGE_PADDING;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
             run.line_w > 0.0
                 && x >= 0.0
@@ -187,5 +185,10 @@ impl PageRasterizer {
                 && y < run.line_top + run.line_height
         });
         inside_text_line.then(|| self.buffer.hit(x, y)).flatten()
+    }
+
+    fn layout_point(&self, x: f32, y: f32) -> (f32, f32) {
+        let (width, height) = self.layout_size.unwrap_or((0, 0));
+        super::vertical::layout_point(self.writing_mode(), width, height, x, y)
     }
 }

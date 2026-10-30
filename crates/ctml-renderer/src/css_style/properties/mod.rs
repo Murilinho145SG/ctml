@@ -4,6 +4,7 @@ use winit::window::CursorIcon;
 use crate::style::{
     Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
     TextOverflow, TextRendering, TextStyle, TextTransform, UnicodeBidi, WhiteSpace, WordBreak,
+    WritingMode,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -147,6 +148,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "hyphens"
             | "text-rendering"
             | "text-orientation"
+            | "writing-mode"
             | "direction"
             | "quotes"
             | "text-decoration-skip-ink"
@@ -259,6 +261,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "hyphens" => style.hyphens = inherited.hyphens,
         "text-rendering" => style.text_rendering = inherited.text_rendering,
         "text-orientation" => style.text_orientation = inherited.text_orientation,
+        "writing-mode" => style.writing_mode = inherited.writing_mode,
         "direction" => style.direction = inherited.direction,
         "unicode-bidi" => style.unicode_bidi = inherited.unicode_bidi,
         "quotes" => style.quotes = inherited.quotes.clone(),
@@ -368,6 +371,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "hyphens" => style.hyphens = Hyphens::Manual,
         "text-rendering" => style.text_rendering = TextRendering::Auto,
         "text-orientation" => style.text_orientation = TextOrientation::Mixed,
+        "writing-mode" => style.writing_mode = WritingMode::HorizontalTb,
         "direction" => style.direction = Direction::Ltr,
         "unicode-bidi" => style.unicode_bidi = UnicodeBidi::Normal,
         "quotes" => style.quotes = quotes::default_quotes(),
@@ -669,6 +673,14 @@ fn apply_declaration(
                 "sideways" => TextOrientation::Sideways,
                 _ => style.text_orientation,
             };
+        }
+        "writing-mode" => {
+            style.writing_mode = match value.to_ascii_lowercase().as_str() {
+                "horizontal-tb" => WritingMode::HorizontalTb,
+                "vertical-rl" => WritingMode::VerticalRl,
+                "vertical-lr" => WritingMode::VerticalLr,
+                _ => style.writing_mode,
+            }
         }
         "direction" => {
             style.direction = match value.to_ascii_lowercase().as_str() {

@@ -875,6 +875,51 @@ fn resolves_text_rendering_features_and_text_orientation() {
 }
 
 #[test]
+fn resolves_vertical_writing_mode_values() {
+    use super::super::style::WritingMode;
+
+    for (value, expected) in [
+        ("horizontal-tb", WritingMode::HorizontalTb),
+        ("vertical-rl", WritingMode::VerticalRl),
+        ("vertical-lr", WritingMode::VerticalLr),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("writing-mode", value)]).writing_mode,
+            expected,
+            "{value}"
+        );
+    }
+
+    assert_eq!(
+        style_for_declarations(&[("writing-mode", "vertical-rl"), ("writing-mode", "initial")])
+            .writing_mode,
+        WritingMode::HorizontalTb
+    );
+
+    let inherited = TextStyle {
+        writing_mode: WritingMode::VerticalLr,
+        ..TextStyle::default()
+    };
+    let current = ElementIdentity {
+        tag: "span".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "writing-mode".to_owned(),
+            value: "inherit".to_owned(),
+        }],
+    };
+    assert_eq!(
+        resolve_style(&inherited, &current, &[], &[rule]).writing_mode,
+        WritingMode::VerticalLr
+    );
+}
+
+#[test]
 fn resolves_custom_css_quote_pairs() {
     let quotes = style_for_declarations(&[("quotes", "\"«\" \"»\" \"‹\" \"›\"")]);
     assert_eq!(

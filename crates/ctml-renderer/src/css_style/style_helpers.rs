@@ -53,6 +53,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "line-clamp",
     "text-rendering",
     "text-orientation",
+    "writing-mode",
     "direction",
     "unicode-bidi",
     "quotes",

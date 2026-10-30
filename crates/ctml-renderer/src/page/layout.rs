@@ -8,9 +8,73 @@ use crate::{
 };
 
 use super::{
-    CursorSpan, PageRasterizer, line_alignments,
+    CursorSpan, PageRasterizer,
     sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width},
 };
+
+pub(super) fn line_alignments(
+    runs: &[TextRun],
+) -> Vec<(
+    cosmic_text::Align,
+    Option<cosmic_text::Align>,
+    cosmic_text::TextJustify,
+    cosmic_text::Wrap,
+    bool,
+    bool,
+    bool,
+    cosmic_text::Ellipsize,
+    f32,
+    f32,
+    bool,
+    bool,
+)> {
+    let line_style = |style: &TextStyle| {
+        (
+            style.text_align,
+            style.text_align_last,
+            style.text_justify,
+            style.wrap_mode(),
+            style.word_break == crate::style::WordBreak::KeepAll,
+            style.hyphens == crate::style::Hyphens::None,
+            matches!(
+                style.white_space,
+                crate::style::WhiteSpace::PreWrap | crate::style::WhiteSpace::BreakSpaces
+            ),
+            style.ellipsize_mode(),
+            style.text_indent,
+            style.text_indent_percent,
+            style.text_indent_hanging,
+            style.text_indent_each_line,
+        )
+    };
+    let mut alignments = vec![(
+        cosmic_text::Align::Left,
+        None,
+        cosmic_text::TextJustify::Auto,
+        cosmic_text::Wrap::Word,
+        false,
+        false,
+        false,
+        cosmic_text::Ellipsize::None,
+        0.0,
+        0.0,
+        false,
+        false,
+    )];
+    let mut line_has_text = false;
+    for run in runs {
+        for character in run.text.chars() {
+            if character == '\n' {
+                alignments.push(line_style(&run.style));
+                line_has_text = false;
+            } else if !line_has_text {
+                *alignments.last_mut().expect("at least one text line") = line_style(&run.style);
+                line_has_text = true;
+            }
+        }
+    }
+    alignments
+}
 
 pub(super) fn apply_first_line_word_spacing(
     buffer: &cosmic_text::Buffer,

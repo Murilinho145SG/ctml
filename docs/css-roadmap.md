@@ -227,7 +227,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Pass inherited `lang` values to text shaping so language-sensitive shaping can use the declared language.
 - [x] `text-overflow: clip|ellipsis` for `nowrap`/`pre` lines and positive `line-clamp` line counts. Clipping and the layout-mode prerequisites used by browser CSS are not modeled.
 - [x] Word spacing, including inherited values, lengths and percentages.
-- [x] `text-rendering` controls kerning and common ligatures; `text-orientation` parses `mixed`, `upright`, and `sideways`. Orientation has no visual effect until vertical writing is implemented.
+- [x] `text-rendering` controls kerning and common ligatures; `text-orientation` parses `mixed`, `upright`, and `sideways`.
 - [x] `text-decoration-color` for underline, overline, and line-through.
 - [x] Solid, double, dotted, dashed, and wavy text decoration styles.
 - [x] `text-decoration-skip-ink` values `auto`, `none`, and `all`.
@@ -235,11 +235,13 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-underline-offset` values `auto`, signed lengths, and percentages.
 - [x] `text-shadow` with multiple shadows, signed offsets, non-negative blur lengths, explicit colors, and `currentColor`.
 - [x] Keyword and single-grapheme string `text-emphasis` marks (`dot`, `circle`, `double-circle`, `triangle`, and `sesame`), filled/open styles, inherited color, and over/under position.
-- [x] Parse and preserve the optional `left`/`right` side in `text-emphasis-position`; its vertical placement depends on writing modes.
-- [ ] Vertical text-emphasis side placement.
+- [x] Parse and preserve the optional `left`/`right` side in `text-emphasis-position` and apply it when vertical flow is enabled.
+- [x] Vertical text-emphasis `left`/`right` side placement.
 - [x] `direction: ltr|rtl` establishes the inherited base bidi direction for each rendered paragraph.
 - [x] `unicode-bidi: isolate` adds Unicode isolate controls around the styled inline range without adding controls to rendered text.
-- [ ] Writing modes and vertical text.
+- [x] Page-root `writing-mode: vertical-rl|vertical-lr` creates vertical columns and maps pointer coordinates through the rendered orientation.
+- [ ] Apply vertical flow independently to nested block elements and logical sizing properties.
+- [ ] Apply `text-orientation: mixed|upright|sideways` per glyph in vertical writing; vertical flow currently renders all glyphs sideways.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [x] Hebrew, Armenian, Georgian, basic CJK, localized decimal, and kana alphabet predefined `list-style-type` systems, with decimal fallback outside supported ranges.

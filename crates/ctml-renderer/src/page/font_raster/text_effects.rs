@@ -4,7 +4,9 @@ use skia_safe::{
 };
 
 use crate::page::PAGE_PADDING;
-use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextStyle};
+use crate::style::{
+    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextStyle, WritingMode,
+};
 
 pub(super) fn draw_text_shadows(canvas: &Canvas, blob: &TextBlob, style: &TextStyle, opacity: f32) {
     for shadow in style.text_shadows.iter().rev() {
@@ -64,7 +66,7 @@ pub(super) fn draw_text_emphasis(
         let radius = (glyph.font_size * 0.14).clamp(1.0, 2.5);
         let center = Point::new(
             glyph.x + glyph.w * 0.5 + PAGE_PADDING,
-            match style.text_emphasis_position {
+            match emphasis_position(style) {
                 TextEmphasisPosition::Over => line.line_top + radius + PAGE_PADDING,
                 TextEmphasisPosition::Under => {
                     line.line_top + line.line_height - radius - 1.0 + PAGE_PADDING
@@ -79,6 +81,16 @@ pub(super) fn draw_text_emphasis(
             font,
             &mut paint,
         );
+    }
+}
+
+fn emphasis_position(style: &TextStyle) -> TextEmphasisPosition {
+    match (style.writing_mode, style.text_emphasis_side) {
+        (WritingMode::VerticalRl, Some(TextEmphasisSide::Left))
+        | (WritingMode::VerticalLr, Some(TextEmphasisSide::Right)) => TextEmphasisPosition::Under,
+        (WritingMode::VerticalRl, Some(TextEmphasisSide::Right))
+        | (WritingMode::VerticalLr, Some(TextEmphasisSide::Left)) => TextEmphasisPosition::Over,
+        _ => style.text_emphasis_position,
     }
 }
 
@@ -166,5 +178,31 @@ fn draw_emphasis_mark(
             );
         }
         TextEmphasisStyle::None => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::emphasis_position;
+    use crate::style::{TextEmphasisPosition, TextEmphasisSide, TextStyle, WritingMode};
+
+    #[test]
+    fn vertical_emphasis_side_maps_to_the_requested_physical_side() {
+        let mut style = TextStyle {
+            writing_mode: WritingMode::VerticalRl,
+            text_emphasis_side: Some(TextEmphasisSide::Left),
+            ..TextStyle::default()
+        };
+        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Under);
+
+        style.text_emphasis_side = Some(TextEmphasisSide::Right);
+        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Over);
+
+        style.writing_mode = WritingMode::VerticalLr;
+        style.text_emphasis_side = Some(TextEmphasisSide::Left);
+        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Over);
+
+        style.text_emphasis_side = Some(TextEmphasisSide::Right);
+        assert_eq!(emphasis_position(&style), TextEmphasisPosition::Under);
     }
 }

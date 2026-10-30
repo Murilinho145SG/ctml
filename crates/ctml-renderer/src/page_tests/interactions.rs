@@ -67,6 +67,82 @@ fn direction_rtl_sets_the_paragraph_base_bidi_level() {
 }
 
 #[test]
+fn vertical_writing_modes_map_pointer_coordinates_to_rotated_text() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Hover".to_owned())],
+    }];
+    for mode in ["vertical-rl", "vertical-lr"] {
+        let stylesheet = [
+            StyleRule {
+                selectors: vec!["body".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: mode.to_owned(),
+                }],
+            },
+            StyleRule {
+                selectors: vec!["p:hover".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: "red".to_owned(),
+                }],
+            },
+        ];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.snapshot_pixels(100, 50);
+        let run = page.buffer.layout_runs().next().unwrap();
+        let glyph = run.glyphs.first().unwrap();
+        let layout_x = glyph.x + glyph.w * 0.5 + 8.0;
+        let layout_y = run.line_top + run.line_height * 0.5 + 8.0;
+        let (x, y) = if mode == "vertical-rl" {
+            (100.0 - layout_y, layout_x)
+        } else {
+            (layout_y, 50.0 - layout_x)
+        };
+        assert!(
+            page.update_hover(f64::from(x), f64::from(y)),
+            "{mode} pointer should hit text"
+        );
+        assert_eq!(page.runs[0].style.color, [255, 0, 0, 255], "{mode}");
+    }
+}
+
+#[test]
+fn page_root_vertical_writing_rotates_the_complete_rendered_surface() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Vertical layout".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["body".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "writing-mode".to_owned(),
+            value: "vertical-rl".to_owned(),
+        }],
+    }];
+    let horizontal = PageRasterizer::new(&nodes, &[]).snapshot_pixels(50, 100);
+    let vertical = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 50);
+    let expected = super::super::vertical::orient_pixels(
+        crate::style::WritingMode::VerticalRl,
+        horizontal,
+        100,
+        50,
+    );
+
+    assert_eq!(vertical, expected);
+}
+
+#[test]
 fn unicode_bidi_isolate_applies_to_nested_inline_runs_without_rendered_controls() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

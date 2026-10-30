@@ -80,6 +80,14 @@ pub(crate) enum TextOrientation {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum WritingMode {
+    #[default]
+    HorizontalTb,
+    VerticalRl,
+    VerticalLr,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum Direction {
     #[default]
     Ltr,
@@ -161,6 +169,7 @@ pub(crate) struct TextStyle {
     pub(crate) line_clamp: Option<usize>,
     pub(crate) text_rendering: TextRendering,
     pub(crate) text_orientation: TextOrientation,
+    pub(crate) writing_mode: WritingMode,
     pub(crate) direction: Direction,
     pub(crate) unicode_bidi: UnicodeBidi,
     pub(crate) bidi_isolate_direction: Option<Direction>,
@@ -370,6 +379,7 @@ impl Default for TextStyle {
             line_clamp: None,
             text_rendering: TextRendering::Auto,
             text_orientation: TextOrientation::Mixed,
+            writing_mode: WritingMode::HorizontalTb,
             direction: Direction::Ltr,
             unicode_bidi: UnicodeBidi::Normal,
             bidi_isolate_direction: None,
