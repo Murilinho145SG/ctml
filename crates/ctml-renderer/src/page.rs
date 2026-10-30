@@ -337,9 +337,10 @@ impl PageRasterizer {
             self.root_style.font_relative_units,
             viewport_size,
         );
+        let page_writing_mode = self.writing_mode();
+        layout::insert_first_letter_spacing(&mut self.runs, content_width, page_writing_mode);
         self.cursor_spans = cursor_spans(&self.runs);
         shape_buffer(self, content_width, content_height);
-        let page_writing_mode = self.writing_mode();
         let skipped_auto_nodes = if self
             .runs
             .iter()

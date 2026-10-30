@@ -209,13 +209,17 @@ impl PageRasterizer {
         let vertical_origins =
             local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
-            let mut groups: Vec<(usize, usize, [u8; 4], Vec<usize>)> = Vec::new();
-            for span in self
-                .cursor_spans
-                .iter()
-                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
-            {
-                let Some(block) = span.first_letter_block else {
+            let mut groups: Vec<(usize, usize, [u8; 4], Vec<usize>, [f32; 4])> = Vec::new();
+            for (block, (line, start, end)) in &first_letters {
+                if *line != run.line_i {
+                    continue;
+                }
+                let Some(span) = self.cursor_spans.iter().find(|span| {
+                    span.line == *line
+                        && span.first_letter_block == Some(*block)
+                        && span.first_letter_background.is_some()
+                        && !span.visibility_hidden
+                }) else {
                     continue;
                 };
                 let Some(mut background) = span.first_letter_background else {
@@ -224,12 +228,30 @@ impl PageRasterizer {
                 background[3] = (f32::from(background[3]) * span.opacity)
                     .round()
                     .clamp(0.0, 255.0) as u8;
-                if first_letters.get(&block) != Some(&(span.line, span.start, span.end)) {
-                    continue;
-                }
-                groups.push((span.start, span.end, background, span.element_path.clone()));
+                let padding = span
+                    .first_letter_font_style
+                    .as_ref()
+                    .and_then(|pseudo_style| {
+                        self.runs.get(span.run_index).map(|originating_run| {
+                            let inline_available =
+                                if super::sizing::is_vertical(self.writing_mode()) {
+                                    height as f32 - super::PAGE_PADDING * 2.0
+                                } else {
+                                    width as f32 - super::PAGE_PADDING * 2.0
+                                };
+                            super::layout::resolve_first_letter_padding(
+                                &originating_run.style,
+                                pseudo_style,
+                                *block,
+                                inline_available.max(0.0),
+                                self.writing_mode(),
+                            )
+                        })
+                    })
+                    .unwrap_or([0.0; 4]);
+                groups.push((*start, *end, background, span.element_path.clone(), padding));
             }
-            for (group_start, group_end, background, path) in groups {
+            for (group_start, group_end, background, path, padding) in groups {
                 let local_transform = LocalVerticalTransform::from_run(
                     &self.runs,
                     &self.buffer,
@@ -241,8 +263,8 @@ impl PageRasterizer {
                 );
                 fill_highlight(
                     run.line_i,
-                    run.line_top,
-                    run.line_height,
+                    run.line_top - padding[0],
+                    run.line_height + padding[0] + padding[2],
                     group_start,
                     group_end,
                     background,

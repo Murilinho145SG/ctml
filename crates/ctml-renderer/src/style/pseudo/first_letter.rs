@@ -177,6 +177,8 @@ fn apply_first_letter_style(
     style
         .outline_offset
         .clone_from(&pseudo_style.outline_offset);
+    style.padding.clone_from(&pseudo_style.padding);
+    style.margin.clone_from(&pseudo_style.margin);
 }
 
 fn core_range(text: &str, transformed_character_count: usize) -> Option<(usize, usize)> {

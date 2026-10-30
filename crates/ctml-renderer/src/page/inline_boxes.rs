@@ -29,7 +29,7 @@ pub(super) fn draw(
     pixels: &mut [u8],
     width: u32,
     height: u32,
-    _page_writing_mode: WritingMode,
+    page_writing_mode: WritingMode,
     clips: &HashMap<usize, ClipRect>,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
@@ -151,9 +151,30 @@ pub(super) fn draw(
                 ]
             };
             let left = fragment.left + PAGE_PADDING;
-            let top = fragment.top + PAGE_PADDING;
             let length = (fragment.right - fragment.left).max(0.0);
             let fragment_height = (fragment.bottom - fragment.top).max(0.0);
+            let block_padding = if let Some(block) = run.first_letter_block {
+                run.first_letter_font_style
+                    .as_ref()
+                    .map_or([0.0; 4], |pseudo_style| {
+                        let inline_available = if super::sizing::is_vertical(page_writing_mode) {
+                            height as f32 - PAGE_PADDING * 2.0
+                        } else {
+                            width as f32 - PAGE_PADDING * 2.0
+                        };
+                        super::layout::resolve_first_letter_padding(
+                            style,
+                            pseudo_style,
+                            block,
+                            inline_available.max(0.0),
+                            page_writing_mode,
+                        )
+                    })
+            } else {
+                [0.0; 4]
+            };
+            let top = fragment.top + PAGE_PADDING - block_padding[0];
+            let fragment_height = fragment_height + block_padding[0] + block_padding[2];
             if has_outline {
                 super::outlines::draw_inline_outline(
                     pixels,

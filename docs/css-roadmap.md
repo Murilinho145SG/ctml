@@ -70,6 +70,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-letter` outer and inset `box-shadow` paint around the initial letter's inline box.
 - [x] `::first-letter` border-radius values round the initial glyph's painted border.
 - [x] `::first-letter` supports `outline` and its width, style, color, and offset properties.
+- [x] `::first-letter` physical and logical `margin` and `padding` properties adjust inline spacing; block padding expands its painted background and border area.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
 - [ ] `::placeholder`; CTML does not currently define form controls.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.

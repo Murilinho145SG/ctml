@@ -220,10 +220,17 @@ pub(super) fn first_formatted_letters(
             && span.first_letter_background.is_none()
             && span.first_letter_decoration.is_none()
             && span.first_letter_opacity.is_none()
-            && !span
-                .first_letter_font_style
-                .as_ref()
-                .is_some_and(|style| !style.box_shadows.is_empty())
+            && !span.first_letter_font_style.as_ref().is_some_and(|style| {
+                !style.box_shadows.is_empty()
+                    || style.padding.iter().any(Option::is_some)
+                    || style.margin.iter().any(Option::is_some)
+                    || style.outline_style != crate::style::BorderLineStyle::None
+                    || style
+                        .border_style
+                        .iter()
+                        .any(|border| *border != crate::style::BorderLineStyle::None)
+                    || style.border_radius.iter().flatten().any(Option::is_some)
+            })
         {
             continue;
         }

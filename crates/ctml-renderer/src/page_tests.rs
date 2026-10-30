@@ -64,6 +64,8 @@ mod outline;
 mod parity;
 #[path = "page_tests/pseudo.rs"]
 mod pseudo;
+#[path = "page_tests/pseudo_first_letter.rs"]
+mod pseudo_first_letter;
 #[path = "page_tests/pseudo_opacity.rs"]
 mod pseudo_opacity;
 #[path = "page_tests/pseudo_vertical_align.rs"]

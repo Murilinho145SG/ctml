@@ -5,7 +5,10 @@ use crate::{
     style::{TextRun, TextStyle, TextTransform},
 };
 
+mod first_letter_box;
 mod shape_buffer;
+pub(super) use first_letter_box::insert_first_letter_spacing;
+pub(super) use first_letter_box::resolve_first_letter_padding;
 pub(super) use shape_buffer::shape_buffer;
 
 use super::CursorSpan;
