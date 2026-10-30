@@ -17,7 +17,7 @@ use apply::apply_declaration;
 use aspect_ratio::apply_aspect_ratio;
 use background::{
     apply_background_color, apply_background_image, apply_background_position,
-    apply_background_repeat, apply_background_shorthand,
+    apply_background_repeat, apply_background_shorthand, apply_background_size,
 };
 use border::{
     apply_border_color, apply_border_color_side, apply_border_shorthand, apply_border_side,

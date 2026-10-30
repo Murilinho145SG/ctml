@@ -160,6 +160,98 @@ fn background_position_places_a_non_repeating_image_with_percentages() {
 }
 
 #[test]
+fn background_size_resizes_an_image_without_distorting_its_position() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("image".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let image = png_data_url([0, 255, 0, 255]);
+    let stylesheet = [StyleRule {
+        selectors: vec![".image".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "24px"),
+            ("height", "24px"),
+            ("background-image", image.as_str()),
+            ("background-repeat", "no-repeat"),
+            ("background-size", "4px 4px"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(100, 70);
+    let pixels = page.snapshot_pixels(100, 70);
+    let green = pixels
+        .chunks_exact(4)
+        .enumerate()
+        .filter_map(|(index, pixel)| {
+            (pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0)
+                .then_some((index % 100, index / 100))
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(green.len(), 16);
+    let bounds = green.iter().fold((100, 70, 0, 0), |bounds, (x, y)| {
+        (
+            bounds.0.min(*x),
+            bounds.1.min(*y),
+            bounds.2.max(*x),
+            bounds.3.max(*y),
+        )
+    });
+    assert_eq!(bounds.2 - bounds.0 + 1, 4);
+    assert_eq!(bounds.3 - bounds.1 + 1, 4);
+}
+
+#[test]
+fn background_size_cover_and_contain_fit_the_painting_area() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("image".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let image = png_data_url([0, 255, 0, 255]);
+    for (size, width, height) in [("contain", 16, 16), ("cover", 24, 16)] {
+        let stylesheet = [StyleRule {
+            selectors: vec![".image".to_owned()],
+            layer: None,
+            declarations: [
+                ("width", "24px"),
+                ("height", "16px"),
+                ("background-image", image.as_str()),
+                ("background-repeat", "no-repeat"),
+                ("background-size", size),
+            ]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(100, 70);
+        let pixels = page.snapshot_pixels(100, 70);
+        let green_count = pixels
+            .chunks_exact(4)
+            .filter(|pixel| pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0)
+            .count();
+
+        assert_eq!(green_count, width * height, "{size} sizing");
+    }
+}
+
+#[test]
 fn paints_linear_gradient_backgrounds_in_the_declared_direction() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

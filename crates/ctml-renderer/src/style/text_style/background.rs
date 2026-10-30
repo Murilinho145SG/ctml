@@ -26,6 +26,27 @@ pub(crate) struct BackgroundPosition {
     pub(crate) y_offset: f32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct BackgroundSizeAxis {
+    pub(crate) value: f32,
+    pub(crate) percentage: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) enum BackgroundFit {
+    #[default]
+    Auto,
+    Cover,
+    Contain,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct BackgroundSize {
+    pub(crate) width: Option<BackgroundSizeAxis>,
+    pub(crate) height: Option<BackgroundSizeAxis>,
+    pub(crate) fit: BackgroundFit,
+}
+
 impl BackgroundRepeat {
     pub(crate) const REPEAT: Self = Self { x: true, y: true };
     pub(crate) const NO_REPEAT: Self = Self { x: false, y: false };

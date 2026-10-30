@@ -4,7 +4,10 @@ use skia_safe::{
 };
 use std::{collections::HashMap, sync::Arc};
 
-use crate::style::{BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient};
+use crate::style::{
+    BackgroundFit, BackgroundImage, BackgroundPosition, BackgroundRepeat, BackgroundSize,
+    BackgroundSizeAxis, LinearGradient,
+};
 
 use super::overflow_clip::ClipRect;
 
@@ -14,6 +17,7 @@ pub(super) fn draw_background_image_layers(
     images: &[BackgroundImage],
     repeats: &[BackgroundRepeat],
     positions: &[BackgroundPosition],
+    sizes: &[BackgroundSize],
     opacity: f32,
     pixels: &mut [u8],
     width: u32,
@@ -54,6 +58,10 @@ pub(super) fn draw_background_image_layers(
             .get(index % positions.len().max(1))
             .copied()
             .unwrap_or_default();
+        let size = sizes
+            .get(index % sizes.len().max(1))
+            .copied()
+            .unwrap_or_default();
         let (shader, tile_clip) = match background {
             BackgroundImage::Encoded(encoded) => {
                 let image = image_cache
@@ -62,11 +70,23 @@ pub(super) fn draw_background_image_layers(
                 let Some(image) = image.as_ref() else {
                     continue;
                 };
+                let (image_width, image_height) = resolve_background_size(
+                    size,
+                    rect.width(),
+                    rect.height(),
+                    image.width() as f32,
+                    image.height() as f32,
+                );
+                if image_width <= 0.0 || image_height <= 0.0 {
+                    continue;
+                }
+                let scale_x = image_width / image.width() as f32;
+                let scale_y = image_height / image.height() as f32;
                 let image_left = rect.left
-                    + (rect.width() - image.width() as f32) * position.x_percent
+                    + (rect.width() - image_width) * position.x_percent
                     + position.x_offset;
                 let image_top = rect.top
-                    + (rect.height() - image.height() as f32) * position.y_percent
+                    + (rect.height() - image_height) * position.y_percent
                     + position.y_offset;
                 let clip = (!repeat.x || !repeat.y).then(|| {
                     Rect::from_ltrb(
@@ -83,16 +103,17 @@ pub(super) fn draw_background_image_layers(
                         if repeat.x {
                             rect.right
                         } else {
-                            (image_left + image.width() as f32).min(rect.right)
+                            (image_left + image_width).min(rect.right)
                         },
                         if repeat.y {
                             rect.bottom
                         } else {
-                            (image_top + image.height() as f32).min(rect.bottom)
+                            (image_top + image_height).min(rect.bottom)
                         },
                     )
                 });
-                let image_origin = Matrix::translate((image_left, image_top));
+                let image_origin =
+                    Matrix::scale_translate((scale_x, scale_y), (image_left, image_top));
                 (
                     image.to_shader(
                         Some((TileMode::Repeat, TileMode::Repeat)),
@@ -118,6 +139,42 @@ pub(super) fn draw_background_image_layers(
         canvas.restore();
     }
     canvas.restore();
+}
+
+fn resolve_background_size(
+    size: BackgroundSize,
+    area_width: f32,
+    area_height: f32,
+    image_width: f32,
+    image_height: f32,
+) -> (f32, f32) {
+    let ratio = image_width / image_height;
+    let fit_scale = match size.fit {
+        BackgroundFit::Auto => None,
+        BackgroundFit::Cover => Some((area_width / image_width).max(area_height / image_height)),
+        BackgroundFit::Contain => Some((area_width / image_width).min(area_height / image_height)),
+    };
+    if let Some(scale) = fit_scale {
+        return (image_width * scale, image_height * scale);
+    }
+    let resolve = |axis: Option<BackgroundSizeAxis>, area: f32| {
+        axis.map(|axis| {
+            if axis.percentage {
+                axis.value * area
+            } else {
+                axis.value
+            }
+        })
+    };
+    match (
+        resolve(size.width, area_width),
+        resolve(size.height, area_height),
+    ) {
+        (Some(width), Some(height)) => (width, height),
+        (Some(width), None) => (width, width / ratio),
+        (None, Some(height)) => (height * ratio, height),
+        (None, None) => (image_width, image_height),
+    }
 }
 
 fn linear_gradient_shader(gradient: &LinearGradient, rect: Rect) -> Option<skia_safe::Shader> {

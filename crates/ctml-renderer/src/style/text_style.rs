@@ -15,7 +15,8 @@ mod background;
 mod core;
 mod layout;
 pub(crate) use background::{
-    BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient,
+    BackgroundFit, BackgroundImage, BackgroundPosition, BackgroundRepeat, BackgroundSize,
+    BackgroundSizeAxis, LinearGradient,
 };
 pub(crate) use core::TextStyle;
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};

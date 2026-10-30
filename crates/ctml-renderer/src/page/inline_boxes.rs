@@ -224,6 +224,7 @@ pub(super) fn draw(
                     &style.background_images,
                     &style.background_repeats,
                     &style.background_positions,
+                    &style.background_sizes,
                     style.opacity,
                     pixels,
                     width,

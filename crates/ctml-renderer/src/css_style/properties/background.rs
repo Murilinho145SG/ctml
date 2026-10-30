@@ -1,5 +1,6 @@
 use crate::style::{
-    BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient, TextStyle,
+    BackgroundFit, BackgroundImage, BackgroundPosition, BackgroundRepeat, BackgroundSize,
+    BackgroundSizeAxis, LinearGradient, TextStyle,
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use cssparser::{Parser, ParserInput, Token};
@@ -10,18 +11,21 @@ pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
         style.background_images.clear();
         style.background_repeats.clear();
         style.background_positions.clear();
+        style.background_sizes.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some(images) = parse_background_images(style, value) {
         style.background_images = images;
         style.background_repeats.clear();
         style.background_positions.clear();
+        style.background_sizes.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some((channels, alpha)) = parse_background_color(style, value) {
         style.background_images.clear();
         style.background_repeats.clear();
         style.background_positions.clear();
+        style.background_sizes.clear();
         set_background_color(style, channels, alpha);
     } else {
         return;
@@ -53,6 +57,82 @@ pub(super) fn apply_background_position(style: &mut TextStyle, value: &str) {
     if let Some(positions) = positions.filter(|positions| !positions.is_empty()) {
         style.background_positions = positions;
     }
+}
+
+pub(super) fn apply_background_size(style: &mut TextStyle, value: &str) {
+    let sizes = split_top_level_commas(value)
+        .into_iter()
+        .map(|layer| parse_background_size_layer(style, layer))
+        .collect::<Option<Vec<_>>>();
+    if let Some(sizes) = sizes.filter(|sizes| !sizes.is_empty()) {
+        style.background_sizes = sizes;
+    }
+}
+
+fn parse_background_size_layer(style: &TextStyle, value: &str) -> Option<BackgroundSize> {
+    let mut components = value.split_ascii_whitespace();
+    let first = components.next()?;
+    let second = components.next();
+    if components.next().is_some() {
+        return None;
+    }
+    if second.is_none() {
+        match first.to_ascii_lowercase().as_str() {
+            "cover" => {
+                return Some(BackgroundSize {
+                    fit: BackgroundFit::Cover,
+                    ..BackgroundSize::default()
+                });
+            }
+            "contain" => {
+                return Some(BackgroundSize {
+                    fit: BackgroundFit::Contain,
+                    ..BackgroundSize::default()
+                });
+            }
+            _ => {}
+        }
+    }
+    let width = parse_background_size_axis(style, first)?;
+    let height = if let Some(value) = second {
+        parse_background_size_axis(style, value)?
+    } else {
+        None
+    };
+    Some(BackgroundSize {
+        width,
+        height,
+        fit: BackgroundFit::Auto,
+    })
+}
+
+fn parse_background_size_axis(
+    style: &TextStyle,
+    value: &str,
+) -> Option<Option<BackgroundSizeAxis>> {
+    if value.eq_ignore_ascii_case("auto") {
+        return Some(None);
+    }
+    if let Some(percentage) = ctml_css::parse_css_percentage(value) {
+        return (percentage >= 0.0).then_some(Some(BackgroundSizeAxis {
+            value: percentage / 100.0,
+            percentage: true,
+        }));
+    }
+    ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+    .filter(|length| length.is_finite())
+    .map(|value| {
+        Some(BackgroundSizeAxis {
+            value,
+            percentage: false,
+        })
+    })
 }
 
 fn parse_background_position_layer(style: &TextStyle, value: &str) -> Option<BackgroundPosition> {
