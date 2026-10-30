@@ -240,6 +240,41 @@ fn vertical_writing_uses_inline_size_on_the_column_flow_axis() {
 }
 
 #[test]
+fn nested_orthogonal_writing_mode_wraps_on_its_inline_axis() {
+    let text = "nested vertical writing uses the page height as its inline axis ".repeat(10);
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(text.clone())],
+    }];
+    let horizontal_page = PageRasterizer::new(&nodes, &[]);
+    let mut horizontal_page = horizontal_page;
+    horizontal_page.prepare_layout(160, 400);
+    let horizontal_lines = horizontal_page.buffer.layout_runs().count();
+
+    for writing_mode in ["vertical-rl", "vertical-lr"] {
+        let vertical_child = [StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: writing_mode.to_owned(),
+            }],
+        }];
+        let mut nested_page = PageRasterizer::new(&nodes, &vertical_child);
+        nested_page.prepare_layout(160, 400);
+        let nested_lines = nested_page.buffer.layout_runs().count();
+
+        assert!(
+            nested_lines < horizontal_lines,
+            "{writing_mode} child should wrap against the taller inline axis ({nested_lines} vs {horizontal_lines})"
+        );
+    }
+}
+
+#[test]
 fn vertical_root_block_size_constrains_the_block_flow_axis() {
     let text = "block size limits vertical column flow ".repeat(20);
     let nodes = [UiNode::Element {

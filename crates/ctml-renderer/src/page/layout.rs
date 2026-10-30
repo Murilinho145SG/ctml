@@ -76,6 +76,30 @@ pub(super) fn line_alignments(
     alignments
 }
 
+fn line_writing_modes(
+    runs: &[TextRun],
+    line_count: usize,
+    page_writing_mode: crate::style::WritingMode,
+) -> Vec<crate::style::WritingMode> {
+    let mut modes = vec![page_writing_mode; line_count];
+    let mut line_index = 0;
+    let mut has_text = false;
+    for run in runs {
+        for character in run.text.chars() {
+            if character == '\n' {
+                line_index += 1;
+                has_text = false;
+            } else if !has_text {
+                if let Some(mode) = modes.get_mut(line_index) {
+                    *mode = run.style.writing_mode;
+                }
+                has_text = true;
+            }
+        }
+    }
+    modes
+}
+
 pub(super) fn apply_first_line_word_spacing(
     buffer: &cosmic_text::Buffer,
     runs: &mut Vec<TextRun>,
@@ -287,8 +311,10 @@ pub(super) fn apply_first_line_text_transform(
 }
 
 pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_height: f32) {
-    page.buffer
-        .set_size(Some(content_width), Some(content_height));
+    page.buffer.set_size(
+        Some(content_width.max(content_height)),
+        Some(content_height),
+    );
     let run_families = page
         .runs
         .iter()
@@ -422,6 +448,9 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         line.set_base_rtl(Some(direction == crate::style::Direction::Rtl));
     }
     let line_styles = line_alignments(&page.runs);
+    let page_writing_mode = page.writing_mode();
+    let line_writing_modes =
+        line_writing_modes(&page.runs, page.buffer.lines.len(), page_writing_mode);
     for (
         line,
         (
@@ -460,21 +489,41 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
     let hinting = page.buffer.hinting();
     let page_writing_mode = page.writing_mode();
     for (
-        (line, sizes),
+        ((line, sizes), line_writing_mode),
         (_, _, _, wrap, _, _, _, ellipsize, indent, indent_percent, hanging, each_line),
     ) in page
         .buffer
         .lines
         .iter_mut()
         .zip(line_sizes)
+        .zip(line_writing_modes)
         .zip(line_styles)
     {
         let has_custom_width = !sizes.is_empty();
-        line.set_wrap(wrap);
-        let line_width = if has_custom_width {
-            resolve_layout_width(&sizes, content_width, page_writing_mode)
+        let line_is_orthogonal = super::sizing::is_vertical(line_writing_mode)
+            != super::sizing::is_vertical(page_writing_mode);
+        let inline_available = if line_is_orthogonal {
+            content_height
         } else {
             content_width
+        };
+        line.set_wrap(wrap);
+        let line_width = if has_custom_width {
+            let has_page_block_size = sizes.iter().any(|size| {
+                size.block_size.is_some()
+                    || size.min_block_size.is_some()
+                    || size.max_block_size.is_some()
+                    || size.width.is_some()
+                    || size.min_width.is_some()
+                    || size.max_width.is_some()
+            });
+            if line_is_orthogonal && has_page_block_size {
+                resolve_layout_width(&sizes, content_width, page_writing_mode)
+            } else {
+                resolve_layout_width(&sizes, inline_available, line_writing_mode)
+            }
+        } else {
+            inline_available
         };
         line.set_indent(
             indent + line_width * indent_percent / 100.0,
