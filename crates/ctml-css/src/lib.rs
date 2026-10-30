@@ -12,7 +12,7 @@ mod selector;
 pub use color::{parse_color, parse_color_with_opacity};
 pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
-pub use imports::parse_stylesheet_file;
+pub use imports::{LocalResource, load_local_resource, parse_stylesheet_file};
 pub use length::{
     FontRelativeUnits, ViewportSize, parse_font_relative_length,
     parse_font_relative_length_with_viewport, parse_length, parse_length_with_font_metrics,

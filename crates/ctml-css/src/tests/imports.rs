@@ -33,6 +33,78 @@ fn expands_relative_imports_in_place_and_tracks_build_dependencies() {
 }
 
 #[test]
+fn loads_relative_local_resources_and_decodes_url_paths() {
+    let root = temporary_directory("local-resources");
+    std::fs::create_dir_all(root.join("styles")).expect("stylesheet directory should exist");
+    std::fs::create_dir_all(root.join("assets")).expect("resource directory should exist");
+    std::fs::write(root.join("styles/main.css"), "p { color: red; }")
+        .expect("stylesheet should be written");
+    std::fs::write(root.join("assets/font file.bin"), [0, 1, 2, 255])
+        .expect("resource should be written");
+
+    let resource = crate::load_local_resource(
+        "../assets/font%20file.bin",
+        root.join("styles/main.css"),
+        &root,
+    )
+    .expect("relative local resource should load");
+
+    assert_eq!(
+        resource.path,
+        root.join("assets/font file.bin").canonicalize().unwrap()
+    );
+    assert_eq!(resource.bytes, [0, 1, 2, 255]);
+    std::fs::remove_dir_all(root).expect("temporary resource root should be removed");
+}
+
+#[test]
+fn rejects_external_and_out_of_root_resource_urls() {
+    let root = temporary_directory("unsafe-resources");
+    std::fs::create_dir_all(root.join("styles")).expect("stylesheet directory should exist");
+    std::fs::write(root.join("styles/main.css"), "p { color: red; }")
+        .expect("stylesheet should be written");
+
+    for url in [
+        "https://example.com/font.woff2",
+        "data:font/woff2;base64,AA==",
+        "file:///etc/passwd",
+        "/etc/passwd",
+        "../../outside.bin",
+        "%2e%2e/%2e%2e/outside.bin",
+        "font.bin?download=1",
+        "font.bin#fragment",
+    ] {
+        assert!(
+            crate::load_local_resource(url, root.join("styles/main.css"), &root).is_err(),
+            "resource URL should be rejected: {url}"
+        );
+    }
+    std::fs::remove_dir_all(root).expect("temporary resource root should be removed");
+}
+
+#[cfg(unix)]
+#[test]
+fn rejects_resource_symlinks_that_escape_the_root() {
+    use std::os::unix::fs::symlink;
+
+    let root = temporary_directory("resource-symlinks");
+    let outside = temporary_directory("resource-symlink-target");
+    std::fs::create_dir_all(root.join("styles")).expect("stylesheet directory should exist");
+    std::fs::create_dir_all(&outside).expect("outside directory should exist");
+    std::fs::write(root.join("styles/main.css"), "p { color: red; }")
+        .expect("stylesheet should be written");
+    std::fs::write(outside.join("secret.bin"), [1, 2, 3]).expect("target should be written");
+    symlink(&outside, root.join("styles/external")).expect("resource symlink should be created");
+
+    assert!(
+        crate::load_local_resource("external/secret.bin", root.join("styles/main.css"), &root,)
+            .is_err()
+    );
+    std::fs::remove_dir_all(root).expect("temporary resource root should be removed");
+    std::fs::remove_dir_all(outside).expect("temporary symlink target should be removed");
+}
+
+#[test]
 fn merges_layer_order_across_imported_stylesheets() {
     let root = temporary_directory("imported-layers");
     std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
