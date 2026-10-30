@@ -12,6 +12,7 @@ use crate::{
 
 mod backgrounds;
 mod block_sizing;
+mod borders;
 mod cursor_spans;
 mod decorations;
 mod focus;
@@ -400,6 +401,15 @@ impl PageRasterizer {
         self.overflow_clips = self
             .overflow_geometry
             .iter()
+            .filter(|(node_id, _)| {
+                self.runs.iter().any(|run| {
+                    run.style.layout_sizes.iter().any(|size| {
+                        size.node_id == **node_id
+                            && (size.overflow_x != crate::style::Overflow::Visible
+                                || size.overflow_y != crate::style::Overflow::Visible)
+                    })
+                })
+            })
             .map(|(node_id, geometry)| (*node_id, geometry.clip))
             .collect();
         self.nested_scroll.retain(|node_id, _| {

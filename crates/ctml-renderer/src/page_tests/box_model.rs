@@ -120,15 +120,16 @@ fn border_widths_are_included_in_border_box_dimensions_and_flow() {
         let mut page = PageRasterizer::new(&nodes, &stylesheet);
         page.snapshot_pixels(300, 300);
         let geometry = page.overflow_geometry[&1];
+        let outer = geometry.border_box;
         assert!(
-            ((geometry.clip.right - geometry.clip.left) - expected_width).abs() < 1.0,
+            ((outer.right - outer.left) - expected_width).abs() < 1.0,
             "{box_sizing} should produce {expected_width}px outer width, got {}px",
-            geometry.clip.right - geometry.clip.left
+            outer.right - outer.left
         );
         assert!(
-            ((geometry.clip.bottom - geometry.clip.top) - expected_height).abs() < 1.0,
+            ((outer.bottom - outer.top) - expected_height).abs() < 1.0,
             "{box_sizing} should produce {expected_height}px outer height, got {}px",
-            geometry.clip.bottom - geometry.clip.top
+            outer.bottom - outer.top
         );
     }
 }

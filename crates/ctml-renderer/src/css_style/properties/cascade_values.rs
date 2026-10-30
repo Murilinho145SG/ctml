@@ -193,7 +193,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.cursor_hidden = inherited.cursor_hidden;
         }
         _ => {
-            super::border::inherit_css_property(style, inherited, property);
+            super::border_cascade::inherit_css_property(style, inherited, property);
         }
     }
 }
@@ -384,7 +384,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.cursor_hidden = false;
         }
         _ => {
-            super::border::initial_css_property(style, property);
+            super::border_cascade::initial_css_property(style, property);
         }
     }
 }

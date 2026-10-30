@@ -114,3 +114,42 @@ fn border_widths_support_css_wide_initial_inherit_and_all_resets() {
             .all(|style| *style == BorderLineStyle::None)
     );
 }
+
+#[test]
+fn border_shorthand_parses_width_style_color_and_color_longhands_cascade() {
+    let style = style_for(&[
+        ("border", "2px dashed rgb(255, 0, 0)"),
+        ("border-left-color", "blue"),
+        ("border-inline-color", "green"),
+        ("border-left", "4px solid currentColor"),
+    ]);
+    assert_eq!(style.border_width[3].as_deref(), Some("4px"));
+    assert!(
+        style.border_width[..3]
+            .iter()
+            .all(|width| width.as_deref() == Some("2px"))
+    );
+    assert_eq!(style.border_style[0], BorderLineStyle::Dashed);
+    assert_eq!(style.border_style[3], BorderLineStyle::Solid);
+    assert_eq!(style.border_color[3], None);
+    let red = ctml_css::parse_color_with_profiles("rgb(255, 0, 0)", &[]);
+    let green = ctml_css::parse_color_with_profiles("green", &[]);
+    assert_eq!(style.border_color[0], red);
+    assert_eq!(style.border_color[1], green);
+    assert_eq!(style.border_color[2], red);
+}
+
+#[test]
+fn logical_border_shorthand_maps_width_style_and_color_to_the_computed_side() {
+    let style = style_for(&[
+        ("writing-mode", "vertical-rl"),
+        ("direction", "rtl"),
+        ("border-inline-start", "6px dotted rgb(20, 40, 60)"),
+    ]);
+    assert_eq!(style.border_width[2].as_deref(), Some("6px"));
+    assert_eq!(style.border_style[2], BorderLineStyle::Dotted);
+    assert_eq!(
+        style.border_color[2],
+        ctml_css::parse_color_with_profiles("rgb(20, 40, 60)", &[])
+    );
+}

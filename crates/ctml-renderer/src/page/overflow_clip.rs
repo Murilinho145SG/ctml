@@ -8,7 +8,7 @@ use crate::style::{LayoutSize, TextRun, WritingMode};
 use super::{
     PAGE_PADDING, local_writing,
     sizing::{is_vertical, resolve_layout_width},
-    sizing_padding::{inline_borders, inline_padding},
+    sizing_padding::inline_padding,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -22,6 +22,7 @@ pub(super) struct ClipRect {
 #[derive(Clone, Copy, Debug)]
 pub(super) struct BlockGeometry {
     pub(super) clip: ClipRect,
+    pub(super) border_box: ClipRect,
     pub(super) content_block_extent: f32,
     pub(super) content_inline_extent: f32,
 }
@@ -183,6 +184,11 @@ pub(super) fn block_geometries(
         .filter(|(_, extent)| {
             extent.size.overflow_x != crate::style::Overflow::Visible
                 || extent.size.overflow_y != crate::style::Overflow::Visible
+                || extent
+                    .size
+                    .border_style
+                    .iter()
+                    .any(|style| *style != crate::style::BorderLineStyle::None)
         })
         .map(|(&node_id, extent)| {
             let sizes = runs
@@ -217,13 +223,27 @@ pub(super) fn block_geometries(
                 page_writing_mode,
             );
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode)
-                + inline_borders(&sizes, available_width, page_writing_mode).1
                 + inline_padding(
                     std::slice::from_ref(&extent.size),
                     containing_width,
                     page_writing_mode,
                 )
                 .1;
+            let border_widths =
+                super::sizing_padding::resolve_borders(&extent.size, containing_width);
+            let (border_start, border_end) = if is_vertical(page_writing_mode) {
+                (border_widths[0], border_widths[2])
+            } else {
+                (border_widths[3], border_widths[1])
+            };
+            let border_extent = border_start + border_end;
+            let (border_block_start, border_block_end) = match page_writing_mode {
+                WritingMode::HorizontalTb => (border_widths[0], border_widths[2]),
+                WritingMode::VerticalRl => (border_widths[1], border_widths[3]),
+                WritingMode::VerticalLr => (border_widths[3], border_widths[1]),
+            };
+            let block_border_extent = border_block_start + border_block_end;
+            let clipped_block_height = (block_height - block_border_extent).max(0.0);
             let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
             {
@@ -236,7 +256,7 @@ pub(super) fn block_geometries(
                 let (left, top, rect_width, rect_height) = transform.map_rect(
                     PAGE_PADDING,
                     PAGE_PADDING + extent.top,
-                    block_height.max(0.0),
+                    clipped_block_height,
                     block_width.max(0.0),
                 );
                 ClipRect {
@@ -250,13 +270,20 @@ pub(super) fn block_geometries(
                     left: PAGE_PADDING,
                     top: PAGE_PADDING + extent.top,
                     right: PAGE_PADDING + block_width.max(0.0),
-                    bottom: PAGE_PADDING + extent.top + block_height.max(0.0),
+                    bottom: PAGE_PADDING + extent.top + clipped_block_height,
                 }
+            };
+            let border_box = ClipRect {
+                left: clip.left - border_start,
+                top: clip.top - border_block_start,
+                right: clip.right + (border_extent - border_start),
+                bottom: clip.bottom + border_block_end,
             };
             (
                 node_id,
                 BlockGeometry {
                     clip,
+                    border_box,
                     content_block_extent: extent.content_height,
                     content_inline_extent: extent.content_inline_extent,
                 },

@@ -1,4 +1,6 @@
-use super::{PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, decorations, font_raster};
+use super::{
+    PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, borders, decorations, font_raster,
+};
 use cosmic_text::Color;
 
 impl PageRasterizer {
@@ -25,6 +27,15 @@ impl PageRasterizer {
             writing_mode,
             &overflow_clips,
             nested_scroll,
+        );
+        borders::draw(
+            &self.runs,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &self.overflow_geometry,
+            &self.overflow_clips,
         );
         self.draw_first_line_backgrounds(&mut pixels, width, height, &overflow_clips);
         self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);

@@ -79,6 +79,182 @@ pub(super) fn apply_logical_border_style_shorthand(
     style.logical_border_style_orders[start + 1] = order;
 }
 
+pub(super) fn apply_border_color(style: &mut TextStyle, value: &str) {
+    let Some(values) = expand_four(value, |part| parse_border_color(style, part)) else {
+        return;
+    };
+    style.border_color = values;
+    style.physical_border_color_orders = [style.current_declaration_order.saturating_add(1); 4];
+}
+
+pub(super) fn apply_border_color_side(style: &mut TextStyle, side: usize, value: &str) {
+    if let Some(color) = parse_border_color(style, value) {
+        style.border_color[side] = color;
+        style.physical_border_color_orders[side] =
+            style.current_declaration_order.saturating_add(1);
+    }
+}
+
+pub(super) fn apply_logical_border_color(style: &mut TextStyle, side: usize, value: &str) {
+    if let Some(color) = parse_border_color(style, value) {
+        style.logical_border_color[side] = color;
+        style.logical_border_color_orders[side] = style.current_declaration_order.saturating_add(1);
+    }
+}
+
+pub(super) fn apply_logical_border_color_shorthand(
+    style: &mut TextStyle,
+    inline: bool,
+    value: &str,
+) {
+    let Some((first, second)) = expand_two(value, |part| parse_border_color(style, part)) else {
+        return;
+    };
+    let start = if inline { 0 } else { 2 };
+    let order = style.current_declaration_order.saturating_add(1);
+    style.logical_border_color[start] = first;
+    style.logical_border_color[start + 1] = second;
+    style.logical_border_color_orders[start] = order;
+    style.logical_border_color_orders[start + 1] = order;
+}
+
+pub(super) fn apply_border_shorthand(style: &mut TextStyle, value: &str) {
+    let Some(border) = parse_border(style, value) else {
+        return;
+    };
+    for side in 0..4 {
+        style.border_width[side] = border.width.clone();
+        style.border_style[side] = border.style;
+        style.border_color[side] = border.color;
+        let order = style.current_declaration_order.saturating_add(1);
+        style.physical_border_width_orders[side] = order;
+        style.physical_border_style_orders[side] = order;
+        style.physical_border_color_orders[side] = order;
+    }
+}
+
+pub(super) fn apply_border_side(style: &mut TextStyle, side: usize, value: &str) {
+    let Some(border) = parse_border(style, value) else {
+        return;
+    };
+    style.border_width[side] = border.width;
+    style.border_style[side] = border.style;
+    style.border_color[side] = border.color;
+    let order = style.current_declaration_order.saturating_add(1);
+    style.physical_border_width_orders[side] = order;
+    style.physical_border_style_orders[side] = order;
+    style.physical_border_color_orders[side] = order;
+}
+
+pub(super) fn apply_logical_border_shorthand(style: &mut TextStyle, side: usize, value: &str) {
+    let Some(border) = parse_border(style, value) else {
+        return;
+    };
+    style.logical_border_width[side] = border.width;
+    style.logical_border_style[side] = Some(border.style);
+    style.logical_border_color[side] = border.color;
+    let order = style.current_declaration_order.saturating_add(1);
+    style.logical_border_width_orders[side] = order;
+    style.logical_border_style_orders[side] = order;
+    style.logical_border_color_orders[side] = order;
+}
+
+pub(super) fn apply_logical_border_axis_shorthand(
+    style: &mut TextStyle,
+    inline: bool,
+    value: &str,
+) {
+    let Some(border) = parse_border(style, value) else {
+        return;
+    };
+    let start = if inline { 0 } else { 2 };
+    let order = style.current_declaration_order.saturating_add(1);
+    for side in start..start + 2 {
+        style.logical_border_width[side] = border.width.clone();
+        style.logical_border_style[side] = Some(border.style);
+        style.logical_border_color[side] = border.color;
+        style.logical_border_width_orders[side] = order;
+        style.logical_border_style_orders[side] = order;
+        style.logical_border_color_orders[side] = order;
+    }
+}
+
+struct BorderComponents {
+    width: Option<String>,
+    style: BorderLineStyle,
+    color: Option<[u8; 4]>,
+}
+
+fn parse_border(style: &TextStyle, value: &str) -> Option<BorderComponents> {
+    if split_components(value).is_empty() {
+        return None;
+    }
+    let mut border = BorderComponents {
+        width: None,
+        style: BorderLineStyle::None,
+        color: None,
+    };
+    let mut has_width = false;
+    let mut has_style = false;
+    let mut has_color = false;
+    for component in split_components(value) {
+        if let Some(width) = parse_width(style, component) {
+            if has_width {
+                return None;
+            }
+            border.width = Some(width);
+            has_width = true;
+        } else if let Some(border_style) = parse_border_style(component) {
+            if has_style {
+                return None;
+            }
+            border.style = border_style;
+            has_style = true;
+        } else if let Some(color) = parse_border_color(style, component) {
+            if has_color {
+                return None;
+            }
+            border.color = color;
+            has_color = true;
+        } else {
+            return None;
+        }
+    }
+    Some(border)
+}
+
+fn parse_border_color(style: &TextStyle, value: &str) -> Option<Option<[u8; 4]>> {
+    if value.eq_ignore_ascii_case("currentcolor") {
+        Some(None)
+    } else {
+        ctml_css::parse_color_with_profiles(value, &style.color_profiles).map(Some)
+    }
+}
+
+fn split_components(value: &str) -> Vec<&str> {
+    let mut components = Vec::new();
+    let mut depth = 0usize;
+    let mut start = None;
+    for (index, character) in value.char_indices() {
+        if character.is_whitespace() && depth == 0 {
+            if let Some(component_start) = start.take() {
+                components.push(&value[component_start..index]);
+            }
+            continue;
+        }
+        start.get_or_insert(index);
+        match character {
+            '(' => depth += 1,
+            ')' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    if let Some(component_start) = start {
+        components.push(&value[component_start..]);
+    }
+    components
+}
+
 pub(super) fn resolve_logical_borders(style: &mut TextStyle) {
     let (inline_start, inline_end, block_start, block_end) = match style.writing_mode {
         WritingMode::HorizontalTb if style.direction == Direction::Ltr => (3, 1, 0, 2),
@@ -106,145 +282,17 @@ pub(super) fn resolve_logical_borders(style: &mut TextStyle) {
             style.border_style[physical] = border_style;
             style.physical_border_style_orders[physical] = style_order;
         }
-    }
-}
-
-pub(super) fn inherit_css_property(
-    style: &mut TextStyle,
-    inherited: &TextStyle,
-    property: &str,
-) -> bool {
-    match property {
-        "border-width" => {
-            style.border_width.clone_from(&inherited.border_width);
-            style.physical_border_width_orders =
-                [style.current_declaration_order.saturating_add(1); 4];
-        }
-        "border-style" => {
-            style.border_style = inherited.border_style;
-            style.physical_border_style_orders =
-                [style.current_declaration_order.saturating_add(1); 4];
-        }
-        "border-inline-width" | "border-block-width" => {
-            let start = usize::from(property == "border-block-width") * 2;
-            style.logical_border_width[start..start + 2]
-                .clone_from_slice(&inherited.logical_border_width[start..start + 2]);
-            style.logical_border_width_orders[start..start + 2]
-                .fill(style.current_declaration_order.saturating_add(1));
-        }
-        "border-inline-style" | "border-block-style" => {
-            let start = usize::from(property == "border-block-style") * 2;
-            style.logical_border_style[start..start + 2]
-                .clone_from_slice(&inherited.logical_border_style[start..start + 2]);
-            style.logical_border_style_orders[start..start + 2]
-                .fill(style.current_declaration_order.saturating_add(1));
-        }
-        _ => {
-            let Some((logical, side, width)) = border_side_property(property) else {
-                return false;
-            };
-            if logical {
-                if width {
-                    style.logical_border_width[side] = inherited.logical_border_width[side].clone();
-                    style.logical_border_width_orders[side] =
-                        style.current_declaration_order.saturating_add(1);
-                } else {
-                    style.logical_border_style[side] = inherited.logical_border_style[side];
-                    style.logical_border_style_orders[side] =
-                        style.current_declaration_order.saturating_add(1);
-                }
-            } else if width {
-                style.border_width[side] = inherited.border_width[side].clone();
-                style.physical_border_width_orders[side] =
-                    style.current_declaration_order.saturating_add(1);
-            } else {
-                style.border_style[side] = inherited.border_style[side];
-                style.physical_border_style_orders[side] =
-                    style.current_declaration_order.saturating_add(1);
-            }
+        let color_order = style.logical_border_color_orders[logical];
+        if color_order > style.physical_border_color_orders[physical] {
+            style.border_color[physical] = style.logical_border_color[logical];
+            style.physical_border_color_orders[physical] = color_order;
         }
     }
-    true
-}
-
-pub(super) fn initial_css_property(style: &mut TextStyle, property: &str) -> bool {
-    match property {
-        "border-width" => {
-            style.border_width = std::array::from_fn(|_| None);
-            style.physical_border_width_orders =
-                [style.current_declaration_order.saturating_add(1); 4];
-        }
-        "border-style" => {
-            style.border_style = [BorderLineStyle::None; 4];
-            style.physical_border_style_orders =
-                [style.current_declaration_order.saturating_add(1); 4];
-        }
-        "border-inline-width" | "border-block-width" => {
-            let start = usize::from(property == "border-block-width") * 2;
-            style.logical_border_width[start..start + 2].fill(Some("medium".to_owned()));
-            style.logical_border_width_orders[start..start + 2]
-                .fill(style.current_declaration_order.saturating_add(1));
-        }
-        "border-inline-style" | "border-block-style" => {
-            let start = usize::from(property == "border-block-style") * 2;
-            style.logical_border_style[start..start + 2].fill(Some(BorderLineStyle::None));
-            style.logical_border_style_orders[start..start + 2]
-                .fill(style.current_declaration_order.saturating_add(1));
-        }
-        _ => {
-            let Some((logical, side, width)) = border_side_property(property) else {
-                return false;
-            };
-            if logical {
-                if width {
-                    style.logical_border_width[side] = Some("medium".to_owned());
-                    style.logical_border_width_orders[side] =
-                        style.current_declaration_order.saturating_add(1);
-                } else {
-                    style.logical_border_style[side] = Some(BorderLineStyle::None);
-                    style.logical_border_style_orders[side] =
-                        style.current_declaration_order.saturating_add(1);
-                }
-            } else if width {
-                style.border_width[side] = None;
-                style.physical_border_width_orders[side] =
-                    style.current_declaration_order.saturating_add(1);
-            } else {
-                style.border_style[side] = BorderLineStyle::None;
-                style.physical_border_style_orders[side] =
-                    style.current_declaration_order.saturating_add(1);
-            }
-        }
-    }
-    true
-}
-
-fn border_side_property(property: &str) -> Option<(bool, usize, bool)> {
-    let (side_name, width) = if let Some(side) = property.strip_suffix("-width") {
-        (side, true)
-    } else if let Some(side) = property.strip_suffix("-style") {
-        (side, false)
-    } else {
-        return None;
-    };
-    let side_name = side_name.strip_prefix("border-")?;
-    let (logical, side) = match side_name {
-        "top" => (false, 0),
-        "right" => (false, 1),
-        "bottom" => (false, 2),
-        "left" => (false, 3),
-        "inline-start" => (true, 0),
-        "inline-end" => (true, 1),
-        "block-start" => (true, 2),
-        "block-end" => (true, 3),
-        _ => return None,
-    };
-    Some((logical, side, width))
 }
 
 fn expand_four<T: Clone>(value: &str, parse: impl Fn(&str) -> Option<T>) -> Option<[T; 4]> {
-    let values = value
-        .split_whitespace()
+    let values = split_components(value)
+        .into_iter()
         .map(parse)
         .collect::<Option<Vec<_>>>()?;
     match values.as_slice() {
@@ -269,8 +317,8 @@ fn expand_four<T: Clone>(value: &str, parse: impl Fn(&str) -> Option<T>) -> Opti
 }
 
 fn expand_two<T: Clone>(value: &str, parse: impl Fn(&str) -> Option<T>) -> Option<(T, T)> {
-    let values = value
-        .split_whitespace()
+    let values = split_components(value)
+        .into_iter()
         .map(parse)
         .collect::<Option<Vec<_>>>()?;
     match values.as_slice() {
@@ -283,6 +331,16 @@ fn expand_two<T: Clone>(value: &str, parse: impl Fn(&str) -> Option<T>) -> Optio
 fn parse_width(style: &TextStyle, value: &str) -> Option<String> {
     let value = value.trim().to_ascii_lowercase();
     if matches!(value.as_str(), "thin" | "medium" | "thick" | "0")
+        || ctml_css::parse_math_expression(&value, |component| {
+            parse_nonnegative_font_relative_length_with_viewport(
+                component,
+                style.font_size,
+                style.line_height,
+                style.font_relative_units,
+                style.viewport_size,
+            )
+        })
+        .is_some()
         || parse_nonnegative_font_relative_length_with_viewport(
             &value,
             style.font_size,
