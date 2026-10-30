@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, SwashCache};
 use winit::window::CursorIcon;
 
@@ -21,8 +23,10 @@ mod hyphenation;
 mod interactions;
 mod layout;
 mod local_writing;
+mod overflow_clip;
 mod pixel;
 mod render;
+mod selection_backgrounds;
 mod sizing;
 mod sizing_height;
 mod vertical;
@@ -45,6 +49,7 @@ pub(crate) struct PageRasterizer {
     color_profiles: Vec<ctml_css::CssColorProfile>,
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
+    overflow_clips: HashMap<usize, overflow_clip::ClipRect>,
     spacer_line_flags: Vec<bool>,
     font_system: FontSystem,
     cache: SwashCache,
@@ -137,6 +142,7 @@ impl PageRasterizer {
             color_profiles: color_profiles.to_vec(),
             runs,
             cursor_spans,
+            overflow_clips: HashMap::new(),
             spacer_line_flags: Vec::new(),
             font_system,
             cache: SwashCache::new(),
@@ -350,6 +356,15 @@ impl PageRasterizer {
         });
         self.selection_anchor = selection_anchor
             .map(|cursor| cursor_with_flow_spacers(cursor, &self.spacer_line_flags));
+        let (layout_width, layout_height) =
+            vertical::layout_dimensions(self.writing_mode(), width, height);
+        self.overflow_clips = overflow_clip::block_clip_rects(
+            &self.runs,
+            &self.buffer,
+            layout_width,
+            layout_height,
+            self.writing_mode(),
+        );
     }
 
     pub(crate) fn redraw(&mut self, queue: &wgpu::Queue, texture: &wgpu::Texture) {

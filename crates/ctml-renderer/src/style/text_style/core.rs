@@ -5,7 +5,7 @@ use winit::window::CursorIcon;
 
 use super::{
     Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
-    OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
+    Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
     TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
     TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
@@ -32,6 +32,7 @@ pub(crate) struct TextStyle {
     pub(crate) background_layers: Vec<[u8; 4]>,
     pub(crate) display_none: bool,
     pub(crate) visibility_hidden: bool,
+    pub(crate) overflow: Overflow,
     pub(crate) display_block: Option<bool>,
     pub(crate) display_list_item: Option<bool>,
     pub(crate) list_style_type: Option<String>,
@@ -152,6 +153,7 @@ impl Default for TextStyle {
             background_layers: Vec::new(),
             display_none: false,
             visibility_hidden: false,
+            overflow: Overflow::Visible,
             display_block: None,
             display_list_item: None,
             list_style_type: None,

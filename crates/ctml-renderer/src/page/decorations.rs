@@ -1,10 +1,14 @@
 use cosmic_text::{Color, DecorationSpan, LayoutRun, Renderer, UnderlineStyle};
+use std::collections::HashMap;
 
 use super::CursorSpan;
 
 use crate::style::{TextDecorationSkipInk, TextDecorationStyle};
 
-use super::pixel::PixelRenderer;
+use super::{
+    overflow_clip::{self, ClipRect},
+    pixel::PixelRenderer,
+};
 
 pub(super) fn render_patterned_decorations<'a>(
     renderer: &mut PixelRenderer<'a>,
@@ -13,6 +17,7 @@ pub(super) fn render_patterned_decorations<'a>(
     auto_ink_mask: &'a [u8],
     all_ink_mask: &'a [u8],
     cursor_spans: &[CursorSpan],
+    overflow_clips: &HashMap<usize, ClipRect>,
 ) {
     for span in run.decorations {
         let Some(glyph) = run.glyphs.get(span.glyph_range.start) else {
@@ -36,6 +41,16 @@ pub(super) fn render_patterned_decorations<'a>(
             value if value == TextDecorationSkipInk::All as usize => Some(all_ink_mask),
             _ => Some(auto_ink_mask),
         });
+        let Some(glyph) = run.glyphs.get(span.glyph_range.start) else {
+            continue;
+        };
+        let path = cursor_spans
+            .iter()
+            .find(|cursor| {
+                cursor.line == run.line_i && cursor.start <= glyph.start && glyph.start < cursor.end
+            })
+            .map_or(&[][..], |cursor| cursor.element_path.as_slice());
+        renderer.set_clip_rect(overflow_clip::clip_for_path(path, overflow_clips));
         render_span(renderer, run, span, default_color);
     }
 }

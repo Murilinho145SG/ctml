@@ -38,6 +38,207 @@ fn content_block_height_keeps_content_at_the_block_start_and_flows_after_its_use
     assert_flow_at_used_end(&max_block_size, expected_after_y, "max-block-size");
 }
 
+#[test]
+fn overflow_hidden_clips_descendant_text_and_backgrounds_at_the_used_block_extent() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("word ".repeat(100))],
+        }],
+    }];
+    let span_background = StyleRule {
+        selectors: vec!["span".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "background-color".to_owned(),
+            value: "red".to_owned(),
+        }],
+    };
+    let mut stylesheet = vec![size_rule("height", "40px")];
+    stylesheet[0].declarations.push(StyleDeclaration {
+        property: "overflow".to_owned(),
+        value: "hidden".to_owned(),
+    });
+    stylesheet.push(span_background.clone());
+    let mut hidden_page = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = hidden_page.snapshot_pixels(240, 220);
+    let mut clip_stylesheet = stylesheet.clone();
+    clip_stylesheet[0]
+        .declarations
+        .iter_mut()
+        .find(|declaration| declaration.property == "overflow")
+        .expect("overflow declaration should exist")
+        .value = "clip".to_owned();
+    let clip_pixels = PageRasterizer::new(&nodes, &clip_stylesheet).snapshot_pixels(240, 220);
+    let mut visible_stylesheet = vec![size_rule("height", "40px")];
+    visible_stylesheet.push(span_background);
+    let visible_pixels = PageRasterizer::new(&nodes, &visible_stylesheet).snapshot_pixels(240, 220);
+    let has_paint_below_clip = |pixels: &[u8]| {
+        pixels
+            .chunks_exact(4)
+            .enumerate()
+            .filter(|(index, _)| index / 240 >= 48)
+            .any(|(_, pixel)| pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245)
+    };
+    assert!(
+        has_paint_below_clip(&visible_pixels),
+        "overflow: visible should keep the default"
+    );
+    let below_clip_has_paint = has_paint_below_clip(&pixels);
+    assert!(
+        !has_paint_below_clip(&clip_pixels),
+        "overflow: clip should clip descendant paint"
+    );
+    assert!(
+        !below_clip_has_paint,
+        "overflowing text or its background escaped the 40px clip"
+    );
+    assert!(
+        !hidden_page.begin_selection(20.0, 65.0),
+        "clipped text should not receive pointer or selection hits"
+    );
+}
+
+#[test]
+fn overflow_hidden_clips_text_and_backgrounds_at_the_inline_extent() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text(
+                "a long unwrapped line that overflows".to_owned(),
+            )],
+        }],
+    }];
+    let mut declarations = vec![
+        StyleDeclaration {
+            property: "width".to_owned(),
+            value: "40px".to_owned(),
+        },
+        StyleDeclaration {
+            property: "height".to_owned(),
+            value: "80px".to_owned(),
+        },
+        StyleDeclaration {
+            property: "white-space".to_owned(),
+            value: "nowrap".to_owned(),
+        },
+    ];
+    declarations.push(StyleDeclaration {
+        property: "overflow".to_owned(),
+        value: "hidden".to_owned(),
+    });
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations,
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(240, 120);
+    let mut visible_block = stylesheet[0].clone();
+    visible_block
+        .declarations
+        .retain(|declaration| declaration.property != "overflow");
+    let visible_stylesheet = [visible_block, stylesheet[1].clone()];
+    let visible_pixels = PageRasterizer::new(&nodes, &visible_stylesheet).snapshot_pixels(240, 120);
+    let has_escaped_paint = |pixels: &[u8]| {
+        pixels.chunks_exact(4).enumerate().any(|(index, pixel)| {
+            index % 240 >= 48 && (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245)
+        })
+    };
+    assert!(has_escaped_paint(&visible_pixels));
+    let escaped_paint = has_escaped_paint(&pixels);
+    assert!(
+        !escaped_paint,
+        "overflowing inline content escaped the 40px width clip"
+    );
+}
+
+#[test]
+fn overflow_hidden_clips_the_block_axis_in_vertical_root_writing_mode() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("vertical overflow ".repeat(100))],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: "vertical-rl".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "inline-size".to_owned(),
+                    value: "100px".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "block-size".to_owned(),
+                    value: "50px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "inline-size".to_owned(),
+                    value: "100px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "overflow".to_owned(),
+                    value: "hidden".to_owned(),
+                },
+            ],
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(240, 240);
+    let mut visible_block = stylesheet[1].clone();
+    visible_block
+        .declarations
+        .retain(|declaration| declaration.property != "overflow");
+    let visible_stylesheet = [stylesheet[0].clone(), visible_block];
+    let visible_pixels = PageRasterizer::new(&nodes, &visible_stylesheet).snapshot_pixels(240, 240);
+    let has_escaped_paint = |pixels: &[u8]| {
+        pixels.chunks_exact(4).enumerate().any(|(index, pixel)| {
+            index % 240 < 181 && (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245)
+        })
+    };
+    assert!(has_escaped_paint(&visible_pixels));
+    let escaped_paint = has_escaped_paint(&pixels);
+    assert!(
+        !escaped_paint,
+        "vertical overflow escaped the block-axis clip"
+    );
+}
+
 fn size_rule(property: &str, value: &str) -> StyleRule {
     StyleRule {
         selectors: vec!["div".to_owned()],

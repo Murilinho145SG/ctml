@@ -3,201 +3,12 @@ use std::collections::HashMap;
 use cosmic_text::Cursor;
 
 use super::local_writing::{self, LocalVerticalTransform};
-use super::{CursorSpan, PageRasterizer, pixel::fill_rect_alpha};
+use super::{
+    CursorSpan, PageRasterizer,
+    overflow_clip::{self, ClipRect},
+};
 
 impl PageRasterizer {
-    pub(super) fn draw_selection(&self, pixels: &mut [u8], width: u32, height: u32) {
-        let Some((first, second)) = self.selection else {
-            return;
-        };
-        let (start, end) = if first <= second {
-            (first, second)
-        } else {
-            (second, first)
-        };
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
-            if run.line_i < start.line || run.line_i > end.line {
-                continue;
-            }
-            let mut groups = Vec::new();
-            for span in self.cursor_spans.iter().filter(|span| {
-                span.line == run.line_i && !span.visibility_hidden && !span.user_select_none
-            }) {
-                if (start.line == run.line_i && span.end <= start.index)
-                    || (end.line == run.line_i && span.start >= end.index)
-                {
-                    continue;
-                }
-                let span_start = if start.line == run.line_i {
-                    span.start.max(start.index)
-                } else {
-                    span.start
-                };
-                let span_end = if end.line == run.line_i {
-                    span.end.min(end.index)
-                } else {
-                    span.end
-                };
-                let mut background = span
-                    .selection_background
-                    .unwrap_or(self.selection_background_color);
-                background[3] = (f32::from(background[3]) * span.opacity)
-                    .round()
-                    .clamp(0.0, 255.0) as u8;
-                if let Some((_, group_end, group_background)) = groups.last_mut()
-                    && *group_end == span_start
-                    && *group_background == background
-                {
-                    *group_end = span_end;
-                } else {
-                    groups.push((span_start, span_end, background));
-                }
-            }
-            for (group_start, group_end, background) in groups {
-                let local_transform = LocalVerticalTransform::from_run(
-                    &self.runs,
-                    &self.buffer,
-                    run.line_i,
-                    self.writing_mode(),
-                    width,
-                    height,
-                    &vertical_origins,
-                );
-                fill_highlight(
-                    run.line_i,
-                    run.line_top,
-                    run.line_height,
-                    group_start,
-                    group_end,
-                    background,
-                    &run,
-                    pixels,
-                    width,
-                    height,
-                    local_transform,
-                );
-            }
-        }
-    }
-
-    pub(super) fn draw_first_line_backgrounds(&self, pixels: &mut [u8], width: u32, height: u32) {
-        let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
-            let mut groups: Vec<(usize, usize, usize, [u8; 4])> = Vec::new();
-            for span in self
-                .cursor_spans
-                .iter()
-                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
-            {
-                let Some(block) = span.first_line_block else {
-                    continue;
-                };
-                let Some(mut background) = span.first_line_background else {
-                    continue;
-                };
-                background[3] = (f32::from(background[3]) * span.opacity)
-                    .round()
-                    .clamp(0.0, 255.0) as u8;
-                let Some((line, end)) = first_lines.get(&block).copied() else {
-                    continue;
-                };
-                if line != run.line_i || span.start >= end {
-                    continue;
-                }
-                let span_end = span.end.min(end);
-                if let Some((_, group_end, group_block, group_background)) = groups.last_mut()
-                    && *group_end == span.start
-                    && *group_block == block
-                    && *group_background == background
-                {
-                    *group_end = span_end;
-                } else {
-                    groups.push((span.start, span_end, block, background));
-                }
-            }
-            for (group_start, group_end, _, background) in groups {
-                let local_transform = LocalVerticalTransform::from_run(
-                    &self.runs,
-                    &self.buffer,
-                    run.line_i,
-                    self.writing_mode(),
-                    width,
-                    height,
-                    &vertical_origins,
-                );
-                fill_highlight(
-                    run.line_i,
-                    run.line_top,
-                    run.line_height,
-                    group_start,
-                    group_end,
-                    background,
-                    &run,
-                    pixels,
-                    width,
-                    height,
-                    local_transform,
-                );
-            }
-        }
-    }
-
-    pub(super) fn draw_first_letter_backgrounds(&self, pixels: &mut [u8], width: u32, height: u32) {
-        let first_letters = first_formatted_letters(&self.cursor_spans);
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
-            let mut groups: Vec<(usize, usize, [u8; 4])> = Vec::new();
-            for span in self
-                .cursor_spans
-                .iter()
-                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
-            {
-                let Some(block) = span.first_letter_block else {
-                    continue;
-                };
-                let Some(mut background) = span.first_letter_background else {
-                    continue;
-                };
-                background[3] = (f32::from(background[3]) * span.opacity)
-                    .round()
-                    .clamp(0.0, 255.0) as u8;
-                if first_letters.get(&block) != Some(&(span.line, span.start, span.end)) {
-                    continue;
-                }
-                groups.push((span.start, span.end, background));
-            }
-            for (group_start, group_end, background) in groups {
-                let local_transform = LocalVerticalTransform::from_run(
-                    &self.runs,
-                    &self.buffer,
-                    run.line_i,
-                    self.writing_mode(),
-                    width,
-                    height,
-                    &vertical_origins,
-                );
-                fill_highlight(
-                    run.line_i,
-                    run.line_top,
-                    run.line_height,
-                    group_start,
-                    group_end,
-                    background,
-                    &run,
-                    pixels,
-                    width,
-                    height,
-                    local_transform,
-                );
-            }
-        }
-    }
-
     pub(super) fn draw_pseudo_decorations(
         &self,
         pixels: &mut [u8],
@@ -205,6 +16,7 @@ impl PageRasterizer {
         height: u32,
         auto_ink_mask: &[u8],
         all_ink_mask: &[u8],
+        clips: &HashMap<usize, ClipRect>,
     ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let first_letters = first_formatted_letters(&self.cursor_spans);
@@ -216,6 +28,7 @@ impl PageRasterizer {
                 usize,
                 usize,
                 crate::css_style::PseudoDecoration,
+                Vec<usize>,
             )> = Vec::new();
             for span in self
                 .cursor_spans
@@ -229,15 +42,22 @@ impl PageRasterizer {
                     && let Some(decoration) = span.first_line_decoration
                 {
                     let span_end = span.end.min(end);
-                    if let Some((_, group_end, group_block, group_decoration)) =
+                    if let Some((_, group_end, group_block, group_decoration, group_path)) =
                         first_line_groups.last_mut()
                         && *group_end == span.start
                         && *group_block == block
                         && *group_decoration == decoration
+                        && *group_path == span.element_path
                     {
                         *group_end = span_end;
                     } else {
-                        first_line_groups.push((span.start, span_end, block, decoration));
+                        first_line_groups.push((
+                            span.start,
+                            span_end,
+                            block,
+                            decoration,
+                            span.element_path.clone(),
+                        ));
                     }
                 }
                 if let Some(block) = span.first_letter_block
@@ -254,6 +74,7 @@ impl PageRasterizer {
                         height,
                         auto_ink_mask,
                         all_ink_mask,
+                        overflow_clip::clip_for_path(&span.element_path, clips),
                         LocalVerticalTransform::from_run(
                             &self.runs,
                             &self.buffer,
@@ -266,7 +87,7 @@ impl PageRasterizer {
                     );
                 }
             }
-            for (start, end, _, decoration) in first_line_groups {
+            for (start, end, _, decoration, path) in first_line_groups {
                 draw_decoration(
                     &run,
                     start,
@@ -277,6 +98,7 @@ impl PageRasterizer {
                     height,
                     auto_ink_mask,
                     all_ink_mask,
+                    overflow_clip::clip_for_path(&path, clips),
                     LocalVerticalTransform::from_run(
                         &self.runs,
                         &self.buffer,
@@ -302,6 +124,7 @@ fn draw_decoration(
     height: u32,
     auto_ink_mask: &[u8],
     all_ink_mask: &[u8],
+    clip_rect: Option<ClipRect>,
     local_transform: Option<LocalVerticalTransform>,
 ) {
     if start >= end || decoration.thickness <= 0.0 {
@@ -334,6 +157,7 @@ fn draw_decoration(
             crate::style::TextDecorationSkipInk::All => Some(all_ink_mask),
         },
         local_transform,
+        clip_rect,
     };
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);
@@ -431,51 +255,4 @@ pub(super) fn first_formatted_line_ranges(
         }
     }
     first_lines
-}
-
-#[allow(clippy::too_many_arguments)]
-fn fill_highlight(
-    line: usize,
-    line_top: f32,
-    line_height: f32,
-    start: usize,
-    end: usize,
-    color: [u8; 4],
-    run: &cosmic_text::LayoutRun<'_>,
-    pixels: &mut [u8],
-    width: u32,
-    height: u32,
-    local_transform: Option<LocalVerticalTransform>,
-) {
-    let start = Cursor {
-        line,
-        index: start,
-        affinity: cosmic_text::Affinity::Before,
-    };
-    let end = Cursor {
-        line,
-        index: end,
-        affinity: cosmic_text::Affinity::After,
-    };
-    for (left, span_width) in run.highlight(start, end) {
-        let (left, top, span_width, line_height) =
-            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
-                transform.map_rect(
-                    left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
-                    span_width,
-                    line_height,
-                )
-            });
-        fill_rect_alpha(
-            pixels,
-            width,
-            height,
-            left - super::PAGE_PADDING,
-            top - super::PAGE_PADDING,
-            span_width,
-            line_height,
-            color,
-        );
-    }
 }

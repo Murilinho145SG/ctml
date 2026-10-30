@@ -10,6 +10,7 @@ use skia_safe::{
     surfaces,
 };
 
+use crate::page::overflow_clip::{self, ClipRect};
 use crate::page::{CursorSpan, PAGE_PADDING, local_writing};
 use crate::style::{TextRun, TextStyle, WritingMode};
 
@@ -31,6 +32,7 @@ pub(super) fn draw(
     selection: Option<(Cursor, Cursor)>,
     cursor_spans: &[CursorSpan],
     writing_mode: WritingMode,
+    overflow_clips: &HashMap<usize, ClipRect>,
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let first_letters = super::highlights::first_formatted_letters(cursor_spans);
@@ -214,7 +216,26 @@ pub(super) fn draw(
             let local_vertical_mode = text_style.map(|style| style.writing_mode).filter(|mode| {
                 *mode != WritingMode::HorizontalTb && writing_mode == WritingMode::HorizontalTb
             });
-            let has_local_vertical_transform = if let Some(mode) = local_vertical_mode {
+            canvas.save();
+            if let Some(clip) =
+                style_index
+                    .and_then(|index| runs.get(index))
+                    .and_then(|style_run| {
+                        overflow_clip::clip_for_path(&style_run.element_path, overflow_clips)
+                    })
+            {
+                canvas.clip_rect(
+                    skia_safe::Rect::from_xywh(
+                        clip.left,
+                        clip.top,
+                        clip.right - clip.left,
+                        clip.bottom - clip.top,
+                    ),
+                    None,
+                    false,
+                );
+            }
+            if let Some(mode) = local_vertical_mode {
                 let origin_y = style_index
                     .and_then(|index| runs.get(index))
                     .and_then(|style_run| style_run.first_line_block)
@@ -230,7 +251,6 @@ pub(super) fn draw(
                     }
                     WritingMode::HorizontalTb => unreachable!(),
                 };
-                canvas.save();
                 canvas.translate((target.x, target.y));
                 canvas.rotate(
                     match mode {
@@ -241,10 +261,7 @@ pub(super) fn draw(
                     None,
                 );
                 canvas.translate((-source.x, -source.y));
-                true
-            } else {
-                false
-            };
+            }
             let glyph_writing_mode = local_vertical_mode.unwrap_or(writing_mode);
             let font_size = text_style.map_or(first.font_size, |style| style.font_size);
             let mut font = Font::from_typeface(typeface, font_size);
@@ -361,9 +378,7 @@ pub(super) fn draw(
                     opacity,
                 );
             }
-            if has_local_vertical_transform {
-                canvas.restore();
-            }
+            canvas.restore();
             start = end;
         }
     }

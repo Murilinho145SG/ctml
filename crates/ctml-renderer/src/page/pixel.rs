@@ -1,6 +1,6 @@
 use cosmic_text::{Color, Renderer};
 
-use super::{PAGE_PADDING, local_writing::LocalVerticalTransform};
+use super::{PAGE_PADDING, local_writing::LocalVerticalTransform, overflow_clip::ClipRect};
 
 pub(super) struct PixelRenderer<'a> {
     pub(super) pixels: &'a mut [u8],
@@ -8,6 +8,7 @@ pub(super) struct PixelRenderer<'a> {
     pub(super) height: u32,
     pub(super) skip_ink_mask: Option<&'a [u8]>,
     pub(super) local_transform: Option<LocalVerticalTransform>,
+    pub(super) clip_rect: Option<ClipRect>,
 }
 
 impl Renderer for PixelRenderer<'_> {
@@ -45,6 +46,14 @@ impl Renderer for PixelRenderer<'_> {
             for offset_x in 0..width as i32 {
                 let pixel_x = x + offset_x;
                 let pixel_y = y + offset_y;
+                if self.clip_rect.is_some_and(|clip| {
+                    (pixel_x as f32) < clip.left
+                        || (pixel_x as f32) >= clip.right
+                        || (pixel_y as f32) < clip.top
+                        || (pixel_y as f32) >= clip.bottom
+                }) {
+                    continue;
+                }
                 if let Some(mask) = self.skip_ink_mask
                     && pixel_x >= 0
                     && pixel_y >= 0
@@ -85,6 +94,10 @@ impl Renderer for PixelRenderer<'_> {
 impl<'a> PixelRenderer<'a> {
     pub(super) fn set_skip_ink_mask(&mut self, mask: Option<&'a [u8]>) {
         self.skip_ink_mask = mask;
+    }
+
+    pub(super) fn set_clip_rect(&mut self, clip_rect: Option<ClipRect>) {
+        self.clip_rect = clip_rect;
     }
 }
 
@@ -137,7 +150,7 @@ fn blend_pixel_with_rounding(
     pixels[offset + 3] = 255;
 }
 
-pub(super) fn fill_rect_alpha(
+pub(super) fn fill_rect_alpha_clipped(
     pixels: &mut [u8],
     width: u32,
     height: u32,
@@ -146,11 +159,16 @@ pub(super) fn fill_rect_alpha(
     rect_width: f32,
     rect_height: f32,
     color: [u8; 4],
+    clip: Option<ClipRect>,
 ) {
     let left = ((x + PAGE_PADDING).floor() as i32).clamp(0, width as i32);
     let top = ((y + PAGE_PADDING).floor() as i32).clamp(0, height as i32);
     let right = ((x + rect_width + PAGE_PADDING).ceil() as i32).clamp(0, width as i32);
     let bottom = ((y + rect_height + PAGE_PADDING).ceil() as i32).clamp(0, height as i32);
+    let left = clip.map_or(left, |clip| left.max(clip.left.floor() as i32));
+    let top = clip.map_or(top, |clip| top.max(clip.top.floor() as i32));
+    let right = clip.map_or(right, |clip| right.min(clip.right.ceil() as i32));
+    let bottom = clip.map_or(bottom, |clip| bottom.min(clip.bottom.ceil() as i32));
     let color = Color::rgba(color[0], color[1], color[2], color[3]);
     for row in top..bottom {
         for column in left..right {

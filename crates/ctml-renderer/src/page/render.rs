@@ -1,6 +1,5 @@
-use cosmic_text::Color;
-
 use super::{PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, decorations, font_raster};
+use cosmic_text::Color;
 
 impl PageRasterizer {
     pub(super) fn render_layout_pixels(
@@ -14,6 +13,7 @@ impl PageRasterizer {
             pixel[..3].copy_from_slice(&self.root_style.background);
             pixel[3] = 255;
         }
+        let overflow_clips = &self.overflow_clips;
         backgrounds::draw(
             &self.runs,
             &self.buffer,
@@ -22,10 +22,11 @@ impl PageRasterizer {
             height,
             self.root_style.background_color.is_some(),
             writing_mode,
+            &overflow_clips,
         );
-        self.draw_first_line_backgrounds(&mut pixels, width, height);
-        self.draw_first_letter_backgrounds(&mut pixels, width, height);
-        self.draw_selection(&mut pixels, width, height);
+        self.draw_first_line_backgrounds(&mut pixels, width, height, &overflow_clips);
+        self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
+        self.draw_selection(&mut pixels, width, height, &overflow_clips);
         let selection = self.selection.map(|(first, second)| {
             if first <= second {
                 (first, second)
@@ -51,6 +52,7 @@ impl PageRasterizer {
             selection,
             cursor_spans,
             writing_mode,
+            &overflow_clips,
         );
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
@@ -89,6 +91,15 @@ impl PageRasterizer {
                 let has_descender = run.text[glyph.start..glyph.end]
                     .chars()
                     .any(is_underline_descender);
+                let glyph_clip =
+                    style_index
+                        .and_then(|index| runs.get(index))
+                        .and_then(|style_run| {
+                            super::overflow_clip::clip_for_path(
+                                &style_run.element_path,
+                                &overflow_clips,
+                            )
+                        });
                 cache.with_pixels(
                     font_system,
                     physical_glyph.cache_key,
@@ -106,6 +117,12 @@ impl PageRasterizer {
                             && pixel_y >= 0
                             && pixel_x < width as i32
                             && pixel_y < height as i32
+                            && glyph_clip.is_none_or(|clip| {
+                                (pixel_x as f32) >= clip.left
+                                    && (pixel_x as f32) < clip.right
+                                    && (pixel_y as f32) >= clip.top
+                                    && (pixel_y as f32) < clip.bottom
+                            })
                         {
                             let mask_index = pixel_y as usize * width as usize + pixel_x as usize;
                             if pixel_color.a() > 0 {
@@ -135,6 +152,7 @@ impl PageRasterizer {
                     height,
                     &vertical_block_origins,
                 ),
+                clip_rect: None,
             };
             decorations::render_patterned_decorations(
                 &mut renderer,
@@ -143,9 +161,17 @@ impl PageRasterizer {
                 &auto_ink_mask,
                 &all_ink_mask,
                 &self.cursor_spans,
+                &overflow_clips,
             );
         }
-        self.draw_pseudo_decorations(&mut pixels, width, height, &auto_ink_mask, &all_ink_mask);
+        self.draw_pseudo_decorations(
+            &mut pixels,
+            width,
+            height,
+            &auto_ink_mask,
+            &all_ink_mask,
+            &overflow_clips,
+        );
         pixels
     }
 }

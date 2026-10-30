@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     StyleDeclaration, StyleRule,
-    style::{TextDecorationStyle, TextStyle, UserSelect},
+    style::{Overflow, TextDecorationStyle, TextStyle, UserSelect},
 };
 
 pub(super) fn style_for_declarations(declarations: &[(&str, &str)]) -> TextStyle {
@@ -1121,6 +1121,26 @@ fn visibility_inherits_and_supports_css_wide_keywords() {
 
     let reset = style_for_declarations(&[("visibility", "hidden"), ("visibility", "initial")]);
     assert!(!reset.visibility_hidden);
+}
+
+#[test]
+fn overflow_modes_parse_and_do_not_inherit_by_default() {
+    assert_eq!(
+        style_for_declarations(&[("overflow", "hidden")]).overflow,
+        Overflow::Hidden
+    );
+    assert_eq!(
+        style_for_declarations(&[("overflow", "clip")]).overflow,
+        Overflow::Clip
+    );
+    assert_eq!(
+        style_for_declarations(&[("overflow", "hidden"), ("overflow", "inherit")]).overflow,
+        Overflow::Visible
+    );
+    assert_eq!(
+        style_for_declarations(&[("overflow", "hidden"), ("overflow", "unset")]).overflow,
+        Overflow::Visible
+    );
 }
 
 #[test]

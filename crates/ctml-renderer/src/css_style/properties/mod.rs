@@ -2,7 +2,7 @@ use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{
-    Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
+    Direction, FontVariantPosition, Hyphens, LineBreak, Overflow, OverflowWrap, TextOrientation,
     TextOverflow, TextRendering, TextStyle, TextTransform, TextWrapMode, UnicodeBidi, UserSelect,
     WhiteSpace, WordBreak, WritingMode,
 };
@@ -212,6 +212,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
     match property {
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
+        "overflow" => style.overflow = inherited.overflow,
         "pointer-events" => style.pointer_events_none = inherited.pointer_events_none,
         "user-select" => {
             style.user_select = inherited.user_select;
@@ -358,6 +359,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
+        "overflow" => style.overflow = Overflow::Visible,
         "pointer-events" => style.pointer_events_none = false,
         "user-select" => {
             style.user_select = UserSelect::Auto;
@@ -518,6 +520,12 @@ fn apply_declaration(
         "visibility" => match value.to_ascii_lowercase().as_str() {
             "visible" => style.visibility_hidden = false,
             "hidden" | "collapse" => style.visibility_hidden = true,
+            _ => {}
+        },
+        "overflow" => match value.to_ascii_lowercase().as_str() {
+            "visible" => style.overflow = Overflow::Visible,
+            "hidden" => style.overflow = Overflow::Hidden,
+            "clip" => style.overflow = Overflow::Clip,
             _ => {}
         },
         "pointer-events" => match value.to_ascii_lowercase().as_str() {

@@ -230,7 +230,8 @@ pub(super) fn collect_runs(
                         || style.max_height.is_some()
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
-                        || style.max_block_size.is_some());
+                        || style.max_block_size.is_some()
+                        || style.overflow != super::Overflow::Visible);
                 if has_block_size {
                     style.layout_sizes.push(LayoutSize {
                         node_id: sibling.node_id,
@@ -246,6 +247,7 @@ pub(super) fn collect_runs(
                         block_size: style.block_size.clone(),
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
+                        overflow: style.overflow,
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

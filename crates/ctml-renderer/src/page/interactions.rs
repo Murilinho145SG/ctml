@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
 use winit::window::CursorIcon;
 
-use super::{PAGE_PADDING, PageRasterizer, local_writing};
+use super::{PAGE_PADDING, PageRasterizer, local_writing, overflow_clip};
 
 impl PageRasterizer {
     pub(crate) fn cursor_at(&self, x: f64, y: f64) -> (CursorIcon, bool) {
@@ -212,6 +212,8 @@ impl PageRasterizer {
         let (x, y) = self
             .local_vertical_layout_point(x as f32, y as f32)
             .unwrap_or_else(|| self.layout_point(x as f32, y as f32));
+        let pointer_x = x;
+        let pointer_y = y;
         let x = x - PAGE_PADDING;
         let y = y - PAGE_PADDING;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
@@ -221,7 +223,7 @@ impl PageRasterizer {
                 && y >= run.line_top
                 && y < run.line_top + run.line_height
         });
-        inside_text_line
+        let cursor = inside_text_line
             .then(|| self.buffer.hit(x, y))
             .flatten()
             .filter(|cursor| {
@@ -232,7 +234,18 @@ impl PageRasterizer {
                         && !span.visibility_hidden
                         && !span.pointer_events_none
                 })
+            })?;
+        let span = self.cursor_spans.iter().find(|span| {
+            span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
+        })?;
+        overflow_clip::clip_for_path(&span.element_path, &self.overflow_clips)
+            .is_none_or(|clip| {
+                pointer_x >= clip.left
+                    && pointer_x < clip.right
+                    && pointer_y >= clip.top
+                    && pointer_y < clip.bottom
             })
+            .then_some(cursor)
     }
 
     fn selection_hit(&self, x: f64, y: f64) -> Option<Cursor> {

@@ -77,6 +77,14 @@ pub(crate) enum TextOverflow {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Overflow {
+    #[default]
+    Visible,
+    Hidden,
+    Clip,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum TextRendering {
     #[default]
     Auto,
@@ -130,6 +138,7 @@ pub(crate) struct LayoutSize {
     pub(crate) block_size: Option<String>,
     pub(crate) min_block_size: Option<String>,
     pub(crate) max_block_size: Option<String>,
+    pub(crate) overflow: Overflow,
     pub(crate) size_property_orders: HashMap<String, usize>,
     pub(crate) writing_mode: WritingMode,
     pub(crate) font_size: f32,

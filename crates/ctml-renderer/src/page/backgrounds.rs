@@ -1,9 +1,14 @@
 use cosmic_text::Buffer;
 
 use crate::{
-    page::{local_writing, pixel::fill_rect_alpha},
+    page::{
+        local_writing,
+        overflow_clip::{self, ClipRect},
+        pixel::fill_rect_alpha_clipped,
+    },
     style::{TextRun, WritingMode},
 };
+use std::collections::HashMap;
 
 pub(super) fn draw(
     runs: &[TextRun],
@@ -13,6 +18,7 @@ pub(super) fn draw(
     height: u32,
     skip_root_background: bool,
     page_writing_mode: WritingMode,
+    overflow_clips: &HashMap<usize, ClipRect>,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -84,7 +90,12 @@ pub(super) fn draw(
                             right - left,
                             line.line_height,
                         );
-                        fill_rect_alpha(
+                        let clip = style_index
+                            .and_then(|index| runs.get(index))
+                            .and_then(|run| {
+                                overflow_clip::clip_for_path(&run.element_path, overflow_clips)
+                            });
+                        fill_rect_alpha_clipped(
                             pixels,
                             width,
                             height,
@@ -93,9 +104,15 @@ pub(super) fn draw(
                             rect_width,
                             rect_height,
                             color,
+                            clip,
                         );
                     } else {
-                        fill_rect_alpha(
+                        let clip = style_index
+                            .and_then(|index| runs.get(index))
+                            .and_then(|run| {
+                                overflow_clip::clip_for_path(&run.element_path, overflow_clips)
+                            });
+                        fill_rect_alpha_clipped(
                             pixels,
                             width,
                             height,
@@ -104,6 +121,7 @@ pub(super) fn draw(
                             right - left,
                             line.line_height,
                             color,
+                            clip,
                         );
                     }
                 }
