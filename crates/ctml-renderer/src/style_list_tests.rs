@@ -95,14 +95,16 @@ fn list_style_type_formats_roman_greek_and_leading_zero_markers() {
 }
 
 #[test]
-fn list_style_type_formats_hebrew_armenian_and_cjk_counters() {
-    use super::list_marker::format_counter_value;
+fn list_style_type_formats_hebrew_armenian_georgian_and_cjk_counters() {
+    use super::list_marker::{format_counter_value, format_marker};
 
     for (style, value, expected) in [
         ("armenian", 2024, "ՍԻԴ"),
         ("lower-armenian", 2024, "սիդ"),
         ("hebrew", 5784, "ה׳תשפד"),
+        ("georgian", 2025, "\u{10ea}\u{10d9}\u{10d4}"),
         ("cjk-decimal", 100, "一〇〇"),
+        ("cjk-ideographic", 100, "一〇〇"),
         ("cjk-earthly-branch", 12, "亥"),
         ("cjk-heavenly-stem", 10, "癸"),
     ] {
@@ -117,6 +119,10 @@ fn list_style_type_formats_hebrew_armenian_and_cjk_counters() {
     assert_eq!(
         format_counter_value("armenian", 10_000).as_deref(),
         Some("10000")
+    );
+    assert_eq!(
+        format_marker(Some("cjk-ideographic"), true, 1).as_deref(),
+        Some("一、 ")
     );
 }
 
@@ -175,7 +181,9 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "upper-armenian",
         "lower-armenian",
         "hebrew",
+        "georgian",
         "cjk-decimal",
+        "cjk-ideographic",
         "cjk-earthly-branch",
         "cjk-heavenly-stem",
         "arabic-indic",

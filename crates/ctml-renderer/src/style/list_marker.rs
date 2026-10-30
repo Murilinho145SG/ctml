@@ -29,14 +29,16 @@ pub(super) fn format_marker(
         ),
         "lower-roman" => format!("{}. ", roman_marker(index).to_ascii_lowercase()),
         "upper-roman" => format!("{}. ", roman_marker(index)),
-        "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "cjk-decimal"
-        | "cjk-earthly-branch" | "cjk-heavenly-stem" | "lower-latin" | "upper-latin"
-        | "hiragana" | "hiragana-iroha" | "katakana" | "katakana-iroha" => {
+        "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "georgian"
+        | "cjk-decimal" | "cjk-ideographic" | "cjk-earthly-branch" | "cjk-heavenly-stem"
+        | "lower-latin" | "upper-latin" | "hiragana" | "hiragana-iroha" | "katakana"
+        | "katakana-iroha" => {
             let marker = format_counter_value(list_style_type, index as i32)
                 .unwrap_or_else(|| index.to_string());
             let suffix = if matches!(
                 list_style_type,
                 "cjk-decimal"
+                    | "cjk-ideographic"
                     | "cjk-earthly-branch"
                     | "cjk-heavenly-stem"
                     | "hiragana"
@@ -103,7 +105,10 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "hebrew" => {
             additive_numeral(value, &HEBREW_SYMBOLS, 10_999).or_else(|| Some(value.to_string()))
         }
-        "cjk-decimal" => Some(cjk_decimal(value)),
+        "georgian" => {
+            additive_numeral(value, &GEORGIAN_SYMBOLS, 19_999).or_else(|| Some(value.to_string()))
+        }
+        "cjk-decimal" | "cjk-ideographic" => Some(cjk_decimal(value)),
         "cjk-earthly-branch" => Some(fixed_cjk(value, "子丑寅卯辰巳午未申酉戌亥")),
         "cjk-heavenly-stem" => Some(fixed_cjk(value, "甲乙丙丁戊己庚辛壬癸")),
         "hiragana" => Some(alphabetic_string(
@@ -259,6 +264,46 @@ const HEBREW_SYMBOLS: &[(i32, &str)] = &[
     (3, "ג"),
     (2, "ב"),
     (1, "א"),
+];
+
+const GEORGIAN_SYMBOLS: &[(i32, &str)] = &[
+    (10_000, "\u{10f5}"),
+    (9_000, "\u{10f0}"),
+    (8_000, "\u{10ef}"),
+    (7_000, "\u{10f4}"),
+    (6_000, "\u{10ee}"),
+    (5_000, "\u{10ed}"),
+    (4_000, "\u{10ec}"),
+    (3_000, "\u{10eb}"),
+    (2_000, "\u{10ea}"),
+    (1_000, "\u{10e9}"),
+    (900, "\u{10e8}"),
+    (800, "\u{10e7}"),
+    (700, "\u{10e6}"),
+    (600, "\u{10e5}"),
+    (500, "\u{10e4}"),
+    (400, "\u{10f3}"),
+    (300, "\u{10e2}"),
+    (200, "\u{10e1}"),
+    (100, "\u{10e0}"),
+    (90, "\u{10df}"),
+    (80, "\u{10de}"),
+    (70, "\u{10dd}"),
+    (60, "\u{10f2}"),
+    (50, "\u{10dc}"),
+    (40, "\u{10db}"),
+    (30, "\u{10da}"),
+    (20, "\u{10d9}"),
+    (10, "\u{10d8}"),
+    (9, "\u{10d7}"),
+    (8, "\u{10f1}"),
+    (7, "\u{10d6}"),
+    (6, "\u{10d5}"),
+    (5, "\u{10d4}"),
+    (4, "\u{10d3}"),
+    (3, "\u{10d2}"),
+    (2, "\u{10d1}"),
+    (1, "\u{10d0}"),
 ];
 
 fn additive_numeral(value: i32, symbols: &[(i32, &str)], max: i32) -> Option<String> {
