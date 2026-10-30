@@ -97,7 +97,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Inheritance and CSS-wide keyword resolution for every property currently supported by the renderer.
 - [x] Custom properties (`--name`) and `var()` substitution, including inherited values, fallback handling, and cycle invalidation.
 - [x] Define specified, computed, used, and actual value processing for supported properties in the CSS implementation documentation.
-- [ ] Define style scoping and encapsulation rules for future CTML components.
+- [x] Define document-wide scope for current selectors and defer component encapsulation until CTML has component boundaries.
 
 ## Values, units, and calculations
 

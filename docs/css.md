@@ -19,6 +19,8 @@ CTML uses regular `.css` files. One or more stylesheets can be declared in the C
 
 Each stylesheet path is relative to the Rust application's `src/` directory.
 
+All declared and imported stylesheets match against the same CTML selector tree. CTML does not currently define component boundaries, shadow trees, or scoped-style sources, so selectors have document-wide scope and component encapsulation is deferred until such boundaries exist.
+
 Stylesheets can import local files with a quoted path or `url()`, for example `@import "shared/colors.css";`. Imported rules are expanded where the import appears, and nested imports resolve relative to their importing file. Imports cannot escape the application's `src/` directory or form cycles. Network URLs, import media qualifiers, and escaped import paths are currently rejected. Imported files are tracked as build dependencies so Cargo recompiles the application when they change.
 
 The CSS crate also exposes a local resource loader for binary resources. It resolves URL paths relative to their stylesheet, rejects external schemes, queries, fragments, and paths that escape the configured root, and caps reads at 64 MiB. `@font-face` accepts ordered `local()` and local `url()` sources, with `format()` and `tech()` hints; it tries candidates in order and registers the first available font under the declared `font-family`. URL files are embedded in the application build. Static `font-weight`, `font-style`, and `font-stretch` descriptors are supported. Variable descriptor ranges are not supported yet.
