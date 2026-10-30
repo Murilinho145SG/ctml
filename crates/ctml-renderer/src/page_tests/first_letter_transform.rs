@@ -139,3 +139,37 @@ fn first_letter_transform_changes_the_letter_but_preserves_punctuation() {
     assert_eq!(page.runs[0].text, "“h!”");
     assert_eq!(page.runs[1].text, "ELLO");
 }
+
+#[test]
+fn first_letter_inherits_first_line_font_style_properties() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Alpha".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "30px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p::first-letter".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+    let page = PageRasterizer::new(&nodes, &stylesheet);
+
+    assert_eq!(page.runs[0].text, "A");
+    assert_eq!(page.runs[0].style.font_size, 30.0);
+    assert_ne!(page.runs[0].style.weight, page.runs[1].style.weight);
+}
