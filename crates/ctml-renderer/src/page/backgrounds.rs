@@ -70,6 +70,7 @@ pub(super) fn draw_block_boxes(
             super::background_images::draw_background_image_layers(
                 &size.background_images,
                 &size.background_repeats,
+                &size.background_positions,
                 size.opacity,
                 pixels,
                 width,
@@ -243,6 +244,7 @@ pub(super) fn draw(
                 super::background_images::draw_background_image_layers(
                     &style.background_images,
                     &style.background_repeats,
+                    &style.background_positions,
                     style.opacity,
                     pixels,
                     width,

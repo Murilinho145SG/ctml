@@ -309,6 +309,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip.
   - [x] Decode embedded base64 PNG/JPEG `data:` URLs in `background-image`; paint comma-separated layers in CSS order with intrinsic-size repeat and element opacity/clipping.
   - [x] `background-repeat` supports `repeat`, `no-repeat`, `repeat-x`, `repeat-y`, and per-axis keyword pairs across comma-separated layers.
+  - [x] `background-position` supports one or two axis keywords, percentages, and font-relative or absolute lengths per layer.
 - [ ] Linear, radial, conic, and repeating gradients.
   - [x] `linear-gradient()` with direction or angle, CSS colors, and optional percentage stop positions.
 - [ ] Border images and nine-slice behavior.

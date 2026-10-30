@@ -116,6 +116,50 @@ fn background_repeat_controls_each_image_axis() {
 }
 
 #[test]
+fn background_position_places_a_non_repeating_image_with_percentages() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("image".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let image = png_data_url([0, 255, 0, 255]);
+    let stylesheet = [StyleRule {
+        selectors: vec![".image".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "24px"),
+            ("height", "24px"),
+            ("background-image", image.as_str()),
+            ("background-repeat", "no-repeat"),
+            ("background-position", "50% 50%"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(100, 70);
+    let pixels = page.snapshot_pixels(100, 70);
+    let green = pixels
+        .chunks_exact(4)
+        .enumerate()
+        .filter_map(|(index, pixel)| {
+            (pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0)
+                .then_some((index % 100, index / 100))
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(green.len(), 1);
+    assert!((10..=13).contains(&green[0].0));
+    assert!((10..=13).contains(&green[0].1));
+}
+
+#[test]
 fn paints_linear_gradient_backgrounds_in_the_declared_direction() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

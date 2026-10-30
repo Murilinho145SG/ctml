@@ -4,11 +4,12 @@ use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
-    BackgroundImage, BackgroundRepeat, BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction,
-    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, Overflow,
-    OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
-    TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
-    TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    BackgroundImage, BackgroundPosition, BackgroundRepeat, BorderLineStyle, BoxDecorationBreak,
+    BoxShadow, Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize,
+    LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle,
+    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
+    TextRendering, TextShadow, TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace,
+    WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -33,6 +34,7 @@ pub(crate) struct TextStyle {
     pub(crate) background_layers: Vec<[u8; 4]>,
     pub(crate) background_images: Vec<BackgroundImage>,
     pub(crate) background_repeats: Vec<BackgroundRepeat>,
+    pub(crate) background_positions: Vec<BackgroundPosition>,
     pub(crate) display_none: bool,
     pub(crate) visibility_hidden: bool,
     pub(crate) content_visibility_hidden: bool,
@@ -200,6 +202,7 @@ impl Default for TextStyle {
             background_layers: Vec::new(),
             background_images: Vec::new(),
             background_repeats: Vec::new(),
+            background_positions: Vec::new(),
             display_none: false,
             visibility_hidden: false,
             content_visibility_hidden: false,

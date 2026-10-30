@@ -14,7 +14,9 @@ pub(crate) enum UserSelect {
 mod background;
 mod core;
 mod layout;
-pub(crate) use background::{BackgroundImage, BackgroundRepeat, LinearGradient};
+pub(crate) use background::{
+    BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient,
+};
 pub(crate) use core::TextStyle;
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};
 

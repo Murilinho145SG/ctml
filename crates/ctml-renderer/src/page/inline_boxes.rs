@@ -223,6 +223,7 @@ pub(super) fn draw(
                 super::background_images::draw_background_image_layers(
                     &style.background_images,
                     &style.background_repeats,
+                    &style.background_positions,
                     style.opacity,
                     pixels,
                     width,

@@ -4,7 +4,7 @@ use skia_safe::{
 };
 use std::{collections::HashMap, sync::Arc};
 
-use crate::style::{BackgroundImage, BackgroundRepeat, LinearGradient};
+use crate::style::{BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient};
 
 use super::overflow_clip::ClipRect;
 
@@ -13,6 +13,7 @@ pub(super) type ImageCache = HashMap<Arc<[u8]>, Option<Image>>;
 pub(super) fn draw_background_image_layers(
     images: &[BackgroundImage],
     repeats: &[BackgroundRepeat],
+    positions: &[BackgroundPosition],
     opacity: f32,
     pixels: &mut [u8],
     width: u32,
@@ -43,13 +44,16 @@ pub(super) fn draw_background_image_layers(
             false,
         );
     }
-    let tile_origin = Matrix::translate((rect.left, rect.top));
     let rect = Rect::from_ltrb(rect.left, rect.top, rect.right, rect.bottom);
     for (index, background) in images.iter().enumerate().rev() {
         let repeat = repeats
             .get(index % repeats.len().max(1))
             .copied()
             .unwrap_or(BackgroundRepeat::REPEAT);
+        let position = positions
+            .get(index % positions.len().max(1))
+            .copied()
+            .unwrap_or_default();
         let (shader, tile_clip) = match background {
             BackgroundImage::Encoded(encoded) => {
                 let image = image_cache
@@ -58,27 +62,42 @@ pub(super) fn draw_background_image_layers(
                 let Some(image) = image.as_ref() else {
                     continue;
                 };
+                let image_left = rect.left
+                    + (rect.width() - image.width() as f32) * position.x_percent
+                    + position.x_offset;
+                let image_top = rect.top
+                    + (rect.height() - image.height() as f32) * position.y_percent
+                    + position.y_offset;
                 let clip = (!repeat.x || !repeat.y).then(|| {
                     Rect::from_ltrb(
-                        rect.left,
-                        rect.top,
+                        if repeat.x {
+                            rect.left
+                        } else {
+                            image_left.max(rect.left)
+                        },
+                        if repeat.y {
+                            rect.top
+                        } else {
+                            image_top.max(rect.top)
+                        },
                         if repeat.x {
                             rect.right
                         } else {
-                            (rect.left + image.width() as f32).min(rect.right)
+                            (image_left + image.width() as f32).min(rect.right)
                         },
                         if repeat.y {
                             rect.bottom
                         } else {
-                            (rect.top + image.height() as f32).min(rect.bottom)
+                            (image_top + image.height() as f32).min(rect.bottom)
                         },
                     )
                 });
+                let image_origin = Matrix::translate((image_left, image_top));
                 (
                     image.to_shader(
                         Some((TileMode::Repeat, TileMode::Repeat)),
                         SamplingOptions::default(),
-                        Some(&tile_origin),
+                        Some(&image_origin),
                     ),
                     clip,
                 )

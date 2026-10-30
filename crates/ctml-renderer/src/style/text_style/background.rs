@@ -18,6 +18,14 @@ pub(crate) struct BackgroundRepeat {
     pub(crate) y: bool,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct BackgroundPosition {
+    pub(crate) x_percent: f32,
+    pub(crate) x_offset: f32,
+    pub(crate) y_percent: f32,
+    pub(crate) y_offset: f32,
+}
+
 impl BackgroundRepeat {
     pub(crate) const REPEAT: Self = Self { x: true, y: true };
     pub(crate) const NO_REPEAT: Self = Self { x: false, y: false };

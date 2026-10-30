@@ -1,4 +1,6 @@
-use crate::style::{BackgroundImage, BackgroundRepeat, LinearGradient, TextStyle};
+use crate::style::{
+    BackgroundImage, BackgroundPosition, BackgroundRepeat, LinearGradient, TextStyle,
+};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use cssparser::{Parser, ParserInput, Token};
 use ctml_css::parse_color_with_opacity_and_profiles;
@@ -7,16 +9,19 @@ pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("none") {
         style.background_images.clear();
         style.background_repeats.clear();
+        style.background_positions.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some(images) = parse_background_images(style, value) {
         style.background_images = images;
         style.background_repeats.clear();
+        style.background_positions.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some((channels, alpha)) = parse_background_color(style, value) {
         style.background_images.clear();
         style.background_repeats.clear();
+        style.background_positions.clear();
         set_background_color(style, channels, alpha);
     } else {
         return;
@@ -37,6 +42,79 @@ pub(super) fn apply_background_repeat(style: &mut TextStyle, value: &str) {
         .collect::<Option<Vec<_>>>();
     if let Some(repeats) = repeats.filter(|repeats| !repeats.is_empty()) {
         style.background_repeats = repeats;
+    }
+}
+
+pub(super) fn apply_background_position(style: &mut TextStyle, value: &str) {
+    let positions = split_top_level_commas(value)
+        .into_iter()
+        .map(|layer| parse_background_position_layer(style, layer))
+        .collect::<Option<Vec<_>>>();
+    if let Some(positions) = positions.filter(|positions| !positions.is_empty()) {
+        style.background_positions = positions;
+    }
+}
+
+fn parse_background_position_layer(style: &TextStyle, value: &str) -> Option<BackgroundPosition> {
+    let mut components = value.split_ascii_whitespace().collect::<Vec<_>>();
+    if components.is_empty() || components.len() > 2 {
+        return None;
+    }
+    if components.len() == 1 {
+        let value = components[0];
+        return if matches!(value.to_ascii_lowercase().as_str(), "top" | "bottom") {
+            Some(BackgroundPosition {
+                x_percent: 0.5,
+                y_percent: parse_position_axis(style, value, false)?.0,
+                y_offset: parse_position_axis(style, value, false)?.1,
+                ..BackgroundPosition::default()
+            })
+        } else {
+            Some(BackgroundPosition {
+                x_percent: parse_position_axis(style, value, true)?.0,
+                x_offset: parse_position_axis(style, value, true)?.1,
+                y_percent: 0.5,
+                ..BackgroundPosition::default()
+            })
+        };
+    }
+    let first = components[0].to_ascii_lowercase();
+    let second = components[1].to_ascii_lowercase();
+    if matches!(first.as_str(), "top" | "bottom")
+        || (first == "center" && matches!(second.as_str(), "left" | "right"))
+    {
+        components.swap(0, 1);
+    }
+    let (x_percent, x_offset) = parse_position_axis(style, components[0], true)?;
+    let (y_percent, y_offset) = parse_position_axis(style, components[1], false)?;
+    Some(BackgroundPosition {
+        x_percent,
+        x_offset,
+        y_percent,
+        y_offset,
+    })
+}
+
+fn parse_position_axis(style: &TextStyle, value: &str, horizontal: bool) -> Option<(f32, f32)> {
+    match value.to_ascii_lowercase().as_str() {
+        "left" if horizontal => Some((0.0, 0.0)),
+        "right" if horizontal => Some((1.0, 0.0)),
+        "top" if !horizontal => Some((0.0, 0.0)),
+        "bottom" if !horizontal => Some((1.0, 0.0)),
+        "center" => Some((0.5, 0.0)),
+        _ if ctml_css::parse_css_percentage(value).is_some() => {
+            Some((ctml_css::parse_css_percentage(value)? / 100.0, 0.0))
+        }
+        _ => Some((
+            0.0,
+            ctml_css::parse_signed_font_relative_length_with_viewport(
+                value,
+                style.font_size,
+                style.line_height,
+                style.font_relative_units,
+                style.viewport_size,
+            )?,
+        )),
     }
 }
 
