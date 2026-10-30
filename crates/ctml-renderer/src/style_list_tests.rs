@@ -199,6 +199,36 @@ fn list_style_type_formats_japanese_longhand_counters() {
 }
 
 #[test]
+fn list_style_type_formats_chinese_longhand_counters() {
+    use super::list_marker::{format_counter_value, format_marker};
+
+    for (style, value, expected) in [
+        ("simp-chinese-informal", 10, "十"),
+        ("simp-chinese-informal", 11, "十一"),
+        ("simp-chinese-informal", 101, "一百零一"),
+        ("simp-chinese-formal", 6001, "陆仟零壹"),
+        ("trad-chinese-informal", 0, "零"),
+        ("trad-chinese-informal", 6001, "六千零一"),
+        ("trad-chinese-formal", 11, "壹拾壹"),
+        ("trad-chinese-formal", -12, "負壹拾貳"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style} {value}"
+        );
+    }
+    assert_eq!(
+        format_marker(Some("simp-chinese-informal"), true, 101).as_deref(),
+        Some("一百零一、 ")
+    );
+    assert_eq!(
+        format_counter_value("trad-chinese-formal", 10_000).as_deref(),
+        Some("一〇〇〇〇")
+    );
+}
+
+#[test]
 fn list_style_type_formats_latin_and_kana_alphabets() {
     use super::list_marker::{format_counter_value, format_marker};
 
@@ -300,6 +330,10 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "ethiopic-numeric",
         "japanese-informal",
         "japanese-formal",
+        "simp-chinese-informal",
+        "simp-chinese-formal",
+        "trad-chinese-informal",
+        "trad-chinese-formal",
         "lower-latin",
         "upper-latin",
         "hiragana",

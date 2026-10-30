@@ -1,3 +1,5 @@
+mod chinese;
+mod ethiopic;
 mod japanese;
 
 pub(super) fn format_marker(
@@ -33,10 +35,27 @@ pub(super) fn format_marker(
         ),
         "lower-roman" => format!("{}. ", roman_marker(index).to_ascii_lowercase()),
         "upper-roman" => format!("{}. ", roman_marker(index)),
-        "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "georgian"
-        | "cjk-decimal" | "cjk-ideographic" | "cjk-earthly-branch" | "cjk-heavenly-stem"
-        | "lower-latin" | "upper-latin" | "hiragana" | "hiragana-iroha" | "katakana"
-        | "katakana-iroha" | "japanese-informal" | "japanese-formal" => {
+        "armenian"
+        | "upper-armenian"
+        | "lower-armenian"
+        | "hebrew"
+        | "georgian"
+        | "cjk-decimal"
+        | "cjk-ideographic"
+        | "cjk-earthly-branch"
+        | "cjk-heavenly-stem"
+        | "lower-latin"
+        | "upper-latin"
+        | "hiragana"
+        | "hiragana-iroha"
+        | "katakana"
+        | "katakana-iroha"
+        | "japanese-informal"
+        | "japanese-formal"
+        | "simp-chinese-informal"
+        | "simp-chinese-formal"
+        | "trad-chinese-informal"
+        | "trad-chinese-formal" => {
             let marker = format_counter_value(list_style_type, index as i32)
                 .unwrap_or_else(|| index.to_string());
             let suffix = if matches!(
@@ -51,6 +70,10 @@ pub(super) fn format_marker(
                     | "katakana-iroha"
                     | "japanese-informal"
                     | "japanese-formal"
+                    | "simp-chinese-informal"
+                    | "simp-chinese-formal"
+                    | "trad-chinese-informal"
+                    | "trad-chinese-formal"
             ) {
                 "、 "
             } else {
@@ -152,50 +175,14 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "telugu" => Some(localized_decimal(value, '౦')),
         "thai" => Some(localized_decimal(value, '๐')),
         "tibetan" => Some(localized_decimal(value, '༠')),
-        "ethiopic-numeric" => Some(ethiopic_numeric(value)),
+        "ethiopic-numeric" => Some(ethiopic::format(value)),
         "japanese-informal" | "japanese-formal" => Some(japanese::format(style, value)),
+        "simp-chinese-informal"
+        | "simp-chinese-formal"
+        | "trad-chinese-informal"
+        | "trad-chinese-formal" => Some(chinese::format(style, value)),
         _ => Some(value.to_string()),
     }
-}
-
-fn ethiopic_numeric(value: i32) -> String {
-    if value <= 0 {
-        return cjk_decimal(value);
-    }
-    if value == 1 {
-        return "፩".to_owned();
-    }
-
-    let mut groups = Vec::new();
-    let mut remaining = value as u32;
-    while remaining > 0 {
-        groups.push(remaining % 100);
-        remaining /= 100;
-    }
-
-    let digits = ['፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱'];
-    let tens = ['፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺'];
-    let mut result = String::new();
-    for (index, &group) in groups.iter().enumerate().rev() {
-        let most_significant = index == groups.len() - 1;
-        let suppress_digits = group == 0 || (group == 1 && (most_significant || index % 2 == 1));
-        if !suppress_digits {
-            let tens_digit = (group / 10) as usize;
-            let units_digit = (group % 10) as usize;
-            if tens_digit > 0 {
-                result.push(tens[tens_digit - 1]);
-            }
-            if units_digit > 0 {
-                result.push(digits[units_digit - 1]);
-            }
-        }
-        if index % 2 == 1 && group != 0 {
-            result.push('፻');
-        } else if index % 2 == 0 && index != 0 {
-            result.push('፼');
-        }
-    }
-    result
 }
 
 const ARMENIAN_SYMBOLS: &[(i32, &str)] = &[
