@@ -129,7 +129,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Preserve default and `type(<string>)` attribute values as CSS string tokens during declaration substitution.
 - [x] Parse CSS `url()` token and string forms and load local resources relative to a stylesheet; canonicalize paths within a configured root, bound reads, and reject external schemes and root escapes.
 - [x] Connect local `url()` resources to `@font-face` font loading.
-- [ ] Locale-independent numeric parsing and well-defined rounding behavior.
+- [x] Locale-independent numeric parsing and well-defined rounding behavior.
 - [x] Parse CSS numeric tokens with locale-independent decimal syntax, accepting `.` and rejecting comma or non-ASCII decimal forms.
 - [x] Define `round()` ties toward positive infinity and test the `up`, `down`, and `to-zero` strategies for positive and negative values.
 
