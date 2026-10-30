@@ -777,6 +777,29 @@ fn resolves_custom_css_quote_pairs() {
 }
 
 #[test]
+fn resolves_counter_reset_increment_and_set_descriptors() {
+    let style = style_for_declarations(&[
+        ("counter-reset", "chapter 2 section"),
+        ("counter-increment", "chapter -1 section"),
+        ("counter-set", "section 4"),
+    ]);
+    assert_eq!(
+        style.counter_reset,
+        [("chapter".to_owned(), 2), ("section".to_owned(), 0)]
+    );
+    assert_eq!(
+        style.counter_increment,
+        [("chapter".to_owned(), -1), ("section".to_owned(), 1)]
+    );
+    assert_eq!(style.counter_set, [("section".to_owned(), 4)]);
+    assert!(
+        style_for_declarations(&[("counter-reset", "none")])
+            .counter_reset
+            .is_empty()
+    );
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

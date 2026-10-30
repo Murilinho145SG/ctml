@@ -147,6 +147,64 @@ fn generated_open_and_close_quotes_follow_nested_depth() {
 }
 
 #[test]
+fn generated_counters_follow_nested_scopes_and_sibling_increments() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("root".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            counter_item("A", None),
+            counter_item(
+                "B",
+                Some(UiNode::Element {
+                    tag: "span".to_owned(),
+                    class: Some("nested".to_owned()),
+                    id: None,
+                    attributes: Vec::new(),
+                    children: Vec::new(),
+                }),
+            ),
+            counter_item("C", None),
+        ],
+    }];
+    let stylesheet = [
+        (".root", "counter-reset", "chapter"),
+        (".item", "counter-increment", "chapter"),
+        (".item::before", "content", "counter(chapter) \"/\""),
+        (".nested", "counter-reset", "chapter 5"),
+        (".nested::before", "content", "counters(chapter, \".\")"),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "1/A2/B2.53/C"
+    );
+}
+
+fn counter_item(text: &str, nested: Option<UiNode>) -> UiNode {
+    let mut children = vec![UiNode::Text(text.to_owned())];
+    children.extend(nested);
+    UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("item".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children,
+    }
+}
+
+#[test]
 fn preserves_all_small_caps_for_font_feature_shaping() {
     let style = TextStyle {
         font_variant_caps: FontVariantCaps::AllSmallCaps,

@@ -5,6 +5,7 @@ use crate::{
 use ctml_css::{
     SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement, ViewportSize,
 };
+use std::collections::HashMap;
 
 mod collect;
 mod font_units;
@@ -96,6 +97,7 @@ pub(super) fn compile_runs_with_font_system(
     let mut last_was_space = true;
     let mut capitalize_next = true;
     let mut quote_depth = 0;
+    let mut counters = HashMap::new();
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -117,6 +119,7 @@ pub(super) fn compile_runs_with_font_system(
             &mut last_was_space,
             &mut capitalize_next,
             &mut quote_depth,
+            &mut counters,
         );
     }
     trim_runs(&mut runs);

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use cssparser::{Parser, ParserInput, Token};
@@ -135,6 +136,7 @@ pub(super) fn resolve_generated_content(
     selector_tree: &[SelectorTreeElement],
     stylesheet: &[StyleRule],
     quote_depth: &mut usize,
+    counters: &HashMap<String, Vec<i32>>,
 ) -> Option<GeneratedContent> {
     let mut pseudo_rules = Vec::new();
     let mut winning_content = None;
@@ -193,8 +195,12 @@ pub(super) fn resolve_generated_content(
     }
     let (_, declaration) = winning_content?;
     let (value, _) = declaration_value(&declaration.value);
+    let mut counter_inherited = inherited.clone();
+    counter_inherited.counter_reset.clear();
+    counter_inherited.counter_increment.clear();
+    counter_inherited.counter_set.clear();
     let mut style = css_style::resolve_style_with_selector_tree_context(
-        inherited,
+        &counter_inherited,
         current,
         ancestors,
         attributes,
@@ -208,7 +214,13 @@ pub(super) fn resolve_generated_content(
         &pseudo_rules,
     );
     let mut updated_quote_depth = *quote_depth;
-    let text = parse_generated_content(value, attributes, &style.quotes, &mut updated_quote_depth)?;
+    let text = parse_generated_content(
+        value,
+        attributes,
+        &style.quotes,
+        &mut updated_quote_depth,
+        counters,
+    )?;
     *quote_depth = updated_quote_depth;
     style.opacity *= inherited.opacity;
     Some(GeneratedContent { text, style })
@@ -273,6 +285,7 @@ fn parse_generated_content(
     attributes: &[(String, Option<String>)],
     quotes: &[(String, String)],
     quote_depth: &mut usize,
+    counters: &HashMap<String, Vec<i32>>,
 ) -> Option<String> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
@@ -319,11 +332,81 @@ fn parse_generated_content(
                     output.push_str(attribute_value);
                 }
             }
+            Token::Function(name) if name.eq_ignore_ascii_case("counter") => {
+                let (counter_name, style_name) =
+                    parser.parse_nested_block(parse_counter_arguments).ok()?;
+                if let Some(value) = counters.get(&counter_name).and_then(|values| values.last()) {
+                    output.push_str(&format_counter(*value, style_name.as_deref())?);
+                }
+            }
+            Token::Function(name) if name.eq_ignore_ascii_case("counters") => {
+                let (counter_name, separator, style_name) =
+                    parser.parse_nested_block(parse_counters_arguments).ok()?;
+                if let Some(values) = counters.get(&counter_name) {
+                    let formatted = values
+                        .iter()
+                        .map(|value| format_counter(*value, style_name.as_deref()))
+                        .collect::<Option<Vec<_>>>()?;
+                    output.push_str(&formatted.join(&separator));
+                }
+            }
             Token::WhiteSpace(_) => {}
             _ => return None,
         }
     }
     Some(output)
+}
+
+fn parse_counter_arguments<'i, 't>(
+    parser: &mut Parser<'i, 't>,
+) -> Result<(String, Option<String>), cssparser::ParseError<'i, ()>> {
+    let name = parser.expect_ident_cloned()?;
+    parser.skip_whitespace();
+    let style = if parser.is_exhausted() {
+        None
+    } else {
+        parser.expect_comma()?;
+        let style = parser.expect_ident_cloned()?;
+        parser.skip_whitespace();
+        Some(style.to_ascii_lowercase())
+    };
+    if !parser.is_exhausted() {
+        return Err(parser.new_custom_error(()));
+    }
+    Ok((name.to_string(), style))
+}
+
+fn parse_counters_arguments<'i, 't>(
+    parser: &mut Parser<'i, 't>,
+) -> Result<(String, String, Option<String>), cssparser::ParseError<'i, ()>> {
+    let name = parser.expect_ident_cloned()?;
+    parser.expect_comma()?;
+    let separator = match parser.next()?.clone() {
+        Token::QuotedString(value) => value.to_string(),
+        _ => return Err(parser.new_custom_error(())),
+    };
+    parser.skip_whitespace();
+    let style = if parser.is_exhausted() {
+        None
+    } else {
+        parser.expect_comma()?;
+        let style = parser.expect_ident_cloned()?;
+        parser.skip_whitespace();
+        Some(style.to_ascii_lowercase())
+    };
+    if !parser.is_exhausted() {
+        return Err(parser.new_custom_error(()));
+    }
+    Ok((name.to_string(), separator, style))
+}
+
+fn format_counter(value: i32, style: Option<&str>) -> Option<String> {
+    match style.unwrap_or("decimal") {
+        "decimal" => Some(value.to_string()),
+        "decimal-leading-zero" if (0..10).contains(&value) => Some(format!("0{value}")),
+        "decimal-leading-zero" => Some(value.to_string()),
+        _ => None,
+    }
 }
 
 fn quote_at(quotes: &[(String, String)], depth: usize) -> Option<(&str, &str)> {

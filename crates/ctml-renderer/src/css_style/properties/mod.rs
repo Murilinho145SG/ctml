@@ -14,6 +14,7 @@ use super::font_variant::{
 };
 use background::{apply_background_color, apply_background_shorthand};
 pub(super) use color::apply_color_declaration;
+use counters::{CounterProperty, apply_counter_property};
 use cursor::parse_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
 #[cfg(test)]
@@ -41,6 +42,7 @@ use text_shadow::apply_text_shadow;
 
 mod background;
 mod color;
+mod counters;
 mod cursor;
 mod display;
 mod font;
@@ -364,6 +366,9 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-rendering" => style.text_rendering = TextRendering::Auto,
         "text-orientation" => style.text_orientation = TextOrientation::Mixed,
         "quotes" => style.quotes = quotes::default_quotes(),
+        "counter-reset" => style.counter_reset.clear(),
+        "counter-increment" => style.counter_increment.clear(),
+        "counter-set" => style.counter_set.clear(),
         "text-overflow" => style.text_overflow = TextOverflow::Clip,
         "line-clamp" => style.line_clamp = None,
         "text-indent" => {
@@ -672,6 +677,9 @@ fn apply_declaration(
             };
         }
         "quotes" => apply_quotes(style, value),
+        "counter-reset" => apply_counter_property(style, CounterProperty::Reset, value),
+        "counter-increment" => apply_counter_property(style, CounterProperty::Increment, value),
+        "counter-set" => apply_counter_property(style, CounterProperty::Set, value),
         "text-overflow" => {
             style.text_overflow = match value.to_ascii_lowercase().as_str() {
                 "clip" => TextOverflow::Clip,

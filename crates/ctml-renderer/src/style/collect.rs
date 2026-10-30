@@ -3,6 +3,7 @@ use crate::{
     css_style::{self, ElementIdentity},
 };
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
+use std::collections::HashMap;
 
 use super::{
     LayoutHeight, LayoutSize, TextRun, TextStyle, append_text, list_marker::format_marker, pseudo,
@@ -56,6 +57,7 @@ pub(super) fn collect_runs(
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
     quote_depth: &mut usize,
+    counters: &mut HashMap<String, Vec<i32>>,
 ) {
     let siblings = selector_sibling_contexts(
         nodes,
@@ -96,6 +98,9 @@ pub(super) fn collect_runs(
                     .find(|(name, _)| name.eq_ignore_ascii_case("style"))
                     .and_then(|(_, value)| value.as_deref());
                 let mut inherited_style = inherited.clone();
+                inherited_style.counter_reset.clear();
+                inherited_style.counter_increment.clear();
+                inherited_style.counter_set.clear();
                 if let Some(font_metrics) = font_metrics {
                     inherited_style.font_relative_units = font_metrics.resolve(inherited);
                 }
@@ -136,6 +141,23 @@ pub(super) fn collect_runs(
                     element_index += 1;
                     continue;
                 }
+                let mut counter_scope = Vec::new();
+                for (name, value) in &style.counter_reset {
+                    counters.entry(name.clone()).or_default().push(*value);
+                    counter_scope.push(name.clone());
+                }
+                for (name, value) in &style.counter_set {
+                    set_counter(counters, &mut counter_scope, name, *value);
+                }
+                for (name, value) in &style.counter_increment {
+                    let values = counters.entry(name.clone()).or_insert_with(|| {
+                        counter_scope.push(name.clone());
+                        vec![0]
+                    });
+                    if let Some(current) = values.last_mut() {
+                        *current = current.saturating_add(*value);
+                    }
+                }
                 let list_item = style.display_list_item.unwrap_or(tag == "li");
                 if list_item {
                     list_item_index += 1;
@@ -156,6 +178,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                     quote_depth,
+                    counters,
                 );
                 let mut quote_depth_probe = *quote_depth;
                 let has_after_content = pseudo::resolve_generated_content(
@@ -172,6 +195,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                     &mut quote_depth_probe,
+                    counters,
                 )
                 .is_some();
                 let block = style.display_block.unwrap_or_else(|| is_block(tag));
@@ -295,6 +319,7 @@ pub(super) fn collect_runs(
                     last_was_space,
                     capitalize_next,
                     quote_depth,
+                    counters,
                 );
                 let after_content = pseudo::resolve_generated_content(
                     "after",
@@ -310,6 +335,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                     quote_depth,
+                    counters,
                 );
                 if let Some(content) = &after_content {
                     append_text(
@@ -326,6 +352,14 @@ pub(super) fn collect_runs(
                 path_attributes.pop();
                 path_siblings.pop();
                 path_positions.pop();
+                for name in counter_scope.into_iter().rev() {
+                    if let Some(values) = counters.get_mut(&name) {
+                        values.pop();
+                        if values.is_empty() {
+                            counters.remove(&name);
+                        }
+                    }
+                }
                 element_index += 1;
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
@@ -333,5 +367,20 @@ pub(super) fn collect_runs(
                 }
             }
         }
+    }
+}
+
+fn set_counter(
+    counters: &mut HashMap<String, Vec<i32>>,
+    scope: &mut Vec<String>,
+    name: &str,
+    value: i32,
+) {
+    let values = counters.entry(name.to_owned()).or_insert_with(|| {
+        scope.push(name.to_owned());
+        vec![value]
+    });
+    if let Some(current) = values.last_mut() {
+        *current = value;
     }
 }
