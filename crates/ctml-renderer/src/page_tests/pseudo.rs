@@ -522,3 +522,37 @@ fn first_letter_border_paints_around_the_initial_glyph() {
         "a border side longhand should override the shorthand"
     );
 }
+
+#[test]
+fn first_letter_box_shadow_paints_outside_the_initial_glyph_box() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: [("box-shadow", "0 0 0 3px red"), ("color", "blue")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let mut shadowed_page = PageRasterizer::new(&nodes, &stylesheet);
+    let mut plain_page = PageRasterizer::new(&nodes, &[]);
+    let shadowed_pixels = shadowed_page.snapshot_pixels(140, 70);
+    let plain_pixels = plain_page.snapshot_pixels(140, 70);
+
+    assert_ne!(shadowed_pixels, plain_pixels);
+    assert!(
+        shadowed_pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0]),
+        "the initial glyph should receive its box shadow"
+    );
+}

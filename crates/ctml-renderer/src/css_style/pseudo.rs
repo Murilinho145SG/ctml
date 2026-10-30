@@ -178,6 +178,7 @@ fn resolve_pseudo_style(
                             "border-block-style",
                             "border-block-start-style",
                             "border-block-end-style",
+                            "box-shadow",
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -299,6 +300,7 @@ fn resolve_pseudo_style(
                     "border-block-style",
                     "border-block-start-style",
                     "border-block-end-style",
+                    "box-shadow",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))

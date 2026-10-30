@@ -220,6 +220,10 @@ pub(super) fn first_formatted_letters(
             && span.first_letter_background.is_none()
             && span.first_letter_decoration.is_none()
             && span.first_letter_opacity.is_none()
+            && !span
+                .first_letter_font_style
+                .as_ref()
+                .is_some_and(|style| !style.box_shadows.is_empty())
         {
             continue;
         }

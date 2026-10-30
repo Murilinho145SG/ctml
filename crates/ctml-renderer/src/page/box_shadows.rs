@@ -28,6 +28,110 @@ pub(super) fn draw_inset(
     draw(runs, pixels, width, height, geometries, clips, true);
 }
 
+pub(super) fn draw_first_letter(
+    runs: &[TextRun],
+    buffer: &cosmic_text::Buffer,
+    spans: &[super::CursorSpan],
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    page_writing_mode: crate::style::WritingMode,
+    clips: &HashMap<usize, overflow_clip::ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
+    inset: bool,
+) {
+    let first_letters = super::highlights::first_formatted_letters(spans);
+    let vertical_origins =
+        super::local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
+    let mut drawn = HashSet::new();
+    for span in spans {
+        let Some(block) = span.first_letter_block else {
+            continue;
+        };
+        if !drawn.insert(block) || span.visibility_hidden {
+            continue;
+        }
+        let Some((line_index, start, end)) = first_letters.get(&block).copied() else {
+            continue;
+        };
+        let Some(style) = span.first_letter_font_style.as_ref() else {
+            continue;
+        };
+        let Some(line) = buffer.layout_runs().find(|line| line.line_i == line_index) else {
+            continue;
+        };
+        let mut left = f32::INFINITY;
+        let mut right = f32::NEG_INFINITY;
+        for glyph in line.glyphs {
+            if glyph.start < end && glyph.end > start {
+                left = left.min(glyph.x);
+                right = right.max(glyph.x + glyph.w);
+            }
+        }
+        if !left.is_finite() || !right.is_finite() || right <= left {
+            continue;
+        }
+        let mut rect = overflow_clip::ClipRect {
+            left: left + PAGE_PADDING,
+            top: line.line_top + PAGE_PADDING,
+            right: right + PAGE_PADDING,
+            bottom: line.line_top + line.line_height + PAGE_PADDING,
+        };
+        if let Some(transform) = super::local_writing::LocalVerticalTransform::from_run(
+            runs,
+            buffer,
+            line_index,
+            page_writing_mode,
+            width,
+            height,
+            &vertical_origins,
+        ) {
+            let (left, top, rect_width, rect_height) = transform.map_rect(
+                rect.left,
+                rect.top,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+            );
+            rect = overflow_clip::ClipRect {
+                left,
+                top,
+                right: left + rect_width,
+                bottom: top + rect_height,
+            };
+        }
+        let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+            &span.element_path,
+            nested_scroll,
+            page_writing_mode,
+        );
+        rect.left -= scroll_x;
+        rect.right -= scroll_x;
+        rect.top -= scroll_y;
+        rect.bottom -= scroll_y;
+        let clip = overflow_clip::clip_for_path(&span.element_path, clips);
+        let opacity = span.opacity * span.first_letter_opacity.unwrap_or(1.0);
+        for shadow in style
+            .box_shadows
+            .iter()
+            .filter(|shadow| shadow.inset == inset)
+            .rev()
+        {
+            let mut color = shadow.color.unwrap_or(style.color);
+            color[3] = (f32::from(color[3]) * opacity).round().clamp(0.0, 255.0) as u8;
+            paint_shadow(
+                pixels,
+                width,
+                height,
+                rect,
+                [[0.0; 2]; 4],
+                *shadow,
+                color,
+                clip,
+            );
+        }
+    }
+}
+
 fn draw(
     runs: &[TextRun],
     pixels: &mut [u8],

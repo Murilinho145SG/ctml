@@ -26,6 +26,18 @@ impl PageRasterizer {
             &self.overflow_geometry,
             &overflow_clips,
         );
+        box_shadows::draw_first_letter(
+            &self.runs,
+            &self.buffer,
+            &self.cursor_spans,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            &self.nested_scroll,
+            false,
+        );
         backgrounds::draw(
             &self.runs,
             &self.buffer,
@@ -65,6 +77,18 @@ impl PageRasterizer {
         );
         self.draw_first_line_backgrounds(&mut pixels, width, height, &overflow_clips);
         self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
+        box_shadows::draw_first_letter(
+            &self.runs,
+            &self.buffer,
+            &self.cursor_spans,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            &self.nested_scroll,
+            true,
+        );
         self.draw_selection(&mut pixels, width, height, &overflow_clips);
         let selection = self.selection.map(|(first, second)| {
             if first <= second {
