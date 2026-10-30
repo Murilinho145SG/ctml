@@ -33,6 +33,45 @@ pub(super) fn format_marker(
     })
 }
 
+pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
+    let positive = usize::try_from(value).ok().filter(|value| *value > 0);
+    match style {
+        "decimal" => Some(value.to_string()),
+        "decimal-leading-zero" if (0..10).contains(&value) => Some(format!("0{value}")),
+        "decimal-leading-zero" => Some(value.to_string()),
+        "lower-alpha" => {
+            Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, false)))
+        }
+        "upper-alpha" => {
+            Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, true)))
+        }
+        "lower-greek" => Some(positive.map_or_else(
+            || value.to_string(),
+            |n| {
+                alphabetic_marker_from(
+                    n,
+                    &[
+                        'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο',
+                        'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω',
+                    ],
+                )
+            },
+        )),
+        "lower-roman" | "upper-roman" => Some(positive.map_or_else(
+            || value.to_string(),
+            |n| {
+                let roman = roman_marker(n);
+                if style == "lower-roman" {
+                    roman.to_ascii_lowercase()
+                } else {
+                    roman
+                }
+            },
+        )),
+        _ => None,
+    }
+}
+
 fn alphabetic_marker(index: usize, uppercase: bool) -> String {
     let alphabet = if uppercase {
         ('A'..='Z').collect::<Vec<_>>()

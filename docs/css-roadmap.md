@@ -220,8 +220,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Custom string markers through `list-style-type`.
 - [ ] Remaining predefined `list-style-type` systems, including Hebrew, Armenian, and CJK styles.
 - [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
-- [x] `counter-reset`, `counter-increment`, and `counter-set` with scoped values, plus decimal `counter()` and `counters()` generated content.
-- [ ] Remaining generated-content values and counter styles beyond decimal and decimal-leading-zero.
+- [x] `counter-reset`, `counter-increment`, and `counter-set` with scoped values, plus decimal, decimal-leading-zero, alphabetic, Greek, and Roman `counter()`/`counters()` formatting.
+- [ ] Remaining generated-content values and counter styles beyond the supported built-in systems.
 - [ ] Ruby annotations and other specialized typography where relevant.
 
 ## Backgrounds, borders, and visual effects

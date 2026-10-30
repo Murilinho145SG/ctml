@@ -192,6 +192,40 @@ fn generated_counters_follow_nested_scopes_and_sibling_increments() {
     );
 }
 
+#[test]
+fn generated_counters_support_alpha_greek_and_roman_styles() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("numbered".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let stylesheet = [
+        (".numbered", "counter-set", "chapter 27"),
+        (
+            ".numbered::before",
+            "content",
+            "counter(chapter, lower-alpha) \"/\" counter(chapter, upper-roman) \"/\" counter(chapter, lower-greek)",
+        ),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "aa/XXVII/αγ"
+    );
+}
+
 fn counter_item(text: &str, nested: Option<UiNode>) -> UiNode {
     let mut children = vec![UiNode::Text(text.to_owned())];
     children.extend(nested);

@@ -336,7 +336,10 @@ fn parse_generated_content(
                 let (counter_name, style_name) =
                     parser.parse_nested_block(parse_counter_arguments).ok()?;
                 if let Some(value) = counters.get(&counter_name).and_then(|values| values.last()) {
-                    output.push_str(&format_counter(*value, style_name.as_deref())?);
+                    output.push_str(&super::list_marker::format_counter_value(
+                        style_name.as_deref().unwrap_or("decimal"),
+                        *value,
+                    )?);
                 }
             }
             Token::Function(name) if name.eq_ignore_ascii_case("counters") => {
@@ -345,7 +348,12 @@ fn parse_generated_content(
                 if let Some(values) = counters.get(&counter_name) {
                     let formatted = values
                         .iter()
-                        .map(|value| format_counter(*value, style_name.as_deref()))
+                        .map(|value| {
+                            super::list_marker::format_counter_value(
+                                style_name.as_deref().unwrap_or("decimal"),
+                                *value,
+                            )
+                        })
                         .collect::<Option<Vec<_>>>()?;
                     output.push_str(&formatted.join(&separator));
                 }
@@ -398,15 +406,6 @@ fn parse_counters_arguments<'i, 't>(
         return Err(parser.new_custom_error(()));
     }
     Ok((name.to_string(), separator, style))
-}
-
-fn format_counter(value: i32, style: Option<&str>) -> Option<String> {
-    match style.unwrap_or("decimal") {
-        "decimal" => Some(value.to_string()),
-        "decimal-leading-zero" if (0..10).contains(&value) => Some(format!("0{value}")),
-        "decimal-leading-zero" => Some(value.to_string()),
-        _ => None,
-    }
 }
 
 fn quote_at(quotes: &[(String, String)], depth: usize) -> Option<(&str, &str)> {
