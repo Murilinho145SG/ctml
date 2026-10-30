@@ -134,6 +134,25 @@ fn border_image_outset_extends_paint_bounds_without_changing_slice_content() {
 }
 
 #[test]
+fn border_image_shorthand_expands_values_and_respects_longhand_source_order() {
+    let (rect, pixels) = render_shorthand(false);
+    assert_eq!(
+        sample_at(&pixels, rect.left + 6.0, rect.top + 6.0),
+        [255, 0, 0]
+    );
+    assert_eq!(
+        sample_at(&pixels, rect.left + 20.0, rect.top + 16.0),
+        [0, 255, 255]
+    );
+
+    let (rect, pixels) = render_shorthand(true);
+    assert_eq!(
+        sample_at(&pixels, rect.left + 20.0, rect.top + 16.0),
+        [255, 255, 255]
+    );
+}
+
+#[test]
 fn border_image_repeat_tiles_the_middle_source_strip() {
     let (rect, pixels) = render_repeated_border("repeat stretch", "1");
     let sample = |x: f32| sample_at(&pixels, rect.left + x, rect.top + 1.0);
@@ -227,6 +246,47 @@ fn render_with_width(
 
 fn render_with_outset(outset: &str) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
     render_with_border_geometry("1", None, Some(outset))
+}
+
+fn render_shorthand(slice_first: bool) -> (super::super::overflow_clip::ClipRect, Vec<u8>) {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("image-border".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let source = border_image_url();
+    let shorthand = format!("{} 1 fill / 2", source);
+    let mut declarations = vec![
+        ("width", "40px"),
+        ("height", "32px"),
+        ("border-width", "4px"),
+        ("background-color", "cyan"),
+    ];
+    if slice_first {
+        declarations.push(("border-image-slice", "1"));
+    }
+    declarations.push(("border-image", shorthand.as_str()));
+    if !slice_first {
+        declarations.push(("border-image-slice", "1"));
+    }
+    let stylesheet = [StyleRule {
+        selectors: vec![".image-border".to_owned()],
+        layer: None,
+        declarations: declarations
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(100, 70);
+    let rect = page.overflow_geometry[&1].border_box;
+    let pixels = page.snapshot_pixels(100, 70);
+    (rect, pixels)
 }
 
 fn render_with_border_geometry(

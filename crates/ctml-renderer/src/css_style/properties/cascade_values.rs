@@ -55,6 +55,16 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .border_image_source
                 .clone_from(&inherited.border_image_source);
         }
+        "border-image" => {
+            style
+                .border_image_source
+                .clone_from(&inherited.border_image_source);
+            style.border_image_slice = inherited.border_image_slice;
+            style.border_image_fill = inherited.border_image_fill;
+            style.border_image_repeat = inherited.border_image_repeat;
+            style.border_image_width = inherited.border_image_width;
+            style.border_image_outset = inherited.border_image_outset;
+        }
         "border-image-slice" => {
             style.border_image_slice = inherited.border_image_slice;
             style.border_image_fill = inherited.border_image_fill;
@@ -322,6 +332,14 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "background-image" => style.background_images.clear(),
         "border-image-source" => style.border_image_source = None,
+        "border-image" => {
+            style.border_image_source = None;
+            style.border_image_slice = [crate::style::BorderImageSlice::default(); 4];
+            style.border_image_fill = false;
+            style.border_image_repeat = [crate::style::BorderImageRepeat::Stretch; 2];
+            style.border_image_width = [None; 4];
+            style.border_image_outset = [None; 4];
+        }
         "border-image-slice" => {
             style.border_image_slice = [crate::style::BorderImageSlice::default(); 4];
             style.border_image_fill = false;

@@ -325,6 +325,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `border-image-repeat` accepts one or two `stretch`, `repeat`, `round`, or `space` modes for edge and filled center tiles.
   - [x] `border-image-width` accepts one-to-four `auto`, number multipliers, lengths, or percentages.
   - [x] `border-image-outset` expands painted image bounds with one-to-four number multipliers or lengths.
+  - [x] The `border-image` shorthand expands the implemented source, slice, width, outset, and repeat longhands with normal source-order conflicts.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
 - [ ] Transform properties, transform origin, and transform box.

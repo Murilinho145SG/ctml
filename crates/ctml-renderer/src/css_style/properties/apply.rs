@@ -86,6 +86,7 @@ pub(super) fn apply_declaration(
         "box-sizing" => apply_box_sizing(style, value),
         "border-radius" => apply_border_radius(style, value),
         "border-image-source" => apply_border_image_source(style, value),
+        "border-image" => apply_border_image_shorthand(style, value),
         "border-image-slice" => apply_border_image_slice(style, value),
         "border-image-repeat" => apply_border_image_repeat(style, value),
         "border-image-width" => apply_border_image_width(style, value),
