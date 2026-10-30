@@ -10,7 +10,7 @@ use skia_safe::{
     surfaces,
 };
 
-use crate::page::{CursorSpan, PAGE_PADDING};
+use crate::page::{CursorSpan, PAGE_PADDING, local_writing};
 use crate::style::{TextRun, TextStyle, WritingMode};
 
 mod highlight;
@@ -57,33 +57,11 @@ pub(super) fn draw(
 
     let font_manager = FontMgr::new();
     let mut typefaces = HashMap::new();
-    let style_ranges = text_style_ranges(runs);
-    let line_starts = text_line_starts(runs);
+    let style_ranges = local_writing::text_style_ranges(runs);
+    let line_starts = local_writing::text_line_starts(runs);
     let shaper = skia_safe::shapers::hb::shape_dont_wrap_or_reorder(None::<FontMgr>);
     let canvas = surface.canvas();
-    let mut vertical_block_origins = HashMap::<usize, f32>::new();
-    if writing_mode == WritingMode::HorizontalTb {
-        for layout_run in buffer.layout_runs() {
-            let line_start = line_starts.get(layout_run.line_i).copied().unwrap_or(0);
-            for glyph in layout_run.glyphs {
-                let Some(index) = style_index_at(&style_ranges, line_start + glyph.start) else {
-                    continue;
-                };
-                let Some(style_run) = runs.get(index) else {
-                    continue;
-                };
-                if style_run.style.writing_mode == WritingMode::HorizontalTb {
-                    continue;
-                }
-                if let Some(block) = style_run.first_line_block {
-                    vertical_block_origins
-                        .entry(block)
-                        .and_modify(|origin| *origin = origin.min(layout_run.line_y))
-                        .or_insert(layout_run.line_y);
-                }
-            }
-        }
-    }
+    let vertical_block_origins = local_writing::vertical_block_origins(runs, buffer, writing_mode);
     for run in buffer.layout_runs() {
         let line_start = line_starts.get(run.line_i).copied().unwrap_or(0);
         let mut start = 0;
@@ -101,7 +79,8 @@ pub(super) fn draw(
             .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
             .or(first.color_opt)
             .unwrap_or(cosmic_text::Color::rgb(0, 0, 0));
-            let style_index = style_index_at(&style_ranges, line_start + first.start);
+            let style_index =
+                local_writing::style_index_at(&style_ranges, line_start + first.start);
             let first_line_style =
                 first_line_style_at(cursor_spans, &first_line_by_block, run.line_i, first.start);
             let orientation_style = first_line_style.or_else(|| {
@@ -145,7 +124,8 @@ pub(super) fn draw(
                 )
                 .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
                 .or(glyph.color_opt);
-                let glyph_style_index = style_index_at(&style_ranges, line_start + glyph.start);
+                let glyph_style_index =
+                    local_writing::style_index_at(&style_ranges, line_start + glyph.start);
                 let glyph_first_line_style = first_line_style_at(
                     cursor_spans,
                     &first_line_by_block,
@@ -480,37 +460,6 @@ fn shape_group(
         &mut handler,
     );
     handler.make_blob()
-}
-
-fn text_style_ranges(runs: &[TextRun]) -> Vec<std::ops::Range<usize>> {
-    let mut offset = 0;
-    runs.iter()
-        .map(|run| {
-            let range = offset..offset + run.text.len();
-            offset = range.end;
-            range
-        })
-        .collect()
-}
-
-fn style_index_at(ranges: &[std::ops::Range<usize>], offset: usize) -> Option<usize> {
-    ranges
-        .iter()
-        .position(|range| range.start <= offset && offset < range.end)
-}
-
-fn text_line_starts(runs: &[TextRun]) -> Vec<usize> {
-    let mut starts = vec![0];
-    let mut offset = 0;
-    for run in runs {
-        for (index, character) in run.text.char_indices() {
-            if character == '\n' {
-                starts.push(offset + index + character.len_utf8());
-            }
-        }
-        offset += run.text.len();
-    }
-    starts
 }
 
 fn configure_font(font: &mut Font) {

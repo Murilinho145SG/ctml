@@ -258,7 +258,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `unicode-bidi: isolate` adds Unicode isolate controls around the styled inline range without adding controls to rendered text.
 - [x] Page-root `writing-mode: vertical-rl|vertical-lr` creates vertical columns and maps pointer coordinates through the rendered orientation.
 - [x] Resolve logical `inline-size`/`block-size` and their min/max forms against page-root horizontal or vertical flow axes, including nested block sizes.
-- [ ] Apply a nested block's own vertical text flow and glyph orientation independently of the page root. Orthogonal text now wraps and composes glyphs in its local mode, while cross-axis block sizing continues to constrain page flow; backgrounds, decorations, and pointer coordinates still use page-root flow. Other logical properties remain unsupported.
+- [ ] Apply a nested block's own vertical text flow and glyph orientation independently of the page root. Orthogonal text now wraps and composes glyphs and fragment backgrounds in its local mode, while cross-axis block sizing continues to constrain page flow; selection highlights, decorations, and pointer coordinates still use page-root flow. Other logical properties remain unsupported.
 - [x] Apply `text-orientation: mixed|upright|sideways` per glyph in vertical writing, using Unicode Vertical_Orientation data.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.

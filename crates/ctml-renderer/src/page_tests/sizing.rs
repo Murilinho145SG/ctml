@@ -287,10 +287,16 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
         let stylesheet = [StyleRule {
             selectors: vec!["p".to_owned()],
             layer: None,
-            declarations: vec![StyleDeclaration {
-                property: "writing-mode".to_owned(),
-                value: writing_mode.to_owned(),
-            }],
+            declarations: vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: writing_mode.to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "#00ff00".to_owned(),
+                },
+            ],
         }];
         let mut page = PageRasterizer::new(&nodes, &stylesheet);
         let pixels = page.snapshot_pixels(160, 400);
@@ -298,7 +304,7 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
         for y in 0..400 {
             for x in 0..160 {
                 let index = ((y * 160 + x) * 4) as usize;
-                if pixels[index] < 220 || pixels[index + 1] < 220 || pixels[index + 2] < 220 {
+                if pixels[index] < 80 && pixels[index + 1] > 200 && pixels[index + 2] < 80 {
                     bounds.0 = bounds.0.min(x);
                     bounds.1 = bounds.1.min(y);
                     bounds.2 = bounds.2.max(x);

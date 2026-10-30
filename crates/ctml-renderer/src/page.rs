@@ -20,6 +20,7 @@ mod highlights;
 mod hyphenation;
 mod interactions;
 mod layout;
+mod local_writing;
 mod pixel;
 mod render;
 mod sizing;

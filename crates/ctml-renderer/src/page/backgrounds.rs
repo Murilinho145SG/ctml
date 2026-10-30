@@ -1,6 +1,9 @@
 use cosmic_text::Buffer;
 
-use crate::{page::pixel::fill_rect_alpha, style::TextRun};
+use crate::{
+    page::{local_writing, pixel::fill_rect_alpha},
+    style::{TextRun, WritingMode},
+};
 
 pub(super) fn draw(
     runs: &[TextRun],
@@ -9,15 +12,19 @@ pub(super) fn draw(
     width: u32,
     height: u32,
     skip_root_background: bool,
+    page_writing_mode: WritingMode,
 ) {
-    let style_ranges = text_style_ranges(runs);
-    let line_starts = text_line_starts(runs);
+    let style_ranges = local_writing::text_style_ranges(runs);
+    let line_starts = local_writing::text_line_starts(runs);
+    let vertical_block_origins =
+        local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
     for line in buffer.layout_runs() {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < line.glyphs.len() {
             let glyph = &line.glyphs[start];
-            let style_index = style_index_at(&style_ranges, line_start + glyph.start);
+            let style_index =
+                local_writing::style_index_at(&style_ranges, line_start + glyph.start);
             let Some(style) = style_index.and_then(|index| runs.get(index).map(|run| &run.style))
             else {
                 start += 1;
@@ -36,7 +43,8 @@ pub(super) fn draw(
             let mut end = start + 1;
             while end < line.glyphs.len() {
                 let next = &line.glyphs[end];
-                if style_index_at(&style_ranges, line_start + next.start) != style_index
+                if local_writing::style_index_at(&style_ranges, line_start + next.start)
+                    != style_index
                     || next.level != glyph.level
                 {
                     break;
@@ -58,50 +66,65 @@ pub(super) fn draw(
                     color[3] = (f32::from(color[3]) * style.opacity)
                         .round()
                         .clamp(0.0, 255.0) as u8;
-                    fill_rect_alpha(
-                        pixels,
-                        width,
-                        height,
-                        left,
-                        line.line_top,
-                        right - left,
-                        line.line_height,
-                        color,
-                    );
+                    let local_vertical_mode = (page_writing_mode == WritingMode::HorizontalTb)
+                        .then_some(style.writing_mode)
+                        .filter(|mode| *mode != WritingMode::HorizontalTb);
+                    if let Some(mode) = local_vertical_mode {
+                        let origin_y = style_index
+                            .and_then(|index| runs.get(index))
+                            .and_then(|run| run.first_line_block)
+                            .and_then(|block| vertical_block_origins.get(&block).copied())
+                            .unwrap_or(line.line_y);
+                        let target_x = match mode {
+                            WritingMode::VerticalRl => width as f32 - origin_y,
+                            WritingMode::VerticalLr => origin_y,
+                            WritingMode::HorizontalTb => unreachable!(),
+                        };
+                        let target_y = match mode {
+                            WritingMode::VerticalRl => crate::page::PAGE_PADDING,
+                            WritingMode::VerticalLr => height as f32 - crate::page::PAGE_PADDING,
+                            WritingMode::HorizontalTb => unreachable!(),
+                        };
+                        let (left, top, rect_width, rect_height) = match mode {
+                            WritingMode::VerticalRl => (
+                                target_x + origin_y - line.line_top - line.line_height,
+                                target_y + left - crate::page::PAGE_PADDING,
+                                line.line_height,
+                                right - left,
+                            ),
+                            WritingMode::VerticalLr => (
+                                target_x + line.line_top - origin_y,
+                                target_y - right + crate::page::PAGE_PADDING,
+                                line.line_height,
+                                right - left,
+                            ),
+                            WritingMode::HorizontalTb => unreachable!(),
+                        };
+                        fill_rect_alpha(
+                            pixels,
+                            width,
+                            height,
+                            left,
+                            top,
+                            rect_width,
+                            rect_height,
+                            color,
+                        );
+                    } else {
+                        fill_rect_alpha(
+                            pixels,
+                            width,
+                            height,
+                            left,
+                            line.line_top,
+                            right - left,
+                            line.line_height,
+                            color,
+                        );
+                    }
                 }
             }
             start = end;
         }
     }
-}
-
-fn text_style_ranges(runs: &[TextRun]) -> Vec<std::ops::Range<usize>> {
-    let mut offset = 0;
-    runs.iter()
-        .map(|run| {
-            let range = offset..offset + run.text.len();
-            offset = range.end;
-            range
-        })
-        .collect()
-}
-
-fn style_index_at(ranges: &[std::ops::Range<usize>], offset: usize) -> Option<usize> {
-    ranges
-        .iter()
-        .position(|range| range.start <= offset && offset < range.end)
-}
-
-fn text_line_starts(runs: &[TextRun]) -> Vec<usize> {
-    let mut starts = vec![0];
-    let mut offset = 0;
-    for run in runs {
-        for (index, character) in run.text.char_indices() {
-            if character == '\n' {
-                starts.push(offset + index + character.len_utf8());
-            }
-        }
-        offset += run.text.len();
-    }
-    starts
 }

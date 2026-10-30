@@ -21,6 +21,7 @@ impl PageRasterizer {
             width,
             height,
             self.root_style.background_color.is_some(),
+            writing_mode,
         );
         self.draw_first_line_backgrounds(&mut pixels, width, height);
         self.draw_first_letter_backgrounds(&mut pixels, width, height);
