@@ -67,6 +67,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.size_property_orders.clear();
     style.current_declaration_order = 0;
     style.border_box = false;
+    style.padding = std::array::from_fn(|_| None);
     style.empty_block_height = None;
     style.layout_end_sizes.clear();
     style.user_select = crate::style::UserSelect::Auto;

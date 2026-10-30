@@ -7,7 +7,7 @@ use crate::style::{LayoutSize, TextRun, WritingMode};
 
 use super::{
     PAGE_PADDING, local_writing,
-    sizing::{is_vertical, resolve_layout_width},
+    sizing::{inline_padding, is_vertical, resolve_layout_width},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -209,7 +209,8 @@ pub(super) fn block_geometries(
                 available_height,
                 page_writing_mode,
             );
-            let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode);
+            let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode)
+                + inline_padding(std::slice::from_ref(&extent.size), page_writing_mode).1;
             let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
             {
@@ -285,79 +286,10 @@ fn used_block_height(
     available_height: f32,
     page_writing_mode: WritingMode,
 ) -> f32 {
-    use super::{sizing::select_axis_size, sizing_height::resolve_content_block_height};
-
-    let same_axis_orientation = is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
-    let (logical_height, logical_min, logical_max, logical_name, min_name, max_name) =
-        if same_axis_orientation {
-            (
-                &size.block_size,
-                &size.min_block_size,
-                &size.max_block_size,
-                "block-size",
-                "min-block-size",
-                "max-block-size",
-            )
-        } else {
-            (
-                &size.inline_size,
-                &size.min_inline_size,
-                &size.max_inline_size,
-                "inline-size",
-                "min-inline-size",
-                "max-inline-size",
-            )
-        };
-    let (height, min_height, max_height, height_name, min_height_name, max_height_name) =
-        if !is_vertical(page_writing_mode) {
-            (
-                &size.height,
-                &size.min_height,
-                &size.max_height,
-                "height",
-                "min-height",
-                "max-height",
-            )
-        } else {
-            (
-                &size.width,
-                &size.min_width,
-                &size.max_width,
-                "width",
-                "min-width",
-                "max-width",
-            )
-        };
-    resolve_content_block_height(
-        select_axis_size(
-            logical_height.as_ref(),
-            height.as_ref(),
-            &size.size_property_orders,
-            logical_name,
-            height_name,
-        )
-        .flatten(),
-        select_axis_size(
-            logical_min.as_ref(),
-            min_height.as_ref(),
-            &size.size_property_orders,
-            min_name,
-            min_height_name,
-        )
-        .flatten(),
-        select_axis_size(
-            logical_max.as_ref(),
-            max_height.as_ref(),
-            &size.size_property_orders,
-            max_name,
-            max_height_name,
-        )
-        .flatten(),
+    super::sizing_height::resolve_block_box_extent(
+        size,
         content_height,
         available_height,
-        size.font_size,
-        size.line_height,
-        size.font_relative_units,
-        size.viewport_size,
+        page_writing_mode,
     )
 }

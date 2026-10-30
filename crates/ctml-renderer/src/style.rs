@@ -7,6 +7,7 @@ use ctml_css::{
 };
 use std::collections::HashMap;
 
+mod box_model;
 mod collect;
 mod font_units;
 mod list_marker;

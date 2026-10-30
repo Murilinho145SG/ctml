@@ -199,9 +199,10 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Overflow clipping for nested orthogonal blocks under a vertical page root, including descendant paints and pointer/selection hits.
 - [x] Nested content-bearing block `height`, `block-size`, `min-height`, `min-block-size`, `max-height`, and `max-block-size` percentages resolve against an explicitly sized containing block's used block extent.
 - [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
-- [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.
-- [ ] Apply `border-box` to padding and borders; intrinsic sizing keywords.
-- [ ] Margin, padding, and logical margin/padding properties.
+- [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and `border-box` includes supported physical padding in width and block-size calculations.
+- [x] Physical `padding` shorthand and `padding-top/right/bottom/left` accept non-negative font-relative lengths, inset text, and add to block flow.
+- [ ] Apply `border-box` to borders; intrinsic sizing keywords.
+- [ ] Percentage and logical padding; margin and logical margin/padding properties.
 - [ ] Borders, per-side styles/colors/widths, and logical border properties.
 - [ ] `border-radius` and corner shaping.
 - [ ] `outline` and `outline-offset`.

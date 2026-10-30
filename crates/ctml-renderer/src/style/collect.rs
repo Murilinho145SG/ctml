@@ -7,7 +7,8 @@ use std::collections::HashMap;
 
 use super::{
     LayoutHeight, LayoutSize, TextRun, TextStyle, UserSelect, append_text,
-    list_marker::format_marker, pseudo, push_line_break, selector_sibling_contexts,
+    box_model::resolve_padding, list_marker::format_marker, pseudo, push_line_break,
+    selector_sibling_contexts,
 };
 
 pub(super) fn is_block(tag: &str) -> bool {
@@ -231,6 +232,7 @@ pub(super) fn collect_runs(
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
                         || style.max_block_size.is_some()
+                        || resolve_padding(&style).iter().any(|padding| *padding > 0.0)
                         || style.overflow_x != super::Overflow::Visible
                         || style.overflow_y != super::Overflow::Visible);
                 if has_block_size {
@@ -248,6 +250,8 @@ pub(super) fn collect_runs(
                         block_size: style.block_size.clone(),
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
+                        border_box: style.border_box,
+                        padding: resolve_padding(&style),
                         overflow_x: style.overflow_x,
                         overflow_y: style.overflow_y,
                         size_property_orders: style.size_property_orders.clone(),
@@ -267,6 +271,30 @@ pub(super) fn collect_runs(
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
+                if block
+                    && style.writing_mode == super::WritingMode::HorizontalTb
+                    && resolve_padding(&style)[0] > 0.0
+                    && (!children.is_empty() || before_content.is_some() || has_after_content)
+                {
+                    let mut spacer_style = style.clone();
+                    spacer_style.font_size = 1.0;
+                    spacer_style.line_height = resolve_padding(&style)[0];
+                    spacer_style.line_height_normal = false;
+                    spacer_style.flow_spacer = true;
+                    let last_was_space_before = *last_was_space;
+                    let capitalize_next_before = *capitalize_next;
+                    append_text(
+                        "\u{200b}",
+                        &spacer_style,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                    push_line_break(output, &spacer_style, element_path, last_was_space);
+                    *last_was_space = last_was_space_before;
+                    *capitalize_next = capitalize_next_before;
+                }
                 if list_item {
                     if let Some(marker) = format_marker(
                         style.list_style_type.as_deref(),
@@ -309,7 +337,8 @@ pub(super) fn collect_runs(
                         || style.max_height.is_some()
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
-                        || style.max_block_size.is_some())
+                        || style.max_block_size.is_some()
+                        || resolve_padding(&style).iter().any(|padding| *padding > 0.0))
                 {
                     let mut spacer_style = style.clone();
                     spacer_style.empty_block_height = Some(LayoutHeight {
@@ -325,6 +354,8 @@ pub(super) fn collect_runs(
                         block_size: style.block_size.clone(),
                         min_block_size: style.min_block_size.clone(),
                         max_block_size: style.max_block_size.clone(),
+                        border_box: style.border_box,
+                        padding: resolve_padding(&style),
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

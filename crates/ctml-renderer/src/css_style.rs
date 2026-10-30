@@ -440,3 +440,6 @@ mod direction_tests;
 #[cfg(test)]
 #[path = "css_style_matrix_tests.rs"]
 mod matrix_tests;
+#[cfg(test)]
+#[path = "css_style_padding_tests.rs"]
+mod padding_tests;

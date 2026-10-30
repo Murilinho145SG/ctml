@@ -34,7 +34,7 @@ use size::{
     apply_min_height, apply_min_inline_size, apply_min_width, apply_width, inherit_inline_size,
     inherit_width,
 };
-use spacing::{apply_letter_spacing, apply_word_spacing};
+use spacing::{apply_letter_spacing, apply_padding, apply_padding_side, apply_word_spacing};
 use text_decoration::{
     apply_text_decoration_line, apply_text_decoration_property, copy_text_decoration_lines,
     inherit_text_decoration, reset_text_decoration,
@@ -144,6 +144,11 @@ fn is_size_property(property: &str) -> bool {
             | "block-size"
             | "min-block-size"
             | "max-block-size"
+            | "padding"
+            | "padding-top"
+            | "padding-right"
+            | "padding-bottom"
+            | "padding-left"
     )
 }
 
@@ -232,6 +237,11 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
         "box-sizing" => style.border_box = inherited.border_box,
+        "padding" => style.padding.clone_from(&inherited.padding),
+        "padding-top" => style.padding[0].clone_from(&inherited.padding[0]),
+        "padding-right" => style.padding[1].clone_from(&inherited.padding[1]),
+        "padding-bottom" => style.padding[2].clone_from(&inherited.padding[2]),
+        "padding-left" => style.padding[3].clone_from(&inherited.padding[3]),
         "min-width" => style.min_width.clone_from(&inherited.min_width),
         "min-inline-size" => style.min_inline_size.clone_from(&inherited.min_inline_size),
         "max-width" => style.max_width.clone_from(&inherited.max_width),
@@ -384,6 +394,11 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
         "box-sizing" => style.border_box = false,
+        "padding" => style.padding = std::array::from_fn(|_| None),
+        "padding-top" => style.padding[0] = None,
+        "padding-right" => style.padding[1] = None,
+        "padding-bottom" => style.padding[2] = None,
+        "padding-left" => style.padding[3] = None,
         "min-width" => style.min_width = None,
         "min-inline-size" => style.min_inline_size = None,
         "max-width" => style.max_width = None,
@@ -574,6 +589,11 @@ fn apply_declaration(
         "width" => apply_width(style, value),
         "inline-size" => apply_inline_size(style, value),
         "box-sizing" => apply_box_sizing(style, value),
+        "padding" => apply_padding(style, value),
+        "padding-top" => apply_padding_side(style, 0, value),
+        "padding-right" => apply_padding_side(style, 1, value),
+        "padding-bottom" => apply_padding_side(style, 2, value),
+        "padding-left" => apply_padding_side(style, 3, value),
         "min-width" => apply_min_width(style, value),
         "min-inline-size" => apply_min_inline_size(style, value),
         "max-width" => apply_max_width(style, value),

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun, WritingMode};
 
-use super::{sizing::block_size_constraints, sizing_height::resolve_content_block_height};
+use super::sizing_height::resolve_block_box_extent;
 
 pub(super) fn block_spacer_heights(
     runs: &[TextRun],
@@ -57,8 +57,6 @@ pub(super) fn block_spacer_heights(
     for node_id in block_ids {
         let size = &block_sizes[&node_id];
         let content_height = content_heights.get(&node_id).copied().unwrap_or_default();
-        let (block_size, min_block_size, max_block_size) =
-            block_size_constraints(size, page_writing_mode);
         let containing_height = containing_block_height(
             node_id,
             &parents,
@@ -67,17 +65,8 @@ pub(super) fn block_spacer_heights(
             available_height,
             page_writing_mode,
         );
-        let requested_height = resolve_content_block_height(
-            block_size,
-            min_block_size,
-            max_block_size,
-            content_height,
-            containing_height,
-            size.font_size,
-            size.line_height,
-            size.font_relative_units,
-            size.viewport_size,
-        );
+        let requested_height =
+            resolve_block_box_extent(size, content_height, containing_height, page_writing_mode);
         let flow_adjustment = requested_height - content_height;
         if flow_adjustment.abs() < f32::EPSILON {
             continue;
@@ -115,23 +104,19 @@ fn containing_block_height(
         let Some(size) = block_sizes.get(&ancestor_id) else {
             continue;
         };
-        let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
+        let (height, min_height, max_height) =
+            super::sizing::block_size_constraints(size, page_writing_mode);
         if height.is_none() && min_height.is_none() && max_height.is_none() {
             continue;
         }
-        containing_height = resolve_content_block_height(
-            height,
-            min_height,
-            max_height,
+        containing_height = resolve_block_box_extent(
+            size,
             content_heights
                 .get(&ancestor_id)
                 .copied()
                 .unwrap_or_default(),
             containing_height,
-            size.font_size,
-            size.line_height,
-            size.font_relative_units,
-            size.viewport_size,
+            page_writing_mode,
         );
     }
     containing_height

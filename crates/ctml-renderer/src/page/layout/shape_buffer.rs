@@ -4,7 +4,7 @@ use crate::{font_family::resolve_family_list, font_metrics::normal_line_height};
 
 use super::super::{
     PageRasterizer,
-    sizing::{line_layout_sizes, resolve_layout_width, select_axis_size},
+    sizing::{inline_padding, line_layout_sizes, resolve_layout_width, select_axis_size},
     sizing_height::resolve_layout_height_with_ancestors,
 };
 use super::{line_alignments, line_writing_modes, paragraph_directions};
@@ -113,6 +113,8 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
                     content_height,
                     &style.layout_sizes,
                     page_writing_mode,
+                    height_size.border_box,
+                    height_size.padding,
                     style.font_size,
                     style.line_height,
                     style.font_relative_units,
@@ -209,7 +211,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
             content_width
         };
         line.set_wrap(wrap);
-        let line_width = if has_custom_width {
+        let line_content_width = if has_custom_width {
             let has_page_block_size = sizes.iter().any(|size| {
                 size.block_size.is_some()
                     || size.min_block_size.is_some()
@@ -226,8 +228,10 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
         } else {
             inline_available
         };
+        let (padding_start, _) = inline_padding(&sizes, page_writing_mode);
+        let line_width = line_content_width + padding_start;
         line.set_indent(
-            indent + line_width * indent_percent / 100.0,
+            padding_start + indent + line_content_width * indent_percent / 100.0,
             hanging,
             each_line,
         );

@@ -4,29 +4,6 @@ use crate::style::{LayoutSize, WritingMode};
 
 use super::sizing::{block_size_constraints, resolve_width};
 
-pub(super) fn resolve_layout_height(
-    height: Option<&str>,
-    min_height: Option<&str>,
-    max_height: Option<&str>,
-    available_height: f32,
-    font_size: f32,
-    line_height: f32,
-    font_relative_units: FontRelativeUnits,
-    viewport_size: ViewportSize,
-) -> f32 {
-    resolve_used_height(
-        height,
-        min_height,
-        max_height,
-        0.0,
-        available_height,
-        font_size,
-        line_height,
-        font_relative_units,
-        viewport_size,
-    )
-}
-
 pub(super) fn resolve_content_block_height(
     height: Option<&str>,
     min_height: Option<&str>,
@@ -58,6 +35,8 @@ pub(super) fn resolve_layout_height_with_ancestors(
     available_height: f32,
     ancestors: &[LayoutSize],
     page_writing_mode: WritingMode,
+    border_box: bool,
+    padding: [f32; 4],
     font_size: f32,
     line_height: f32,
     font_relative_units: FontRelativeUnits,
@@ -69,28 +48,115 @@ pub(super) fn resolve_layout_height_with_ancestors(
         if height.is_none() && min_height.is_none() && max_height.is_none() {
             continue;
         }
-        containing_height = resolve_content_block_height(
-            height,
-            min_height,
-            max_height,
-            0.0,
-            containing_height,
-            ancestor.font_size,
-            ancestor.line_height,
-            ancestor.font_relative_units,
-            ancestor.viewport_size,
-        );
+        containing_height =
+            resolve_block_box_extent(ancestor, 0.0, containing_height, page_writing_mode);
     }
-    resolve_layout_height(
+    resolve_block_size(
         height,
         min_height,
         max_height,
+        0.0,
         containing_height,
+        block_padding_extent(padding, page_writing_mode),
+        border_box,
         font_size,
         line_height,
         font_relative_units,
         viewport_size,
     )
+}
+
+pub(super) fn resolve_block_box_extent(
+    size: &LayoutSize,
+    content_height: f32,
+    available_height: f32,
+    page_writing_mode: WritingMode,
+) -> f32 {
+    let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
+    let padding_start = if page_writing_mode == WritingMode::HorizontalTb
+        && size.writing_mode == WritingMode::HorizontalTb
+    {
+        size.padding[0]
+    } else {
+        0.0
+    };
+    resolve_block_size(
+        height,
+        min_height,
+        max_height,
+        (content_height - padding_start).max(0.0),
+        available_height,
+        block_padding_extent(size.padding, page_writing_mode),
+        size.border_box,
+        size.font_size,
+        size.line_height,
+        size.font_relative_units,
+        size.viewport_size,
+    )
+}
+
+fn block_padding_extent(padding: [f32; 4], page_writing_mode: WritingMode) -> f32 {
+    if page_writing_mode == WritingMode::HorizontalTb {
+        padding[0] + padding[2]
+    } else {
+        padding[1] + padding[3]
+    }
+}
+
+fn resolve_block_size(
+    height: Option<&str>,
+    min_height: Option<&str>,
+    max_height: Option<&str>,
+    content_height: f32,
+    available_height: f32,
+    padding: f32,
+    border_box: bool,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: FontRelativeUnits,
+    viewport_size: ViewportSize,
+) -> f32 {
+    let resolve_border_box = |value: Option<&str>| {
+        value.and_then(|value| {
+            resolve_width(
+                value,
+                available_height,
+                font_size,
+                line_height,
+                font_relative_units,
+                viewport_size,
+            )
+        })
+    };
+    let (height, min_height, max_height, padding) = if border_box {
+        let to_content = |value: Option<&str>| {
+            resolve_border_box(value).map(|value| format!("{}px", (value - padding).max(0.0)))
+        };
+        (
+            to_content(height),
+            to_content(min_height),
+            to_content(max_height),
+            padding,
+        )
+    } else {
+        (
+            height.map(str::to_owned),
+            min_height.map(str::to_owned),
+            max_height.map(str::to_owned),
+            padding,
+        )
+    };
+    resolve_content_block_height(
+        height.as_deref(),
+        min_height.as_deref(),
+        max_height.as_deref(),
+        content_height,
+        available_height,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+    ) + padding
 }
 
 fn resolve_used_height(

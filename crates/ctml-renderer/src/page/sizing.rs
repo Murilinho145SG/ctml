@@ -201,6 +201,22 @@ pub(super) fn block_size_constraints(
     )
 }
 
+pub(super) fn inline_padding(sizes: &[LayoutSize], page_writing_mode: WritingMode) -> (f32, f32) {
+    sizes.iter().fold((0.0, 0.0), |(start, extent), size| {
+        if is_vertical(page_writing_mode) {
+            (
+                start + size.padding[0],
+                extent + size.padding[0] + size.padding[2],
+            )
+        } else {
+            (
+                start + size.padding[3],
+                extent + size.padding[1] + size.padding[3],
+            )
+        }
+    })
+}
+
 pub(super) fn resolve_layout_width(
     sizes: &[LayoutSize],
     available_width: f32,
@@ -208,6 +224,29 @@ pub(super) fn resolve_layout_width(
 ) -> f32 {
     let mut content_width = available_width;
     for size in sizes {
+        let inline_padding = if is_vertical(page_writing_mode) {
+            size.padding[0] + size.padding[2]
+        } else {
+            size.padding[1] + size.padding[3]
+        };
+        let available_content_width = (content_width - inline_padding).max(0.0);
+        let resolve_inline_size = |value: &str| {
+            resolve_width(
+                value,
+                content_width,
+                size.font_size,
+                size.line_height,
+                size.font_relative_units,
+                size.viewport_size,
+            )
+            .map(|width| {
+                if size.border_box {
+                    (width - inline_padding).max(0.0)
+                } else {
+                    width
+                }
+            })
+        };
         let same_axis_orientation =
             is_vertical(size.writing_mode) == is_vertical(page_writing_mode);
         let (
@@ -286,38 +325,11 @@ pub(super) fn resolve_layout_width(
             physical_name,
         )
         .flatten();
-        let min_width = inline_min.and_then(|value| {
-            resolve_width(
-                value,
-                content_width,
-                size.font_size,
-                size.line_height,
-                size.font_relative_units,
-                size.viewport_size,
-            )
-        });
-        let max_width = inline_max.and_then(|value| {
-            resolve_width(
-                value,
-                content_width,
-                size.font_size,
-                size.line_height,
-                size.font_relative_units,
-                size.viewport_size,
-            )
-        });
+        let min_width = inline_min.and_then(resolve_inline_size);
+        let max_width = inline_max.and_then(resolve_inline_size);
         let specified_width = inline_size
-            .and_then(|value| {
-                resolve_width(
-                    value,
-                    content_width,
-                    size.font_size,
-                    size.line_height,
-                    size.font_relative_units,
-                    size.viewport_size,
-                )
-            })
-            .unwrap_or(content_width);
+            .and_then(resolve_inline_size)
+            .unwrap_or(available_content_width);
         content_width = match (min_width, max_width) {
             (Some(min), Some(max)) if min > max => specified_width.max(min),
             (Some(min), Some(max)) => specified_width.max(min).min(max),

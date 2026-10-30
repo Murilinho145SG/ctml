@@ -41,37 +41,6 @@ fn ignores_unknown_properties_without_affecting_computed_text_style() {
 }
 
 #[test]
-fn box_sizing_accepts_content_box_and_border_box() {
-    assert!(!style_for("box-sizing", "content-box").border_box);
-    assert!(style_for("box-sizing", "border-box").border_box);
-    assert!(style_for("box-sizing", "BORDER-BOX").border_box);
-    assert!(!style_for("box-sizing", "unsupported").border_box);
-}
-
-#[test]
-fn box_sizing_is_not_inherited_unless_requested() {
-    let inherited = TextStyle {
-        border_box: true,
-        ..TextStyle::default()
-    };
-    let current = ElementIdentity {
-        tag: "div".to_owned(),
-        class: Some("child".to_owned()),
-        id: None,
-    };
-    assert!(!resolve_style(&inherited, &current, &[], &[]).border_box);
-    let rule = StyleRule {
-        selectors: vec![".child".to_owned()],
-        layer: None,
-        declarations: vec![StyleDeclaration {
-            property: "box-sizing".to_owned(),
-            value: "inherit".to_owned(),
-        }],
-    };
-    assert!(resolve_style(&inherited, &current, &[], &[rule]).border_box);
-}
-
-#[test]
 fn inline_style_uses_author_cascade_priority_and_importance() {
     let current = ElementIdentity {
         tag: "p".to_owned(),
