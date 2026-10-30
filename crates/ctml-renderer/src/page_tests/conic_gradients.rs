@@ -42,6 +42,38 @@ fn conic_gradient_applies_start_angle_and_position() {
     assert!(below_center[2] > below_center[0], "{below_center:?}");
 }
 
+#[test]
+fn repeating_conic_gradient_repeats_color_sectors_around_the_center() {
+    let (page, pixels) =
+        render("repeating-conic-gradient(red 0deg, red 45deg, blue 45deg, blue 90deg)");
+    let rect = page.overflow_geometry[&1].border_box;
+    let origin_x = (rect.left - PAGE_PADDING).round() as usize;
+    let origin_y = (rect.top - PAGE_PADDING).round() as usize;
+    let center_x = origin_x + 40;
+    let center_y = origin_y + 20;
+    let first_red_sector = sample(&pixels, center_x + 2, center_y - 10);
+    let first_blue_sector = sample(&pixels, center_x + 10, center_y - 5);
+    let repeated_red_sector = sample(&pixels, center_x - 2, center_y + 10);
+    let repeated_blue_sector = sample(&pixels, center_x - 10, center_y + 5);
+
+    assert!(
+        first_red_sector[0] > first_red_sector[2],
+        "{first_red_sector:?}"
+    );
+    assert!(
+        first_blue_sector[2] > first_blue_sector[0],
+        "{first_blue_sector:?}"
+    );
+    assert!(
+        repeated_red_sector[0] > repeated_red_sector[2],
+        "{repeated_red_sector:?}"
+    );
+    assert!(
+        repeated_blue_sector[2] > repeated_blue_sector[0],
+        "{repeated_blue_sector:?}"
+    );
+}
+
 fn render(gradient: &str) -> (PageRasterizer, Vec<u8>) {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

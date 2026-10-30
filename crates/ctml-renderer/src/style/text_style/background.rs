@@ -46,6 +46,7 @@ pub(crate) struct ConicGradient {
     pub(crate) center_x_percent: f32,
     pub(crate) center_y_percent: f32,
     pub(crate) stops: Vec<([u8; 4], f32)>,
+    pub(crate) repeating: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

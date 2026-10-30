@@ -403,17 +403,32 @@ fn conic_gradient_shader(gradient: &ConicGradient, rect: Rect) -> Option<skia_sa
             )
         })
         .collect::<Vec<_>>();
-    let positions = gradient
+    let mut positions = gradient
         .stops
         .iter()
         .map(|(_, position)| *position)
         .collect::<Vec<_>>();
-    let colors = gradient::Colors::new(&colors, Some(&positions), TileMode::Clamp, None);
+    let (start, end, tile_mode) = if gradient.repeating {
+        let first = *positions.first()?;
+        let last = *positions.last()?;
+        let span = last - first;
+        if span <= 0.0 {
+            return None;
+        }
+        for position in &mut positions {
+            *position = (*position - first) / span;
+        }
+        let start = gradient.from_degrees + first * 360.0 - 90.0;
+        (start, start + span * 360.0, TileMode::Repeat)
+    } else {
+        let start = gradient.from_degrees - 90.0;
+        (start, start + 360.0, TileMode::Clamp)
+    };
+    let colors = gradient::Colors::new(&colors, Some(&positions), tile_mode, None);
     let shader_gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
     let center = Point::new(
         rect.left + rect.width() * gradient.center_x_percent,
         rect.top + rect.height() * gradient.center_y_percent,
     );
-    let start = gradient.from_degrees - 90.0;
-    gradient::shaders::sweep_gradient(center, (start, start + 360.0), &shader_gradient, None)
+    gradient::shaders::sweep_gradient(center, (start, end), &shader_gradient, None)
 }

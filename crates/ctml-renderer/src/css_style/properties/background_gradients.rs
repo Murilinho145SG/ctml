@@ -97,9 +97,13 @@ pub(super) fn parse_radial_gradient(style: &TextStyle, value: &str) -> Option<Ra
 pub(super) fn parse_conic_gradient(style: &TextStyle, value: &str) -> Option<ConicGradient> {
     let value = value.trim();
     let opening = value.find('(')?;
-    if !value[..opening]
+    let repeating = value[..opening]
         .trim()
-        .eq_ignore_ascii_case("conic-gradient")
+        .eq_ignore_ascii_case("repeating-conic-gradient");
+    if !(repeating
+        || value[..opening]
+            .trim()
+            .eq_ignore_ascii_case("conic-gradient"))
         || !value.ends_with(')')
     {
         return None;
@@ -134,6 +138,7 @@ pub(super) fn parse_conic_gradient(style: &TextStyle, value: &str) -> Option<Con
         center_x_percent,
         center_y_percent,
         stops,
+        repeating,
     })
 }
 

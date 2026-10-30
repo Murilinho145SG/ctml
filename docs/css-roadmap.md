@@ -318,6 +318,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `repeating-linear-gradient()` repeats the pattern between its first and last color stops.
   - [x] `radial-gradient()` supports circle or ellipse shapes, side/corner extents, center positions, and CSS color stops.
   - [x] `conic-gradient()` supports a starting angle, center position, angular color stops, and clockwise rendering.
+  - [x] `repeating-conic-gradient()` repeats the color-stop pattern around the full sweep.
 - [ ] Border images and nine-slice behavior.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
