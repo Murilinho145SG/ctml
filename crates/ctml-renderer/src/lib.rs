@@ -15,5 +15,8 @@ pub use ui::{StyleDeclaration, StyleRule, UiNode};
 pub struct FontFace {
     pub family: String,
     pub bytes: Vec<u8>,
+    pub weight: Option<u16>,
+    pub style: Option<String>,
+    pub stretch: Option<String>,
 }
 pub use window::{Window, WindowConfig, WindowError};

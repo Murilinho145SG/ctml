@@ -39,7 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let resource =
                 load_css_resource(&face.source, path, &source_root).map_err(invalid_data)?;
             println!("cargo:rerun-if-changed={}", resource.path.display());
-            fonts.push((face.family.clone(), resource.path));
+            fonts.push((
+                face.family.clone(),
+                resource.path,
+                face.weight.clone(),
+                face.style.clone(),
+                face.stretch.clone(),
+            ));
         }
         for layer in &parsed.layers {
             if !layers.contains(layer) {
@@ -155,11 +161,58 @@ fn rust_stylesheet(rules: &[CssRule]) -> String {
         .join(", ")
 }
 
-fn rust_fonts(fonts: &[(String, PathBuf)]) -> String {
-    fonts.iter().map(|(family, path)| format!(
-        "ctml::FontFace {{ family: {family:?}.to_owned(), bytes: include_bytes!({:?}).to_vec() }}",
-        path.to_str().expect("canonical resource path must be UTF-8"),
-    )).collect::<Vec<_>>().join(", ")
+fn rust_fonts(
+    fonts: &[(
+        String,
+        PathBuf,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )],
+) -> String {
+    fonts.iter().map(|(family, path, weight, style, stretch)| {
+        let weight = weight.as_deref().and_then(parse_font_weight)
+            .map_or_else(|| "None".to_owned(), |weight| format!("Some({weight})"));
+        let style = style.as_deref().filter(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "normal" | "italic" | "oblique"))
+            .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
+        let stretch = stretch.as_deref().filter(|value| is_font_stretch(value))
+            .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
+        format!(
+            "ctml::FontFace {{ family: {family:?}.to_owned(), bytes: include_bytes!({:?}).to_vec(), weight: {weight}, style: {style}, stretch: {stretch} }}",
+            path.to_str().expect("canonical resource path must be UTF-8"),
+        )
+    }).collect::<Vec<_>>().join(", ")
+}
+
+fn parse_font_weight(value: &str) -> Option<u16> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "normal" => Some(400),
+        "bold" => Some(700),
+        value => value
+            .parse()
+            .ok()
+            .filter(|weight: &u16| (1..=1000).contains(weight)),
+    }
+}
+
+fn is_font_stretch(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "ultra-condensed"
+            | "extra-condensed"
+            | "condensed"
+            | "semi-condensed"
+            | "normal"
+            | "semi-expanded"
+            | "expanded"
+            | "extra-expanded"
+            | "ultra-expanded"
+    ) || value.trim().strip_suffix('%').is_some_and(|percent| {
+        percent
+            .trim()
+            .parse::<f32>()
+            .is_ok_and(|value| value.is_finite() && value > 0.0)
+    })
 }
 
 fn option_string(value: Option<&str>) -> String {

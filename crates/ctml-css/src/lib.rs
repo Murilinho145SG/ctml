@@ -51,6 +51,9 @@ pub struct Stylesheet {
 pub struct CssFontFace {
     pub family: String,
     pub source: String,
+    pub weight: Option<String>,
+    pub style: Option<String>,
+    pub stretch: Option<String>,
     /// Source stylesheet, populated by `parse_stylesheet_file`.
     pub stylesheet_path: Option<std::path::PathBuf>,
 }
@@ -244,6 +247,18 @@ fn parse_rule_list<'i, 't>(
                 state.font_faces.push(CssFontFace {
                     family,
                     source,
+                    weight: declarations
+                        .iter()
+                        .find(|item| item.property == "font-weight")
+                        .map(|item| item.value.clone()),
+                    style: declarations
+                        .iter()
+                        .find(|item| item.property == "font-style")
+                        .map(|item| item.value.clone()),
+                    stretch: declarations
+                        .iter()
+                        .find(|item| item.property == "font-stretch")
+                        .map(|item| item.value.clone()),
                     stylesheet_path: None,
                 });
             }

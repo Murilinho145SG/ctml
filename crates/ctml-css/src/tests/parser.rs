@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn parses_local_font_face_descriptors() {
     let stylesheet = parse_stylesheet(
-        "@font-face { font-family: 'Project Sans'; src: url(../fonts/project.woff2); font-weight: 400 700; } p { font-family: 'Project Sans'; }",
+        "@font-face { font-family: 'Project Sans'; src: url(../fonts/project.woff2); font-weight: 600; font-style: italic; font-stretch: 87.5%; } p { font-family: 'Project Sans'; }",
     )
     .unwrap();
 
@@ -13,6 +13,9 @@ fn parses_local_font_face_descriptors() {
         stylesheet.font_faces[0].source,
         "url(../fonts/project.woff2)"
     );
+    assert_eq!(stylesheet.font_faces[0].weight.as_deref(), Some("600"));
+    assert_eq!(stylesheet.font_faces[0].style.as_deref(), Some("italic"));
+    assert_eq!(stylesheet.font_faces[0].stretch.as_deref(), Some("87.5%"));
     assert_eq!(stylesheet.rules.len(), 1);
 }
 

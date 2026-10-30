@@ -192,7 +192,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] East Asian glyph variants through `font-variant-east-asian` for JIS encodings, simplified/traditional forms, full/proportional width, and ruby.
 - [x] Low-level `font-feature-settings` with four-character OpenType tags, numeric settings, `on`, and `off`.
 - [ ] Optical sizing and font variation settings.
-- [x] Basic local `@font-face` loading with a CSS family alias; source lists, format hints, and weight/style descriptors remain unsupported.
+- [x] Local `@font-face` loading with a CSS family alias and static weight, style, and stretch descriptors.
+- [ ] Font source lists, `local()` sources, format hints, and variable weight/style ranges.
 - [ ] Fallback selection and local font lookup policy.
 - [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features.
 - [x] Text alignment: left, right, center, justify, start, and end.
@@ -273,7 +274,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Named `@layer` statements and blocks.
 - [x] Local `@import` resolution and named `@layer` statements and blocks.
 - [ ] `@media`, `@supports`, `@container`, and other conditional at-rules.
-- [ ] `@font-face` and font feature/value rules.
+- [x] `@font-face` local URLs and static font weight/style/stretch descriptors.
+- [ ] Font feature/value rules and variable descriptors.
 - [ ] `@keyframes`.
 - [ ] `@page` and margin at-rules for print output.
 - [ ] `@property` registration for custom properties.

@@ -75,6 +75,19 @@ impl PageRasterizer {
                     if let Some((_, language)) = face.families.first() {
                         face.families = vec![(font.family.clone(), language.clone())];
                     }
+                    if let Some(weight) = font.weight {
+                        face.weight = fontdb::Weight(weight);
+                    }
+                    if let Some(style) = font.style.as_deref() {
+                        face.style = match style.trim().to_ascii_lowercase().as_str() {
+                            "italic" => fontdb::Style::Italic,
+                            "oblique" => fontdb::Style::Oblique,
+                            _ => fontdb::Style::Normal,
+                        };
+                    }
+                    if let Some(stretch) = font.stretch.as_deref().and_then(parse_font_stretch) {
+                        face.stretch = stretch;
+                    }
                     face
                 })
                 .collect::<Vec<_>>();
@@ -440,6 +453,46 @@ impl PageRasterizer {
     }
 }
 
+fn parse_font_stretch(value: &str) -> Option<fontdb::Stretch> {
+    let lower = value.trim().to_ascii_lowercase();
+    Some(match lower.as_str() {
+        "ultra-condensed" => fontdb::Stretch::UltraCondensed,
+        "extra-condensed" => fontdb::Stretch::ExtraCondensed,
+        "condensed" => fontdb::Stretch::Condensed,
+        "semi-condensed" => fontdb::Stretch::SemiCondensed,
+        "normal" => fontdb::Stretch::Normal,
+        "semi-expanded" => fontdb::Stretch::SemiExpanded,
+        "expanded" => fontdb::Stretch::Expanded,
+        "extra-expanded" => fontdb::Stretch::ExtraExpanded,
+        "ultra-expanded" => fontdb::Stretch::UltraExpanded,
+        _ => {
+            let percentage = lower.strip_suffix('%')?.trim().parse::<f32>().ok()?;
+            if !percentage.is_finite() || percentage <= 0.0 {
+                return None;
+            }
+            let ranges = [
+                (50.0, fontdb::Stretch::UltraCondensed),
+                (62.5, fontdb::Stretch::ExtraCondensed),
+                (75.0, fontdb::Stretch::Condensed),
+                (87.5, fontdb::Stretch::SemiCondensed),
+                (100.0, fontdb::Stretch::Normal),
+                (112.5, fontdb::Stretch::SemiExpanded),
+                (125.0, fontdb::Stretch::Expanded),
+                (150.0, fontdb::Stretch::ExtraExpanded),
+                (200.0, fontdb::Stretch::UltraExpanded),
+            ];
+            return ranges
+                .into_iter()
+                .min_by(|(left, _), (right, _)| {
+                    (left - percentage)
+                        .abs()
+                        .total_cmp(&(right - percentage).abs())
+                })
+                .map(|(_, stretch)| stretch);
+        }
+    })
+}
+
 fn is_underline_descender(character: char) -> bool {
     matches!(character, 'g' | 'j' | 'p' | 'q' | 'y')
 }
@@ -464,3 +517,7 @@ fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
 #[cfg(test)]
 #[path = "page_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "page_tests/font_face.rs"]
+mod font_face_tests;
