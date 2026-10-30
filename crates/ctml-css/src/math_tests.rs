@@ -127,3 +127,33 @@ fn rejects_invalid_css_abs_and_sign_argument_counts() {
         assert_eq!(parse_math_number(value), None, "{value}");
     }
 }
+
+#[test]
+fn evaluates_css_exponential_functions_for_numbers_and_hypot_lengths() {
+    assert_eq!(parse_math_number("sqrt(9)"), Some(3.0));
+    assert_eq!(parse_math_number("pow(2, 3)"), Some(8.0));
+    assert_eq!(parse_math_number("hypot(3, 4)"), Some(5.0));
+    assert!((parse_math_number("log(8, 2)").unwrap() - 3.0).abs() < 0.00001);
+    assert!((parse_math_number("log(1)").unwrap()).abs() < 0.00001);
+    assert!((parse_math_number("exp(1)").unwrap() - std::f32::consts::E).abs() < 0.00001);
+    assert_eq!(parse("hypot(3px, 4px)"), Some(5.0));
+}
+
+#[test]
+fn rejects_invalid_css_exponential_function_arguments() {
+    for value in [
+        "sqrt(-1)",
+        "sqrt(4, 2)",
+        "pow(2)",
+        "pow(2px, 2)",
+        "hypot()",
+        "hypot(3px, 4)",
+        "log()",
+        "log(1, 1)",
+        "log(-1)",
+        "exp(1, 2)",
+        "exp(1000)",
+    ] {
+        assert_eq!(parse_math_number(value), None, "{value}");
+    }
+}

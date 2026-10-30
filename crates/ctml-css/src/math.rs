@@ -23,7 +23,8 @@ impl MathValue {
 pub(crate) fn is_math_function(value: &str) -> bool {
     let value = value.trim_start();
     [
-        "calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem(", "abs(", "sign(",
+        "calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem(", "abs(", "sign(", "sqrt(",
+        "pow(", "hypot(", "log(", "exp(",
     ]
     .iter()
     .any(|function| {
@@ -206,7 +207,7 @@ where
                 self.skip_whitespace();
                 self.consume(b')').then_some(value)
             }
-            "min" | "max" | "clamp" => {
+            "min" | "max" | "clamp" | "sqrt" | "pow" | "hypot" | "log" | "exp" => {
                 let mut values = vec![self.parse_sum()?];
                 loop {
                     self.skip_whitespace();
@@ -360,13 +361,22 @@ where
     fn evaluate_function(&self, function: &str, values: &[MathValue]) -> Option<MathValue> {
         let expected_length = match function {
             "clamp" => 3,
+            "pow" => 2,
+            "sqrt" | "exp" => 1,
             _ => 1,
         };
         if values.len() < expected_length
-            || (function == "clamp" && values.len() != expected_length)
+            || matches!(function, "clamp" | "pow" | "sqrt" | "exp")
+                && values.len() != expected_length
+            || (function == "log" && !(1..=2).contains(&values.len()))
             || values
                 .iter()
                 .any(|value| std::mem::discriminant(value) != std::mem::discriminant(&values[0]))
+        {
+            return None;
+        }
+        if matches!(function, "sqrt" | "pow" | "log" | "exp")
+            && !matches!(values[0], MathValue::Number(_))
         {
             return None;
         }
@@ -376,6 +386,15 @@ where
             "clamp" => values[0]
                 .value()
                 .max(values[1].value().min(values[2].value())),
+            "sqrt" => values[0].value().sqrt(),
+            "pow" => values[0].value().powf(values[1].value()),
+            "hypot" => values
+                .iter()
+                .map(|value| value.value())
+                .reduce(f32::hypot)?,
+            "log" if values.len() == 1 => values[0].value().ln(),
+            "log" => values[0].value().log(values[1].value()),
+            "exp" => values[0].value().exp(),
             _ => return None,
         };
         values[0].map(|_| selected)
