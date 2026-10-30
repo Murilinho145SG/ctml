@@ -167,6 +167,7 @@ pub(crate) struct TextStyle {
     pub(crate) text_emphasis_style: TextEmphasisStyle,
     pub(crate) text_emphasis_color: Option<[u8; 4]>,
     pub(crate) text_emphasis_position: TextEmphasisPosition,
+    pub(crate) text_emphasis_side: Option<TextEmphasisSide>,
     pub(crate) custom_properties: HashMap<String, String>,
 }
 
@@ -226,6 +227,12 @@ pub(crate) enum TextEmphasisPosition {
     #[default]
     Over,
     Under,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum TextEmphasisSide {
+    Left,
+    Right,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -369,6 +376,7 @@ impl Default for TextStyle {
             text_emphasis_style: TextEmphasisStyle::None,
             text_emphasis_color: None,
             text_emphasis_position: TextEmphasisPosition::Over,
+            text_emphasis_side: None,
             custom_properties: HashMap::new(),
         }
     }

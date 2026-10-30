@@ -1,4 +1,4 @@
-use crate::style::{TextEmphasisPosition, TextEmphasisStyle, TextStyle};
+use crate::style::{TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextStyle};
 use ctml_css::{parse_color_with_opacity, parse_css_string};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -76,13 +76,17 @@ pub(super) fn apply_text_emphasis_position(style: &mut TextStyle, value: &str) {
         "under" => TextEmphasisPosition::Under,
         _ => return,
     };
-    if values
-        .get(1)
-        .is_some_and(|side| !matches!(side.to_ascii_lowercase().as_str(), "left" | "right"))
-    {
+    let side = match values.get(1).map(|side| side.to_ascii_lowercase()) {
+        None => None,
+        Some(side) if side == "left" => Some(TextEmphasisSide::Left),
+        Some(side) if side == "right" => Some(TextEmphasisSide::Right),
+        Some(_) => return,
+    };
+    if values.len() == 2 && side.is_none() {
         return;
     }
     style.text_emphasis_position = position;
+    style.text_emphasis_side = side;
 }
 
 pub(super) fn apply_text_emphasis_property(style: &mut TextStyle, property: &str, value: &str) {
@@ -107,6 +111,7 @@ pub(super) fn inherit_text_emphasis(style: &mut TextStyle, inherited: &TextStyle
         "text-emphasis-color" => style.text_emphasis_color = inherited.text_emphasis_color,
         "text-emphasis-position" => {
             style.text_emphasis_position = inherited.text_emphasis_position;
+            style.text_emphasis_side = inherited.text_emphasis_side;
         }
         _ => {}
     }
@@ -120,7 +125,10 @@ pub(super) fn reset_text_emphasis(style: &mut TextStyle, property: &str) {
         }
         "text-emphasis-style" => style.text_emphasis_style = TextEmphasisStyle::None,
         "text-emphasis-color" => style.text_emphasis_color = None,
-        "text-emphasis-position" => style.text_emphasis_position = TextEmphasisPosition::Over,
+        "text-emphasis-position" => {
+            style.text_emphasis_position = TextEmphasisPosition::Over;
+            style.text_emphasis_side = None;
+        }
         _ => {}
     }
 }

@@ -19,6 +19,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         text_emphasis_style: crate::style::TextEmphasisStyle::OpenSesame,
         text_emphasis_color: Some([90, 80, 70, 255]),
         text_emphasis_position: crate::style::TextEmphasisPosition::Under,
+        text_emphasis_side: Some(crate::style::TextEmphasisSide::Left),
         color: [0, 0, 255, 255],
         background: [12, 34, 56],
         text_decoration_color: Some([255, 0, 0, 255]),
@@ -57,6 +58,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         reset.text_emphasis_position,
         inherited.text_emphasis_position
     );
+    assert_eq!(reset.text_emphasis_side, inherited.text_emphasis_side);
     assert_eq!(reset.weight, inherited.weight);
     assert_eq!(reset.font_style, inherited.font_style);
     assert_eq!(reset.background, [255, 255, 255]);
@@ -90,6 +92,7 @@ fn all_shorthand_resets_supported_properties_in_cascade_order() {
         initial.text_emphasis_position,
         crate::style::TextEmphasisPosition::Over
     );
+    assert_eq!(initial.text_emphasis_side, None);
     assert_eq!(initial.weight, Weight::NORMAL);
     assert_eq!(initial.background, [255, 255, 255]);
     assert!(!initial.border_box);

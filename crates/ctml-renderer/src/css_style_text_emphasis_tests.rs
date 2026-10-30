@@ -14,6 +14,10 @@ fn parses_text_emphasis_styles_colors_and_positions() {
     assert_eq!(style.text_emphasis_style, TextEmphasisStyle::OpenSesame);
     assert_eq!(style.text_emphasis_color, Some([255, 0, 0, 255]));
     assert_eq!(style.text_emphasis_position, TextEmphasisPosition::Under);
+    assert_eq!(
+        style.text_emphasis_side,
+        Some(crate::style::TextEmphasisSide::Right)
+    );
 
     let shorthand_preserves_position = style_for_declarations(&[
         ("text-emphasis-position", "under"),
@@ -22,6 +26,12 @@ fn parses_text_emphasis_styles_colors_and_positions() {
     assert_eq!(
         shorthand_preserves_position.text_emphasis_position,
         TextEmphasisPosition::Under
+    );
+
+    let left_side = style_for_declarations(&[("text-emphasis-position", "over left")]);
+    assert_eq!(
+        left_side.text_emphasis_side,
+        Some(crate::style::TextEmphasisSide::Left)
     );
 
     let current_color = style_for_declarations(&[("color", "blue"), ("text-emphasis", "dot")]);
@@ -44,6 +54,7 @@ fn emphasis_properties_inherit_and_support_css_wide_keywords() {
         text_emphasis_style: TextEmphasisStyle::FilledDoubleCircle,
         text_emphasis_color: Some([1, 2, 3, 255]),
         text_emphasis_position: TextEmphasisPosition::Under,
+        text_emphasis_side: Some(crate::style::TextEmphasisSide::Left),
         ..TextStyle::default()
     };
     let current = ElementIdentity {
@@ -71,6 +82,7 @@ fn emphasis_properties_inherit_and_support_css_wide_keywords() {
         unset.text_emphasis_position,
         inherited.text_emphasis_position
     );
+    assert_eq!(unset.text_emphasis_side, inherited.text_emphasis_side);
     let initial = resolve_style(
         &inherited,
         &current,
@@ -80,6 +92,7 @@ fn emphasis_properties_inherit_and_support_css_wide_keywords() {
     assert_eq!(initial.text_emphasis_style, TextEmphasisStyle::None);
     assert_eq!(initial.text_emphasis_color, None);
     assert_eq!(initial.text_emphasis_position, TextEmphasisPosition::Under);
+    assert_eq!(initial.text_emphasis_side, inherited.text_emphasis_side);
 }
 
 #[test]
