@@ -1,38 +1,43 @@
 use crate::style::TextStyle;
 
 pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
-    match value.to_ascii_lowercase().as_str() {
-        "none" => {
+    let value = value
+        .split_ascii_whitespace()
+        .map(str::to_ascii_lowercase)
+        .collect::<Vec<_>>();
+    let value = value.iter().map(String::as_str).collect::<Vec<_>>();
+    match value.as_slice() {
+        ["none"] => {
             style.display_none = true;
             style.display_block = None;
             style.display_list_item = Some(false);
         }
-        "block" => {
+        ["block"] | ["block", "flow"] | ["block", "flow-root"] => {
             style.display_none = false;
             style.display_block = Some(true);
             style.display_list_item = Some(false);
         }
-        "flow-root" => {
+        ["flow-root"] => {
             style.display_none = false;
             style.display_block = Some(true);
             style.display_list_item = Some(false);
         }
-        "inline" => {
+        ["inline"] | ["inline", "flow"] => {
             style.display_none = false;
             style.display_block = Some(false);
             style.display_list_item = Some(false);
         }
-        "inline-block" => {
+        ["inline-block"] | ["inline", "flow-root"] => {
             style.display_none = false;
             style.display_block = Some(false);
             style.display_list_item = Some(false);
         }
-        "contents" => {
+        ["contents"] => {
             style.display_none = false;
             style.display_block = Some(false);
             style.display_list_item = Some(false);
         }
-        "list-item" => {
+        ["list-item"] | ["block", "flow", "list-item"] => {
             style.display_none = false;
             style.display_block = Some(true);
             style.display_list_item = Some(true);

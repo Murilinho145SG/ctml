@@ -49,6 +49,21 @@ fn resolves_numeric_weight_font_style_and_stretch() {
 }
 
 #[test]
+fn resolves_supported_multi_keyword_display_values() {
+    for value in ["block flow", "block flow-root"] {
+        let style = style_for_declarations(&[("display", value)]);
+        assert_eq!(style.display_block, Some(true), "{value}");
+        assert!(!style.display_none, "{value}");
+    }
+
+    for value in ["inline flow", "inline flow-root"] {
+        let style = style_for_declarations(&[("display", value)]);
+        assert_eq!(style.display_block, Some(false), "{value}");
+        assert!(!style.display_none, "{value}");
+    }
+}
+
+#[test]
 fn resolves_typed_attr_values_in_supported_style_properties() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],

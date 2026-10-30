@@ -981,11 +981,13 @@ fn display_contents_removes_tag_line_separation_but_keeps_children() {
 #[test]
 fn display_flow_root_uses_block_text_flow() {
     assert_display_flow("span", "flow-root", "before\nmiddle\nafter");
+    assert_display_flow("span", "block flow-root", "before\nmiddle\nafter");
 }
 
 #[test]
 fn display_inline_block_uses_inline_text_flow() {
     assert_display_flow("p", "inline-block", "beforemiddleafter");
+    assert_display_flow("p", "inline flow-root", "beforemiddleafter");
 }
 
 #[test]
