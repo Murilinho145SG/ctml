@@ -410,7 +410,8 @@ impl PageRasterizer {
                     run.style.layout_sizes.iter().any(|size| {
                         size.node_id == **node_id
                             && (size.overflow_x != crate::style::Overflow::Visible
-                                || size.overflow_y != crate::style::Overflow::Visible)
+                                || size.overflow_y != crate::style::Overflow::Visible
+                                || size.paint_contained)
                     })
                 })
             })

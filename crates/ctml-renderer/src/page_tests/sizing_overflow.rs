@@ -107,6 +107,51 @@ fn overflow_hidden_clips_descendant_text_and_backgrounds_at_the_used_block_exten
 }
 
 #[test]
+fn contain_paint_clips_descendant_text_and_backgrounds_at_the_box() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("word ".repeat(100))],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "height".to_owned(),
+                    value: "40px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain".to_owned(),
+                    value: "paint".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(240, 220);
+    assert!(page.runs.iter().any(|run| run.style.paint_contained));
+    assert!(!page.overflow_clips.is_empty());
+}
+
+#[test]
 fn overflow_hidden_clips_text_and_backgrounds_at_the_inline_extent() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

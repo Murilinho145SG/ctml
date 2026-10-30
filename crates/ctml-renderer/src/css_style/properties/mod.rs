@@ -29,6 +29,7 @@ use box_decoration::apply_box_decoration_break;
 use box_shadow::apply_box_shadow;
 use cascade_values::{inherit_property, initial_property};
 pub(super) use color::apply_color_declaration;
+use contain::apply_contain;
 use counters::{CounterProperty, apply_counter_property};
 use cursor::parse_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
@@ -76,6 +77,7 @@ mod box_decoration;
 mod box_shadow;
 mod cascade_values;
 mod color;
+mod contain;
 mod counters;
 mod cursor;
 mod display;
@@ -254,6 +256,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "writing-mode"
             | "visibility"
             | "content-visibility"
+            | "contain"
             | "pointer-events"
             | "direction"
             | "quotes"

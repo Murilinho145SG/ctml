@@ -28,6 +28,7 @@ pub(super) fn apply_declaration(
             "visible" | "auto" => style.content_visibility_hidden = false,
             _ => {}
         },
+        "contain" => apply_contain(style, value),
         "overflow" => {
             if let Some((overflow_x, overflow_y)) = parse_overflow_value(value) {
                 style.overflow_x = overflow_x;

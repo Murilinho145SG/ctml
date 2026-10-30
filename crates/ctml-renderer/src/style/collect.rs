@@ -244,7 +244,8 @@ pub(super) fn collect_runs(
                             .any(|style| *style != super::BorderLineStyle::None)
                         || style.outline_style != super::BorderLineStyle::None
                         || style.overflow_x != super::Overflow::Visible
-                        || style.overflow_y != super::Overflow::Visible);
+                        || style.overflow_y != super::Overflow::Visible
+                        || style.paint_contained);
                 if has_block_size {
                     style.layout_sizes.push(LayoutSize {
                         node_id: sibling.node_id,
@@ -277,6 +278,7 @@ pub(super) fn collect_runs(
                         intrinsic_max_content_width: None,
                         overflow_x: style.overflow_x,
                         overflow_y: style.overflow_y,
+                        paint_contained: style.paint_contained,
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

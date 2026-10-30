@@ -1145,6 +1145,20 @@ fn content_visibility_accepts_supported_values_and_css_wide_keywords() {
 }
 
 #[test]
+fn contain_tracks_paint_containment_and_resets_with_css_wide_values() {
+    assert!(style_for_declarations(&[("contain", "paint")]).paint_contained);
+    assert!(style_for_declarations(&[("contain", "content")]).paint_contained);
+    assert!(style_for_declarations(&[("contain", "strict")]).paint_contained);
+    assert!(style_for_declarations(&[("contain", "size paint")]).paint_contained);
+    assert!(!style_for_declarations(&[("contain", "layout")]).paint_contained);
+    assert!(!style_for_declarations(&[("contain", "none")]).paint_contained);
+    assert!(
+        !style_for_declarations(&[("contain", "paint"), ("contain", "initial")]).paint_contained
+    );
+    assert!(!style_for_declarations(&[("contain", "paint duplicate")]).paint_contained);
+}
+
+#[test]
 fn overflow_modes_parse_and_do_not_inherit_by_default() {
     let hidden = style_for_declarations(&[("overflow", "hidden")]);
     assert_eq!(hidden.overflow_x, Overflow::Hidden);

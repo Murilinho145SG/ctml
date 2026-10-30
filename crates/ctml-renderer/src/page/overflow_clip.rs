@@ -184,6 +184,7 @@ pub(super) fn block_geometries(
         .filter(|(_, extent)| {
             extent.size.overflow_x != crate::style::Overflow::Visible
                 || extent.size.overflow_y != crate::style::Overflow::Visible
+                || extent.size.paint_contained
                 || extent
                     .size
                     .border_style
