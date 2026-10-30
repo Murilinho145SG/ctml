@@ -96,6 +96,8 @@ mod pseudo_opacity;
 mod pseudo_vertical_align;
 #[path = "page_tests/radial_gradients.rs"]
 mod radial_gradients;
+#[path = "page_tests/root_border.rs"]
+mod root_border;
 #[path = "page_tests/scrolling.rs"]
 mod scrolling;
 #[path = "page_tests/selection.rs"]

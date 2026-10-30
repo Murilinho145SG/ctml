@@ -90,6 +90,7 @@ impl PageRasterizer {
             &self.overflow_geometry,
             &self.overflow_clips,
         );
+        borders::draw_root_border(&mut pixels, width, height, &self.root_style);
         box_shadows::draw_first_line(
             &self.runs,
             &self.buffer,

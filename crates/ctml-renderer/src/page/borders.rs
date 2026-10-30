@@ -57,6 +57,67 @@ pub(super) fn draw(
     }
 }
 
+pub(super) fn draw_root_border(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    style: &crate::style::TextStyle,
+) {
+    if width == 0
+        || height == 0
+        || (style
+            .border_style
+            .iter()
+            .all(|border| matches!(border, BorderLineStyle::None | BorderLineStyle::Hidden))
+            && style.border_image_source.is_none())
+    {
+        return;
+    }
+    let rect = overflow_clip::ClipRect {
+        left: 0.0,
+        top: 0.0,
+        right: width as f32,
+        bottom: height as f32,
+    };
+    let border: [f32; 4] =
+        std::array::from_fn(|side| super::layout::resolve_border_side(style, side));
+    if style.border_image_source.is_some()
+        && super::border_images::draw_inline(
+            pixels,
+            width,
+            height,
+            style,
+            rect,
+            border,
+            style.opacity,
+            None,
+        )
+    {
+        return;
+    }
+    let radii = super::border_radius::resolve_radii_values(
+        &style.border_radius,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+        rect,
+    );
+    let colors = style.border_color.map(|color| color.unwrap_or(style.color));
+    draw_rounded_border(
+        pixels,
+        width,
+        height,
+        rect,
+        border,
+        radii,
+        style.border_style,
+        colors,
+        style.opacity,
+        None,
+    );
+}
+
 #[allow(clippy::too_many_arguments)]
 fn draw_block_border(
     pixels: &mut [u8],
