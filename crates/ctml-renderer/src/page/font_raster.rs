@@ -314,7 +314,10 @@ fn shape_group(
     let mut font_runs = Shaper::new_trivial_font_run_iterator(font, text.len());
     let mut bidi_runs = Shaper::new_bidi_run_iterator(text, bidi_level)?;
     let mut script_runs = Shaper::new_hb_icu_script_run_iterator(text);
-    let mut language_runs = Shaper::new_std_language_run_iterator(text)?;
+    let mut language_runs = match style.language.as_deref() {
+        Some(language) => Shaper::new_trivial_language_run_iterator(language, text.len()),
+        None => Shaper::new_std_language_run_iterator(text)?,
+    };
     let features = style
         .font_features()
         .features

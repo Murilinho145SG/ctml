@@ -136,6 +136,15 @@ pub(super) fn collect_runs(
                     stylesheet,
                     local_font_units,
                 );
+                if let Some((_, language)) = attributes
+                    .iter()
+                    .find(|(name, _)| name.eq_ignore_ascii_case("lang"))
+                {
+                    style.language = language
+                        .as_deref()
+                        .filter(|language| !language.trim().is_empty())
+                        .map(str::to_owned);
+                }
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;

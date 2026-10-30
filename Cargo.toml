@@ -27,4 +27,5 @@ cssparser = "0.37.0"
 png = "0.18.1"
 tokio = { version = "1.54.1", features = ["net", "rt", "time"] }
 unicode-segmentation = "1.13.3"
+hyphenation = { version = "0.8.4", features = ["embed_all"] }
 url = "2.5.8"

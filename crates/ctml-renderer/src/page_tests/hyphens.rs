@@ -77,12 +77,103 @@ fn hyphens_none_suppresses_manual_soft_hyphen_breaks() {
     );
 }
 
+#[test]
+fn automatic_hyphenation_uses_the_declared_language_dictionary() {
+    let nodes = [paragraph_with_language(
+        "en-US",
+        vec![UiNode::Text("hyphenation".to_owned())],
+    )];
+    let manual = [paragraph_with_language(
+        "en-US",
+        vec![UiNode::Text("hy\u{00ad}phen\u{00ad}ation".to_owned())],
+    )];
+    let automatic_stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "35px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "hyphens".to_owned(),
+                value: "auto".to_owned(),
+            }],
+        },
+    ];
+    let manual_stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "width".to_owned(),
+            value: "35px".to_owned(),
+        }],
+    }];
+    let mut automatic_page = PageRasterizer::new(&nodes, &automatic_stylesheet);
+    let mut manual_page = PageRasterizer::new(&manual, &manual_stylesheet);
+
+    assert!(
+        automatic_page
+            .runs
+            .iter()
+            .any(|run| run.text.contains('\u{00ad}'))
+    );
+    assert_ne!(
+        automatic_page.snapshot_pixels(140, 100),
+        manual_page.snapshot_pixels(140, 100)
+    );
+}
+
+#[test]
+fn automatic_hyphenation_requires_a_supported_language() {
+    let automatic = [paragraph_with_language(
+        "zz-ZZ",
+        vec![UiNode::Text("hyphenation".to_owned())],
+    )];
+    let plain_text = [paragraph(vec![UiNode::Text("hyphenation".to_owned())])];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "width".to_owned(),
+                value: "35px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "hyphens".to_owned(),
+                value: "auto".to_owned(),
+            },
+        ],
+    }];
+    let mut automatic_page = PageRasterizer::new(&automatic, &stylesheet);
+    let mut plain_page = PageRasterizer::new(&plain_text, &[]);
+
+    assert_eq!(
+        automatic_page.snapshot_pixels(140, 100),
+        plain_page.snapshot_pixels(140, 100)
+    );
+}
+
 fn paragraph(children: Vec<UiNode>) -> UiNode {
     UiNode::Element {
         tag: "p".to_owned(),
         class: None,
         id: None,
         attributes: Vec::new(),
+        children,
+    }
+}
+
+fn paragraph_with_language(language: &str, children: Vec<UiNode>) -> UiNode {
+    UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![("lang".to_owned(), Some(language.to_owned()))],
         children,
     }
 }

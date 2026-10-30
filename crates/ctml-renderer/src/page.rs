@@ -16,6 +16,7 @@ mod font_faces;
 mod font_features;
 mod font_raster;
 mod highlights;
+mod hyphenation;
 mod interactions;
 mod layout;
 mod pixel;
@@ -90,7 +91,7 @@ impl PageRasterizer {
         );
         let focus_manager = focus::FocusManager::new(nodes);
         let selection_background_color = crate::css_style::selection_background_color(stylesheet);
-        let runs = compiled_runs
+        let mut runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
                 let family = resolve_family_list(&run.style.family, &font_system);
@@ -101,6 +102,7 @@ impl PageRasterizer {
                 }
             })
             .collect::<Vec<_>>();
+        hyphenation::apply_auto_hyphenation(&mut runs);
         let cursor_spans = cursor_spans(&runs);
         let buffer = Buffer::new(
             &mut font_system,
