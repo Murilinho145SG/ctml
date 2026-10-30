@@ -240,12 +240,8 @@ pub(super) fn collect_runs(
                     && before_content.is_none()
                     && !has_after_content
                     && !list_item;
-                let has_block_size = collect_layout::register_layout_size(
-                    &mut style,
-                    sibling.node_id,
-                    block,
-                    empty_box,
-                );
+                let has_block_size =
+                    collect_layout::register_layout_size(&mut style, sibling.node_id, block);
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;

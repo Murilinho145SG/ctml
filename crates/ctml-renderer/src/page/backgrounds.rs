@@ -24,7 +24,6 @@ pub(super) fn draw_block_boxes(
     for run in runs {
         for size in &run.style.layout_sizes {
             if !drawn.insert(size.node_id)
-                || !size.empty_box
                 || size.background_layers.is_empty()
                 || size.visibility_hidden
                 || size.content_skipped
@@ -107,8 +106,8 @@ pub(super) fn draw(
                     .and_then(|index| runs.get(index))
                     .is_some_and(|run| {
                         run.style.layout_sizes.iter().any(|size| {
-                            !size.background_layers.is_empty()
-                                && size.empty_box
+                            run.element_path.last() == Some(&size.node_id)
+                                && !size.background_layers.is_empty()
                                 && size.background_layers == style.background_layers
                         })
                     });

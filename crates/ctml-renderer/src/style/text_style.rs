@@ -177,7 +177,6 @@ pub(crate) struct LayoutSize {
     pub(crate) opacity: f32,
     pub(crate) visibility_hidden: bool,
     pub(crate) content_skipped: bool,
-    pub(crate) empty_box: bool,
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
     pub(crate) intrinsic_min_content_width: Option<f32>,

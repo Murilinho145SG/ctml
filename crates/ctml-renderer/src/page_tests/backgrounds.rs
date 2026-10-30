@@ -105,6 +105,46 @@ fn paints_background_across_an_empty_sized_block_padding_box() {
 }
 
 #[test]
+fn paints_content_block_background_across_its_padding_box() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("content".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("A".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".content".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "40px"),
+            ("height", "30px"),
+            ("padding", "6px"),
+            ("background-color", "red"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(120, 100);
+    let rect = page.overflow_geometry[&1].border_box;
+    let pixels = page.snapshot_pixels(120, 100);
+    let x = (rect.left + 2.0).round() as usize;
+    let y = (rect.top + 2.0).round() as usize;
+    let pixel = &pixels[(y * 120 + x) * 4..][..3];
+
+    assert_eq!(
+        pixel,
+        [255, 0, 0],
+        "padding area should receive the block background"
+    );
+}
+
+#[test]
 fn nests_element_backgrounds_behind_child_text() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
@@ -152,5 +192,60 @@ fn nests_element_backgrounds_behind_child_text() {
         pixels
             .chunks_exact(4)
             .any(|pixel| pixel[..3] == [0, 0, 255])
+    );
+}
+
+#[test]
+fn inline_background_still_paints_over_a_same_color_block_background() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Text("before ".to_owned()),
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: Some("child".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("child".to_owned())],
+            },
+            UiNode::Text(" after".to_owned()),
+        ],
+    }];
+    let color = "rgb(255 255 0 / 50%)";
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: color.to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".child".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: color.to_owned(),
+            }],
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(180, 60);
+    let parent_only = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "background-color".to_owned(),
+            value: color.to_owned(),
+        }],
+    }];
+    let baseline = PageRasterizer::new(&nodes, &parent_only).snapshot_pixels(180, 60);
+
+    assert_ne!(
+        pixels, baseline,
+        "inline background should composite above the block fill"
     );
 }

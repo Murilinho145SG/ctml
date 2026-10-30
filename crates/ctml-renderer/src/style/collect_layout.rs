@@ -1,11 +1,6 @@
 use super::{BorderLineStyle, LayoutSize, Overflow, TextStyle};
 
-pub(super) fn register_layout_size(
-    style: &mut TextStyle,
-    node_id: usize,
-    block: bool,
-    empty_box: bool,
-) -> bool {
+pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block: bool) -> bool {
     let has_block_size = block
         && (style.width.is_some()
             || style.min_width.is_some()
@@ -21,7 +16,7 @@ pub(super) fn register_layout_size(
             || style.max_block_size.is_some()
             || style.aspect_ratio.is_some()
             || !style.box_shadows.is_empty()
-            || (empty_box && !style.background_layers.is_empty())
+            || !style.background_layers.is_empty()
             || style.margin.iter().flatten().any(|margin| margin != "0")
             || style.padding.iter().flatten().any(|padding| padding != "0")
             || style
@@ -66,7 +61,6 @@ pub(super) fn register_layout_size(
         opacity: style.opacity,
         visibility_hidden: style.visibility_hidden,
         content_skipped: style.content_skipped,
-        empty_box,
         padding: style.padding.clone(),
         margin: style.margin.clone(),
         intrinsic_min_content_width: None,

@@ -78,12 +78,16 @@ mod scrolling;
 mod selection;
 #[path = "page_tests/sizing.rs"]
 mod sizing;
+#[path = "page_tests/sizing_blocks.rs"]
+mod sizing_blocks;
 #[path = "page_tests/sizing_intrinsic.rs"]
 mod sizing_intrinsic;
 #[path = "page_tests/sizing_overflow.rs"]
 mod sizing_overflow;
 #[path = "page_tests/sizing_percentages.rs"]
 mod sizing_percentages;
+#[path = "page_tests/sizing_vertical.rs"]
+mod sizing_vertical;
 #[path = "page_tests/viewport_units.rs"]
 mod viewport_units;
 
