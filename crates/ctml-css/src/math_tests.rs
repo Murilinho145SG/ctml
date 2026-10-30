@@ -108,3 +108,22 @@ fn rejects_invalid_css_mod_and_rem_arguments() {
         assert_eq!(parse(value), None, "{value}");
     }
 }
+
+#[test]
+fn evaluates_css_abs_and_sign_for_numbers_and_lengths() {
+    assert_eq!(parse_math_number("abs(-5)"), Some(5.0));
+    assert_eq!(parse_math_number("sign(-5)"), Some(-1.0));
+    assert_eq!(parse_math_number("sign(0)"), Some(0.0));
+    assert_eq!(
+        parse_math_number("sign(-0)").unwrap().to_bits(),
+        (-0.0f32).to_bits()
+    );
+    assert_eq!(parse("abs(-10px)"), Some(10.0));
+}
+
+#[test]
+fn rejects_invalid_css_abs_and_sign_argument_counts() {
+    for value in ["abs()", "sign()", "abs(1, 2)", "sign(1, 2)"] {
+        assert_eq!(parse_math_number(value), None, "{value}");
+    }
+}

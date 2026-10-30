@@ -22,13 +22,15 @@ impl MathValue {
 
 pub(crate) fn is_math_function(value: &str) -> bool {
     let value = value.trim_start();
-    ["calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem("]
-        .iter()
-        .any(|function| {
-            value
-                .get(..function.len())
-                .is_some_and(|prefix| prefix.eq_ignore_ascii_case(function))
-        })
+    [
+        "calc(", "min(", "max(", "clamp(", "round(", "mod(", "rem(", "abs(", "sign(",
+    ]
+    .iter()
+    .any(|function| {
+        value
+            .get(..function.len())
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(function))
+    })
 }
 
 pub fn parse_math_expression(
@@ -221,7 +223,33 @@ where
             "round" => self.parse_round_function(),
             "mod" => self.parse_remainder_function(true),
             "rem" => self.parse_remainder_function(false),
+            "abs" => self.parse_sign_function(true),
+            "sign" => self.parse_sign_function(false),
             _ => None,
+        }
+    }
+
+    fn parse_sign_function(&mut self, absolute: bool) -> Option<MathValue> {
+        let value = self.parse_sum()?;
+        self.skip_whitespace();
+        if !self.consume(b')') {
+            return None;
+        }
+        if absolute {
+            value.map(f32::abs)
+        } else {
+            let number = if value.value() == 0.0 {
+                if value.value().is_sign_negative() {
+                    -0.0
+                } else {
+                    0.0
+                }
+            } else if value.value().is_sign_negative() {
+                -1.0
+            } else {
+                1.0
+            };
+            Some(MathValue::Number(number))
         }
     }
 
