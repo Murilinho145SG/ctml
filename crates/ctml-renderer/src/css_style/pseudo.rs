@@ -184,6 +184,11 @@ fn resolve_pseudo_style(
                             "border-top-right-radius",
                             "border-bottom-right-radius",
                             "border-bottom-left-radius",
+                            "outline",
+                            "outline-width",
+                            "outline-style",
+                            "outline-color",
+                            "outline-offset",
                         ]
                         .iter()
                         .any(|property| declaration.property.eq_ignore_ascii_case(property))
@@ -311,6 +316,11 @@ fn resolve_pseudo_style(
                     "border-top-right-radius",
                     "border-bottom-right-radius",
                     "border-bottom-left-radius",
+                    "outline",
+                    "outline-width",
+                    "outline-style",
+                    "outline-color",
+                    "outline-offset",
                 ]
                 .iter()
                 .any(|property| declaration.property.eq_ignore_ascii_case(property))

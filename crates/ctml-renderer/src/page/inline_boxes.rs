@@ -53,12 +53,17 @@ pub(super) fn draw(
             let Some(node_id) = run.element_path.last().copied() else {
                 continue;
             };
-            if !run
+            let has_border = run
                 .style
                 .border_style
                 .iter()
-                .any(|style| *style != BorderLineStyle::None)
-            {
+                .any(|style| *style != BorderLineStyle::None);
+            let has_outline = run.first_letter_block.is_some()
+                && !matches!(
+                    run.style.outline_style,
+                    BorderLineStyle::None | BorderLineStyle::Hidden
+                );
+            if !has_border && !has_outline {
                 continue;
             }
             let entry = line_fragments.entry(node_id).or_insert(Fragment {
@@ -96,6 +101,11 @@ pub(super) fn draw(
                 continue;
             };
             let style = &run.style;
+            let has_outline = run.first_letter_block.is_some()
+                && !matches!(
+                    style.outline_style,
+                    BorderLineStyle::None | BorderLineStyle::Hidden
+                );
             let widths: [f32; 4] = std::array::from_fn(|side| {
                 if style.border_style[side] == BorderLineStyle::None {
                     return 0.0;
@@ -144,6 +154,23 @@ pub(super) fn draw(
             let top = fragment.top + PAGE_PADDING;
             let length = (fragment.right - fragment.left).max(0.0);
             let fragment_height = (fragment.bottom - fragment.top).max(0.0);
+            if has_outline {
+                super::outlines::draw_inline_outline(
+                    pixels,
+                    width,
+                    height,
+                    style,
+                    overflow_clip::ClipRect {
+                        left,
+                        top,
+                        right: left + length,
+                        bottom: top + fragment_height,
+                    },
+                    style.opacity * run.first_letter_opacity.unwrap_or(1.0),
+                    &parent_path,
+                    clips,
+                );
+            }
             if run.first_letter_block.is_some()
                 && style.border_radius.iter().flatten().any(Option::is_some)
             {

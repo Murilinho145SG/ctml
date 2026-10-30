@@ -602,3 +602,33 @@ fn first_letter_border_radius_rounds_the_border_corner() {
         "rounded border should leave its outer top-left corner clear"
     );
 }
+
+#[test]
+fn first_letter_outline_paints_outside_the_initial_glyph() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Initial letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: [("outline", "2px solid red"), ("outline-offset", "2px")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(140, 70);
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0]),
+        "outline on the initial glyph should paint outside its inline box"
+    );
+}

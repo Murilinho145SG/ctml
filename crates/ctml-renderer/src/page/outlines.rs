@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::style::{BorderLineStyle, LayoutSize};
+use crate::style::{BorderLineStyle, LayoutSize, TextStyle};
 
 use super::{
-    border_radius::{draw_rounded_border, resolve_radii},
+    border_radius::draw_rounded_border,
     borders::{draw_edge, edge_color},
     overflow_clip::{self, BlockGeometry},
 };
@@ -19,14 +19,89 @@ pub(super) fn draw_outline(
     element_path: &[usize],
     clips: &HashMap<usize, overflow_clip::ClipRect>,
 ) {
-    if matches!(
+    draw_outline_with_values(
+        pixels,
+        width,
+        height,
+        geometry.border_box,
+        &size.border_radius,
+        size.font_size,
+        size.line_height,
+        size.font_relative_units,
+        size.viewport_size,
+        size.outline_width.as_deref(),
         size.outline_style,
+        size.outline_color,
+        size.outline_offset.as_deref(),
+        current_color,
+        opacity,
+        element_path
+            .iter()
+            .copied()
+            .filter(|node_id| *node_id != size.node_id)
+            .collect::<Vec<_>>(),
+        clips,
+    );
+}
+
+pub(super) fn draw_inline_outline(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    style: &TextStyle,
+    rect: overflow_clip::ClipRect,
+    opacity: f32,
+    element_path: &[usize],
+    clips: &HashMap<usize, overflow_clip::ClipRect>,
+) {
+    draw_outline_with_values(
+        pixels,
+        width,
+        height,
+        rect,
+        &style.border_radius,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+        style.outline_width.as_deref(),
+        style.outline_style,
+        style.outline_color,
+        style.outline_offset.as_deref(),
+        &style.color,
+        opacity,
+        element_path.to_vec(),
+        clips,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_outline_with_values(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    rect: overflow_clip::ClipRect,
+    border_radius: &[[Option<String>; 2]; 4],
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: ctml_css::FontRelativeUnits,
+    viewport_size: ctml_css::ViewportSize,
+    width_value: Option<&str>,
+    outline_style: BorderLineStyle,
+    outline_color: Option<[u8; 4]>,
+    offset_value: Option<&str>,
+    current_color: &[u8; 4],
+    opacity: f32,
+    path: Vec<usize>,
+    clips: &HashMap<usize, overflow_clip::ClipRect>,
+) {
+    if matches!(
+        outline_style,
         BorderLineStyle::None | BorderLineStyle::Hidden
     ) {
         return;
     }
-    let rect = geometry.border_box;
-    let width_value = size.outline_width.as_deref().unwrap_or("medium");
+    let width_value = width_value.unwrap_or("medium");
     let thickness = match width_value {
         "thin" => 1.0,
         "medium" => 3.0,
@@ -34,36 +109,34 @@ pub(super) fn draw_outline(
         value => super::sizing::resolve_width(
             value,
             0.0,
-            size.font_size,
-            size.line_height,
-            size.font_relative_units,
-            size.viewport_size,
+            font_size,
+            line_height,
+            font_relative_units,
+            viewport_size,
         )
         .unwrap_or_default(),
     };
     if thickness <= 0.0 {
         return;
     }
-    let offset = size
-        .outline_offset
-        .as_deref()
+    let offset = offset_value
         .and_then(|value| {
             ctml_css::parse_math_expression(value, |component| {
                 ctml_css::parse_signed_font_relative_length_with_viewport(
                     component,
-                    size.font_size,
-                    size.line_height,
-                    size.font_relative_units,
-                    size.viewport_size,
+                    font_size,
+                    line_height,
+                    font_relative_units,
+                    viewport_size,
                 )
             })
             .or_else(|| {
                 ctml_css::parse_signed_font_relative_length_with_viewport(
                     value,
-                    size.font_size,
-                    size.line_height,
-                    size.font_relative_units,
-                    size.viewport_size,
+                    font_size,
+                    line_height,
+                    font_relative_units,
+                    viewport_size,
                 )
             })
         })
@@ -78,14 +151,17 @@ pub(super) fn draw_outline(
     if expanded.right <= expanded.left || expanded.bottom <= expanded.top {
         return;
     }
-    let parent_path = element_path
-        .iter()
-        .copied()
-        .filter(|node_id| *node_id != size.node_id)
-        .collect::<Vec<_>>();
-    let clip = overflow_clip::clip_for_path(&parent_path, clips);
-    let color = edge_color(size.outline_color.unwrap_or(*current_color), opacity);
-    let radii = resolve_radii(size, rect).map(|radius| {
+    let clip = overflow_clip::clip_for_path(&path, clips);
+    let color = edge_color(outline_color.unwrap_or(*current_color), opacity);
+    let radii = super::border_radius::resolve_radii_values(
+        border_radius,
+        font_size,
+        line_height,
+        font_relative_units,
+        viewport_size,
+        rect,
+    )
+    .map(|radius| {
         [
             (radius[0] + outward).max(0.0),
             (radius[1] + outward).max(0.0),
@@ -99,7 +175,7 @@ pub(super) fn draw_outline(
             expanded,
             [thickness; 4],
             radii,
-            [size.outline_style; 4],
+            [outline_style; 4],
             [color; 4],
             1.0,
             clip,
@@ -145,7 +221,7 @@ pub(super) fn draw_outline(
                 thickness,
                 horizontal,
                 side,
-                size.outline_style,
+                outline_style,
                 color,
                 clip,
             );

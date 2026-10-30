@@ -171,6 +171,12 @@ fn apply_first_letter_style(
     style.border_color = pseudo_style.border_color;
     style.box_shadows.clone_from(&pseudo_style.box_shadows);
     style.border_radius.clone_from(&pseudo_style.border_radius);
+    style.outline_width.clone_from(&pseudo_style.outline_width);
+    style.outline_style = pseudo_style.outline_style;
+    style.outline_color = pseudo_style.outline_color;
+    style
+        .outline_offset
+        .clone_from(&pseudo_style.outline_offset);
 }
 
 fn core_range(text: &str, transformed_character_count: usize) -> Option<(usize, usize)> {
