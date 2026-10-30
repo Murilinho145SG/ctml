@@ -1,9 +1,10 @@
 use super::{
     FontRelativeUnits, ViewportSize, parse_font_relative_length,
-    parse_font_relative_length_with_viewport, parse_length, parse_length_with_line_height,
-    parse_nonnegative_font_relative_length, parse_nonnegative_font_relative_length_with_viewport,
+    parse_font_relative_length_with_viewport, parse_length, parse_length_with_font_metrics,
+    parse_length_with_line_height, parse_nonnegative_font_relative_length,
+    parse_nonnegative_font_relative_length_with_viewport, parse_nonnegative_length,
     parse_nonnegative_length_with_line_height, parse_signed_font_relative_length,
-    parse_signed_font_relative_length_with_viewport,
+    parse_signed_font_relative_length_with_viewport, parse_signed_length_percentage,
     parse_signed_length_percentage_with_line_height,
 };
 
@@ -29,6 +30,54 @@ fn parses_length_components_as_single_css_numeric_tokens() {
     assert_eq!(parse_length("10 px", 16.0), None);
     assert_eq!(parse_length("1e999px", 16.0), None);
     assert_eq!(parse_length("10px trailing", 16.0), None);
+}
+
+#[test]
+fn parses_relative_and_signed_lengths_as_single_css_numeric_tokens() {
+    let metrics = FontRelativeUnits::default();
+    let viewport = ViewportSize {
+        width: 800.0,
+        height: 600.0,
+    };
+    assert_eq!(parse_length_with_line_height("2lh", 16.0, 24.0), Some(48.0));
+    assert_eq!(parse_length_with_line_height("2 lh", 16.0, 24.0), None);
+    assert_eq!(
+        parse_length_with_font_metrics("2ex", 16.0, metrics),
+        Some(16.0)
+    );
+    assert_eq!(parse_length_with_font_metrics("2 ex", 16.0, metrics), None);
+    assert_eq!(
+        parse_font_relative_length("2lh", 16.0, 24.0, metrics),
+        Some(48.0)
+    );
+    assert_eq!(parse_nonnegative_length("2px", 16.0), Some(2.0));
+    assert_eq!(parse_nonnegative_length("2 px", 16.0), None);
+    assert_eq!(
+        parse_nonnegative_length_with_line_height("2 lh", 16.0, 24.0),
+        None
+    );
+    assert_eq!(
+        parse_nonnegative_font_relative_length("2 ex", 16.0, 24.0, metrics),
+        None
+    );
+    assert_eq!(
+        parse_nonnegative_font_relative_length_with_viewport("2 vw", 16.0, 24.0, metrics, viewport),
+        None
+    );
+    assert_eq!(parse_signed_length_percentage("-2px", 16.0), Some(-2.0));
+    assert_eq!(parse_signed_length_percentage("-2 px", 16.0), None);
+    assert_eq!(
+        parse_signed_length_percentage_with_line_height("-2 lh", 16.0, 24.0),
+        None
+    );
+    assert_eq!(
+        parse_signed_font_relative_length("-2 ex", 16.0, 24.0, metrics),
+        None
+    );
+    assert_eq!(
+        parse_signed_font_relative_length_with_viewport("-2 vw", 16.0, 24.0, metrics, viewport),
+        None
+    );
 }
 
 #[test]
