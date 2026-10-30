@@ -87,6 +87,32 @@ fn resolves_font_face_sources_from_the_declaring_stylesheet() {
 }
 
 #[test]
+fn loads_font_face_urls_with_format_and_technology_hints() {
+    let root = temporary_directory("font-face-format-hint");
+    std::fs::create_dir_all(root.join("styles")).unwrap();
+    std::fs::write(root.join("styles/font.bin"), [4, 5, 6]).unwrap();
+    std::fs::write(root.join("styles/main.css"), "").unwrap();
+
+    let resource = crate::load_font_face_resource(
+        "url('font.bin') format('opentype') tech(color-COLRv1)",
+        root.join("styles/main.css"),
+        &root,
+    )
+    .unwrap();
+    assert_eq!(resource.bytes, [4, 5, 6]);
+    assert!(
+        crate::load_font_face_resource(
+            "url('font.bin'), url('fallback.bin')",
+            root.join("styles/main.css"),
+            &root,
+        )
+        .is_err()
+    );
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn parses_css_url_tokens_strings_and_escapes() {
     assert_eq!(
         crate::parse_css_url("url(font.woff2)"),

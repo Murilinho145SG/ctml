@@ -1,7 +1,7 @@
 use std::{env, fs, io, path::PathBuf};
 
 use ctml_compiler::{
-    AttributeValue, CssRule, Element, Node, load_css_resource, parse, parse_stylesheet_file,
+    AttributeValue, CssRule, Element, Node, load_font_face_resource, parse, parse_stylesheet_file,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .as_ref()
                 .ok_or_else(|| invalid_data("font-face has no source stylesheet"))?;
             let resource =
-                load_css_resource(&face.source, path, &source_root).map_err(invalid_data)?;
+                load_font_face_resource(&face.source, path, &source_root).map_err(invalid_data)?;
             println!("cargo:rerun-if-changed={}", resource.path.display());
             fonts.push((
                 face.family.clone(),

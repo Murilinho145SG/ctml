@@ -24,7 +24,9 @@ pub use length::{
     parse_signed_length_percentage_with_line_height,
 };
 pub use math::{parse_math_expression, parse_math_number};
-pub use resources::{LocalResource, load_css_resource, load_local_resource, parse_css_url};
+pub use resources::{
+    LocalResource, load_css_resource, load_font_face_resource, load_local_resource, parse_css_url,
+};
 pub use selector::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeAncestor, SelectorTreeElement,
     selector_matches, selector_matches_with_attributes, selector_matches_with_context,

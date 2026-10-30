@@ -90,6 +90,55 @@ pub fn load_css_resource(
     load_local_resource(&url_path, stylesheet_path, root)
 }
 
+/// Loads a local font URL from an `@font-face` `src` descriptor.
+///
+/// One `url()` source may be followed by `format()` or `tech()` hints.
+pub fn load_font_face_resource(
+    src: &str,
+    stylesheet_path: impl AsRef<Path>,
+    root: impl AsRef<Path>,
+) -> Result<LocalResource, String> {
+    let url = parse_font_face_src_url(src)
+        .ok_or_else(|| "unsupported @font-face src descriptor".to_owned())?;
+    load_local_resource(&url, stylesheet_path, root)
+}
+
+fn parse_font_face_src_url(src: &str) -> Option<String> {
+    let mut source = ParserInput::new(src);
+    let mut parser = Parser::new(&mut source);
+    let url = match parser.next().ok()? {
+        Token::UnquotedUrl(url) => url.to_string(),
+        Token::Function(name) if name.eq_ignore_ascii_case("url") => parser
+            .parse_nested_block(|input| -> Result<String, cssparser::ParseError<'_, ()>> {
+                input.skip_whitespace();
+                let value = input.expect_string()?.to_string();
+                input.skip_whitespace();
+                if !input.is_exhausted() {
+                    return Err(input.new_custom_error(()));
+                }
+                Ok(value)
+            })
+            .ok()?,
+        _ => return None,
+    };
+    while !parser.is_exhausted() {
+        match parser.next().ok()? {
+            Token::Function(name)
+                if matches!(name.to_ascii_lowercase().as_str(), "format" | "tech") =>
+            {
+                parser
+                    .parse_nested_block(|input| -> Result<(), cssparser::ParseError<'_, ()>> {
+                        while input.next().is_ok() {}
+                        Ok(())
+                    })
+                    .ok()?;
+            }
+            _ => return None,
+        }
+    }
+    Some(url)
+}
+
 /// Loads a local resource relative to a stylesheet, constrained to its configured root.
 ///
 /// Network and data URLs, URL fragments and queries, path escapes, and files larger
