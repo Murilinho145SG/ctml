@@ -14,9 +14,11 @@ use crate::page::{CursorSpan, PAGE_PADDING};
 use crate::style::{TextRun, TextStyle};
 
 mod highlight;
+mod orientation;
 mod text_effects;
 
 use highlight::{first_line_style_at, glyph_foreground, pseudo_opacity_at};
+use orientation::{draw_upright_glyphs, glyph_is_upright};
 use text_effects::{draw_text_emphasis, draw_text_shadows, scale_alpha};
 
 pub(super) fn draw(
@@ -78,6 +80,12 @@ pub(super) fn draw(
             let style_index = style_index_at(&style_ranges, line_start + first.start);
             let first_line_style =
                 first_line_style_at(cursor_spans, &first_line_by_block, run.line_i, first.start);
+            let orientation_style = first_line_style.or_else(|| {
+                style_index
+                    .and_then(|index| runs.get(index))
+                    .map(|run| &run.style)
+            });
+            let first_upright = glyph_is_upright(&run, first, orientation_style);
             let opacity = pseudo_opacity_at(
                 cursor_spans,
                 &first_line_by_block,
@@ -101,18 +109,24 @@ pub(super) fn draw(
                 )
                 .map(|color| cosmic_text::Color::rgba(color[0], color[1], color[2], color[3]))
                 .or(glyph.color_opt);
+                let glyph_style_index = style_index_at(&style_ranges, line_start + glyph.start);
+                let glyph_first_line_style = first_line_style_at(
+                    cursor_spans,
+                    &first_line_by_block,
+                    run.line_i,
+                    glyph.start,
+                );
+                let glyph_orientation_style = glyph_first_line_style.or_else(|| {
+                    glyph_style_index
+                        .and_then(|index| runs.get(index))
+                        .map(|run| &run.style)
+                });
                 if glyph.font_id != first.font_id
                     || glyph.font_size != first.font_size
                     || glyph.level != first.level
-                    || style_index_at(&style_ranges, line_start + glyph.start) != style_index
-                    || first_line_style_at(
-                        cursor_spans,
-                        &first_line_by_block,
-                        run.line_i,
-                        glyph.start,
-                    )
-                    .is_some()
-                        != first_line_style.is_some()
+                    || glyph_style_index != style_index
+                    || glyph_first_line_style.is_some() != first_line_style.is_some()
+                    || glyph_is_upright(&run, glyph, glyph_orientation_style) != first_upright
                     || glyph_color.unwrap_or(cosmic_text::Color::rgb(0, 0, 0)) != color
                     || pseudo_opacity_at(
                         cursor_spans,
@@ -206,7 +220,12 @@ pub(super) fn draw(
                     ),
                 )
             });
-            if let Some(blob) = blob {
+            if first_upright {
+                draw_upright_glyphs(canvas, group, &font, baseline, &paint, text_style, opacity);
+                if let Some(style) = text_style {
+                    draw_text_emphasis(canvas, &run, group, style, &font, opacity);
+                }
+            } else if let Some(blob) = blob {
                 if let Some(style) = text_style {
                     draw_text_shadows(canvas, &blob, style, opacity);
                 }

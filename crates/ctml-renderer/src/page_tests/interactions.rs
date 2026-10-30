@@ -143,6 +143,45 @@ fn page_root_vertical_writing_rotates_the_complete_rendered_surface() {
 }
 
 #[test]
+fn vertical_text_orientation_controls_mixed_upright_and_sideways_glyphs() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("A日".to_owned())],
+    }];
+    let render = |orientation: Option<&str>| {
+        let mut stylesheet = vec![StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            }],
+        }];
+        if let Some(orientation) = orientation {
+            stylesheet.push(StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
+                    property: "text-orientation".to_owned(),
+                    value: orientation.to_owned(),
+                }],
+            });
+        }
+        PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 80)
+    };
+
+    let mixed = render(None);
+    let sideways = render(Some("sideways"));
+    let upright = render(Some("upright"));
+    assert_ne!(mixed, sideways);
+    assert_ne!(mixed, upright);
+    assert_ne!(sideways, upright);
+}
+
+#[test]
 fn unicode_bidi_isolate_applies_to_nested_inline_runs_without_rendered_controls() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

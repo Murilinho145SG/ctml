@@ -241,7 +241,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `unicode-bidi: isolate` adds Unicode isolate controls around the styled inline range without adding controls to rendered text.
 - [x] Page-root `writing-mode: vertical-rl|vertical-lr` creates vertical columns and maps pointer coordinates through the rendered orientation.
 - [ ] Apply vertical flow independently to nested block elements and logical sizing properties.
-- [ ] Apply `text-orientation: mixed|upright|sideways` per glyph in vertical writing; vertical flow currently renders all glyphs sideways.
+- [x] Apply `text-orientation: mixed|upright|sideways` per glyph in vertical writing, using Unicode Vertical_Orientation data.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [x] Hebrew, Armenian, Georgian, basic CJK, localized decimal, and kana alphabet predefined `list-style-type` systems, with decimal fallback outside supported ranges.
