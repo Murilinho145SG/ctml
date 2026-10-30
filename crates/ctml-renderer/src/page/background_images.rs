@@ -6,8 +6,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::style::{
     BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
-    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, LinearGradient, RadialGradient,
-    RadialGradientExtent, RadialGradientShape,
+    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient, LinearGradient,
+    RadialGradient, RadialGradientExtent, RadialGradientShape,
 };
 
 use super::overflow_clip::{BackgroundBoxes, ClipRect};
@@ -165,6 +165,9 @@ pub(super) fn draw_background_image_layers(
             }
             BackgroundImage::RadialGradient(gradient) => {
                 (radial_gradient_shader(gradient, origin_rect), None)
+            }
+            BackgroundImage::ConicGradient(gradient) => {
+                (conic_gradient_shader(gradient, origin_rect), None)
             }
         };
         let Some(shader) = shader else { continue };
@@ -385,4 +388,32 @@ fn radial_gradient_shader(gradient: &RadialGradient, rect: Rect) -> Option<skia_
             Some(&matrix),
         )
     }
+}
+
+fn conic_gradient_shader(gradient: &ConicGradient, rect: Rect) -> Option<skia_safe::Shader> {
+    let colors = gradient
+        .stops
+        .iter()
+        .map(|(color, _)| {
+            Color4f::new(
+                f32::from(color[0]) / 255.0,
+                f32::from(color[1]) / 255.0,
+                f32::from(color[2]) / 255.0,
+                f32::from(color[3]) / 255.0,
+            )
+        })
+        .collect::<Vec<_>>();
+    let positions = gradient
+        .stops
+        .iter()
+        .map(|(_, position)| *position)
+        .collect::<Vec<_>>();
+    let colors = gradient::Colors::new(&colors, Some(&positions), TileMode::Clamp, None);
+    let shader_gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
+    let center = Point::new(
+        rect.left + rect.width() * gradient.center_x_percent,
+        rect.top + rect.height() * gradient.center_y_percent,
+    );
+    let start = gradient.from_degrees - 90.0;
+    gradient::shaders::sweep_gradient(center, (start, start + 360.0), &shader_gradient, None)
 }

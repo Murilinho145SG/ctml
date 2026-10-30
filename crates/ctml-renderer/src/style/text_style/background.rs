@@ -5,6 +5,7 @@ pub(crate) enum BackgroundImage {
     Encoded(Arc<[u8]>),
     LinearGradient(LinearGradient),
     RadialGradient(RadialGradient),
+    ConicGradient(ConicGradient),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,6 +35,14 @@ pub(crate) enum RadialGradientExtent {
 pub(crate) struct RadialGradient {
     pub(crate) shape: RadialGradientShape,
     pub(crate) extent: RadialGradientExtent,
+    pub(crate) center_x_percent: f32,
+    pub(crate) center_y_percent: f32,
+    pub(crate) stops: Vec<([u8; 4], f32)>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ConicGradient {
+    pub(crate) from_degrees: f32,
     pub(crate) center_x_percent: f32,
     pub(crate) center_y_percent: f32,
     pub(crate) stops: Vec<([u8; 4], f32)>,

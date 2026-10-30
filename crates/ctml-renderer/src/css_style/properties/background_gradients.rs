@@ -1,5 +1,6 @@
 use crate::style::{
-    LinearGradient, RadialGradient, RadialGradientExtent, RadialGradientShape, TextStyle,
+    ConicGradient, LinearGradient, RadialGradient, RadialGradientExtent, RadialGradientShape,
+    TextStyle,
 };
 use ctml_css::parse_color_with_opacity_and_profiles;
 
@@ -91,6 +92,118 @@ pub(super) fn parse_radial_gradient(style: &TextStyle, value: &str) -> Option<Ra
         center_y_percent,
         stops,
     })
+}
+
+pub(super) fn parse_conic_gradient(style: &TextStyle, value: &str) -> Option<ConicGradient> {
+    let value = value.trim();
+    let opening = value.find('(')?;
+    if !value[..opening]
+        .trim()
+        .eq_ignore_ascii_case("conic-gradient")
+        || !value.ends_with(')')
+    {
+        return None;
+    }
+    let arguments = &value[opening + 1..value.len() - 1];
+    let mut components = split_top_level_commas(arguments).into_iter();
+    let first = components.next()?;
+    let (from_degrees, center_x_percent, center_y_percent, first_stop) =
+        match parse_conic_descriptor(first)? {
+            Some((angle, center)) => (angle, center.0, center.1, None),
+            None => (0.0, 0.5, 0.5, Some(first)),
+        };
+    let mut stops = Vec::new();
+    if let Some(first_stop) = first_stop {
+        stops.push(parse_conic_stop(style, first_stop)?);
+    }
+    stops.extend(
+        components
+            .map(|component| parse_conic_stop(style, component))
+            .collect::<Option<Vec<_>>>()?,
+    );
+    if stops.len() < 2 {
+        return None;
+    }
+    resolve_gradient_stop_positions(&mut stops)?;
+    let stops = stops
+        .into_iter()
+        .map(|(color, position)| Some((color, position?)))
+        .collect::<Option<Vec<_>>>()?;
+    Some(ConicGradient {
+        from_degrees: from_degrees.rem_euclid(360.0),
+        center_x_percent,
+        center_y_percent,
+        stops,
+    })
+}
+
+fn parse_conic_descriptor(value: &str) -> Option<Option<(f32, (f32, f32))>> {
+    let tokens = value.split_ascii_whitespace().collect::<Vec<_>>();
+    let at = tokens
+        .iter()
+        .position(|token| token.eq_ignore_ascii_case("at"));
+    let prefix = &tokens[..at.unwrap_or(tokens.len())];
+    let has_from = prefix
+        .first()
+        .is_some_and(|token| token.eq_ignore_ascii_case("from"));
+    if at.is_none() && !has_from {
+        return Some(None);
+    }
+    let angle = if has_from {
+        if prefix.len() != 2 {
+            return None;
+        }
+        parse_css_angle(prefix[1])?
+    } else {
+        if !prefix.is_empty() {
+            return None;
+        }
+        0.0
+    };
+    let center = if let Some(at) = at {
+        parse_radial_position(&tokens[at + 1..])?
+    } else {
+        (0.5, 0.5)
+    };
+    Some(Some((angle, center)))
+}
+
+fn parse_conic_stop(style: &TextStyle, value: &str) -> Option<([u8; 4], Option<f32>)> {
+    let value = value.trim();
+    let split = last_top_level_whitespace(value);
+    if let Some(split) = split {
+        let candidate = value[split..].trim();
+        if let Some(position) = parse_conic_stop_position(candidate) {
+            let (color, _) = parse_gradient_stop(style, value[..split].trim())?;
+            return Some((color, Some(position)));
+        }
+    }
+    let (color, position) = parse_gradient_stop(style, value)?;
+    Some((color, position))
+}
+
+fn parse_conic_stop_position(value: &str) -> Option<f32> {
+    ctml_css::parse_css_percentage(value)
+        .map(|percentage| percentage / 100.0)
+        .or_else(|| parse_css_angle(value).map(|degrees| degrees / 360.0))
+}
+
+fn parse_css_angle(value: &str) -> Option<f32> {
+    let value = value.trim().to_ascii_lowercase();
+    let (number, unit) = ["deg", "turn", "grad", "rad"]
+        .into_iter()
+        .find_map(|unit| value.strip_suffix(unit).map(|number| (number, unit)))?;
+    let number = number.trim().parse::<f32>().ok()?;
+    if !number.is_finite() {
+        return None;
+    }
+    let degrees = match unit {
+        "deg" => number,
+        "turn" => number * 360.0,
+        "grad" => number * 0.9,
+        _ => number.to_degrees(),
+    };
+    degrees.is_finite().then_some(degrees)
 }
 
 fn parse_radial_descriptor(

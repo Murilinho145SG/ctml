@@ -233,6 +233,10 @@ fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<Backgro
             images.push(BackgroundImage::RadialGradient(
                 super::background_gradients::parse_radial_gradient(style, layer)?,
             ));
+        } else if layer_name.starts_with("conic-gradient(") {
+            images.push(BackgroundImage::ConicGradient(
+                super::background_gradients::parse_conic_gradient(style, layer)?,
+            ));
         } else {
             images.push(BackgroundImage::Encoded(parse_data_url(layer)?));
         }
