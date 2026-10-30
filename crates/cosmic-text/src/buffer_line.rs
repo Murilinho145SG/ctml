@@ -24,6 +24,7 @@ pub struct BufferLine {
     keep_all: bool,
     wrap: Wrap,
     preserve_spaces: bool,
+    ellipsize: Ellipsize,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -53,6 +54,7 @@ impl BufferLine {
             keep_all: false,
             wrap: Wrap::WordOrGlyph,
             preserve_spaces: false,
+            ellipsize: Ellipsize::None,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -82,6 +84,7 @@ impl BufferLine {
         self.keep_all = false;
         self.wrap = Wrap::WordOrGlyph;
         self.preserve_spaces = false;
+        self.ellipsize = Ellipsize::None;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -250,6 +253,17 @@ impl BufferLine {
         }
     }
 
+    /// Set the truncation behavior for this line and invalidate its layout.
+    pub fn set_ellipsize(&mut self, ellipsize: Ellipsize) -> bool {
+        if self.ellipsize != ellipsize {
+            self.ellipsize = ellipsize;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Append line at end of this line
     ///
     /// The wrap setting of the appended line will be lost
@@ -293,6 +307,7 @@ impl BufferLine {
         new.keep_all = self.keep_all;
         new.wrap = self.wrap;
         new.preserve_spaces = self.preserve_spaces;
+        new.ellipsize = self.ellipsize;
         new
     }
 
@@ -358,6 +373,7 @@ impl BufferLine {
         hinting: Hinting,
     ) -> &[LayoutLine] {
         self.set_wrap(wrap);
+        self.set_ellipsize(ellipsize);
         if self.layout_opt.is_unused() {
             let align = self.align;
             let align_last = self.align_last;
@@ -431,6 +447,7 @@ impl BufferLine {
             keep_all: false,
             wrap: Wrap::WordOrGlyph,
             preserve_spaces: false,
+            ellipsize: Ellipsize::None,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -458,7 +475,7 @@ impl BufferLine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Buffer, Metrics};
+    use crate::{Buffer, EllipsizeHeightLimit, Metrics};
 
     #[test]
     fn aligns_the_last_wrapped_visual_line_independently() {
@@ -604,5 +621,33 @@ mod tests {
         buffer.lines[0].set_keep_all(true);
         buffer.shape_until_scroll(&mut font_system, false);
         assert_eq!(buffer.layout_runs().count(), 1);
+    }
+
+    #[test]
+    fn ellipsize_end_caps_the_number_of_wrapped_lines() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(60.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "one two three four five six seven eight nine",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+        buffer.shape_until_scroll(&mut font_system, false);
+        assert!(buffer.layout_runs().count() > 2);
+
+        buffer.lines[0].layout(
+            &mut font_system,
+            16.0,
+            Some(60.0),
+            Wrap::Word,
+            Ellipsize::End(EllipsizeHeightLimit::Lines(2)),
+            None,
+            8,
+            Hinting::default(),
+        );
+        assert_eq!(buffer.layout_runs().count(), 2);
     }
 }

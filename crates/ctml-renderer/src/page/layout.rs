@@ -228,7 +228,10 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         Some(page.root_style.text_align),
     );
     let line_styles = line_alignments(&page.runs);
-    for (line, (align, align_last, text_justify, _, keep_all, preserve_spaces, _, _, _, _)) in page
+    for (
+        line,
+        (align, align_last, text_justify, _, keep_all, preserve_spaces, ellipsize, _, _, _, _),
+    ) in page
         .buffer
         .lines
         .iter_mut()
@@ -239,15 +242,18 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         line.set_text_justify(text_justify);
         line.set_keep_all(keep_all);
         line.set_preserve_spaces(preserve_spaces);
+        line.set_ellipsize(ellipsize);
     }
     page.buffer.shape_until_scroll(&mut page.font_system, false);
     let line_sizes = line_layout_sizes(&page.runs, page.buffer.lines.len());
     let metrics = page.buffer.metrics();
-    let ellipsize = page.buffer.ellipsize();
     let monospace_width = page.buffer.monospace_width();
     let tab_width = page.buffer.tab_width();
     let hinting = page.buffer.hinting();
-    for ((line, sizes), (_, _, _, wrap, _, _, indent, indent_percent, hanging, each_line)) in page
+    for (
+        (line, sizes),
+        (_, _, _, wrap, _, _, ellipsize, indent, indent_percent, hanging, each_line),
+    ) in page
         .buffer
         .lines
         .iter_mut()

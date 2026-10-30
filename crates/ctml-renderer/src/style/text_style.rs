@@ -47,6 +47,13 @@ pub(crate) enum LineBreak {
     Anywhere,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextOverflow {
+    #[default]
+    Clip,
+    Ellipsis,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -109,6 +116,8 @@ pub(crate) struct TextStyle {
     pub(crate) overflow_wrap: OverflowWrap,
     pub(crate) word_break: WordBreak,
     pub(crate) line_break: LineBreak,
+    pub(crate) text_overflow: TextOverflow,
+    pub(crate) line_clamp: Option<usize>,
     pub(crate) text_indent: f32,
     pub(crate) text_indent_percent: f32,
     pub(crate) text_indent_hanging: bool,
@@ -298,6 +307,8 @@ impl Default for TextStyle {
             overflow_wrap: OverflowWrap::Normal,
             word_break: WordBreak::Normal,
             line_break: LineBreak::Auto,
+            text_overflow: TextOverflow::Clip,
+            line_clamp: None,
             text_indent: 0.0,
             text_indent_percent: 0.0,
             text_indent_hanging: false,
@@ -334,6 +345,18 @@ impl TextStyle {
                 OverflowWrap::Normal => Wrap::Word,
                 OverflowWrap::BreakWord | OverflowWrap::Anywhere => Wrap::WordOrGlyph,
             },
+        }
+    }
+
+    pub(crate) fn ellipsize_mode(&self) -> cosmic_text::Ellipsize {
+        if let Some(lines) = self.line_clamp {
+            cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(lines))
+        } else if self.text_overflow == TextOverflow::Ellipsis
+            && matches!(self.white_space, WhiteSpace::NoWrap | WhiteSpace::Pre)
+        {
+            cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(1))
+        } else {
+            cosmic_text::Ellipsize::None
         }
     }
 }

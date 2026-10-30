@@ -437,6 +437,7 @@ fn line_alignments(
     cosmic_text::Wrap,
     bool,
     bool,
+    cosmic_text::Ellipsize,
     f32,
     f32,
     bool,
@@ -453,6 +454,7 @@ fn line_alignments(
                 style.white_space,
                 crate::style::WhiteSpace::PreWrap | crate::style::WhiteSpace::BreakSpaces
             ),
+            style.ellipsize_mode(),
             style.text_indent,
             style.text_indent_percent,
             style.text_indent_hanging,
@@ -466,6 +468,7 @@ fn line_alignments(
         cosmic_text::Wrap::Word,
         false,
         false,
+        cosmic_text::Ellipsize::None,
         0.0,
         0.0,
         false,

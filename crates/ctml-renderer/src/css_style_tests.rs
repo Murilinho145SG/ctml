@@ -638,6 +638,41 @@ fn resolves_line_break_modes() {
 }
 
 #[test]
+fn resolves_text_overflow_and_line_clamp() {
+    use super::super::style::{TextOverflow, WhiteSpace};
+
+    let ellipsis =
+        style_for_declarations(&[("white-space", "nowrap"), ("text-overflow", "ellipsis")]);
+    assert_eq!(ellipsis.text_overflow, TextOverflow::Ellipsis);
+    assert_eq!(
+        ellipsis.ellipsize_mode(),
+        cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(1))
+    );
+
+    let clamp = style_for_declarations(&[("line-clamp", "3")]);
+    assert_eq!(clamp.line_clamp, Some(3));
+    assert_eq!(
+        clamp.ellipsize_mode(),
+        cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(3))
+    );
+    assert_eq!(
+        style_for_declarations(&[("line-clamp", "0")]).line_clamp,
+        None
+    );
+    let reset = style_for_declarations(&[("line-clamp", "3"), ("line-clamp", "none")]);
+    assert_eq!(reset.line_clamp, None);
+    assert_eq!(
+        style_for_declarations(&[("text-overflow", "ellipsis")]).ellipsize_mode(),
+        cosmic_text::Ellipsize::None,
+        "text-overflow only truncates nowrap/pre lines"
+    );
+    assert_eq!(
+        style_for_declarations(&[("white-space", "pre")]).white_space,
+        WhiteSpace::Pre
+    );
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

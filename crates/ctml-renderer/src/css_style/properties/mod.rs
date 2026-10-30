@@ -2,7 +2,8 @@ use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{
-    FontVariantPosition, LineBreak, OverflowWrap, TextStyle, TextTransform, WhiteSpace, WordBreak,
+    FontVariantPosition, LineBreak, OverflowWrap, TextOverflow, TextStyle, TextTransform,
+    WhiteSpace, WordBreak,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -349,6 +350,8 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "overflow-wrap" => style.overflow_wrap = OverflowWrap::Normal,
         "word-break" => style.word_break = WordBreak::Normal,
         "line-break" => style.line_break = LineBreak::Auto,
+        "text-overflow" => style.text_overflow = TextOverflow::Clip,
+        "line-clamp" => style.line_clamp = None,
         "text-indent" => {
             style.text_indent = 0.0;
             style.text_indent_percent = 0.0;
@@ -627,6 +630,24 @@ fn apply_declaration(
                 "strict" => LineBreak::Strict,
                 "anywhere" => LineBreak::Anywhere,
                 _ => style.line_break,
+            };
+        }
+        "text-overflow" => {
+            style.text_overflow = match value.to_ascii_lowercase().as_str() {
+                "clip" => TextOverflow::Clip,
+                "ellipsis" => TextOverflow::Ellipsis,
+                _ => style.text_overflow,
+            };
+        }
+        "line-clamp" => {
+            style.line_clamp = if value.eq_ignore_ascii_case("none") {
+                None
+            } else {
+                value
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|lines| *lines > 0)
+                    .or(style.line_clamp)
             };
         }
         "text-indent" => apply_text_indent(style, value),
