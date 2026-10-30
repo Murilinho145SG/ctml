@@ -75,6 +75,7 @@ pub(crate) struct PageRasterizer {
     cache: SwashCache,
     buffer: Buffer,
     root_style: TextStyle,
+    root_opacity: f32,
     selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
     selection_anchor: Option<Cursor>,
@@ -148,6 +149,9 @@ impl PageRasterizer {
             .collect::<Vec<_>>();
         hyphenation::apply_auto_hyphenation(&mut runs);
         let cursor_spans = cursor_spans(&runs);
+        let root_opacity = root_style.opacity;
+        let mut root_style = root_style;
+        root_style.opacity = 1.0;
         let buffer = Buffer::new(
             &mut font_system,
             Metrics::new(
@@ -155,7 +159,6 @@ impl PageRasterizer {
                 root_style.line_height.max(1.0),
             ),
         );
-
         Self {
             nodes: nodes.to_vec(),
             stylesheet: stylesheet.to_vec(),
@@ -171,6 +174,7 @@ impl PageRasterizer {
             cache: SwashCache::new(),
             buffer,
             root_style,
+            root_opacity,
             selection_background_color,
             selection: None,
             selection_anchor: None,

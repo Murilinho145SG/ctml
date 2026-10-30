@@ -87,6 +87,61 @@ fn nested_element_opacities_multiply_for_descendant_paints() {
 }
 
 #[test]
+fn page_root_opacity_composites_overlapping_page_paints_as_one_group() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Overlap".to_owned())],
+    }];
+    let declarations = |opacity: &str| {
+        vec![
+            declaration("background-color", "blue"),
+            declaration("opacity", opacity),
+        ]
+    };
+    let opaque_stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: declarations("1"),
+        },
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![declaration("color", "red")],
+        },
+    ];
+    let translucent_stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: declarations("0.5"),
+        },
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![declaration("color", "red")],
+        },
+    ];
+    let opaque = PageRasterizer::new(&nodes, &opaque_stylesheet).snapshot_pixels(160, 70);
+    let translucent = PageRasterizer::new(&nodes, &translucent_stylesheet).snapshot_pixels(160, 70);
+
+    assert!(
+        opaque
+            .chunks_exact(4)
+            .any(|pixel| pixel[0] > pixel[1] && pixel[0] > 180)
+    );
+    for (opaque, translucent) in opaque.chunks_exact(4).zip(translucent.chunks_exact(4)) {
+        for (actual, source) in translucent[..3].iter().zip(&opaque[..3]) {
+            let expected = (255.0 + (f32::from(*source) - 255.0) * 0.5).round() as u8;
+            assert!(actual.abs_diff(expected) <= 1);
+        }
+    }
+}
+
+#[test]
 fn element_opacity_scales_text_decorations() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

@@ -98,6 +98,8 @@ pub(super) fn compile_runs_with_font_system(
         viewport_size,
         color_profiles,
     );
+    let mut inherited_root_style = root_style.clone();
+    inherited_root_style.opacity = 1.0;
     let mut runs = Vec::new();
     let mut path = vec![body];
     let mut path_attributes = vec![Vec::new()];
@@ -124,7 +126,7 @@ pub(super) fn compile_runs_with_font_system(
             focused_path,
             keyboard_focus,
             &selector_tree,
-            &root_style,
+            &inherited_root_style,
             root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,

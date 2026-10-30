@@ -335,6 +335,16 @@ impl PageRasterizer {
             &overflow_clips,
         );
         self.draw_root_scrollbars(&mut pixels, width, height, writing_mode);
+        if self.root_opacity < 1.0 {
+            let opacity = self.root_opacity.clamp(0.0, 1.0);
+            for pixel in pixels.chunks_exact_mut(4) {
+                for channel in &mut pixel[..3] {
+                    *channel = (255.0 + (f32::from(*channel) - 255.0) * opacity)
+                        .round()
+                        .clamp(0.0, 255.0) as u8;
+                }
+            }
+        }
         pixels
     }
 }
