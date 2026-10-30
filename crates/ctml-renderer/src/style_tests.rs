@@ -733,6 +733,40 @@ fn generated_content_attr_converts_string_number_and_integer_types() {
 }
 
 #[test]
+fn generated_content_attr_accepts_css_integers_beyond_machine_ranges() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![
+            (
+                "large".to_owned(),
+                Some("9999999999999999999999999999999999999999".to_owned()),
+            ),
+            ("positive".to_owned(), Some("+00042".to_owned())),
+            ("negative-zero".to_owned(), Some("-000".to_owned())),
+            ("decimal".to_owned(), Some("4.2".to_owned())),
+        ],
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["span::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: r#"attr(large type(<integer>),) "|" attr(positive type(<integer>),) "|" attr(negative-zero type(<integer>),) "|" attr(decimal type(<integer>), "invalid")"#.to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "9999999999999999999999999999999999999999|42|0| invalid"
+    );
+}
+
+#[test]
 fn generated_content_attr_converts_supported_css_dimension_types() {
     let nodes = [UiNode::Element {
         tag: "span".to_owned(),

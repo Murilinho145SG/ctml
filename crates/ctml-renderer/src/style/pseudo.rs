@@ -215,11 +215,7 @@ fn parse_generated_content(
                     .and_then(|(_, value)| value.as_deref());
                 let converted = attribute_value.and_then(|value| match attr_type {
                     None | Some(AttrType::String) => Some(value.to_owned()),
-                    Some(AttrType::Integer) => value
-                        .trim()
-                        .parse::<i64>()
-                        .ok()
-                        .map(|value| value.to_string()),
+                    Some(AttrType::Integer) => parse_css_integer(value),
                     Some(AttrType::Number) => {
                         ctml_css::parse_css_number(value).map(|value| value.to_string())
                     }
@@ -272,6 +268,27 @@ fn parse_generated_content(
         }
     }
     Some(output)
+}
+
+fn parse_css_integer(value: &str) -> Option<String> {
+    let value = value.trim();
+    let (negative, digits) = match value.as_bytes().first() {
+        Some(b'+') => (false, &value[1..]),
+        Some(b'-') => (true, &value[1..]),
+        _ => (false, value),
+    };
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let digits = digits.trim_start_matches('0');
+    if digits.is_empty() {
+        return Some("0".to_owned());
+    }
+    Some(if negative {
+        format!("-{digits}")
+    } else {
+        digits.to_owned()
+    })
 }
 
 fn parse_attr_arguments<'i, 't>(

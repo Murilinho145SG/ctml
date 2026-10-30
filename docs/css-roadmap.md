@@ -41,6 +41,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::before` and `::after` generated text from quoted `content` strings and string-valued `attr(name)`, with supported text properties.
 - [x] String-valued `attr(name, fallback)` uses a serialized token-sequence fallback when the attribute is missing.
 - [x] Generated-content `attr()` converts `type(<string>)`, `type(<number>)`, and `type(<integer>)`, using the fallback when conversion fails.
+- [x] Typed integer `attr()` accepts signed ASCII integer syntax without a machine-sized range limit and normalizes leading zeros.
 - [x] Global `::selection` background color, including alpha compositing.
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
