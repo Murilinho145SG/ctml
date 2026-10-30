@@ -165,6 +165,57 @@ fn resolves_safe_area_env_values_and_unknown_env_fallbacks() {
 }
 
 #[test]
+fn resolves_math_calculations_in_typed_attr_values() {
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "attr(data-size type(<length>), 16px)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "attr(data-weight type(<integer>), 400)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "opacity".to_owned(),
+                value: "attr(data-opacity type(<percentage>), 100%)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "hsl(attr(data-angle type(<angle>), 0deg) 100% 50%)".to_owned(),
+            },
+        ],
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let attributes = [
+        ("data-size".to_owned(), Some("calc(1em + 2px)".to_owned())),
+        ("data-weight".to_owned(), Some("calc(350 + 350)".to_owned())),
+        (
+            "data-opacity".to_owned(),
+            Some("calc(25% + 25%)".to_owned()),
+        ),
+        (
+            "data-angle".to_owned(),
+            Some("calc(0.25turn + 90deg)".to_owned()),
+        ),
+    ];
+
+    let style =
+        resolve_style_with_attributes(&TextStyle::default(), &paragraph, &[], &attributes, &[rule]);
+
+    assert_eq!(style.font_size, 18.0);
+    assert_eq!(style.weight, Weight(700));
+    assert_eq!(style.opacity, 0.5);
+    assert_eq!(style.background_color, Some([0, 255, 255, 255]));
+}
+
+#[test]
 fn untyped_attr_is_a_css_string_not_an_injected_token_sequence() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],

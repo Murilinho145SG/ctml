@@ -57,6 +57,10 @@ pub fn parse_math_number(value: &str) -> Option<f32> {
     }
 }
 
+pub fn parse_math_percentage(value: &str) -> Option<f32> {
+    parse_math_expression(value, crate::numeric::parse_css_percentage)
+}
+
 pub fn parse_math_angle(value: &str) -> Option<f32> {
     match parse_math_value(value, |_| None)? {
         MathValue::Angle(radians) if radians.is_finite() => Some(radians),

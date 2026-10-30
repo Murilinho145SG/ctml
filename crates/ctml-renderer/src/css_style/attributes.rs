@@ -192,16 +192,28 @@ fn convert_attribute(
             .trim()
             .parse::<i64>()
             .ok()
+            .map(|value| value.to_string())
+            .or_else(|| {
+                let value = ctml_css::parse_math_number(value)?;
+                let rounded = (value as f64 + 0.5).floor();
+                (rounded >= i64::MIN as f64 && rounded <= i64::MAX as f64)
+                    .then(|| (rounded as i64).to_string())
+            }),
+        Some(AttrType::Number) => ctml_css::parse_math_number(value)
+            .or_else(|| ctml_css::parse_css_number(value))
             .map(|value| value.to_string()),
-        Some(AttrType::Number) => ctml_css::parse_css_number(value).map(|value| value.to_string()),
-        Some(AttrType::Percentage) => {
-            ctml_css::parse_css_percentage(value).map(|value| format!("{value}%"))
+        Some(AttrType::Percentage) => ctml_css::parse_math_percentage(value)
+            .or_else(|| ctml_css::parse_css_percentage(value))
+            .map(|value| format!("{value}%")),
+        Some(AttrType::Length) => {
+            parse_dimension(value, LENGTH_UNITS).or_else(|| parse_length_calculation(value, false))
         }
-        Some(AttrType::Length) => parse_dimension(value, LENGTH_UNITS),
         Some(AttrType::LengthPercentage) => ctml_css::parse_css_percentage(value)
             .map(|value| format!("{value}%"))
-            .or_else(|| parse_dimension(value, LENGTH_UNITS)),
-        Some(AttrType::Angle) => parse_dimension(value, ANGLE_UNITS),
+            .or_else(|| parse_dimension(value, LENGTH_UNITS))
+            .or_else(|| parse_length_calculation(value, true)),
+        Some(AttrType::Angle) => parse_dimension(value, ANGLE_UNITS)
+            .or_else(|| ctml_css::parse_math_angle(value).map(|radians| format!("{radians}rad"))),
         Some(AttrType::Color) => {
             ctml_css::parse_color_with_profiles(value, color_profiles).map(|color| {
                 format!(
@@ -212,6 +224,23 @@ fn convert_attribute(
         }
         Some(AttrType::CustomIdent) => parse_custom_ident(value),
     }
+}
+
+fn parse_length_calculation(value: &str, allow_percentage: bool) -> Option<String> {
+    ctml_css::parse_math_expression(value, |component| {
+        ctml_css::parse_css_number(component)
+            .filter(|number| *number == 0.0)
+            .or_else(|| {
+                allow_percentage
+                    .then(|| ctml_css::parse_css_percentage(component))
+                    .flatten()
+            })
+            .or_else(|| {
+                let (number, unit) = ctml_css::parse_css_dimension(component)?;
+                LENGTH_UNITS.contains(&unit.as_str()).then_some(number)
+            })
+    })
+    .map(|_| value.trim().to_owned())
 }
 
 fn parse_custom_ident(value: &str) -> Option<String> {

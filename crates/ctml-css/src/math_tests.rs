@@ -1,4 +1,4 @@
-use super::{parse_math_angle, parse_math_expression, parse_math_number};
+use super::{parse_math_angle, parse_math_expression, parse_math_number, parse_math_percentage};
 
 fn parse(value: &str) -> Option<f32> {
     parse_math_expression(value, |dimension| {
@@ -33,6 +33,13 @@ fn parses_angle_calculations_as_radians() {
         Some(std::f32::consts::PI)
     );
     assert_eq!(parse_math_angle("calc(10px + 5px)"), None);
+}
+
+#[test]
+fn parses_percentage_calculations() {
+    assert_eq!(parse_math_percentage("calc(25% + 15%)"), Some(40.0));
+    assert_eq!(parse_math_percentage("min(30%, 20%)"), Some(20.0));
+    assert_eq!(parse_math_percentage("calc(10px + 20%)"), None);
 }
 
 #[test]
