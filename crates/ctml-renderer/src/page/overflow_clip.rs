@@ -189,6 +189,7 @@ pub(super) fn block_geometries(
                     .border_style
                     .iter()
                     .any(|style| *style != crate::style::BorderLineStyle::None)
+                || extent.size.outline_style != crate::style::BorderLineStyle::None
         })
         .map(|(&node_id, extent)| {
             let sizes = runs

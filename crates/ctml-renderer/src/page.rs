@@ -25,6 +25,7 @@ mod hyphenation;
 mod interactions;
 mod layout;
 mod local_writing;
+mod outlines;
 mod overflow_clip;
 mod pixel;
 mod render;

@@ -52,6 +52,8 @@ mod font_relative_units;
 mod hyphens;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
+#[path = "page_tests/outline.rs"]
+mod outline;
 #[path = "page_tests/parity.rs"]
 mod parity;
 #[path = "page_tests/pseudo.rs"]

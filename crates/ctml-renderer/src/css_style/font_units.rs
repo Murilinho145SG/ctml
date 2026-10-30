@@ -85,6 +85,10 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.logical_border_color_orders = [0; 4];
     style.border_radius = std::array::from_fn(|_| [None, None]);
     style.border_radius_orders = [0; 4];
+    style.outline_width = None;
+    style.outline_style = crate::style::BorderLineStyle::None;
+    style.outline_color = None;
+    style.outline_offset = None;
     style.margin = std::array::from_fn(|_| None);
     style.logical_margin = std::array::from_fn(|_| None);
     style.physical_margin_orders = [0; 4];

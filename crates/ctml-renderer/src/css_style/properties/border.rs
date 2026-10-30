@@ -223,7 +223,7 @@ fn parse_border(style: &TextStyle, value: &str) -> Option<BorderComponents> {
     Some(border)
 }
 
-fn parse_border_color(style: &TextStyle, value: &str) -> Option<Option<[u8; 4]>> {
+pub(super) fn parse_border_color(style: &TextStyle, value: &str) -> Option<Option<[u8; 4]>> {
     if value.eq_ignore_ascii_case("currentcolor") {
         Some(None)
     } else {
@@ -328,7 +328,7 @@ fn expand_two<T: Clone>(value: &str, parse: impl Fn(&str) -> Option<T>) -> Optio
     }
 }
 
-fn parse_width(style: &TextStyle, value: &str) -> Option<String> {
+pub(super) fn parse_width(style: &TextStyle, value: &str) -> Option<String> {
     let value = value.trim().to_ascii_lowercase();
     if matches!(value.as_str(), "thin" | "medium" | "thick" | "0")
         || ctml_css::parse_math_expression(&value, |component| {
@@ -356,7 +356,7 @@ fn parse_width(style: &TextStyle, value: &str) -> Option<String> {
     }
 }
 
-fn parse_border_style(value: &str) -> Option<BorderLineStyle> {
+pub(super) fn parse_border_style(value: &str) -> Option<BorderLineStyle> {
     Some(match value.trim().to_ascii_lowercase().as_str() {
         "none" => BorderLineStyle::None,
         "hidden" => BorderLineStyle::Hidden,

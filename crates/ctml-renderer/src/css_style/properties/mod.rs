@@ -38,6 +38,10 @@ use font::{
 use font_feature_settings::apply_font_feature_settings;
 use font_variation_settings::apply_font_variation_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
+use outline::{
+    apply_outline, apply_outline_color, apply_outline_offset, apply_outline_style,
+    apply_outline_width,
+};
 use quotes::apply_quotes;
 use size::{
     apply_block_size, apply_box_sizing, apply_height, apply_inline_size, apply_max_block_size,
@@ -73,6 +77,7 @@ mod font;
 mod font_feature_settings;
 mod font_variation_settings;
 mod list_style;
+mod outline;
 mod quotes;
 mod size;
 mod spacing;

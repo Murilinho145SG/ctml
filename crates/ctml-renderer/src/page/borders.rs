@@ -42,11 +42,20 @@ pub(super) fn draw(
                 &run.element_path,
                 clips,
             );
+            super::outlines::draw_outline(
+                pixels,
+                width,
+                height,
+                size,
+                geometry,
+                &run.style.color,
+                run.style.opacity,
+                &run.element_path,
+                clips,
+            );
         }
     }
 }
-
-// Rounded border rasterization lives in `border_radius.rs`.
 
 #[allow(clippy::too_many_arguments)]
 fn draw_block_border(

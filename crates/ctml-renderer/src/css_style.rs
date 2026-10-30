@@ -450,5 +450,8 @@ mod border_tests;
 #[path = "css_style_matrix_tests.rs"]
 mod matrix_tests;
 #[cfg(test)]
+#[path = "css_style_outline_tests.rs"]
+mod outline_tests;
+#[cfg(test)]
 #[path = "css_style_padding_tests.rs"]
 mod padding_tests;

@@ -208,7 +208,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Physical and logical margin shorthands and sides accept signed font-relative lengths and percentages, follow writing mode, direction, and source order, and adjust text flow. `auto` currently resolves to zero.
 - [x] Border shorthand and physical/logical side properties for widths, styles, and colors; paint solid, dotted, dashed, double, and shaded groove/ridge/inset/outset edges on nested content-bearing blocks.
 - [x] `border-radius` with one-to-four values, elliptical radii, corner longhands, and rounded border painting on nested content-bearing blocks.
-- [ ] `outline` and `outline-offset`.
+- [x] `outline`, `outline-width`, `outline-style`, `outline-color`, and signed `outline-offset`; paint outlines around nested content-bearing blocks, including rounded corners.
 - [ ] `aspect-ratio`.
 - [ ] Box shadows and border images.
 - [ ] Box decorations across fragmented content.

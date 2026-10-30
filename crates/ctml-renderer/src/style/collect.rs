@@ -237,6 +237,7 @@ pub(super) fn collect_runs(
                             .border_style
                             .iter()
                             .any(|style| *style != super::BorderLineStyle::None)
+                        || style.outline_style != super::BorderLineStyle::None
                         || style.overflow_x != super::Overflow::Visible
                         || style.overflow_y != super::Overflow::Visible);
                 if has_block_size {
@@ -259,6 +260,10 @@ pub(super) fn collect_runs(
                         border_style: style.border_style,
                         border_color: style.border_color,
                         border_radius: style.border_radius.clone(),
+                        outline_width: style.outline_width.clone(),
+                        outline_style: style.outline_style,
+                        outline_color: style.outline_color,
+                        outline_offset: style.outline_offset.clone(),
                         padding: style.padding.clone(),
                         margin: style.margin.clone(),
                         intrinsic_min_content_width: None,
