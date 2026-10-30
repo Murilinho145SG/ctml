@@ -209,6 +209,29 @@ fn first_line_paints_background_images_only_on_the_formatted_line() {
 }
 
 #[test]
+fn first_line_box_shadow_paints_outside_the_formatted_line() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First formatted line".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-line".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "box-shadow".to_owned(),
+            value: "0 0 0 3px red".to_owned(),
+        }],
+    }];
+    let rendered = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(180, 70);
+    let outside_line = &rendered[(6 * 180 + 20) * 4..][..3];
+
+    assert_eq!(outside_line, [255, 0, 0]);
+}
+
+#[test]
 fn first_line_text_transform_changes_only_the_formatted_first_line() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

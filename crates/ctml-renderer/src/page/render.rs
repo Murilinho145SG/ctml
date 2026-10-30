@@ -90,12 +90,36 @@ impl PageRasterizer {
             &self.overflow_geometry,
             &self.overflow_clips,
         );
+        box_shadows::draw_first_line(
+            &self.runs,
+            &self.buffer,
+            &self.cursor_spans,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            &self.nested_scroll,
+            false,
+        );
         self.draw_first_line_backgrounds(
             &mut pixels,
             width,
             height,
             &overflow_clips,
             &mut background_image_cache,
+        );
+        box_shadows::draw_first_line(
+            &self.runs,
+            &self.buffer,
+            &self.cursor_spans,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            &self.nested_scroll,
+            true,
         );
         self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
         box_shadows::draw_first_letter(
