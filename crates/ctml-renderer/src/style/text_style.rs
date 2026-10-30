@@ -159,6 +159,7 @@ pub(crate) struct LayoutSize {
     pub(crate) border_width: [Option<String>; 4],
     pub(crate) border_style: [BorderLineStyle; 4],
     pub(crate) border_color: [Option<[u8; 4]>; 4],
+    pub(crate) border_radius: [[Option<String>; 2]; 4],
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
     pub(crate) intrinsic_min_content_width: Option<f32>,

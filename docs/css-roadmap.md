@@ -207,7 +207,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Logical `padding-inline` and `padding-block` shorthand, including start/end longhands, map through `writing-mode` and `direction` and follow declaration order with physical padding.
 - [x] Physical and logical margin shorthands and sides accept signed font-relative lengths and percentages, follow writing mode, direction, and source order, and adjust text flow. `auto` currently resolves to zero.
 - [x] Border shorthand and physical/logical side properties for widths, styles, and colors; paint solid, dotted, dashed, double, and shaded groove/ridge/inset/outset edges on nested content-bearing blocks.
-- [ ] `border-radius` and corner shaping.
+- [x] `border-radius` with one-to-four values, elliptical radii, corner longhands, and rounded border painting on nested content-bearing blocks.
 - [ ] `outline` and `outline-offset`.
 - [ ] `aspect-ratio`.
 - [ ] Box shadows and border images.

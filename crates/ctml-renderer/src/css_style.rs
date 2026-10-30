@@ -441,6 +441,9 @@ mod text_emphasis_tests;
 mod direction_tests;
 
 #[cfg(test)]
+#[path = "css_style_border_radius_tests.rs"]
+mod border_radius_tests;
+#[cfg(test)]
 #[path = "css_style_border_tests.rs"]
 mod border_tests;
 #[cfg(test)]

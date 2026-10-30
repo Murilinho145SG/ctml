@@ -23,6 +23,7 @@ use border::{
     apply_logical_border_style, apply_logical_border_style_shorthand, apply_logical_border_width,
     apply_logical_border_width_shorthand,
 };
+use border_radius::{apply_border_radius, apply_corner_radius};
 use cascade_values::{inherit_property, initial_property};
 pub(super) use color::apply_color_declaration;
 use counters::{CounterProperty, apply_counter_property};
@@ -62,6 +63,7 @@ mod apply;
 mod background;
 mod border;
 mod border_cascade;
+mod border_radius;
 mod cascade_values;
 mod color;
 mod counters;

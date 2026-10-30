@@ -12,6 +12,7 @@ use crate::{
 
 mod backgrounds;
 mod block_sizing;
+mod border_radius;
 mod borders;
 mod cursor_spans;
 mod decorations;

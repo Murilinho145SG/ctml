@@ -4,6 +4,7 @@ use crate::style::{BorderLineStyle, LayoutSize, TextRun, WritingMode};
 
 use super::{
     PAGE_PADDING,
+    border_radius::{draw_rounded_border, resolve_radii},
     overflow_clip::{self, BlockGeometry},
     pixel::fill_rect_alpha_clipped,
 };
@@ -45,6 +46,8 @@ pub(super) fn draw(
     }
 }
 
+// Rounded border rasterization lives in `border_radius.rs`.
+
 #[allow(clippy::too_many_arguments)]
 fn draw_block_border(
     pixels: &mut [u8],
@@ -80,6 +83,22 @@ fn draw_block_border(
         .border_color
         .map(|color| color.unwrap_or(*current_color));
     let styles = size.border_style;
+    let radii = resolve_radii(size, rect);
+    if radii.iter().flatten().any(|radius| *radius > 0.0) {
+        draw_rounded_border(
+            pixels,
+            width,
+            height,
+            rect,
+            transformed_sides,
+            radii,
+            styles,
+            colors,
+            opacity,
+            clip,
+        );
+        return;
+    }
     draw_edge(
         pixels,
         width,
@@ -139,7 +158,7 @@ fn draw_block_border(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_edge(
+pub(super) fn draw_edge(
     pixels: &mut [u8],
     width: u32,
     height: u32,
@@ -260,7 +279,7 @@ fn draw_edge(
     }
 }
 
-fn shade(mut color: [u8; 4], darker: bool) -> [u8; 4] {
+pub(super) fn shade(mut color: [u8; 4], darker: bool) -> [u8; 4] {
     for channel in &mut color[..3] {
         *channel = if darker {
             (*channel as f32 * 0.55).round() as u8
@@ -271,7 +290,7 @@ fn shade(mut color: [u8; 4], darker: bool) -> [u8; 4] {
     color
 }
 
-fn edge_color(mut color: [u8; 4], opacity: f32) -> [u8; 4] {
+pub(super) fn edge_color(mut color: [u8; 4], opacity: f32) -> [u8; 4] {
     color[3] = (f32::from(color[3]) * opacity).round().clamp(0.0, 255.0) as u8;
     color
 }

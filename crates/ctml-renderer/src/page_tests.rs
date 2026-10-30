@@ -32,6 +32,8 @@ const CHROMIUM_CAPTURE_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[path = "page_tests/backgrounds.rs"]
 mod backgrounds;
+#[path = "page_tests/border_radius.rs"]
+mod border_radius;
 #[path = "page_tests/borders.rs"]
 mod borders;
 #[path = "page_tests/box_model.rs"]

@@ -258,6 +258,7 @@ pub(super) fn collect_runs(
                         border_width: style.border_width.clone(),
                         border_style: style.border_style,
                         border_color: style.border_color,
+                        border_radius: style.border_radius.clone(),
                         padding: style.padding.clone(),
                         margin: style.margin.clone(),
                         intrinsic_min_content_width: None,
