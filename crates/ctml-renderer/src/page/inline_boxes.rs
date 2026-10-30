@@ -33,6 +33,7 @@ pub(super) fn draw(
     height: u32,
     page_writing_mode: WritingMode,
     clips: &HashMap<usize, ClipRect>,
+    image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -65,8 +66,9 @@ pub(super) fn draw(
                     run.style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
-            let has_background =
-                run.first_letter_block.is_none() && !run.style.background_layers.is_empty();
+            let has_background = run.first_letter_block.is_none()
+                && (!run.style.background_layers.is_empty()
+                    || !run.style.background_images.is_empty());
             if !has_border && !has_outline && !has_background {
                 continue;
             }
@@ -110,8 +112,8 @@ pub(super) fn draw(
                     style.outline_style,
                     BorderLineStyle::None | BorderLineStyle::Hidden
                 );
-            let has_background =
-                run.first_letter_block.is_none() && !style.background_layers.is_empty();
+            let has_background = run.first_letter_block.is_none()
+                && (!style.background_layers.is_empty() || !style.background_images.is_empty());
             let widths: [f32; 4] = std::array::from_fn(|side| {
                 if style.border_style[side] == BorderLineStyle::None {
                     return 0.0;
@@ -218,6 +220,21 @@ pub(super) fn draw(
                         clip,
                     );
                 }
+                super::background_images::draw_repeating_images(
+                    &style.background_images,
+                    style.opacity,
+                    pixels,
+                    width,
+                    height,
+                    ClipRect {
+                        left: background_left,
+                        top: background_top,
+                        right: background_left + background_width,
+                        bottom: background_top + background_height,
+                    },
+                    clip,
+                    image_cache,
+                );
             }
             if has_outline {
                 super::outlines::draw_inline_outline(

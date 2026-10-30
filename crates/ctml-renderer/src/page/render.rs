@@ -18,6 +18,7 @@ impl PageRasterizer {
         }
         let overflow_clips = &self.overflow_clips;
         let nested_scroll = &self.nested_scroll;
+        let mut background_image_cache = super::background_images::ImageCache::default();
         box_shadows::draw_outer(
             &self.runs,
             &mut pixels,
@@ -47,6 +48,7 @@ impl PageRasterizer {
             writing_mode,
             &overflow_clips,
             nested_scroll,
+            &mut background_image_cache,
         );
         backgrounds::draw(
             &self.runs,
@@ -58,6 +60,7 @@ impl PageRasterizer {
             writing_mode,
             &overflow_clips,
             nested_scroll,
+            &mut background_image_cache,
         );
         inline_boxes::draw(
             &self.runs,
@@ -67,6 +70,7 @@ impl PageRasterizer {
             height,
             writing_mode,
             &overflow_clips,
+            &mut background_image_cache,
         );
         box_shadows::draw_inset(
             &self.runs,

@@ -19,12 +19,13 @@ pub(super) fn draw_block_boxes(
     page_writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    image_cache: &mut super::background_images::ImageCache,
 ) {
     let mut drawn = HashSet::new();
     for run in runs {
         for size in &run.style.layout_sizes {
             if !drawn.insert(size.node_id)
-                || size.background_layers.is_empty()
+                || (size.background_layers.is_empty() && size.background_images.is_empty())
                 || size.visibility_hidden
                 || size.content_skipped
                 || size.opacity <= 0.0
@@ -66,6 +67,21 @@ pub(super) fn draw_block_boxes(
                     clip,
                 );
             }
+            super::background_images::draw_repeating_images(
+                &size.background_images,
+                size.opacity,
+                pixels,
+                width,
+                height,
+                overflow_clip::ClipRect {
+                    left: rect.left - super::PAGE_PADDING - scroll_x,
+                    top: rect.top - super::PAGE_PADDING - scroll_y,
+                    right: rect.right - super::PAGE_PADDING - scroll_x,
+                    bottom: rect.bottom - super::PAGE_PADDING - scroll_y,
+                },
+                clip,
+                image_cache,
+            );
         }
     }
 }
@@ -80,6 +96,7 @@ pub(super) fn draw(
     page_writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -107,20 +124,23 @@ pub(super) fn draw(
                     .is_some_and(|run| {
                         run.style.layout_sizes.iter().any(|size| {
                             run.element_path.last() == Some(&size.node_id)
-                                && !size.background_layers.is_empty()
-                                && size.background_layers == style.background_layers
+                                && ((!size.background_layers.is_empty()
+                                    && size.background_layers == style.background_layers)
+                                    || (!size.background_images.is_empty()
+                                        && size.background_images == style.background_images))
                         })
                     });
             if is_block_background
                 || (style.inline_box
-                    && style.background_layers.len() > usize::from(skip_root_background))
+                    && (style.background_layers.len() > usize::from(skip_root_background)
+                        || !style.background_images.is_empty()))
             {
                 start += 1;
                 continue;
             }
             let layer_start =
                 usize::from(skip_root_background && !style.background_layers.is_empty());
-            if layer_start == style.background_layers.len() {
+            if layer_start == style.background_layers.len() && style.background_images.is_empty() {
                 start += 1;
                 continue;
             }
@@ -212,6 +232,28 @@ pub(super) fn draw(
                         );
                     }
                 }
+            }
+            if !style.background_images.is_empty() {
+                let clip = style_index
+                    .and_then(|index| runs.get(index))
+                    .and_then(|run| {
+                        overflow_clip::clip_for_path(&run.element_path, overflow_clips)
+                    });
+                super::background_images::draw_repeating_images(
+                    &style.background_images,
+                    style.opacity,
+                    pixels,
+                    width,
+                    height,
+                    overflow_clip::ClipRect {
+                        left: left - scroll_offset_x,
+                        top: line.line_top - scroll_offset_y,
+                        right: right - scroll_offset_x,
+                        bottom: line.line_top + line.line_height - scroll_offset_y,
+                    },
+                    clip,
+                    image_cache,
+                );
             }
             start = end;
         }

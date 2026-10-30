@@ -45,6 +45,11 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.background = inherited.background;
             style.background_color = inherited.background_color;
         }
+        "background-image" => {
+            style
+                .background_images
+                .clone_from(&inherited.background_images);
+        }
         "display" => inherit_display(style, inherited),
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
@@ -273,6 +278,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background = [255, 255, 255];
             style.background_color = None;
         }
+        "background-image" => style.background_images.clear(),
         "display" => reset_display(style),
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
@@ -331,6 +337,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "background" => {
             style.background = [255, 255, 255];
             style.background_color = None;
+            style.background_images.clear();
         }
         "font" => reset_font(style),
         "font-family" => style.family = "serif".to_owned(),

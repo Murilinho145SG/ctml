@@ -17,6 +17,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
             || style.aspect_ratio.is_some()
             || !style.box_shadows.is_empty()
             || !style.background_layers.is_empty()
+            || !style.background_images.is_empty()
             || style.margin.iter().flatten().any(|margin| margin != "0")
             || style.padding.iter().flatten().any(|padding| padding != "0")
             || style
@@ -58,6 +59,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
         aspect_ratio: style.aspect_ratio,
         box_shadows: style.box_shadows.clone(),
         background_layers: style.background_layers.clone(),
+        background_images: style.background_images.clone(),
         opacity: style.opacity,
         visibility_hidden: style.visibility_hidden,
         content_skipped: style.content_skipped,

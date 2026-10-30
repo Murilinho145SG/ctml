@@ -5,6 +5,7 @@ edition = "2024"
 license = "GPL-2.0-only"
 
 [dependencies]
+base64 = "0.23.1"
 cosmic-text.workspace = true
 ctml-css.workspace = true
 cssparser.workspace = true

@@ -14,6 +14,7 @@ pub(super) fn append_block_start_spacers(
         && empty_box
         && !style.content_skipped
         && (!style.background_layers.is_empty()
+            || !style.background_images.is_empty()
             || style.padding.iter().flatten().any(|padding| padding != "0")
             || style
                 .border_style

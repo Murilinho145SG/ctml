@@ -307,6 +307,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Paint backgrounds on empty inline elements and extend fragmented inline backgrounds through their padding area.
 - [ ] Background painting for empty elements and complete CSS boxes, including padding, sizing, and fragmented inline boxes.
 - [ ] Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip.
+  - [x] Decode embedded base64 PNG/JPEG `data:` URLs in `background-image`; paint comma-separated layers in CSS order with intrinsic-size repeat and element opacity/clipping.
 - [ ] Linear, radial, conic, and repeating gradients.
 - [ ] Border images and nine-slice behavior.
 - [ ] Filters and backdrop filters.

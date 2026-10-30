@@ -1,0 +1,106 @@
+use std::{collections::HashMap, sync::Arc};
+
+use ctml_css::{FontRelativeUnits, ViewportSize};
+
+use super::{BorderLineStyle, Overflow, WritingMode};
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LayoutSize {
+    pub(crate) node_id: usize,
+    pub(crate) width: Option<String>,
+    pub(crate) min_width: Option<String>,
+    pub(crate) max_width: Option<String>,
+    pub(crate) inline_size: Option<String>,
+    pub(crate) min_inline_size: Option<String>,
+    pub(crate) max_inline_size: Option<String>,
+    pub(crate) height: Option<String>,
+    pub(crate) min_height: Option<String>,
+    pub(crate) max_height: Option<String>,
+    pub(crate) block_size: Option<String>,
+    pub(crate) min_block_size: Option<String>,
+    pub(crate) max_block_size: Option<String>,
+    pub(crate) border_box: bool,
+    pub(crate) border_width: [Option<String>; 4],
+    pub(crate) border_style: [BorderLineStyle; 4],
+    pub(crate) border_color: [Option<[u8; 4]>; 4],
+    pub(crate) border_radius: [[Option<String>; 2]; 4],
+    pub(crate) outline_width: Option<String>,
+    pub(crate) outline_style: BorderLineStyle,
+    pub(crate) outline_color: Option<[u8; 4]>,
+    pub(crate) outline_offset: Option<String>,
+    pub(crate) aspect_ratio: Option<f32>,
+    pub(crate) box_shadows: Vec<BoxShadow>,
+    pub(crate) background_layers: Vec<[u8; 4]>,
+    pub(crate) background_images: Vec<Arc<[u8]>>,
+    pub(crate) opacity: f32,
+    pub(crate) visibility_hidden: bool,
+    pub(crate) content_skipped: bool,
+    pub(crate) padding: [Option<String>; 4],
+    pub(crate) margin: [Option<String>; 4],
+    pub(crate) intrinsic_min_content_width: Option<f32>,
+    pub(crate) intrinsic_max_content_width: Option<f32>,
+    pub(crate) overflow_x: Overflow,
+    pub(crate) overflow_y: Overflow,
+    pub(crate) paint_contained: bool,
+    pub(crate) size_contained: bool,
+    pub(crate) inline_size_contained: bool,
+    pub(crate) contain_intrinsic_width: Option<String>,
+    pub(crate) contain_intrinsic_height: Option<String>,
+    pub(crate) size_property_orders: HashMap<String, usize>,
+    pub(crate) writing_mode: WritingMode,
+    pub(crate) font_size: f32,
+    pub(crate) line_height: f32,
+    pub(crate) font_relative_units: FontRelativeUnits,
+    pub(crate) viewport_size: ViewportSize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LayoutHeight {
+    pub(crate) width: Option<String>,
+    pub(crate) min_width: Option<String>,
+    pub(crate) max_width: Option<String>,
+    pub(crate) inline_size: Option<String>,
+    pub(crate) min_inline_size: Option<String>,
+    pub(crate) max_inline_size: Option<String>,
+    pub(crate) height: Option<String>,
+    pub(crate) min_height: Option<String>,
+    pub(crate) max_height: Option<String>,
+    pub(crate) block_size: Option<String>,
+    pub(crate) min_block_size: Option<String>,
+    pub(crate) max_block_size: Option<String>,
+    pub(crate) aspect_ratio: Option<f32>,
+    pub(crate) border_box: bool,
+    pub(crate) border_width: [Option<String>; 4],
+    pub(crate) border_style: [BorderLineStyle; 4],
+    pub(crate) border_color: [Option<[u8; 4]>; 4],
+    pub(crate) padding: [Option<String>; 4],
+    pub(crate) margin: [Option<String>; 4],
+    pub(crate) size_property_orders: HashMap<String, usize>,
+    pub(crate) writing_mode: WritingMode,
+    pub(crate) font_size: f32,
+    pub(crate) line_height: f32,
+    pub(crate) font_relative_units: FontRelativeUnits,
+    pub(crate) viewport_size: ViewportSize,
+    pub(crate) size_contained: bool,
+    pub(crate) inline_size_contained: bool,
+    pub(crate) contain_intrinsic_width: Option<String>,
+    pub(crate) contain_intrinsic_height: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct TextShadow {
+    pub(crate) offset_x: f32,
+    pub(crate) offset_y: f32,
+    pub(crate) blur: f32,
+    pub(crate) color: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct BoxShadow {
+    pub(crate) offset_x: f32,
+    pub(crate) offset_y: f32,
+    pub(crate) blur: f32,
+    pub(crate) spread: f32,
+    pub(crate) color: Option<[u8; 4]>,
+    pub(crate) inset: bool,
+}
