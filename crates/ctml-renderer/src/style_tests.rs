@@ -542,6 +542,45 @@ fn missing_generated_content_attribute_contributes_an_empty_string() {
 }
 
 #[test]
+fn generated_content_attr_uses_tokenized_fallbacks_only_when_missing() {
+    let nodes = [
+        UiNode::Element {
+            tag: "a".to_owned(),
+            class: None,
+            id: None,
+            attributes: vec![("title".to_owned(), Some("documentation".to_owned()))],
+            children: Vec::new(),
+        },
+        UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+    ];
+    let stylesheet = [
+        ("a::before", "attr(title, \"unused\")"),
+        ("span::before", "attr(title, \"missing \" label)"),
+    ]
+    .map(|(selector, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "documentation missing label"
+    );
+}
+
+#[test]
 fn display_none_hides_element_descendants_and_generated_content() {
     let nodes = [
         UiNode::Element {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use cssparser::{Parser, ParserInput, Token};
+use cssparser::{Parser, ParserInput, ToCss, Token};
 
 use crate::style::TextTransform;
 use crate::{StyleDeclaration, StyleRule, css_style, style::TextStyle};
@@ -319,23 +319,15 @@ fn parse_generated_content(
                 *quote_depth = quote_depth.saturating_sub(1);
             }
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
-                let attribute_name = parser
-                    .parse_nested_block(|nested| -> Result<_, cssparser::ParseError<()>> {
-                        let name = nested
-                            .expect_ident_cloned()
-                            .map_err(|_| nested.new_custom_error(()))?;
-                        nested.skip_whitespace();
-                        if !nested.is_exhausted() {
-                            return Err(nested.new_custom_error(()));
-                        }
-                        Ok(name)
-                    })
-                    .ok()?;
+                let (attribute_name, fallback) =
+                    parser.parse_nested_block(parse_attr_arguments).ok()?;
                 if let Some((_, Some(attribute_value))) = attributes
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case(&attribute_name))
                 {
                     output.push_str(attribute_value);
+                } else if let Some(fallback) = fallback {
+                    output.push_str(&fallback);
                 }
             }
             Token::Function(name) if name.eq_ignore_ascii_case("counter") => {
@@ -369,6 +361,45 @@ fn parse_generated_content(
         }
     }
     Some(output)
+}
+
+fn parse_attr_arguments<'i, 't>(
+    parser: &mut Parser<'i, 't>,
+) -> Result<(String, Option<String>), cssparser::ParseError<'i, ()>> {
+    let name = parser.expect_ident_cloned()?;
+    parser.skip_whitespace();
+    if parser.is_exhausted() {
+        return Ok((name.to_string(), None));
+    }
+    parser.expect_comma()?;
+    let fallback = serialize_attr_fallback(parser)?;
+    Ok((name.to_string(), Some(fallback)))
+}
+
+fn serialize_attr_fallback<'i, 't>(
+    parser: &mut Parser<'i, 't>,
+) -> Result<String, cssparser::ParseError<'i, ()>> {
+    let mut output = String::new();
+    while let Ok(token) = parser.next_including_whitespace() {
+        if let Token::QuotedString(value) = token {
+            output.push_str(value);
+            continue;
+        }
+        let block_end = match token {
+            Token::Function(_) | Token::ParenthesisBlock => Some(')'),
+            Token::SquareBracketBlock => Some(']'),
+            Token::CurlyBracketBlock => Some('}'),
+            _ => None,
+        };
+        token
+            .to_css(&mut output)
+            .expect("writing CSS tokens into a String cannot fail");
+        if let Some(block_end) = block_end {
+            output.push_str(&parser.parse_nested_block(serialize_attr_fallback)?);
+            output.push(block_end);
+        }
+    }
+    Ok(output)
 }
 
 fn parse_counter_arguments<'i, 't>(

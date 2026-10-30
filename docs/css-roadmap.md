@@ -39,6 +39,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
 - [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Form, range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
 - [x] `::before` and `::after` generated text from quoted `content` strings and string-valued `attr(name)`, with supported text properties.
+- [x] String-valued `attr(name, fallback)` uses a serialized token-sequence fallback when the attribute is missing.
 - [x] Global `::selection` background color, including alpha compositing.
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
