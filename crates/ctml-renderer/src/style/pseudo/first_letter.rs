@@ -136,6 +136,7 @@ fn apply_first_letter_style(
     style.font_variant_position = pseudo_style.font_variant_position;
     style.text_rendering = pseudo_style.text_rendering;
     style.font_optical_sizing = pseudo_style.font_optical_sizing;
+    style.text_orientation = pseudo_style.text_orientation;
     style
         .font_variation_settings
         .clone_from(&pseudo_style.font_variation_settings);

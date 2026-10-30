@@ -1,5 +1,5 @@
 use super::{
-    FontVariantCaps, TextRendering, TextRun, TextStyle, WhiteSpace, append_text,
+    FontVariantCaps, TextOrientation, TextRendering, TextRun, TextStyle, WhiteSpace, append_text,
     compile_runs_with_font_system, synthesize_font_variant_caps,
 };
 use crate::{StyleDeclaration, StyleRule, UiNode};
@@ -323,6 +323,33 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
     assert_eq!(
         first_letter.style.font_variation_settings,
         vec![(*b"wght", 725.0), (*b"wdth", 90.0)]
+    );
+}
+
+#[test]
+fn first_letter_applies_text_orientation() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Orientation".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "text-orientation".to_owned(),
+            value: "sideways".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    let first_letter = runs.iter().find(|run| run.text == "O").unwrap();
+
+    assert_eq!(
+        first_letter.style.text_orientation,
+        TextOrientation::Sideways
     );
 }
 
