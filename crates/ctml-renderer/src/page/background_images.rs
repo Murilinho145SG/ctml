@@ -6,7 +6,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::style::{
     BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
-    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, LinearGradient,
+    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, LinearGradient, RadialGradient,
+    RadialGradientExtent, RadialGradientShape,
 };
 
 use super::overflow_clip::{BackgroundBoxes, ClipRect};
@@ -162,6 +163,9 @@ pub(super) fn draw_background_image_layers(
             BackgroundImage::LinearGradient(gradient) => {
                 (linear_gradient_shader(gradient, origin_rect), None)
             }
+            BackgroundImage::RadialGradient(gradient) => {
+                (radial_gradient_shader(gradient, origin_rect), None)
+            }
         };
         let Some(shader) = shader else { continue };
         canvas.save();
@@ -281,4 +285,104 @@ fn linear_gradient_shader(gradient: &LinearGradient, rect: Rect) -> Option<skia_
         (base_start, base_end)
     };
     gradient::shaders::linear_gradient((start, end), &shader_gradient, None)
+}
+
+fn radial_gradient_shader(gradient: &RadialGradient, rect: Rect) -> Option<skia_safe::Shader> {
+    let colors = gradient
+        .stops
+        .iter()
+        .map(|(color, _)| {
+            Color4f::new(
+                f32::from(color[0]) / 255.0,
+                f32::from(color[1]) / 255.0,
+                f32::from(color[2]) / 255.0,
+                f32::from(color[3]) / 255.0,
+            )
+        })
+        .collect::<Vec<_>>();
+    let positions = gradient
+        .stops
+        .iter()
+        .map(|(_, position)| *position)
+        .collect::<Vec<_>>();
+    let colors = gradient::Colors::new(&colors, Some(&positions), TileMode::Clamp, None);
+    let shader_gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
+    let center_x = rect.left + rect.width() * gradient.center_x_percent;
+    let center_y = rect.top + rect.height() * gradient.center_y_percent;
+    let distances = [
+        (center_x - rect.left, center_y - rect.top),
+        (rect.right - center_x, center_y - rect.top),
+        (center_x - rect.left, rect.bottom - center_y),
+        (rect.right - center_x, rect.bottom - center_y),
+    ];
+    let horizontal = (center_x - rect.left, rect.right - center_x);
+    let vertical = (center_y - rect.top, rect.bottom - center_y);
+    let (radius_x, radius_y) = match (gradient.shape, gradient.extent) {
+        (RadialGradientShape::Circle, RadialGradientExtent::ClosestSide) => {
+            let radius = horizontal
+                .0
+                .min(horizontal.1)
+                .min(vertical.0)
+                .min(vertical.1);
+            (radius, radius)
+        }
+        (RadialGradientShape::Circle, RadialGradientExtent::FarthestSide) => {
+            let radius = horizontal
+                .0
+                .max(horizontal.1)
+                .max(vertical.0)
+                .max(vertical.1);
+            (radius, radius)
+        }
+        (RadialGradientShape::Circle, RadialGradientExtent::ClosestCorner) => {
+            let radius = distances
+                .iter()
+                .map(|(x, y)| x.hypot(*y))
+                .fold(f32::INFINITY, f32::min);
+            (radius, radius)
+        }
+        (RadialGradientShape::Circle, RadialGradientExtent::FarthestCorner) => {
+            let radius = distances
+                .iter()
+                .map(|(x, y)| x.hypot(*y))
+                .fold(0.0, f32::max);
+            (radius, radius)
+        }
+        (RadialGradientShape::Ellipse, RadialGradientExtent::ClosestSide) => {
+            (horizontal.0.min(horizontal.1), vertical.0.min(vertical.1))
+        }
+        (RadialGradientShape::Ellipse, RadialGradientExtent::FarthestSide) => {
+            (horizontal.0.max(horizontal.1), vertical.0.max(vertical.1))
+        }
+        (RadialGradientShape::Ellipse, extent) => {
+            let distance = |(x, y): &(f32, f32)| x.hypot(*y);
+            let corner = if extent == RadialGradientExtent::ClosestCorner {
+                distances
+                    .iter()
+                    .min_by(|a, b| distance(a).total_cmp(&distance(b)))?
+            } else {
+                distances
+                    .iter()
+                    .max_by(|a, b| distance(a).total_cmp(&distance(b)))?
+            };
+            *corner
+        }
+    };
+    if radius_x <= 0.0 || radius_y <= 0.0 {
+        return None;
+    }
+    if gradient.shape == RadialGradientShape::Circle {
+        gradient::shaders::radial_gradient(
+            (Point::new(center_x, center_y), radius_x),
+            &shader_gradient,
+            None,
+        )
+    } else {
+        let matrix = Matrix::scale_translate((radius_x, radius_y), (center_x, center_y));
+        gradient::shaders::radial_gradient(
+            (Point::new(0.0, 0.0), 1.0),
+            &shader_gradient,
+            Some(&matrix),
+        )
+    }
 }

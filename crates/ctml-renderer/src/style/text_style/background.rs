@@ -4,6 +4,7 @@ use std::sync::Arc;
 pub(crate) enum BackgroundImage {
     Encoded(Arc<[u8]>),
     LinearGradient(LinearGradient),
+    RadialGradient(RadialGradient),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11,6 +12,31 @@ pub(crate) struct LinearGradient {
     pub(crate) angle_degrees: f32,
     pub(crate) stops: Vec<([u8; 4], f32)>,
     pub(crate) repeating: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum RadialGradientShape {
+    Circle,
+    #[default]
+    Ellipse,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum RadialGradientExtent {
+    ClosestSide,
+    FarthestSide,
+    ClosestCorner,
+    #[default]
+    FarthestCorner,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct RadialGradient {
+    pub(crate) shape: RadialGradientShape,
+    pub(crate) extent: RadialGradientExtent,
+    pub(crate) center_x_percent: f32,
+    pub(crate) center_y_percent: f32,
+    pub(crate) stops: Vec<([u8; 4], f32)>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

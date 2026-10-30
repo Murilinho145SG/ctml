@@ -82,6 +82,7 @@ mod aspect_ratio;
 mod background;
 mod background_attachment;
 mod background_box;
+mod background_gradients;
 mod border;
 mod border_cascade;
 mod border_radius;

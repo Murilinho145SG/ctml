@@ -20,10 +20,11 @@ pub(super) use text_style::{
     BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
     BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderLineStyle, BoxDecorationBreak,
     BoxShadow, Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize,
-    LineBreak, LinearGradient, Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle,
-    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
-    TextRendering, TextShadow, TextStyle, TextTransform, TextWrapMode, UnicodeBidi, UserSelect,
-    WhiteSpace, WordBreak, WritingMode,
+    LineBreak, LinearGradient, Overflow, OverflowWrap, RadialGradient, RadialGradientExtent,
+    RadialGradientShape, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
+    TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
+    TextStyle, TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak,
+    WritingMode,
 };
 
 pub(super) fn compile_runs_with_font_system(
