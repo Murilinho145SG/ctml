@@ -40,6 +40,7 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "telugu",
     "thai",
     "tibetan",
+    "ethiopic-numeric",
     "lower-latin",
     "upper-latin",
     "hiragana",

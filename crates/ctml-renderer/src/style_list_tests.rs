@@ -147,6 +147,29 @@ fn list_style_type_formats_localized_decimal_digits() {
 }
 
 #[test]
+fn list_style_type_formats_ethiopic_numeric_groups() {
+    use super::list_marker::format_counter_value;
+
+    for (value, expected) in [
+        (1, "፩"),
+        (10, "፲"),
+        (100, "፻"),
+        (1_000, "፲፻"),
+        (78_010_092, "፸፰፻፩፼፺፪"),
+    ] {
+        assert_eq!(
+            format_counter_value("ethiopic-numeric", value).as_deref(),
+            Some(expected),
+            "{value}"
+        );
+    }
+    assert_eq!(
+        format_counter_value("ethiopic-numeric", -12).as_deref(),
+        Some("-12")
+    );
+}
+
+#[test]
 fn list_style_type_formats_latin_and_kana_alphabets() {
     use super::list_marker::{format_counter_value, format_marker};
 
@@ -245,6 +268,7 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "telugu",
         "thai",
         "tibetan",
+        "ethiopic-numeric",
         "lower-latin",
         "upper-latin",
         "hiragana",
