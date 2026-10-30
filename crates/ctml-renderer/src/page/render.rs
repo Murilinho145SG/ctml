@@ -38,6 +38,16 @@ impl PageRasterizer {
             &self.nested_scroll,
             false,
         );
+        backgrounds::draw_block_boxes(
+            &self.runs,
+            &self.overflow_geometry,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            nested_scroll,
+        );
         backgrounds::draw(
             &self.runs,
             &self.buffer,

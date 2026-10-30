@@ -3,12 +3,73 @@ use cosmic_text::Buffer;
 use crate::{
     page::{
         local_writing,
-        overflow_clip::{self, ClipRect},
+        overflow_clip::{self, BlockGeometry, ClipRect},
         pixel::fill_rect_alpha_clipped,
     },
     style::{TextRun, WritingMode},
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+pub(super) fn draw_block_boxes(
+    runs: &[TextRun],
+    geometries: &HashMap<usize, BlockGeometry>,
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    page_writing_mode: WritingMode,
+    overflow_clips: &HashMap<usize, ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
+) {
+    let mut drawn = HashSet::new();
+    for run in runs {
+        for size in &run.style.layout_sizes {
+            if !drawn.insert(size.node_id)
+                || !size.empty_box
+                || size.background_layers.is_empty()
+                || size.visibility_hidden
+                || size.content_skipped
+                || size.opacity <= 0.0
+            {
+                continue;
+            }
+            let Some(geometry) = geometries.get(&size.node_id) else {
+                continue;
+            };
+            let Some(path_index) = run
+                .element_path
+                .iter()
+                .position(|node_id| *node_id == size.node_id)
+            else {
+                continue;
+            };
+            let parent_path = &run.element_path[..path_index];
+            let clip = overflow_clip::clip_for_path(parent_path, overflow_clips);
+            let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+                parent_path,
+                nested_scroll,
+                page_writing_mode,
+            );
+            let rect = geometry.border_box;
+            for layer in &size.background_layers {
+                let mut color = *layer;
+                color[3] = (f32::from(color[3]) * size.opacity)
+                    .round()
+                    .clamp(0.0, 255.0) as u8;
+                fill_rect_alpha_clipped(
+                    pixels,
+                    width,
+                    height,
+                    rect.left - super::PAGE_PADDING - scroll_x,
+                    rect.top - super::PAGE_PADDING - scroll_y,
+                    rect.right - rect.left,
+                    rect.bottom - rect.top,
+                    color,
+                    clip,
+                );
+            }
+        }
+    }
+}
 
 pub(super) fn draw(
     runs: &[TextRun],
@@ -38,6 +99,20 @@ pub(super) fn draw(
                 continue;
             };
             if style.visibility_hidden || style.content_skipped {
+                start += 1;
+                continue;
+            }
+            let is_block_background =
+                style_index
+                    .and_then(|index| runs.get(index))
+                    .is_some_and(|run| {
+                        run.style.layout_sizes.iter().any(|size| {
+                            !size.background_layers.is_empty()
+                                && size.empty_box
+                                && size.background_layers == style.background_layers
+                        })
+                    });
+            if is_block_background {
                 start += 1;
                 continue;
             }

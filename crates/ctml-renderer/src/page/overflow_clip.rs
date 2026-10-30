@@ -192,6 +192,7 @@ pub(super) fn block_geometries(
                     .any(|style| *style != crate::style::BorderLineStyle::None)
                 || extent.size.outline_style != crate::style::BorderLineStyle::None
                 || !extent.size.box_shadows.is_empty()
+                || (extent.size.empty_box && !extent.size.background_layers.is_empty())
         })
         .map(|(&node_id, extent)| {
             let sizes = runs
