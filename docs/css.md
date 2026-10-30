@@ -123,7 +123,7 @@ Malformed declarations and selector rules are skipped without a warning, and par
 - Borders, outlines, border radius, and shadows.
 - Flexbox, Grid, floats, and positioning (`position`, `top`, `right`, `bottom`, and `left`).
 - Overflow, clipping, scrolling, and scrollbars.
-- White-space controls, including `white-space`, `word-break`, and `text-overflow`.
+- White-space controls, including `white-space`, `text-wrap`/`text-wrap-mode` (`wrap` and `nowrap`), `word-break`, and `text-overflow`.
 
 ### Painting and colors
 

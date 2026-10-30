@@ -3,8 +3,8 @@ use winit::window::CursorIcon;
 
 use crate::style::{
     Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
-    TextOverflow, TextRendering, TextStyle, TextTransform, UnicodeBidi, UserSelect, WhiteSpace,
-    WordBreak, WritingMode,
+    TextOverflow, TextRendering, TextStyle, TextTransform, TextWrapMode, UnicodeBidi, UserSelect,
+    WhiteSpace, WordBreak, WritingMode,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -189,6 +189,8 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-justify"
             | "text-indent"
             | "white-space"
+            | "text-wrap"
+            | "text-wrap-mode"
             | "overflow-wrap"
             | "word-break"
             | "line-break"
@@ -315,7 +317,11 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "text-align" => style.text_align = inherited.text_align,
         "text-align-last" => style.text_align_last = inherited.text_align_last,
         "text-justify" => style.text_justify = inherited.text_justify,
-        "white-space" => style.white_space = inherited.white_space,
+        "white-space" => {
+            style.white_space = inherited.white_space;
+            style.text_wrap_mode = inherited.text_wrap_mode;
+        }
+        "text-wrap" | "text-wrap-mode" => style.text_wrap_mode = inherited.text_wrap_mode,
         "overflow-wrap" => style.overflow_wrap = inherited.overflow_wrap,
         "word-break" => style.word_break = inherited.word_break,
         "line-break" => style.line_break = inherited.line_break,
@@ -441,7 +447,11 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-align" => style.text_align = cosmic_text::Align::Left,
         "text-align-last" => style.text_align_last = None,
         "text-justify" => style.text_justify = cosmic_text::TextJustify::Auto,
-        "white-space" => style.white_space = WhiteSpace::Normal,
+        "white-space" => {
+            style.white_space = WhiteSpace::Normal;
+            style.text_wrap_mode = TextWrapMode::Wrap;
+        }
+        "text-wrap" | "text-wrap-mode" => style.text_wrap_mode = TextWrapMode::Wrap,
         "overflow-wrap" => style.overflow_wrap = OverflowWrap::Normal,
         "word-break" => style.word_break = WordBreak::Normal,
         "line-break" => style.line_break = LineBreak::Auto,
@@ -715,13 +725,38 @@ fn apply_declaration(
         }
         "white-space" => {
             style.white_space = match value.to_ascii_lowercase().as_str() {
-                "normal" => WhiteSpace::Normal,
-                "nowrap" => WhiteSpace::NoWrap,
-                "pre" => WhiteSpace::Pre,
-                "pre-wrap" => WhiteSpace::PreWrap,
-                "pre-line" => WhiteSpace::PreLine,
-                "break-spaces" => WhiteSpace::BreakSpaces,
+                "normal" => {
+                    style.text_wrap_mode = TextWrapMode::Wrap;
+                    WhiteSpace::Normal
+                }
+                "nowrap" => {
+                    style.text_wrap_mode = TextWrapMode::NoWrap;
+                    WhiteSpace::NoWrap
+                }
+                "pre" => {
+                    style.text_wrap_mode = TextWrapMode::NoWrap;
+                    WhiteSpace::Pre
+                }
+                "pre-wrap" => {
+                    style.text_wrap_mode = TextWrapMode::Wrap;
+                    WhiteSpace::PreWrap
+                }
+                "pre-line" => {
+                    style.text_wrap_mode = TextWrapMode::Wrap;
+                    WhiteSpace::PreLine
+                }
+                "break-spaces" => {
+                    style.text_wrap_mode = TextWrapMode::Wrap;
+                    WhiteSpace::BreakSpaces
+                }
                 _ => style.white_space,
+            };
+        }
+        "text-wrap" | "text-wrap-mode" => {
+            style.text_wrap_mode = match value.trim().to_ascii_lowercase().as_str() {
+                "wrap" => TextWrapMode::Wrap,
+                "nowrap" => TextWrapMode::NoWrap,
+                _ => style.text_wrap_mode,
             };
         }
         "overflow-wrap" => {

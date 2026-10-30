@@ -7,7 +7,7 @@ use super::{
     Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
     OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
     TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
-    TextTransform, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -87,6 +87,7 @@ pub(crate) struct TextStyle {
     pub(crate) text_align_last: Option<Align>,
     pub(crate) text_justify: cosmic_text::TextJustify,
     pub(crate) white_space: WhiteSpace,
+    pub(crate) text_wrap_mode: TextWrapMode,
     pub(crate) overflow_wrap: OverflowWrap,
     pub(crate) word_break: WordBreak,
     pub(crate) line_break: LineBreak,
@@ -206,6 +207,7 @@ impl Default for TextStyle {
             text_align_last: None,
             text_justify: cosmic_text::TextJustify::Auto,
             white_space: WhiteSpace::Normal,
+            text_wrap_mode: TextWrapMode::Wrap,
             overflow_wrap: OverflowWrap::Normal,
             word_break: WordBreak::Normal,
             line_break: LineBreak::Auto,

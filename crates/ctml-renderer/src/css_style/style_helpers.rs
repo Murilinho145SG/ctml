@@ -46,6 +46,8 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-justify",
     "text-indent",
     "white-space",
+    "text-wrap",
+    "text-wrap-mode",
     "overflow-wrap",
     "word-break",
     "line-break",

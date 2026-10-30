@@ -809,7 +809,7 @@ fn resolves_text_justify_methods_and_legacy_distribute_alias() {
 
 #[test]
 fn resolves_white_space_and_wrapping_modes() {
-    use super::super::style::{OverflowWrap, WhiteSpace, WordBreak};
+    use super::super::style::{OverflowWrap, TextWrapMode, WhiteSpace, WordBreak};
 
     for (value, expected) in [
         ("normal", WhiteSpace::Normal),
@@ -849,6 +849,24 @@ fn resolves_white_space_and_wrapping_modes() {
     assert_eq!(
         style_for_declarations(&[("white-space", "nowrap")]).wrap_mode(),
         cosmic_text::Wrap::None
+    );
+    assert_eq!(
+        style_for_declarations(&[("text-wrap-mode", "nowrap")]).text_wrap_mode,
+        TextWrapMode::NoWrap
+    );
+    assert_eq!(
+        style_for_declarations(&[("text-wrap", "nowrap")]).wrap_mode(),
+        cosmic_text::Wrap::None
+    );
+    assert_eq!(
+        style_for_declarations(&[("white-space", "nowrap"), ("text-wrap-mode", "wrap")])
+            .wrap_mode(),
+        cosmic_text::Wrap::Word
+    );
+    assert_eq!(
+        style_for_declarations(&[("text-wrap-mode", "nowrap"), ("white-space", "normal")])
+            .wrap_mode(),
+        cosmic_text::Wrap::Word
     );
     assert_eq!(
         style_for_declarations(&[("overflow-wrap", "invalid")]).overflow_wrap,

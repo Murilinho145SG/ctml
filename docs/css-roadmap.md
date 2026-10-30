@@ -236,7 +236,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-align-last` for automatic, logical and physical edge, centered, and justified final lines.
 - [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
 - [x] `text-justify`: `auto`, `none`, `inter-word`, `inter-character`, and legacy `distribute`.
-- [x] `white-space` collapsing and preservation (`normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`), `overflow-wrap` (`normal`, `break-word`, `anywhere`), and `word-break` (`normal`, `break-all`, `keep-all`, `break-word`). Intrinsic min-content sizing differences for `anywhere` are not modeled.
+- [x] `white-space` collapsing and preservation (`normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`), `text-wrap`/`text-wrap-mode` (`wrap`, `nowrap`), `overflow-wrap` (`normal`, `break-word`, `anywhere`), and `word-break` (`normal`, `break-all`, `keep-all`, `break-word`). Intrinsic min-content sizing differences for `anywhere` are not modeled.
 - [x] `line-break`: parses `auto`, `loose`, `normal`, `strict`, and `anywhere`; `anywhere` allows glyph-level breaks. `strict`/`loose` CJK tailoring is not modeled yet.
 - [x] `hyphens: none|manual|auto` values; `none` disables line breaks at soft hyphens. `auto` adds dictionary break points for recognized `lang` values.
 - [x] Render a visible hyphen when a line breaks at a manual U+00AD soft-hyphen opportunity; keep the character invisible when no break occurs or `hyphens: none` disables it.

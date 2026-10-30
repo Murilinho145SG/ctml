@@ -28,6 +28,13 @@ pub(crate) enum WhiteSpace {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextWrapMode {
+    #[default]
+    Wrap,
+    NoWrap,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum OverflowWrap {
     #[default]
     Normal,
@@ -242,7 +249,7 @@ pub(crate) enum TextDecorationSkipInk {
 
 impl TextStyle {
     pub(crate) fn wrap_mode(&self) -> Wrap {
-        if matches!(self.white_space, WhiteSpace::NoWrap | WhiteSpace::Pre) {
+        if self.text_wrap_mode == TextWrapMode::NoWrap {
             return Wrap::None;
         }
         if self.line_break == LineBreak::Anywhere {
@@ -262,7 +269,7 @@ impl TextStyle {
         if let Some(lines) = self.line_clamp {
             cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(lines))
         } else if self.text_overflow == TextOverflow::Ellipsis
-            && matches!(self.white_space, WhiteSpace::NoWrap | WhiteSpace::Pre)
+            && self.text_wrap_mode == TextWrapMode::NoWrap
         {
             cosmic_text::Ellipsize::End(cosmic_text::EllipsizeHeightLimit::Lines(1))
         } else {
