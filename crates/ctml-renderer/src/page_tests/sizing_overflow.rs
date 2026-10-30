@@ -243,6 +243,67 @@ fn overflow_hidden_clips_the_block_axis_in_vertical_root_writing_mode() {
     );
 }
 
+#[test]
+fn overflow_hidden_clips_nested_orthogonal_writing_mode_bounds() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("nested vertical overflow ".repeat(100))],
+    }];
+    for (writing_mode, bounds, outside_point) in [
+        ("vertical-rl", (192.0, 8.0, 232.0, 88.0), (120.0, 20.0)),
+        ("vertical-lr", (8.0, 152.0, 48.0, 232.0), (120.0, 180.0)),
+    ] {
+        let rule = |with_overflow: bool| {
+            let mut declarations = vec![
+                StyleDeclaration {
+                    property: "writing-mode".to_owned(),
+                    value: writing_mode.to_owned(),
+                },
+                StyleDeclaration {
+                    property: "block-size".to_owned(),
+                    value: "40px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "inline-size".to_owned(),
+                    value: "80px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "#00ff00".to_owned(),
+                },
+            ];
+            if with_overflow {
+                declarations.push(StyleDeclaration {
+                    property: "overflow".to_owned(),
+                    value: "hidden".to_owned(),
+                });
+            }
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations,
+            }
+        };
+        let mut clipped_page = PageRasterizer::new(&nodes, &[rule(true)]);
+        let clipped_pixels = clipped_page.snapshot_pixels(240, 240);
+        let visible_pixels = PageRasterizer::new(&nodes, &[rule(false)]).snapshot_pixels(240, 240);
+        let has_paint_outside_box = |pixels: &[u8]| {
+            pixels.chunks_exact(4).enumerate().any(|(index, pixel)| {
+                let x = (index % 240) as f32;
+                let y = (index / 240) as f32;
+                (x < bounds.0 || x >= bounds.2 || y < bounds.1 || y >= bounds.3)
+                    && (pixel[0] < 245 || pixel[1] < 245 || pixel[2] < 245)
+            })
+        };
+        assert!(has_paint_outside_box(&visible_pixels));
+        assert!(!has_paint_outside_box(&clipped_pixels));
+        assert!(!clipped_page.begin_selection(outside_point.0, outside_point.1));
+    }
+}
+
 fn size_rule(property: &str, value: &str) -> StyleRule {
     StyleRule {
         selectors: vec!["div".to_owned()],

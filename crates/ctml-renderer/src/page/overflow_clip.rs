@@ -111,15 +111,36 @@ pub(super) fn block_clip_rects(
                 })
                 .unwrap_or_default();
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode);
-            (
-                node_id,
+            let rect = if page_writing_mode == WritingMode::HorizontalTb
+                && is_vertical(extent.size.writing_mode)
+            {
+                let transform = local_writing::LocalVerticalTransform::new(
+                    extent.size.writing_mode,
+                    extent.top,
+                    width,
+                    height,
+                );
+                let (left, top, rect_width, rect_height) = transform.map_rect(
+                    PAGE_PADDING,
+                    PAGE_PADDING + extent.top,
+                    block_height.max(0.0),
+                    block_width.max(0.0),
+                );
+                ClipRect {
+                    left,
+                    top,
+                    right: left + rect_width,
+                    bottom: top + rect_height,
+                }
+            } else {
                 ClipRect {
                     left: PAGE_PADDING,
                     top: PAGE_PADDING + extent.top,
                     right: PAGE_PADDING + block_width.max(0.0),
                     bottom: PAGE_PADDING + extent.top + block_height.max(0.0),
-                },
-            )
+                }
+            };
+            (node_id, rect)
         })
         .collect()
 }

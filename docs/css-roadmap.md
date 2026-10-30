@@ -189,7 +189,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space. `block-size` and its min/max forms size the block axis for horizontal and page-root vertical writing modes.
 - [x] Content-bearing fixed heights and `max-height`/`max-block-size` use the requested used block extent for following flow, keep overflowing text visible under the default `overflow: visible`, and size auto-height blocks from content before applying maximums.
 - [x] One- and two-value `overflow: visible | hidden | clip` and `overflow-x`/`overflow-y` clip descendant painting and pointer/selection hits for content-bearing blocks in horizontal and page-root vertical writing modes.
-- [ ] Scroll containers, scrollbars, and clipping for nested orthogonal writing modes.
+- [x] Overflow clipping for nested orthogonal blocks under a horizontal page root.
+- [ ] Scroll containers and scrollbars.
+- [ ] Overflow clipping for nested orthogonal blocks under a vertical page root.
 - [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.
 - [ ] Apply `border-box` to padding and borders; intrinsic sizing keywords.

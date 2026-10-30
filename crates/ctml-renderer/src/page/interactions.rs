@@ -209,11 +209,10 @@ impl PageRasterizer {
     }
 
     fn hit(&self, x: f64, y: f64) -> Option<Cursor> {
+        let (pointer_x, pointer_y) = self.layout_point(x as f32, y as f32);
         let (x, y) = self
             .local_vertical_layout_point(x as f32, y as f32)
-            .unwrap_or_else(|| self.layout_point(x as f32, y as f32));
-        let pointer_x = x;
-        let pointer_y = y;
+            .unwrap_or((pointer_x, pointer_y));
         let x = x - PAGE_PADDING;
         let y = y - PAGE_PADDING;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
