@@ -253,6 +253,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-orientation"
             | "writing-mode"
             | "visibility"
+            | "content-visibility"
             | "pointer-events"
             | "direction"
             | "quotes"

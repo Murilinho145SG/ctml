@@ -136,6 +136,8 @@ pub(super) fn collect_runs(
                     stylesheet,
                     local_font_units,
                 );
+                style.content_visibility_hidden |= inherited.content_visibility_hidden;
+                style.visibility_hidden |= style.content_visibility_hidden;
                 if style.user_select == UserSelect::All {
                     style.user_select_all_owner = Some(sibling.node_id);
                     style.user_select_none = false;

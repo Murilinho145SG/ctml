@@ -4,6 +4,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
     match property {
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
+        "content-visibility" => {
+            style.content_visibility_hidden = inherited.content_visibility_hidden;
+        }
         "overflow" => {
             style.overflow_x = inherited.overflow_x;
             style.overflow_y = inherited.overflow_y;
@@ -215,6 +218,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
+        "content-visibility" => style.content_visibility_hidden = false,
         "overflow" => {
             style.overflow_x = Overflow::Visible;
             style.overflow_y = Overflow::Visible;

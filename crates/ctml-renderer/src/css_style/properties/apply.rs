@@ -23,6 +23,11 @@ pub(super) fn apply_declaration(
             "hidden" | "collapse" => style.visibility_hidden = true,
             _ => {}
         },
+        "content-visibility" => match value.to_ascii_lowercase().as_str() {
+            "hidden" => style.content_visibility_hidden = true,
+            "visible" | "auto" => style.content_visibility_hidden = false,
+            _ => {}
+        },
         "overflow" => {
             if let Some((overflow_x, overflow_y)) = parse_overflow_value(value) {
                 style.overflow_x = overflow_x;

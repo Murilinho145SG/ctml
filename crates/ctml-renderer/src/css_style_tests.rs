@@ -1124,6 +1124,27 @@ fn visibility_inherits_and_supports_css_wide_keywords() {
 }
 
 #[test]
+fn content_visibility_accepts_supported_values_and_css_wide_keywords() {
+    let hidden = style_for_declarations(&[("content-visibility", "hidden")]);
+    assert!(hidden.content_visibility_hidden);
+
+    let auto = style_for_declarations(&[("content-visibility", "auto")]);
+    assert!(!auto.content_visibility_hidden);
+
+    let visible = style_for_declarations(&[
+        ("content-visibility", "hidden"),
+        ("content-visibility", "visible"),
+    ]);
+    assert!(!visible.content_visibility_hidden);
+
+    let reset = style_for_declarations(&[
+        ("content-visibility", "hidden"),
+        ("content-visibility", "initial"),
+    ]);
+    assert!(!reset.content_visibility_hidden);
+}
+
+#[test]
 fn overflow_modes_parse_and_do_not_inherit_by_default() {
     let hidden = style_for_declarations(&[("overflow", "hidden")]);
     assert_eq!(hidden.overflow_x, Overflow::Hidden);

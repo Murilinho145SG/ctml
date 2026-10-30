@@ -404,6 +404,57 @@ fn visibility_hidden_preserves_layout_without_painting_text() {
 }
 
 #[test]
+fn content_visibility_hidden_preserves_flow_and_hides_descendants() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Hidden descendant".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "hidden".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: "visible".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "red".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut hidden = PageRasterizer::new(&nodes, &stylesheet);
+    let pixels = hidden.snapshot_pixels(160, 60);
+    let line_count = hidden.buffer.layout_runs().count();
+    let blank_pixels = PageRasterizer::new(&[], &[]).snapshot_pixels(160, 60);
+
+    assert_eq!(pixels, blank_pixels);
+    assert!(
+        line_count > 0,
+        "hidden contents must retain the current flow layout"
+    );
+}
+
+#[test]
 fn visibility_hidden_suppresses_fragment_backgrounds_and_decorations() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
