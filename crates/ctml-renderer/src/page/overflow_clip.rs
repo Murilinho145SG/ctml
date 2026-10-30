@@ -190,6 +190,7 @@ pub(super) fn block_geometries(
                     .iter()
                     .any(|style| *style != crate::style::BorderLineStyle::None)
                 || extent.size.outline_style != crate::style::BorderLineStyle::None
+                || !extent.size.box_shadows.is_empty()
         })
         .map(|(&node_id, extent)| {
             let sizes = runs

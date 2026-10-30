@@ -25,6 +25,7 @@ use border::{
     apply_logical_border_width_shorthand,
 };
 use border_radius::{apply_border_radius, apply_corner_radius};
+use box_shadow::apply_box_shadow;
 use cascade_values::{inherit_property, initial_property};
 pub(super) use color::apply_color_declaration;
 use counters::{CounterProperty, apply_counter_property};
@@ -70,6 +71,7 @@ mod background;
 mod border;
 mod border_cascade;
 mod border_radius;
+mod box_shadow;
 mod cascade_values;
 mod color;
 mod counters;

@@ -210,7 +210,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `border-radius` with one-to-four values, elliptical radii, corner longhands, and rounded border painting on nested content-bearing blocks.
 - [x] `outline`, `outline-width`, `outline-style`, `outline-color`, and signed `outline-offset`; paint outlines around nested content-bearing blocks, including rounded corners.
 - [x] Positive numeric `aspect-ratio` values derive an automatic dimension from the available or specified counterpart for horizontal content-bearing and empty blocks.
-- [ ] Box shadows and border images.
+- [x] `box-shadow` with multiple outer and inset shadows, offsets, blur, spread, colors, and rounded block silhouettes.
+- [ ] `border-image` and image slicing/repetition.
 - [ ] Box decorations across fragmented content.
 - [x] `visibility: visible|hidden|collapse`; `collapse` is treated as hidden because CTML has no table formatting context.
 - [ ] `content-visibility` and containment behavior.

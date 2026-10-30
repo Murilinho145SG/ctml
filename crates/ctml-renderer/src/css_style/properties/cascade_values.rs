@@ -196,7 +196,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             if !super::border_cascade::inherit_css_property(style, inherited, property) {
                 if !super::border_radius::inherit_css_property(style, inherited, property) {
                     if !super::outline::inherit_css_property(style, inherited, property) {
-                        super::aspect_ratio::inherit_css_property(style, inherited, property);
+                        if !super::aspect_ratio::inherit_css_property(style, inherited, property) {
+                            super::box_shadow::inherit_css_property(style, inherited, property);
+                        }
                     }
                 }
             }
@@ -393,7 +395,9 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             if !super::border_cascade::initial_css_property(style, property) {
                 if !super::border_radius::initial_css_property(style, property) {
                     if !super::outline::initial_css_property(style, property) {
-                        super::aspect_ratio::initial_css_property(style, property);
+                        if !super::aspect_ratio::initial_css_property(style, property) {
+                            super::box_shadow::initial_css_property(style, property);
+                        }
                     }
                 }
             }

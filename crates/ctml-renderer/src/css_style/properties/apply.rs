@@ -76,6 +76,7 @@ pub(super) fn apply_declaration(
         "outline-color" => apply_outline_color(style, value),
         "outline-offset" => apply_outline_offset(style, value),
         "aspect-ratio" => apply_aspect_ratio(style, value),
+        "box-shadow" => apply_box_shadow(style, value),
         "border" => apply_border_shorthand(style, value),
         "border-top" => apply_border_side(style, 0, value),
         "border-right" => apply_border_side(style, 1, value),

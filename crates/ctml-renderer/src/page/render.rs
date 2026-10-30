@@ -1,5 +1,6 @@
 use super::{
-    PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, borders, decorations, font_raster,
+    PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, borders, box_shadows, decorations,
+    font_raster,
 };
 use cosmic_text::Color;
 
@@ -17,6 +18,14 @@ impl PageRasterizer {
         }
         let overflow_clips = &self.overflow_clips;
         let nested_scroll = &self.nested_scroll;
+        box_shadows::draw_outer(
+            &self.runs,
+            &mut pixels,
+            width,
+            height,
+            &self.overflow_geometry,
+            &overflow_clips,
+        );
         backgrounds::draw(
             &self.runs,
             &self.buffer,
@@ -27,6 +36,14 @@ impl PageRasterizer {
             writing_mode,
             &overflow_clips,
             nested_scroll,
+        );
+        box_shadows::draw_inset(
+            &self.runs,
+            &mut pixels,
+            width,
+            height,
+            &self.overflow_geometry,
+            &overflow_clips,
         );
         borders::draw(
             &self.runs,

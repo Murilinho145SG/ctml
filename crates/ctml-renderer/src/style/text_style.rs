@@ -165,6 +165,7 @@ pub(crate) struct LayoutSize {
     pub(crate) outline_color: Option<[u8; 4]>,
     pub(crate) outline_offset: Option<String>,
     pub(crate) aspect_ratio: Option<f32>,
+    pub(crate) box_shadows: Vec<BoxShadow>,
     pub(crate) padding: [Option<String>; 4],
     pub(crate) margin: [Option<String>; 4],
     pub(crate) intrinsic_min_content_width: Option<f32>,
@@ -214,6 +215,16 @@ pub(crate) struct TextShadow {
     pub(crate) offset_y: f32,
     pub(crate) blur: f32,
     pub(crate) color: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct BoxShadow {
+    pub(crate) offset_x: f32,
+    pub(crate) offset_y: f32,
+    pub(crate) blur: f32,
+    pub(crate) spread: f32,
+    pub(crate) color: Option<[u8; 4]>,
+    pub(crate) inset: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

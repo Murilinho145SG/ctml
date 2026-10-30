@@ -14,6 +14,7 @@ mod backgrounds;
 mod block_sizing;
 mod border_radius;
 mod borders;
+mod box_shadows;
 mod cursor_spans;
 mod decorations;
 mod focus;

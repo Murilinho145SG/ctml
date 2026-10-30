@@ -27,6 +27,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "outline-color",
     "outline-offset",
     "aspect-ratio",
+    "box-shadow",
     "border",
     "border-top",
     "border-right",

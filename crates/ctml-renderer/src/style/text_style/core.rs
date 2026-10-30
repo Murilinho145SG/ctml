@@ -4,11 +4,11 @@ use std::{collections::HashMap, sync::Arc};
 use winit::window::CursorIcon;
 
 use super::{
-    BorderLineStyle, Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight,
-    LayoutSize, LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk, TextDecorationStyle,
-    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
-    TextRendering, TextShadow, TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace,
-    WordBreak, WritingMode,
+    BorderLineStyle, BoxShadow, Direction, FontVariantCaps, FontVariantPosition, Hyphens,
+    LayoutHeight, LayoutSize, LineBreak, Overflow, OverflowWrap, TextDecorationSkipInk,
+    TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
+    TextOrientation, TextOverflow, TextRendering, TextShadow, TextTransform, TextWrapMode,
+    UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -64,6 +64,7 @@ pub(crate) struct TextStyle {
     pub(crate) outline_color: Option<[u8; 4]>,
     pub(crate) outline_offset: Option<String>,
     pub(crate) aspect_ratio: Option<f32>,
+    pub(crate) box_shadows: Vec<BoxShadow>,
     pub(crate) padding: [Option<String>; 4],
     pub(crate) logical_padding: [Option<String>; 4],
     pub(crate) physical_padding_orders: [usize; 4],
@@ -215,6 +216,7 @@ impl Default for TextStyle {
             outline_color: None,
             outline_offset: None,
             aspect_ratio: None,
+            box_shadows: Vec::new(),
             padding: std::array::from_fn(|_| None),
             logical_padding: std::array::from_fn(|_| None),
             physical_padding_orders: [0; 4],

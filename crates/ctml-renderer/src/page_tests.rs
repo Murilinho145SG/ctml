@@ -40,6 +40,8 @@ mod border_radius;
 mod borders;
 #[path = "page_tests/box_model.rs"]
 mod box_model;
+#[path = "page_tests/box_shadows.rs"]
+mod box_shadows;
 #[path = "page_tests/css_math.rs"]
 mod css_math;
 #[path = "page_tests/element_opacity.rs"]
