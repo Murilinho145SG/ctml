@@ -1125,20 +1125,32 @@ fn visibility_inherits_and_supports_css_wide_keywords() {
 
 #[test]
 fn overflow_modes_parse_and_do_not_inherit_by_default() {
+    let hidden = style_for_declarations(&[("overflow", "hidden")]);
+    assert_eq!(hidden.overflow_x, Overflow::Hidden);
+    assert_eq!(hidden.overflow_y, Overflow::Hidden);
+
+    let axes = style_for_declarations(&[("overflow", "hidden clip")]);
+    assert_eq!(axes.overflow_x, Overflow::Hidden);
+    assert_eq!(axes.overflow_y, Overflow::Clip);
+
+    let longhands = style_for_declarations(&[("overflow-x", "clip"), ("overflow-y", "hidden")]);
+    assert_eq!(longhands.overflow_x, Overflow::Clip);
+    assert_eq!(longhands.overflow_y, Overflow::Hidden);
+
+    let invalid = style_for_declarations(&[("overflow", "hidden clip visible")]);
+    assert_eq!(invalid.overflow_x, Overflow::Visible);
+    assert_eq!(invalid.overflow_y, Overflow::Visible);
+
     assert_eq!(
-        style_for_declarations(&[("overflow", "hidden")]).overflow,
-        Overflow::Hidden
-    );
-    assert_eq!(
-        style_for_declarations(&[("overflow", "clip")]).overflow,
+        style_for_declarations(&[("overflow", "clip")]).overflow_x,
         Overflow::Clip
     );
     assert_eq!(
-        style_for_declarations(&[("overflow", "hidden"), ("overflow", "inherit")]).overflow,
+        style_for_declarations(&[("overflow", "hidden"), ("overflow", "inherit")]).overflow_x,
         Overflow::Visible
     );
     assert_eq!(
-        style_for_declarations(&[("overflow", "hidden"), ("overflow", "unset")]).overflow,
+        style_for_declarations(&[("overflow", "hidden"), ("overflow", "unset")]).overflow_y,
         Overflow::Visible
     );
 }

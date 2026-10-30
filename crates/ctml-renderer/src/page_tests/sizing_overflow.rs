@@ -75,7 +75,7 @@ fn overflow_hidden_clips_descendant_text_and_backgrounds_at_the_used_block_exten
         .iter_mut()
         .find(|declaration| declaration.property == "overflow")
         .expect("overflow declaration should exist")
-        .value = "clip".to_owned();
+        .value = "clip visible".to_owned();
     let clip_pixels = PageRasterizer::new(&nodes, &clip_stylesheet).snapshot_pixels(240, 220);
     let mut visible_stylesheet = vec![size_rule("height", "40px")];
     visible_stylesheet.push(span_background);
@@ -138,8 +138,12 @@ fn overflow_hidden_clips_text_and_backgrounds_at_the_inline_extent() {
         },
     ];
     declarations.push(StyleDeclaration {
-        property: "overflow".to_owned(),
+        property: "overflow-x".to_owned(),
         value: "hidden".to_owned(),
+    });
+    declarations.push(StyleDeclaration {
+        property: "overflow-y".to_owned(),
+        value: "visible".to_owned(),
     });
     let stylesheet = [
         StyleRule {
@@ -160,7 +164,7 @@ fn overflow_hidden_clips_text_and_backgrounds_at_the_inline_extent() {
     let mut visible_block = stylesheet[0].clone();
     visible_block
         .declarations
-        .retain(|declaration| declaration.property != "overflow");
+        .retain(|declaration| !declaration.property.starts_with("overflow"));
     let visible_stylesheet = [visible_block, stylesheet[1].clone()];
     let visible_pixels = PageRasterizer::new(&nodes, &visible_stylesheet).snapshot_pixels(240, 120);
     let has_escaped_paint = |pixels: &[u8]| {

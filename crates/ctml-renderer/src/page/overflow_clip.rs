@@ -65,7 +65,9 @@ pub(super) fn block_clip_rects(
             continue;
         };
         for size in &style_run.style.layout_sizes {
-            if matches!(size.overflow, crate::style::Overflow::Visible) {
+            if size.overflow_x == crate::style::Overflow::Visible
+                && size.overflow_y == crate::style::Overflow::Visible
+            {
                 continue;
             }
             extents

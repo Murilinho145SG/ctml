@@ -212,7 +212,12 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
     match property {
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
-        "overflow" => style.overflow = inherited.overflow,
+        "overflow" => {
+            style.overflow_x = inherited.overflow_x;
+            style.overflow_y = inherited.overflow_y;
+        }
+        "overflow-x" => style.overflow_x = inherited.overflow_x,
+        "overflow-y" => style.overflow_y = inherited.overflow_y,
         "pointer-events" => style.pointer_events_none = inherited.pointer_events_none,
         "user-select" => {
             style.user_select = inherited.user_select;
@@ -359,7 +364,12 @@ fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
-        "overflow" => style.overflow = Overflow::Visible,
+        "overflow" => {
+            style.overflow_x = Overflow::Visible;
+            style.overflow_y = Overflow::Visible;
+        }
+        "overflow-x" => style.overflow_x = Overflow::Visible,
+        "overflow-y" => style.overflow_y = Overflow::Visible,
         "pointer-events" => style.pointer_events_none = false,
         "user-select" => {
             style.user_select = UserSelect::Auto;
@@ -522,12 +532,22 @@ fn apply_declaration(
             "hidden" | "collapse" => style.visibility_hidden = true,
             _ => {}
         },
-        "overflow" => match value.to_ascii_lowercase().as_str() {
-            "visible" => style.overflow = Overflow::Visible,
-            "hidden" => style.overflow = Overflow::Hidden,
-            "clip" => style.overflow = Overflow::Clip,
-            _ => {}
-        },
+        "overflow" => {
+            if let Some((overflow_x, overflow_y)) = parse_overflow_value(value) {
+                style.overflow_x = overflow_x;
+                style.overflow_y = overflow_y;
+            }
+        }
+        "overflow-x" => {
+            if let Some(overflow) = parse_overflow_keyword(value) {
+                style.overflow_x = overflow;
+            }
+        }
+        "overflow-y" => {
+            if let Some(overflow) = parse_overflow_keyword(value) {
+                style.overflow_y = overflow;
+            }
+        }
         "pointer-events" => match value.to_ascii_lowercase().as_str() {
             "auto" => style.pointer_events_none = false,
             "none" => style.pointer_events_none = true,
@@ -881,5 +901,27 @@ fn apply_declaration(
             }
         }
         _ => {}
+    }
+}
+
+fn parse_overflow_value(value: &str) -> Option<(Overflow, Overflow)> {
+    let mut values = value.split_ascii_whitespace();
+    let first = parse_overflow_keyword(values.next()?)?;
+    let second = match values.next() {
+        Some(value) => Some(parse_overflow_keyword(value)?),
+        None => None,
+    };
+    if values.next().is_some() {
+        return None;
+    }
+    Some((first, second.unwrap_or(first)))
+}
+
+fn parse_overflow_keyword(value: &str) -> Option<Overflow> {
+    match value.to_ascii_lowercase().as_str() {
+        "visible" => Some(Overflow::Visible),
+        "hidden" => Some(Overflow::Hidden),
+        "clip" => Some(Overflow::Clip),
+        _ => None,
     }
 }

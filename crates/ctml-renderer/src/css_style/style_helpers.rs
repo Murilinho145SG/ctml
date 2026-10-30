@@ -5,6 +5,8 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "opacity",
     "visibility",
     "overflow",
+    "overflow-x",
+    "overflow-y",
     "display",
     "list-style-type",
     "width",
