@@ -48,6 +48,14 @@ pub(crate) enum LineBreak {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Hyphens {
+    None,
+    #[default]
+    Manual,
+    Auto,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum TextOverflow {
     #[default]
     Clip,
@@ -133,6 +141,7 @@ pub(crate) struct TextStyle {
     pub(crate) overflow_wrap: OverflowWrap,
     pub(crate) word_break: WordBreak,
     pub(crate) line_break: LineBreak,
+    pub(crate) hyphens: Hyphens,
     pub(crate) text_overflow: TextOverflow,
     pub(crate) line_clamp: Option<usize>,
     pub(crate) text_rendering: TextRendering,
@@ -326,6 +335,7 @@ impl Default for TextStyle {
             overflow_wrap: OverflowWrap::Normal,
             word_break: WordBreak::Normal,
             line_break: LineBreak::Auto,
+            hyphens: Hyphens::Manual,
             text_overflow: TextOverflow::Clip,
             line_clamp: None,
             text_rendering: TextRendering::Auto,

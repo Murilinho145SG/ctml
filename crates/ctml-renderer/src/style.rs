@@ -14,10 +14,10 @@ mod text;
 mod text_style;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
-    FontVariantCaps, FontVariantPosition, LayoutHeight, LayoutSize, LineBreak, OverflowWrap,
-    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisStyle,
-    TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle, TextTransform, WhiteSpace,
-    WordBreak,
+    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
+    OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
+    TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle,
+    TextTransform, WhiteSpace, WordBreak,
 };
 
 pub(super) fn compile_runs_with_font_system(

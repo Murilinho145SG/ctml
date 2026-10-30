@@ -976,6 +976,7 @@ impl ShapeSpan {
             level,
             shaping,
             false,
+            false,
         );
     }
 
@@ -989,6 +990,7 @@ impl ShapeSpan {
         level: unicode_bidi::Level,
         shaping: Shaping,
         keep_all: bool,
+        hyphens_none: bool,
     ) {
         let span = &line[span_range.start..span_range.end];
 
@@ -1013,15 +1015,21 @@ impl ShapeSpan {
         let mut start_word = 0;
         let mut previous_break = 0;
         for (end_lb, _) in unicode_linebreak::linebreaks(span) {
+            let preceding_segment = &span[previous_break..end_lb];
             let suppress_cjk_break = keep_all
                 && end_lb < span.len()
-                && span[previous_break..end_lb]
+                && preceding_segment
                     .chars()
                     .next_back()
                     .is_some_and(is_cjk_character)
                 && span[end_lb..].chars().next().is_some_and(is_cjk_character);
+            let suppress_soft_hyphen_break = hyphens_none
+                && preceding_segment
+                    .chars()
+                    .next_back()
+                    .is_some_and(|character| character == '\u{00ad}');
             previous_break = end_lb;
-            if suppress_cjk_break {
+            if suppress_cjk_break || suppress_soft_hyphen_break {
                 continue;
             }
             // Check if this break opportunity splits a likely ligature (e.g. "|>" or "!=")
@@ -1394,7 +1402,15 @@ impl ShapeLine {
         shaping: Shaping,
         tab_width: u16,
     ) {
-        self.build_with_keep_all(font_system, line, attrs_list, shaping, tab_width, false);
+        self.build_with_keep_all(
+            font_system,
+            line,
+            attrs_list,
+            shaping,
+            tab_width,
+            false,
+            false,
+        );
     }
 
     pub fn build_with_keep_all(
@@ -1405,6 +1421,7 @@ impl ShapeLine {
         shaping: Shaping,
         tab_width: u16,
         keep_all: bool,
+        hyphens_none: bool,
     ) {
         // Clear stale ellipsis span so it gets recomputed with the current attrs.
         // Without this, reusing a ShapeLine from a previous text (via Cached::Unused)
@@ -1458,6 +1475,7 @@ impl ShapeLine {
                         run_level,
                         shaping,
                         keep_all,
+                        hyphens_none,
                     );
                     spans.push(span);
                     start = i;
@@ -1474,6 +1492,7 @@ impl ShapeLine {
                 run_level,
                 shaping,
                 keep_all,
+                hyphens_none,
             );
             spans.push(span);
         }

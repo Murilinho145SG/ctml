@@ -638,6 +638,23 @@ fn resolves_line_break_modes() {
 }
 
 #[test]
+fn resolves_hyphens_modes() {
+    use super::super::style::Hyphens;
+
+    for (value, expected) in [
+        ("none", Hyphens::None),
+        ("manual", Hyphens::Manual),
+        ("auto", Hyphens::Auto),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("hyphens", value)]).hyphens,
+            expected,
+            "{value}"
+        );
+    }
+}
+
+#[test]
 fn resolves_text_overflow_and_line_clamp() {
     use super::super::style::{TextOverflow, WhiteSpace};
 

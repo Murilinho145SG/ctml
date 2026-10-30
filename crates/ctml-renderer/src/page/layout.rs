@@ -230,7 +230,20 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
     let line_styles = line_alignments(&page.runs);
     for (
         line,
-        (align, align_last, text_justify, _, keep_all, preserve_spaces, ellipsize, _, _, _, _),
+        (
+            align,
+            align_last,
+            text_justify,
+            _,
+            keep_all,
+            hyphens_none,
+            preserve_spaces,
+            ellipsize,
+            _,
+            _,
+            _,
+            _,
+        ),
     ) in page
         .buffer
         .lines
@@ -241,6 +254,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         line.set_align_last(align_last);
         line.set_text_justify(text_justify);
         line.set_keep_all(keep_all);
+        line.set_hyphens_none(hyphens_none);
         line.set_preserve_spaces(preserve_spaces);
         line.set_ellipsize(ellipsize);
     }
@@ -252,7 +266,7 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
     let hinting = page.buffer.hinting();
     for (
         (line, sizes),
-        (_, _, _, wrap, _, _, ellipsize, indent, indent_percent, hanging, each_line),
+        (_, _, _, wrap, _, _, _, ellipsize, indent, indent_percent, hanging, each_line),
     ) in page
         .buffer
         .lines

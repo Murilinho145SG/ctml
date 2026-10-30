@@ -48,6 +48,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "overflow-wrap",
     "word-break",
     "line-break",
+    "hyphens",
     "text-overflow",
     "line-clamp",
     "text-rendering",

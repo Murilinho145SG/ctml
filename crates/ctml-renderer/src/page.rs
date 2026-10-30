@@ -437,6 +437,7 @@ fn line_alignments(
     cosmic_text::Wrap,
     bool,
     bool,
+    bool,
     cosmic_text::Ellipsize,
     f32,
     f32,
@@ -450,6 +451,7 @@ fn line_alignments(
             style.text_justify,
             style.wrap_mode(),
             style.word_break == crate::style::WordBreak::KeepAll,
+            style.hyphens == crate::style::Hyphens::None,
             matches!(
                 style.white_space,
                 crate::style::WhiteSpace::PreWrap | crate::style::WhiteSpace::BreakSpaces
@@ -466,6 +468,7 @@ fn line_alignments(
         None,
         cosmic_text::TextJustify::Auto,
         cosmic_text::Wrap::Word,
+        false,
         false,
         false,
         cosmic_text::Ellipsize::None,

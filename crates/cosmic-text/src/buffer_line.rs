@@ -25,6 +25,7 @@ pub struct BufferLine {
     wrap: Wrap,
     preserve_spaces: bool,
     ellipsize: Ellipsize,
+    hyphens_none: bool,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -55,6 +56,7 @@ impl BufferLine {
             wrap: Wrap::WordOrGlyph,
             preserve_spaces: false,
             ellipsize: Ellipsize::None,
+            hyphens_none: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -85,6 +87,7 @@ impl BufferLine {
         self.wrap = Wrap::WordOrGlyph;
         self.preserve_spaces = false;
         self.ellipsize = Ellipsize::None;
+        self.hyphens_none = false;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -231,6 +234,17 @@ impl BufferLine {
         }
     }
 
+    /// Disable line-break opportunities at soft hyphens.
+    pub fn set_hyphens_none(&mut self, hyphens_none: bool) -> bool {
+        if self.hyphens_none != hyphens_none {
+            self.hyphens_none = hyphens_none;
+            self.reset_shaping();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Set the line wrapping mode and invalidate its layout if it changes.
     pub fn set_wrap(&mut self, wrap: Wrap) -> bool {
         if self.wrap != wrap {
@@ -308,6 +322,7 @@ impl BufferLine {
         new.wrap = self.wrap;
         new.preserve_spaces = self.preserve_spaces;
         new.ellipsize = self.ellipsize;
+        new.hyphens_none = self.hyphens_none;
         new
     }
 
@@ -343,6 +358,7 @@ impl BufferLine {
                 self.shaping,
                 tab_width,
                 self.keep_all,
+                self.hyphens_none,
             );
             self.shape_opt.set_used(line);
             self.layout_opt.set_unused();
@@ -448,6 +464,7 @@ impl BufferLine {
             wrap: Wrap::WordOrGlyph,
             preserve_spaces: false,
             ellipsize: Ellipsize::None,
+            hyphens_none: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -649,5 +666,26 @@ mod tests {
             Hinting::default(),
         );
         assert_eq!(buffer.layout_runs().count(), 2);
+    }
+
+    #[test]
+    fn hyphens_none_disables_soft_hyphen_breaks() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(40.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "inter\u{00ad}national",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+
+        buffer.shape_until_scroll(&mut font_system, false);
+        assert!(buffer.layout_runs().count() > 1);
+
+        buffer.lines[0].set_hyphens_none(true);
+        buffer.shape_until_scroll(&mut font_system, false);
+        assert_eq!(buffer.layout_runs().count(), 1);
     }
 }
