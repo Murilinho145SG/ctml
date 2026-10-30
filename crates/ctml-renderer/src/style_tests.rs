@@ -305,6 +305,42 @@ fn first_line_resolves_font_optical_sizing_and_variation_settings() {
     );
 }
 
+#[test]
+fn first_line_and_first_letter_resolve_text_emphasis_side() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Emphasis side".to_owned())],
+    }];
+    let stylesheet = [
+        ("p::first-line", "text-emphasis-position", "under left"),
+        ("p::first-letter", "text-emphasis-position", "over right"),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+    let first_letter = runs.iter().find(|run| run.text == "E").unwrap();
+    let first_line = first_letter.first_line_font_style.as_ref().unwrap();
+
+    assert_eq!(
+        first_letter.style.text_emphasis_side,
+        Some(crate::style::TextEmphasisSide::Right)
+    );
+    assert_eq!(
+        first_line.text_emphasis_side,
+        Some(crate::style::TextEmphasisSide::Left)
+    );
+}
+
 fn counter_item(text: &str, nested: Option<UiNode>) -> UiNode {
     let mut children = vec![UiNode::Text(text.to_owned())];
     children.extend(nested);

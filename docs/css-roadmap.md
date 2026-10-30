@@ -55,6 +55,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-line` applies `font-optical-sizing` and `font-variation-settings` during glyph rendering.
 - [x] Apply `text-rendering` to `::first-line` and `::first-letter` glyph shaping.
 - [x] `::first-line` text shadow and emphasis marks in glyph rendering.
+- [x] Apply the optional left/right side in `text-emphasis-position` on `::first-line` and `::first-letter`.
 - [x] Pseudo-element text decorations honor `text-decoration-skip-ink` values `auto`, `none`, and `all`.
 - [x] `text-underline-offset` moves underlines on `::first-line` and `::first-letter`.
 - [x] Apply the supported color-only `background` shorthand to `::first-line` and `::first-letter`.

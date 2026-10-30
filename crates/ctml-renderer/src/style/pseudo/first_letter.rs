@@ -162,6 +162,7 @@ fn apply_first_letter_style(
         .clone_from(&pseudo_style.text_emphasis_style);
     style.text_emphasis_color = pseudo_style.text_emphasis_color;
     style.text_emphasis_position = pseudo_style.text_emphasis_position;
+    style.text_emphasis_side = pseudo_style.text_emphasis_side;
 }
 
 fn core_range(text: &str, transformed_character_count: usize) -> Option<(usize, usize)> {
