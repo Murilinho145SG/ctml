@@ -270,6 +270,8 @@ fn covers_every_mapped_cursor_keyword() {
         ("context-menu", CursorIcon::ContextMenu),
         ("cell", CursorIcon::Cell),
         ("all-scroll", CursorIcon::AllScroll),
+        ("all-resize", CursorIcon::AllResize),
+        ("dnd-ask", CursorIcon::DndAsk),
         ("vertical-text", CursorIcon::VerticalText),
         ("ew-resize", CursorIcon::EwResize),
         ("col-resize", CursorIcon::EwResize),

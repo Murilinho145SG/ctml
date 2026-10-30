@@ -19,6 +19,8 @@ pub(super) fn parse_cursor(value: &str) -> Option<CursorIcon> {
         "context-menu" => CursorIcon::ContextMenu,
         "cell" => CursorIcon::Cell,
         "all-scroll" => CursorIcon::AllScroll,
+        "all-resize" => CursorIcon::AllResize,
+        "dnd-ask" => CursorIcon::DndAsk,
         "vertical-text" => CursorIcon::VerticalText,
         "ew-resize" | "col-resize" => CursorIcon::EwResize,
         "ns-resize" | "row-resize" => CursorIcon::NsResize,

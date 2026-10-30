@@ -255,7 +255,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Native cursor mapping for supported `cursor` keywords.
 - [x] Hide the native cursor with `cursor: none`.
 - [x] Text selection by mouse drag and double-click word selection.
-- [ ] Complete cursor values, including context-menu, drag, column, and platform-specific cursors.
+- [x] Standard cursor keywords, including context-menu, grab/grabbing, column and row resize, plus the platform cursor extensions `all-resize` and `dnd-ask`.
 - [ ] Custom cursor images and hotspot coordinates.
 - [ ] `pointer-events`, `user-select`, `caret-color`, and `accent-color`.
 - [ ] Focus indicators, outlines, and keyboard navigation states.
