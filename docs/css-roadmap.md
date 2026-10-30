@@ -100,6 +100,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 ## Values, units, and calculations
 
 - [ ] All standard CSS number, integer, percentage, dimension, string, URL, and identifier value forms.
+- [x] Parse finite CSS numeric tokens for supported lengths and percentages, including signs, decimals, and exponents, while rejecting separated units and trailing tokens.
 - [x] Absolute lengths: `px`, `cm`, `mm`, `Q`, `in`, `pt`, and `pc` for font sizes and line heights.
 - [x] Font-relative `em` and `rem` lengths for font sizes and line heights.
 - [x] `lh` font-relative unit for `font-size`, `line-height`, `font` shorthand line height, text-shadow lengths, and text-decoration lengths.

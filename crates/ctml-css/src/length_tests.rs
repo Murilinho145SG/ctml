@@ -1,6 +1,6 @@
 use super::{
     FontRelativeUnits, ViewportSize, parse_font_relative_length,
-    parse_font_relative_length_with_viewport, parse_length_with_line_height,
+    parse_font_relative_length_with_viewport, parse_length, parse_length_with_line_height,
     parse_nonnegative_font_relative_length, parse_nonnegative_font_relative_length_with_viewport,
     parse_nonnegative_length_with_line_height, parse_signed_font_relative_length,
     parse_signed_font_relative_length_with_viewport,
@@ -19,6 +19,16 @@ fn parses_lh_relative_lengths_and_percentages() {
         Some(-12.0)
     );
     assert_eq!(parse_length_with_line_height("2em", 16.0, 24.0), Some(32.0));
+}
+
+#[test]
+fn parses_length_components_as_single_css_numeric_tokens() {
+    assert_eq!(parse_length("+1.25e2PX", 16.0), Some(125.0));
+    assert_eq!(parse_length(".5em", 16.0), Some(8.0));
+    assert_eq!(parse_length("10 %", 100.0), None);
+    assert_eq!(parse_length("10 px", 16.0), None);
+    assert_eq!(parse_length("1e999px", 16.0), None);
+    assert_eq!(parse_length("10px trailing", 16.0), None);
 }
 
 #[test]
