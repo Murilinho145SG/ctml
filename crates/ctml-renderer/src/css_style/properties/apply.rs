@@ -312,15 +312,7 @@ pub(super) fn apply_declaration(
         }
         "letter-spacing" => apply_letter_spacing(style, value),
         "word-spacing" => apply_word_spacing(style, value),
-        "text-transform" => {
-            style.text_transform = match value.to_ascii_lowercase().as_str() {
-                "uppercase" => TextTransform::Uppercase,
-                "lowercase" => TextTransform::Lowercase,
-                "capitalize" => TextTransform::Capitalize,
-                "none" => TextTransform::None,
-                _ => style.text_transform,
-            };
-        }
+        "text-transform" => apply_text_transform_property(style, value),
         "text-align" => {
             style.text_align = match value.to_ascii_lowercase().as_str() {
                 "left" => cosmic_text::Align::Left,
@@ -493,15 +485,7 @@ pub(super) fn apply_declaration(
         | "text-decoration-thickness"
         | "text-underline-offset"
         | "text-decoration-color" => apply_text_decoration_property(style, property, value),
-        "cursor" => {
-            if value.eq_ignore_ascii_case("none") {
-                style.cursor = CursorIcon::Default;
-                style.cursor_hidden = true;
-            } else if let Some(cursor) = parse_cursor(value) {
-                style.cursor = cursor;
-                style.cursor_hidden = false;
-            }
-        }
+        "cursor" => apply_cursor(style, value),
         _ => {}
     }
 }

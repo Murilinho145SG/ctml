@@ -1,4 +1,4 @@
-use super::{TextRun, TextStyle, TextTransform, WhiteSpace};
+use super::{TextRun, TextStyle, WhiteSpace};
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 pub fn append_text(
@@ -70,28 +70,13 @@ fn push_transformed_character(
     output: &mut Vec<TextRun>,
     capitalize_next: bool,
 ) {
-    match style.text_transform {
-        TextTransform::Uppercase => {
-            for transformed in character.to_uppercase() {
-                push_variant_character(transformed, character, style, element_path, output);
-            }
-        }
-        TextTransform::Lowercase => {
-            for transformed in character.to_lowercase() {
-                push_variant_character(transformed, character, style, element_path, output);
-            }
-        }
-        TextTransform::Capitalize if capitalize_next => {
-            for transformed in character.to_uppercase() {
-                push_variant_character(transformed, character, style, element_path, output);
-            }
-        }
-        _ => push_variant_character(character, character, style, element_path, output),
+    for transformed in super::transform_character(character, style, capitalize_next).chars() {
+        push_variant_character(transformed, character, style, element_path, output);
     }
 }
 
 fn push_space(style: &TextStyle, element_path: &[usize], output: &mut Vec<TextRun>) {
-    push_space_character(' ', style, element_path, output);
+    push_space_character(' ', style, element_path, output, false);
 }
 
 fn push_preserved_space(
@@ -100,7 +85,7 @@ fn push_preserved_space(
     element_path: &[usize],
     output: &mut Vec<TextRun>,
 ) {
-    push_space_character(character, style, element_path, output);
+    push_space_character(character, style, element_path, output, true);
 }
 
 fn push_space_character(
@@ -108,6 +93,7 @@ fn push_space_character(
     style: &TextStyle,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
+    preserve_space: bool,
 ) {
     let mut space_style = style.clone();
     space_style.word_spacing_space = true;
@@ -121,7 +107,13 @@ fn push_space_character(
         } + word_spacing / style.font_size.max(1.0);
         space_style.letter_spacing_px = false;
     }
-    push_character(character, &space_style, element_path, output);
+    if preserve_space {
+        for transformed in super::transform_character(character, &space_style, false).chars() {
+            push_character(transformed, &space_style, element_path, output);
+        }
+    } else {
+        push_character(character, &space_style, element_path, output);
+    }
 }
 
 fn push_variant_character(

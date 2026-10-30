@@ -1,4 +1,5 @@
 use super::*;
+use crate::style::TextTransform;
 
 #[test]
 fn cascade_uses_specificity_then_source_order_for_each_declaration() {
@@ -372,6 +373,10 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
                     property: "text-decoration-thickness".to_owned(),
                     value: "5px".to_owned(),
                 },
+                StyleDeclaration {
+                    property: "text-transform".to_owned(),
+                    value: "uppercase full-width full-size-kana".to_owned(),
+                },
             ],
         },
         StyleRule {
@@ -406,6 +411,10 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
                     property: "text-decoration-thickness".to_owned(),
                     value: "unset".to_owned(),
                 },
+                StyleDeclaration {
+                    property: "text-transform".to_owned(),
+                    value: "unset".to_owned(),
+                },
             ],
         },
     ];
@@ -416,6 +425,9 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
         background: [12, 34, 56],
         text_decoration_color: Some([255, 0, 0, 255]),
         decoration_thickness: Some(3.0),
+        text_transform: TextTransform::Lowercase,
+        text_transform_full_width: true,
+        text_transform_full_size_kana: true,
         ..TextStyle::default()
     };
 
@@ -428,6 +440,9 @@ fn css_wide_inherit_initial_and_unset_keywords_resolve_supported_properties() {
     assert!(!style.underline);
     assert_eq!(style.text_decoration_color, None);
     assert_eq!(style.decoration_thickness, None);
+    assert_eq!(style.text_transform, TextTransform::Lowercase);
+    assert!(style.text_transform_full_width);
+    assert!(style.text_transform_full_size_kana);
 }
 
 #[test]

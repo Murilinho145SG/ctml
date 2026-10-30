@@ -62,6 +62,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Apply supported `background` shorthand layers, including colors, images, repeat, position/size, attachment, and origin/clip values, to `::first-line` and `::first-letter`.
 - [x] Apply inherited and overridden `text-transform` to the `::first-letter` source character, including case expansion.
 - [x] Apply `text-transform` to `::first-line` text during line formation and reshape the resulting lines.
+- [x] Apply combined `full-width` and `full-size-kana` text transformations to text, `::first-line`, and `::first-letter`.
 - [x] Apply `line-height` from `::first-line` to the first line box.
 - [x] Apply inherited and overridden `word-spacing` to `::first-line` spaces during wrapping.
 - [x] Scale alpha for supported first-line and first-letter text, backgrounds, shadows, and decorations with pseudo-element `opacity`.
@@ -246,6 +247,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [x] `color`, `font-family`, `font-size` in supported lengths and percentages relative to the inherited size, numeric `font-weight` values from 1 to 1000, `normal`/`bold`, and relative `bolder`/`lighter`, `font-style` (`normal`, `italic`, `oblique`), `font-stretch` keywords and percentages mapped to available widths, `line-height`, and `letter-spacing`.
 - [x] `text-transform` and basic `text-decoration` line values.
+- [x] `text-transform` supports combined `full-width` and `full-size-kana` transformations.
 - [x] `font-kerning` (`auto`, `normal`, and `none`).
 - [x] `font-style: oblique <angle>` from -90deg to 90deg, including conversion to the opposite-sign OpenType `slnt` axis.
 - [x] Common, discretionary, and contextual ligature controls through `font-variant-ligatures`.

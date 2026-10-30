@@ -46,7 +46,7 @@ use contain_intrinsic_size::{
     apply_contain_intrinsic_height, apply_contain_intrinsic_size, apply_contain_intrinsic_width,
 };
 use counters::{CounterProperty, apply_counter_property};
-use cursor::parse_cursor;
+use cursor::apply_cursor;
 use display::{apply_display, inherit_display, reset_display, revert_display};
 #[cfg(test)]
 pub(super) use font::parse_font_size;
@@ -114,7 +114,9 @@ mod text_decoration;
 mod text_emphasis;
 mod text_indent;
 mod text_shadow;
+mod text_transform;
 use size::is_valid_size_declaration;
+use text_transform::apply_text_transform_property;
 
 pub(super) fn apply_declaration_with_inherited(
     style: &mut TextStyle,

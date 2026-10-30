@@ -15,6 +15,7 @@ mod list_marker;
 mod pseudo;
 mod text;
 mod text_style;
+mod text_transform;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
     BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
@@ -27,6 +28,7 @@ pub(super) use text_style::{
     TextRendering, TextShadow, TextStyle, TextTransform, TextWrapMode, UnicodeBidi, UserSelect,
     WhiteSpace, WordBreak, WritingMode,
 };
+pub(crate) use text_transform::transform_character;
 
 pub(super) fn compile_runs_with_font_system(
     nodes: &[UiNode],

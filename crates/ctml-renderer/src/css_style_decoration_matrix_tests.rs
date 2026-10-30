@@ -10,6 +10,14 @@ fn covers_every_text_transform_value() {
     ] {
         assert_eq!(style_for("text-transform", value).text_transform, expected);
     }
+    let combined = style_for("text-transform", "uppercase full-width full-size-kana");
+    assert_eq!(combined.text_transform, TextTransform::Uppercase);
+    assert!(combined.text_transform_full_width);
+    assert!(combined.text_transform_full_size_kana);
+
+    let conflicting = style_for("text-transform", "none full-width");
+    assert_eq!(conflicting.text_transform, TextTransform::None);
+    assert!(!conflicting.text_transform_full_width);
 }
 
 #[test]

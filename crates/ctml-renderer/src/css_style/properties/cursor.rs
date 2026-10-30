@@ -1,5 +1,17 @@
 use winit::window::CursorIcon;
 
+use crate::style::TextStyle;
+
+pub(super) fn apply_cursor(style: &mut TextStyle, value: &str) {
+    if value.eq_ignore_ascii_case("none") {
+        style.cursor = CursorIcon::Default;
+        style.cursor_hidden = true;
+    } else if let Some(cursor) = parse_cursor(value) {
+        style.cursor = cursor;
+        style.cursor_hidden = false;
+    }
+}
+
 pub(super) fn parse_cursor(value: &str) -> Option<CursorIcon> {
     Some(match value.to_ascii_lowercase().as_str() {
         "auto" | "text" => CursorIcon::Text,

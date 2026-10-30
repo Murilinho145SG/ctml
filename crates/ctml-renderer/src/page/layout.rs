@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     page::highlights::first_formatted_line_ranges,
-    style::{TextRun, TextStyle, TextTransform},
+    style::{TextRun, TextStyle},
 };
 
 mod first_letter_box;
@@ -282,19 +282,17 @@ pub(super) fn apply_first_line_text_transform(
         if span
             .first_letter_font_style
             .as_ref()
-            .is_some_and(|first_letter| first_letter.text_transform != style.text_transform)
+            .is_some_and(|first_letter| {
+                first_letter.text_transform != style.text_transform
+                    || first_letter.text_transform_full_width != style.text_transform_full_width
+                    || first_letter.text_transform_full_size_kana
+                        != style.text_transform_full_size_kana
+            })
         {
             continue;
         }
         let capitalize = capitalize_next.entry(block).or_insert(true);
-        let transformed = match style.text_transform {
-            TextTransform::Uppercase => span.character.to_uppercase().collect::<String>(),
-            TextTransform::Lowercase => span.character.to_lowercase().collect::<String>(),
-            TextTransform::Capitalize if *capitalize => {
-                span.character.to_uppercase().collect::<String>()
-            }
-            TextTransform::Capitalize | TextTransform::None => span.character.to_string(),
-        };
+        let transformed = crate::style::transform_character(span.character, style, *capitalize);
         *capitalize = !span.character.is_alphanumeric();
         if transformed != span.character.to_string() {
             replacements[span.run_index].push((span.run_offset, span.character, transformed));

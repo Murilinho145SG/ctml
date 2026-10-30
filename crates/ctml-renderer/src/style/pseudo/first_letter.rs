@@ -2,8 +2,6 @@ use std::collections::HashSet;
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::style::TextTransform;
-
 pub(in crate::style) fn style_first_letters(runs: &mut Vec<super::super::TextRun>) {
     let mut output = Vec::with_capacity(runs.len());
     let mut index = 0;
@@ -37,7 +35,8 @@ pub(in crate::style) fn style_first_letters(runs: &mut Vec<super::super::TextRun
             continue;
         };
         let source_character = source_run.source_first_letter_character.unwrap();
-        let base_core = apply_text_transform(source_character, source_run.style.text_transform);
+        let base_core =
+            super::super::transform_character(source_character, &source_run.style, true);
         let Some((core_start, core_end)) = core_range(&text, base_core.chars().count()) else {
             output.extend(group.iter().cloned().map(ordinary_run));
             index = end_index;
@@ -69,14 +68,11 @@ pub(in crate::style) fn style_first_letters(runs: &mut Vec<super::super::TextRun
             let local_start = selected_start - run_start;
             let local_end = selected_end - run_start;
             selected.text = if core_start >= selected_start && core_start < selected_end {
-                let transform = run
-                    .first_letter_font_style
-                    .as_ref()
-                    .map_or(run.style.text_transform, |style| style.text_transform);
+                let transform_style = run.first_letter_font_style.as_ref().unwrap_or(&run.style);
                 format!(
                     "{}{}{}",
                     &run.text[local_start..core_start - run_start],
-                    apply_text_transform(source_character, transform),
+                    super::super::transform_character(source_character, transform_style, true),
                     &run.text[core_end - run_start..local_end]
                 )
             } else {
@@ -287,12 +283,4 @@ fn is_trailing_punctuation(character: char) -> bool {
 
 fn is_typographic_space(character: char) -> bool {
     character != '\u{3000}' && character.general_category() == GeneralCategory::SpaceSeparator
-}
-
-fn apply_text_transform(character: char, transform: TextTransform) -> String {
-    match transform {
-        TextTransform::Uppercase | TextTransform::Capitalize => character.to_uppercase().collect(),
-        TextTransform::Lowercase => character.to_lowercase().collect(),
-        TextTransform::None => character.to_string(),
-    }
 }

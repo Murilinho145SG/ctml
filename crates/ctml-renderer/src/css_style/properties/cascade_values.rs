@@ -237,7 +237,11 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.word_spacing_px = inherited.word_spacing_px;
             style.word_spacing_percent = inherited.word_spacing_percent;
         }
-        "text-transform" => style.text_transform = inherited.text_transform,
+        "text-transform" => {
+            style.text_transform = inherited.text_transform;
+            style.text_transform_full_width = inherited.text_transform_full_width;
+            style.text_transform_full_size_kana = inherited.text_transform_full_size_kana;
+        }
         "text-align" => style.text_align = inherited.text_align,
         "text-align-last" => style.text_align_last = inherited.text_align_last,
         "text-justify" => style.text_justify = inherited.text_justify,
@@ -476,7 +480,11 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.word_spacing_px = 0.0;
             style.word_spacing_percent = None;
         }
-        "text-transform" => style.text_transform = TextTransform::None,
+        "text-transform" => {
+            style.text_transform = TextTransform::None;
+            style.text_transform_full_width = false;
+            style.text_transform_full_size_kana = false;
+        }
         "text-align" => style.text_align = cosmic_text::Align::Left,
         "text-align-last" => style.text_align_last = None,
         "text-justify" => style.text_justify = cosmic_text::TextJustify::Auto,
