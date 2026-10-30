@@ -222,6 +222,11 @@ pub(super) fn draw(
                 .map_or(0.0, |run| {
                     overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
                 });
+            let nested_scroll_x = style_index
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    overflow_clip::scroll_offset_x_for_path(&run.element_path, nested_scroll)
+                });
             canvas.save();
             if let Some(clip) =
                 style_index
@@ -242,7 +247,7 @@ pub(super) fn draw(
                 );
             }
             if nested_scroll_y != 0.0 {
-                canvas.translate((0.0, -nested_scroll_y));
+                canvas.translate((-nested_scroll_x, -nested_scroll_y));
             }
             if let Some(mode) = local_vertical_mode {
                 let origin_y = style_index

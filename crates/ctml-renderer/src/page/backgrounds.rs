@@ -64,6 +64,11 @@ pub(super) fn draw(
                 .map_or(0.0, |run| {
                     overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
                 });
+            let scroll_offset_x = style_index
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    overflow_clip::scroll_offset_x_for_path(&run.element_path, nested_scroll)
+                });
             let left = fragment
                 .iter()
                 .map(|glyph| glyph.x)
@@ -92,7 +97,7 @@ pub(super) fn draw(
                         );
                         let (left, top, rect_width, rect_height) = transform.map_rect(
                             left + crate::page::PAGE_PADDING,
-                            line.line_top - scroll_offset + crate::page::PAGE_PADDING,
+                            line.line_top + crate::page::PAGE_PADDING,
                             right - left,
                             line.line_height,
                         );
@@ -105,8 +110,8 @@ pub(super) fn draw(
                             pixels,
                             width,
                             height,
-                            left - crate::page::PAGE_PADDING,
-                            top - crate::page::PAGE_PADDING,
+                            left - crate::page::PAGE_PADDING - scroll_offset_x,
+                            top - crate::page::PAGE_PADDING - scroll_offset,
                             rect_width,
                             rect_height,
                             color,
@@ -122,7 +127,7 @@ pub(super) fn draw(
                             pixels,
                             width,
                             height,
-                            left,
+                            left - scroll_offset_x,
                             line.line_top - scroll_offset,
                             right - left,
                             line.line_height,

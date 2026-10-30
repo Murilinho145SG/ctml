@@ -22,19 +22,20 @@ impl PageRasterizer {
                     pointer_y as f32,
                 )
             });
-            if let Some((node_id, max_offset)) = nested_vertical_scroll_target(
-                &self.runs,
-                &self.overflow_geometry,
-                layout_x,
-                layout_y,
-            ) {
+            if let Some((node_id, max_x, max_y)) =
+                nested_scroll_target(&self.runs, &self.overflow_geometry, layout_x, layout_y)
+            {
                 let current = self
                     .nested_scroll
                     .get(&node_id)
-                    .map_or(0.0, |(_, offset_y)| *offset_y);
-                let next = (current - delta_y).clamp(0.0, max_offset);
+                    .copied()
+                    .unwrap_or_default();
+                let next = (
+                    (current.0 - delta_x).clamp(0.0, max_x),
+                    (current.1 - delta_y).clamp(0.0, max_y),
+                );
                 if next != current {
-                    self.nested_scroll.insert(node_id, (0.0, next));
+                    self.nested_scroll.insert(node_id, next);
                     return true;
                 }
             }
@@ -103,22 +104,22 @@ pub(super) fn user_scrollable_axes(x: Overflow, y: Overflow) -> (bool, bool) {
     (is_user_scrollable(x, y), is_user_scrollable(y, x))
 }
 
-fn nested_vertical_scroll_target(
+fn nested_scroll_target(
     runs: &[crate::style::TextRun],
     geometry: &std::collections::HashMap<usize, super::overflow_clip::BlockGeometry>,
     pointer_x: f32,
     pointer_y: f32,
-) -> Option<(usize, f32)> {
+) -> Option<(usize, f32, f32)> {
     let mut candidates = HashSet::new();
-    let mut target = None;
+    let mut target: Option<(usize, f32, f32, usize)> = None;
     for run in runs {
         for size in &run.style.layout_sizes {
             if !candidates.insert(size.node_id) {
                 continue;
             }
-            if !user_scrollable_axes(size.overflow_x, size.overflow_y).1
-                || size.writing_mode != WritingMode::HorizontalTb
-            {
+            let (x_scrollable, y_scrollable) =
+                user_scrollable_axes(size.overflow_x, size.overflow_y);
+            if (!x_scrollable && !y_scrollable) || size.writing_mode != WritingMode::HorizontalTb {
                 continue;
             }
             let Some(block) = geometry.get(&size.node_id) else {
@@ -132,8 +133,17 @@ fn nested_vertical_scroll_target(
             {
                 continue;
             }
-            let max_offset = block.content_block_extent - (clip.bottom - clip.top);
-            if max_offset <= 0.0 {
+            let max_x = if x_scrollable {
+                (block.content_inline_extent - (clip.right - clip.left)).max(0.0)
+            } else {
+                0.0
+            };
+            let max_y = if y_scrollable {
+                (block.content_block_extent - (clip.bottom - clip.top)).max(0.0)
+            } else {
+                0.0
+            };
+            if max_x <= 0.0 && max_y <= 0.0 {
                 continue;
             }
             let depth = run
@@ -141,12 +151,12 @@ fn nested_vertical_scroll_target(
                 .iter()
                 .position(|node_id| *node_id == size.node_id)
                 .unwrap_or_default();
-            if target.is_none_or(|(_, _, current_depth)| depth >= current_depth) {
-                target = Some((size.node_id, max_offset, depth));
+            if target.is_none_or(|(_, _, _, current_depth)| depth >= current_depth) {
+                target = Some((size.node_id, max_x, max_y, depth));
             }
         }
     }
-    target.map(|(node_id, max_offset, _)| (node_id, max_offset))
+    target.map(|(node_id, max_x, max_y, _)| (node_id, max_x, max_y))
 }
 
 pub(super) fn scrollbar_axis(value: Overflow, other: Overflow) -> Option<bool> {

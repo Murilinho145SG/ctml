@@ -22,6 +22,7 @@ pub(super) struct ClipRect {
 pub(super) struct BlockGeometry {
     pub(super) clip: ClipRect,
     pub(super) content_block_extent: f32,
+    pub(super) content_inline_extent: f32,
 }
 
 impl ClipRect {
@@ -50,11 +51,21 @@ pub(super) fn scroll_offset_y_for_path(
         .sum()
 }
 
+pub(super) fn scroll_offset_x_for_path(
+    path: &[usize],
+    offsets: &HashMap<usize, (f32, f32)>,
+) -> f32 {
+    path.iter()
+        .filter_map(|node_id| offsets.get(node_id).map(|(offset_x, _)| *offset_x))
+        .sum()
+}
+
 #[derive(Clone, Debug)]
 struct BlockExtent {
     size: LayoutSize,
     top: f32,
     content_height: f32,
+    content_inline_extent: f32,
 }
 
 pub(super) fn block_geometries(
@@ -89,19 +100,26 @@ pub(super) fn block_geometries(
             }
             extents
                 .entry(size.node_id)
-                .and_modify(|extent| extent.content_height += line.line_height)
+                .and_modify(|extent| {
+                    extent.content_height += line.line_height;
+                    extent.content_inline_extent = extent.content_inline_extent.max(line.line_w);
+                })
                 .or_insert(BlockExtent {
                     size: size.clone(),
                     top: line.line_top,
                     content_height: line.line_height,
+                    content_inline_extent: line.line_w,
                 });
         }
     }
 
     if extents.values().any(|extent| {
-        super::scrolling::user_scrollable_axes(extent.size.overflow_x, extent.size.overflow_y).1
+        let (x_scrollable, y_scrollable) =
+            super::scrolling::user_scrollable_axes(extent.size.overflow_x, extent.size.overflow_y);
+        x_scrollable || y_scrollable
     }) {
         let mut content_heights = HashMap::<usize, f32>::new();
+        let mut content_inline_extents = HashMap::<usize, f32>::new();
         let line_starts = local_writing::text_line_starts(runs);
         let metrics = buffer.metrics();
         for line_index in 0..buffer.lines.len() {
@@ -110,6 +128,7 @@ pub(super) fn block_geometries(
             };
             let line_start = line_starts.get(line_index).copied().unwrap_or(0);
             for layout_line in layout {
+                let mut line_blocks = HashSet::new();
                 let mut seen_blocks = HashSet::new();
                 for glyph in &layout_line.glyphs {
                     let Some(style_index) =
@@ -121,6 +140,12 @@ pub(super) fn block_geometries(
                         continue;
                     };
                     for size in &style_run.style.layout_sizes {
+                        if line_blocks.insert(size.node_id) {
+                            content_inline_extents
+                                .entry(size.node_id)
+                                .and_modify(|extent| *extent = extent.max(layout_line.w))
+                                .or_insert(layout_line.w);
+                        }
                         if seen_blocks.insert(size.node_id) {
                             *content_heights.entry(size.node_id).or_default() +=
                                 layout_line.line_height_opt.unwrap_or(metrics.line_height);
@@ -134,6 +159,10 @@ pub(super) fn block_geometries(
                 .get(node_id)
                 .copied()
                 .unwrap_or(extent.content_height);
+            extent.content_inline_extent = content_inline_extents
+                .get(node_id)
+                .copied()
+                .unwrap_or(extent.content_inline_extent);
         }
     }
 
@@ -201,6 +230,7 @@ pub(super) fn block_geometries(
                 BlockGeometry {
                     clip,
                     content_block_extent: extent.content_height,
+                    content_inline_extent: extent.content_inline_extent,
                 },
             )
         })

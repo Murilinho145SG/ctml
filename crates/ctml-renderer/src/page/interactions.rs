@@ -214,7 +214,7 @@ impl PageRasterizer {
             .local_vertical_layout_point(x as f32, y as f32)
             .unwrap_or((pointer_x, pointer_y));
         let x = x - PAGE_PADDING;
-        let scroll_offset = self
+        let (scroll_offset_x, scroll_offset_y) = self
             .overflow_geometry
             .iter()
             .filter(|(node_id, geometry)| {
@@ -224,9 +224,12 @@ impl PageRasterizer {
                     && pointer_y >= geometry.clip.top
                     && pointer_y < geometry.clip.bottom
             })
-            .filter_map(|(node_id, _)| self.nested_scroll.get(node_id).map(|(_, y)| *y))
-            .sum::<f32>();
-        let y = y - PAGE_PADDING + scroll_offset;
+            .filter_map(|(node_id, _)| self.nested_scroll.get(node_id).copied())
+            .fold((0.0, 0.0), |(offset_x, offset_y), (x, y)| {
+                (offset_x + x, offset_y + y)
+            });
+        let x = x + scroll_offset_x;
+        let y = y - PAGE_PADDING + scroll_offset_y;
         let inside_text_line = self.buffer.layout_runs().any(|run| {
             run.line_w > 0.0
                 && x >= 0.0

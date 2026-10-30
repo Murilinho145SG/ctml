@@ -9,6 +9,7 @@ pub(super) struct PixelRenderer<'a> {
     pub(super) skip_ink_mask: Option<&'a [u8]>,
     pub(super) local_transform: Option<LocalVerticalTransform>,
     pub(super) clip_rect: Option<ClipRect>,
+    pub(super) translate_x: f32,
     pub(super) translate_y: f32,
 }
 
@@ -38,6 +39,7 @@ impl Renderer for PixelRenderer<'_> {
                 )
             },
         );
+        let x = x - self.translate_x.round() as i32;
         let y = y - self.translate_y.round() as i32;
         let blend = if color.a() < 255 {
             blend_pixel_rounded

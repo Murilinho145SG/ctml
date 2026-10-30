@@ -398,17 +398,40 @@ impl PageRasterizer {
             self.overflow_geometry.contains_key(node_id)
                 && self.runs.iter().any(|run| {
                     run.style.layout_sizes.iter().any(|size| {
-                        size.node_id == *node_id
-                            && scrolling::user_scrollable_axes(size.overflow_x, size.overflow_y).1
+                        let (x_scrollable, y_scrollable) =
+                            scrolling::user_scrollable_axes(size.overflow_x, size.overflow_y);
+                        size.node_id == *node_id && (x_scrollable || y_scrollable)
                     })
                 })
         });
-        for (node_id, (_, offset_y)) in &mut self.nested_scroll {
+        for (node_id, (offset_x, offset_y)) in &mut self.nested_scroll {
             if let Some(geometry) = self.overflow_geometry.get(node_id) {
+                let (x_scrollable, y_scrollable) = self
+                    .runs
+                    .iter()
+                    .flat_map(|run| &run.style.layout_sizes)
+                    .find(|size| size.node_id == *node_id)
+                    .map_or((false, false), |size| {
+                        scrolling::user_scrollable_axes(size.overflow_x, size.overflow_y)
+                    });
+                *offset_x = if x_scrollable {
+                    offset_x.clamp(
+                        0.0,
+                        (geometry.content_inline_extent
+                            - (geometry.clip.right - geometry.clip.left))
+                            .max(0.0),
+                    )
+                } else {
+                    0.0
+                };
                 *offset_y = offset_y.clamp(
                     0.0,
-                    (geometry.content_block_extent - (geometry.clip.bottom - geometry.clip.top))
-                        .max(0.0),
+                    if y_scrollable {
+                        (geometry.content_block_extent - (geometry.clip.bottom - geometry.clip.top))
+                            .max(0.0)
+                    } else {
+                        0.0
+                    },
                 );
             }
         }

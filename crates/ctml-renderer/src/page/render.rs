@@ -125,6 +125,16 @@ impl PageRasterizer {
                                         nested_scroll,
                                     )
                                 });
+                        let nested_scroll_x =
+                            style_index
+                                .and_then(|index| runs.get(index))
+                                .map_or(0.0, |run| {
+                                    super::overflow_clip::scroll_offset_x_for_path(
+                                        &run.element_path,
+                                        nested_scroll,
+                                    )
+                                });
+                        let pixel_x = (pixel_x as f32 - nested_scroll_x).round() as i32;
                         let pixel_y = (pixel_y as f32 - nested_scroll_y).round() as i32;
                         if pixel_x >= 0
                             && pixel_y >= 0
@@ -164,6 +174,19 @@ impl PageRasterizer {
                 .map_or(0.0, |run| {
                     super::overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
                 });
+            let nested_scroll_x = run
+                .glyphs
+                .first()
+                .and_then(|glyph| {
+                    super::local_writing::style_index_at(
+                        &style_ranges,
+                        line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
+                    )
+                })
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    super::overflow_clip::scroll_offset_x_for_path(&run.element_path, nested_scroll)
+                });
             let mut renderer = PixelRenderer {
                 pixels: &mut pixels,
                 width,
@@ -180,6 +203,7 @@ impl PageRasterizer {
                 ),
                 clip_rect: None,
                 translate_y: nested_scroll_y,
+                translate_x: nested_scroll_x,
             };
             decorations::render_patterned_decorations(
                 &mut renderer,

@@ -2,10 +2,7 @@ use cosmic_text::{Buffer, FontSystem, Scroll};
 
 use crate::style::WritingMode;
 
-use super::{
-    PageRasterizer,
-    scrolling::{scrollbar_axis, user_scrollable_axes},
-};
+use super::{PageRasterizer, scrolling::scrollbar_axis};
 
 const BAR_THICKNESS: f32 = 8.0;
 const MIN_THUMB_LENGTH: f32 = 18.0;
@@ -89,35 +86,48 @@ impl PageRasterizer {
         let mut seen = std::collections::HashSet::new();
         for run in &self.runs {
             for size in &run.style.layout_sizes {
-                if !seen.insert(size.node_id)
-                    || size.writing_mode != WritingMode::HorizontalTb
-                    || !user_scrollable_axes(size.overflow_x, size.overflow_y).1
-                {
+                if !seen.insert(size.node_id) || size.writing_mode != WritingMode::HorizontalTb {
                     continue;
                 }
                 let Some(geometry) = self.overflow_geometry.get(&size.node_id) else {
                     continue;
                 };
                 let clip = geometry.clip;
-                let viewport = clip.bottom - clip.top;
-                let always_visible = size.overflow_y == crate::style::Overflow::Scroll;
-                if !always_visible && geometry.content_block_extent <= viewport {
-                    continue;
-                }
-                let offset = self
+                let (offset_x, offset_y) = self
                     .nested_scroll
                     .get(&size.node_id)
-                    .map_or(0.0, |(_, offset_y)| *offset_y);
-                draw_vertical_scrollbar(
-                    pixels,
-                    width,
-                    height,
-                    clip.right - BAR_THICKNESS,
-                    clip.top,
-                    viewport,
-                    geometry.content_block_extent,
-                    offset,
-                );
+                    .copied()
+                    .unwrap_or_default();
+                if let Some(always_visible) = scrollbar_axis(size.overflow_x, size.overflow_y) {
+                    let viewport = clip.right - clip.left;
+                    if always_visible || geometry.content_inline_extent > viewport {
+                        draw_horizontal_scrollbar(
+                            pixels,
+                            width,
+                            height,
+                            clip.left,
+                            clip.bottom - BAR_THICKNESS,
+                            viewport,
+                            geometry.content_inline_extent,
+                            offset_x,
+                        );
+                    }
+                }
+                if let Some(always_visible) = scrollbar_axis(size.overflow_y, size.overflow_x) {
+                    let viewport = clip.bottom - clip.top;
+                    if always_visible || geometry.content_block_extent > viewport {
+                        draw_vertical_scrollbar(
+                            pixels,
+                            width,
+                            height,
+                            clip.right - BAR_THICKNESS,
+                            clip.top,
+                            viewport,
+                            geometry.content_block_extent,
+                            offset_y,
+                        );
+                    }
+                }
             }
         }
     }
@@ -264,6 +274,51 @@ fn draw_vertical_scrollbar(
         y + thumb_offset,
         BAR_THICKNESS,
         thumb_length,
+        THUMB_COLOR,
+    );
+}
+
+fn draw_horizontal_scrollbar(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    x: f32,
+    y: f32,
+    viewport: f32,
+    content: f32,
+    offset: f32,
+) {
+    let track_length = viewport.max(0.0);
+    fill_rect(
+        pixels,
+        width,
+        height,
+        x,
+        y,
+        track_length,
+        BAR_THICKNESS,
+        TRACK_COLOR,
+    );
+    if track_length == 0.0 {
+        return;
+    }
+    let content = content.max(viewport);
+    let thumb_length =
+        (track_length * viewport / content).clamp(MIN_THUMB_LENGTH.min(track_length), track_length);
+    let max_offset = (content - viewport).max(0.0);
+    let thumb_offset = if max_offset > 0.0 {
+        offset.clamp(0.0, max_offset) / max_offset * (track_length - thumb_length)
+    } else {
+        0.0
+    };
+    fill_rect(
+        pixels,
+        width,
+        height,
+        x + thumb_offset,
+        y,
+        thumb_length,
+        BAR_THICKNESS,
         THUMB_COLOR,
     );
 }

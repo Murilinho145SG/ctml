@@ -148,6 +148,70 @@ fn nested_overflow_auto_scrolls_under_the_pointer_without_scrolling_the_page() {
     assert!(page.selection.is_some());
 }
 
+#[test]
+fn nested_overflow_x_scrolls_unwrapped_text_horizontally() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("wide inline content ".repeat(24))],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "width".to_owned(),
+                    value: "80px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "height".to_owned(),
+                    value: "50px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "overflow-x".to_owned(),
+                    value: "auto".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "white-space".to_owned(),
+                value: "nowrap".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    let before = page.snapshot_pixels(300, 120);
+    assert!(page.scroll_by_at(-24.0, 0.0, 32.0, 24.0));
+    let after = page.snapshot_pixels(300, 120);
+    let (offset_x, offset_y) = page.nested_scroll[&1];
+    assert!(offset_x > 0.0);
+    assert_eq!(offset_y, 0.0);
+    assert_eq!(page.buffer.scroll(), cosmic_text::Scroll::default());
+    assert_ne!(before, after);
+    let clip = page.overflow_geometry[&1].clip;
+    assert!(after.chunks_exact(4).enumerate().any(|(index, pixel)| {
+        let x = (index % 300) as f32;
+        let y = (index / 300) as f32;
+        x >= clip.left
+            && x < clip.right
+            && y >= clip.bottom - 8.0
+            && y < clip.bottom
+            && pixel[..3] == [142, 142, 142]
+    }));
+}
+
 fn text_paragraph(text: &str) -> UiNode {
     UiNode::Element {
         tag: "p".to_owned(),

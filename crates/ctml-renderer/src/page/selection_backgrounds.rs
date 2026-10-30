@@ -91,6 +91,7 @@ impl PageRasterizer {
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
                     overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -171,6 +172,7 @@ impl PageRasterizer {
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
                     overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -231,6 +233,7 @@ impl PageRasterizer {
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
                     overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
+                    overflow_clip::scroll_offset_x_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -251,6 +254,7 @@ fn fill_highlight(
     height: u32,
     local_transform: Option<LocalVerticalTransform>,
     clip: Option<ClipRect>,
+    translate_x: f32,
     translate_y: f32,
 ) {
     let start = Cursor {
@@ -268,7 +272,7 @@ fn fill_highlight(
             local_transform.map_or((left, line_top, span_width, line_height), |transform| {
                 transform.map_rect(
                     left + super::PAGE_PADDING,
-                    line_top - translate_y + super::PAGE_PADDING,
+                    line_top + super::PAGE_PADDING,
                     span_width,
                     line_height,
                 )
@@ -277,8 +281,8 @@ fn fill_highlight(
             pixels,
             width,
             height,
-            left - super::PAGE_PADDING,
-            top - super::PAGE_PADDING,
+            left - super::PAGE_PADDING - translate_x,
+            top - super::PAGE_PADDING - translate_y,
             span_width,
             line_height,
             color,
