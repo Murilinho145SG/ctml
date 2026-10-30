@@ -2,7 +2,7 @@ use cosmic_text::Metrics;
 
 use crate::{
     font_family::resolve_family_list,
-    style::{compile_runs_with_font_system, synthesize_font_variant_caps},
+    style::{compile_runs_with_opacity_map, synthesize_font_variant_caps},
 };
 
 use super::{PageRasterizer, cursor_spans, font_features};
@@ -16,7 +16,7 @@ pub(super) fn resize_styles(
         width: width as f32,
         height: height as f32,
     };
-    let (compiled_runs, root_style) = compile_runs_with_font_system(
+    let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
         &page.nodes,
         &page.stylesheet,
         &page.hovered_path,
@@ -38,7 +38,10 @@ pub(super) fn resize_styles(
             }
         })
         .collect();
+    page.opacity_groups = opacity_groups;
+    page.root_opacity = root_style.opacity;
     page.root_style = root_style;
+    page.root_style.opacity = 1.0;
     page.cursor_spans = cursor_spans(&page.runs);
     page.buffer.set_metrics(Metrics::new(
         page.root_style.font_size.max(1.0),

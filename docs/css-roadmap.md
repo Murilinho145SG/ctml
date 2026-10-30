@@ -188,7 +188,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Element `opacity` scales text glyphs, decorations, shadows and emphasis marks, fragment backgrounds, selection highlights, pseudo-element paints, and nested descendant paints; ancestor opacity multiplies with descendant opacity.
 - [ ] Isolate overlapping element paints through group compositing.
   - [x] Composite all page-root `body` paints as one opacity group over the white page canvas.
-  - [ ] Composite nested element backgrounds, borders, shadows, and text as per-element opacity groups.
+  - [x] Composite a nested element's backgrounds, borders, shadows, and text together when it has no opacity-group ancestor or descendant and its paint does not overlap another opacity group.
+  - [ ] Compose nested opacity groups recursively when an opacity element contains another opacity element.
 - [ ] `accent-color`, `color-scheme`, and color adjustment properties.
 - [ ] Blend modes and isolation.
 

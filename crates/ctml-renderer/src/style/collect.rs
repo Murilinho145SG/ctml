@@ -52,6 +52,7 @@ pub(super) fn collect_runs(
     keyboard_focus: bool,
     selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
+    opacity_groups: &mut HashMap<usize, f32>,
     page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
@@ -170,6 +171,7 @@ pub(super) fn collect_runs(
                 } else {
                     inherited.bidi_isolate_direction
                 };
+                opacity_groups.insert(sibling.node_id, style.opacity);
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;
@@ -388,6 +390,7 @@ pub(super) fn collect_runs(
                     keyboard_focus,
                     selector_tree,
                     &style,
+                    opacity_groups,
                     page_writing_mode,
                     font_metrics,
                     output,

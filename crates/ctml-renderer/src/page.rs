@@ -7,7 +7,7 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     page::pixel::PixelRenderer,
-    style::{TextRun, TextStyle, compile_runs_with_font_system, synthesize_font_variant_caps},
+    style::{TextRun, TextStyle, compile_runs_with_opacity_map, synthesize_font_variant_caps},
 };
 
 mod background_images;
@@ -32,6 +32,7 @@ mod inline_boxes;
 mod interactions;
 mod layout;
 mod local_writing;
+mod opacity_groups;
 mod outlines;
 mod overflow_clip;
 mod pixel;
@@ -76,6 +77,7 @@ pub(crate) struct PageRasterizer {
     buffer: Buffer,
     root_style: TextStyle,
     root_opacity: f32,
+    opacity_groups: HashMap<usize, f32>,
     selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
     selection_anchor: Option<Cursor>,
@@ -122,7 +124,7 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
-        let (compiled_runs, root_style) = compile_runs_with_font_system(
+        let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
             nodes,
             stylesheet,
             &[],
@@ -175,6 +177,7 @@ impl PageRasterizer {
             buffer,
             root_style,
             root_opacity,
+            opacity_groups,
             selection_background_color,
             selection: None,
             selection_anchor: None,
@@ -539,7 +542,7 @@ impl PageRasterizer {
     }
 
     fn rebuild_interaction_styles(&mut self) {
-        let (compiled_runs, root_style) = compile_runs_with_font_system(
+        let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
             &self.nodes,
             &self.stylesheet,
             &self.hovered_path,
@@ -567,8 +570,11 @@ impl PageRasterizer {
                 }
             })
             .collect();
-        self.cursor_spans = cursor_spans(&self.runs);
+        self.opacity_groups = opacity_groups;
+        self.root_opacity = root_style.opacity;
         self.root_style = root_style;
+        self.root_style.opacity = 1.0;
+        self.cursor_spans = cursor_spans(&self.runs);
         if let Some((width, height)) = self.layout_size {
             self.prepare_layout(width, height);
         }

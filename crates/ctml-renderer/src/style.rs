@@ -30,6 +30,7 @@ pub(super) use text_style::{
 };
 pub(crate) use text_transform::transform_character;
 
+#[cfg(test)]
 pub(super) fn compile_runs_with_font_system(
     nodes: &[UiNode],
     stylesheet: &[StyleRule],
@@ -41,6 +42,31 @@ pub(super) fn compile_runs_with_font_system(
     color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
+    let (runs, root_style, _) = compile_runs_with_opacity_map(
+        nodes,
+        stylesheet,
+        hovered_path,
+        active_path,
+        focused_path,
+        keyboard_focus,
+        font_system,
+        color_profiles,
+        viewport_size,
+    );
+    (runs, root_style)
+}
+
+pub(super) fn compile_runs_with_opacity_map(
+    nodes: &[UiNode],
+    stylesheet: &[StyleRule],
+    hovered_path: &[usize],
+    active_path: &[usize],
+    focused_path: &[usize],
+    keyboard_focus: bool,
+    font_system: Option<&cosmic_text::FontSystem>,
+    color_profiles: &[ctml_css::CssColorProfile],
+    viewport_size: ViewportSize,
+) -> (Vec<TextRun>, TextStyle, HashMap<usize, f32>) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
         node_id: 0,
@@ -111,6 +137,7 @@ pub(super) fn compile_runs_with_font_system(
     let mut capitalize_next = true;
     let mut quote_depth = 0;
     let mut counters = HashMap::new();
+    let mut opacity_groups = HashMap::new();
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -127,6 +154,7 @@ pub(super) fn compile_runs_with_font_system(
             keyboard_focus,
             &selector_tree,
             &inherited_root_style,
+            &mut opacity_groups,
             root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,
@@ -206,7 +234,7 @@ pub(super) fn compile_runs_with_font_system(
         }
     }
     pseudo::style_first_letters(&mut runs);
-    (runs, root_style)
+    (runs, root_style, opacity_groups)
 }
 
 #[derive(Clone)]

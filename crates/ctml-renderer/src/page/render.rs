@@ -5,7 +5,7 @@ use super::{
 use cosmic_text::Color;
 
 impl PageRasterizer {
-    pub(super) fn render_layout_pixels(
+    pub(super) fn render_layout_pixels_raw(
         &mut self,
         width: u32,
         height: u32,

@@ -136,7 +136,51 @@ fn page_root_opacity_composites_overlapping_page_paints_as_one_group() {
     for (opaque, translucent) in opaque.chunks_exact(4).zip(translucent.chunks_exact(4)) {
         for (actual, source) in translucent[..3].iter().zip(&opaque[..3]) {
             let expected = (255.0 + (f32::from(*source) - 255.0) * 0.5).round() as u8;
-            assert!(actual.abs_diff(expected) <= 1);
+            assert!(
+                actual.abs_diff(expected) <= 1,
+                "channel {actual}, expected {expected}, source {source}"
+            );
+        }
+    }
+}
+
+#[test]
+fn nested_element_opacity_composites_its_background_and_text_as_one_group() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Overlap".to_owned())],
+    }];
+    let styles_for = |opacity: &str| {
+        [StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![
+                declaration("background-color", "blue"),
+                declaration("border", "2px solid lime"),
+                declaration("box-shadow", "3px 3px 2px 1px green"),
+                declaration("color", "red"),
+                declaration("opacity", opacity),
+            ],
+        }]
+    };
+    let opaque = PageRasterizer::new(&nodes, &styles_for("1")).snapshot_pixels(160, 70);
+    let translucent = PageRasterizer::new(&nodes, &styles_for("0.5")).snapshot_pixels(160, 70);
+
+    assert!(
+        opaque
+            .chunks_exact(4)
+            .any(|pixel| pixel[0] == 255 && pixel[1] == 0 && pixel[2] == 0)
+    );
+    for (opaque, translucent) in opaque.chunks_exact(4).zip(translucent.chunks_exact(4)) {
+        for (actual, source) in translucent[..3].iter().zip(&opaque[..3]) {
+            let expected = (255.0 + (f32::from(*source) - 255.0) * 0.5).round() as u8;
+            assert!(
+                actual.abs_diff(expected) <= 1,
+                "channel {actual}, expected {expected}, source {source}"
+            );
         }
     }
 }
