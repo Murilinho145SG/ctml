@@ -41,6 +41,8 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "thai",
     "tibetan",
     "ethiopic-numeric",
+    "japanese-informal",
+    "japanese-formal",
     "lower-latin",
     "upper-latin",
     "hiragana",

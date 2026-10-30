@@ -1,3 +1,5 @@
+mod japanese;
+
 pub(super) fn format_marker(
     list_style_type: Option<&str>,
     ordered_parent: bool,
@@ -34,7 +36,7 @@ pub(super) fn format_marker(
         "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "georgian"
         | "cjk-decimal" | "cjk-ideographic" | "cjk-earthly-branch" | "cjk-heavenly-stem"
         | "lower-latin" | "upper-latin" | "hiragana" | "hiragana-iroha" | "katakana"
-        | "katakana-iroha" => {
+        | "katakana-iroha" | "japanese-informal" | "japanese-formal" => {
             let marker = format_counter_value(list_style_type, index as i32)
                 .unwrap_or_else(|| index.to_string());
             let suffix = if matches!(
@@ -47,6 +49,8 @@ pub(super) fn format_marker(
                     | "hiragana-iroha"
                     | "katakana"
                     | "katakana-iroha"
+                    | "japanese-informal"
+                    | "japanese-formal"
             ) {
                 "、 "
             } else {
@@ -149,6 +153,7 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "thai" => Some(localized_decimal(value, '๐')),
         "tibetan" => Some(localized_decimal(value, '༠')),
         "ethiopic-numeric" => Some(ethiopic_numeric(value)),
+        "japanese-informal" | "japanese-formal" => Some(japanese::format(style, value)),
         _ => Some(value.to_string()),
     }
 }
@@ -352,6 +357,11 @@ const GEORGIAN_SYMBOLS: &[(i32, &str)] = &[
 ];
 
 fn additive_numeral(value: i32, symbols: &[(i32, &str)], max: i32) -> Option<String> {
+    if value == 0 {
+        return symbols
+            .iter()
+            .find_map(|(weight, symbol)| (*weight == 0).then(|| (*symbol).to_owned()));
+    }
     if !(1..=max).contains(&value) {
         return None;
     }

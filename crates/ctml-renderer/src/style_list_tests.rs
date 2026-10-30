@@ -170,6 +170,35 @@ fn list_style_type_formats_ethiopic_numeric_groups() {
 }
 
 #[test]
+fn list_style_type_formats_japanese_longhand_counters() {
+    use super::list_marker::{format_counter_value, format_marker};
+
+    for (style, value, expected) in [
+        ("japanese-informal", 0, "〇"),
+        ("japanese-informal", 11, "十一"),
+        ("japanese-informal", 6001, "六千一"),
+        ("japanese-formal", 10, "壱拾"),
+        ("japanese-formal", 11, "壱拾壱"),
+        ("japanese-formal", 6001, "六阡壱"),
+        ("japanese-informal", -12, "マイナス十二"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style} {value}"
+        );
+    }
+    assert_eq!(
+        format_marker(Some("japanese-informal"), true, 11).as_deref(),
+        Some("十一、 ")
+    );
+    assert_eq!(
+        format_counter_value("japanese-formal", 10_000).as_deref(),
+        Some("一〇〇〇〇")
+    );
+}
+
+#[test]
 fn list_style_type_formats_latin_and_kana_alphabets() {
     use super::list_marker::{format_counter_value, format_marker};
 
@@ -269,6 +298,8 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "thai",
         "tibetan",
         "ethiopic-numeric",
+        "japanese-informal",
+        "japanese-formal",
         "lower-latin",
         "upper-latin",
         "hiragana",
