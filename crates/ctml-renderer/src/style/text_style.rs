@@ -146,6 +146,7 @@ pub(crate) struct TextStyle {
     pub(crate) line_clamp: Option<usize>,
     pub(crate) text_rendering: TextRendering,
     pub(crate) text_orientation: TextOrientation,
+    pub(crate) quotes: Vec<(String, String)>,
     pub(crate) text_indent: f32,
     pub(crate) text_indent_percent: f32,
     pub(crate) text_indent_hanging: bool,
@@ -340,6 +341,10 @@ impl Default for TextStyle {
             line_clamp: None,
             text_rendering: TextRendering::Auto,
             text_orientation: TextOrientation::Mixed,
+            quotes: vec![
+                ("“".to_owned(), "”".to_owned()),
+                ("‘".to_owned(), "’".to_owned()),
+            ],
             text_indent: 0.0,
             text_indent_percent: 0.0,
             text_indent_hanging: false,

@@ -25,6 +25,7 @@ use font::{
 use font_feature_settings::apply_font_feature_settings;
 use font_variation_settings::apply_font_variation_settings;
 use list_style::{apply_list_style_shorthand, apply_list_style_type, reset_list_style_type};
+use quotes::apply_quotes;
 use size::{
     apply_box_sizing, apply_height, apply_max_height, apply_max_width, apply_min_height,
     apply_min_width, apply_width, inherit_width,
@@ -46,6 +47,7 @@ mod font;
 mod font_feature_settings;
 mod font_variation_settings;
 mod list_style;
+mod quotes;
 mod size;
 mod spacing;
 mod text_decoration;
@@ -143,6 +145,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "hyphens"
             | "text-rendering"
             | "text-orientation"
+            | "quotes"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -253,6 +256,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "hyphens" => style.hyphens = inherited.hyphens,
         "text-rendering" => style.text_rendering = inherited.text_rendering,
         "text-orientation" => style.text_orientation = inherited.text_orientation,
+        "quotes" => style.quotes = inherited.quotes.clone(),
         "text-indent" => {
             style.text_indent = inherited.text_indent;
             style.text_indent_percent = inherited.text_indent_percent;
@@ -359,6 +363,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "hyphens" => style.hyphens = Hyphens::Manual,
         "text-rendering" => style.text_rendering = TextRendering::Auto,
         "text-orientation" => style.text_orientation = TextOrientation::Mixed,
+        "quotes" => style.quotes = quotes::default_quotes(),
         "text-overflow" => style.text_overflow = TextOverflow::Clip,
         "line-clamp" => style.line_clamp = None,
         "text-indent" => {
@@ -666,6 +671,7 @@ fn apply_declaration(
                 _ => style.text_orientation,
             };
         }
+        "quotes" => apply_quotes(style, value),
         "text-overflow" => {
             style.text_overflow = match value.to_ascii_lowercase().as_str() {
                 "clip" => TextOverflow::Clip,

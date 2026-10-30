@@ -219,7 +219,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [ ] CSS counters and remaining predefined `list-style-type` systems, including Hebrew, Armenian, and CJK styles.
-- [ ] Generated content with `content`, counters, and quotes.
+- [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
+- [ ] CSS counters and the remaining generated-content values.
 - [ ] Ruby annotations and other specialized typography where relevant.
 
 ## Backgrounds, borders, and visual effects

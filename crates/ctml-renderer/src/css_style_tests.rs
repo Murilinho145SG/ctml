@@ -745,6 +745,38 @@ fn resolves_text_rendering_features_and_text_orientation() {
 }
 
 #[test]
+fn resolves_custom_css_quote_pairs() {
+    let quotes = style_for_declarations(&[("quotes", "\"«\" \"»\" \"‹\" \"›\"")]);
+    assert_eq!(
+        quotes.quotes,
+        [
+            ("«".to_owned(), "»".to_owned()),
+            ("‹".to_owned(), "›".to_owned())
+        ]
+    );
+
+    assert!(
+        style_for_declarations(&[("quotes", "none")])
+            .quotes
+            .is_empty()
+    );
+    assert_eq!(
+        style_for_declarations(&[("quotes", "auto")]).quotes,
+        [
+            ("“".to_owned(), "”".to_owned()),
+            ("‘".to_owned(), "’".to_owned())
+        ]
+    );
+    assert_eq!(
+        style_for_declarations(&[("quotes", "\"one\" \"two\" \"odd\"")]).quotes,
+        [
+            ("“".to_owned(), "”".to_owned()),
+            ("‘".to_owned(), "’".to_owned())
+        ]
+    );
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

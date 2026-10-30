@@ -109,6 +109,44 @@ fn white_space_modes_collapse_or_preserve_source_text() {
 }
 
 #[test]
+fn generated_open_and_close_quotes_follow_nested_depth() {
+    let nested_quote = UiNode::Element {
+        tag: "q".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("inner".to_owned())],
+    };
+    let nodes = [UiNode::Element {
+        tag: "q".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("outer ".to_owned()), nested_quote],
+    }];
+    let stylesheet = [
+        ("q", "quotes", "\"«\" \"»\" \"‹\" \"›\""),
+        ("q::before", "content", "open-quote"),
+        ("q::after", "content", "close-quote"),
+    ]
+    .map(|(selector, property, value)| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        }],
+    });
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "«outer ‹inner›»"
+    );
+}
+
+#[test]
 fn preserves_all_small_caps_for_font_feature_shaping() {
     let style = TextStyle {
         font_variant_caps: FontVariantCaps::AllSmallCaps,

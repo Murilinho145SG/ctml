@@ -134,6 +134,7 @@ pub(super) fn resolve_generated_content(
     ancestor_positions: &[SelectorPosition],
     selector_tree: &[SelectorTreeElement],
     stylesheet: &[StyleRule],
+    quote_depth: &mut usize,
 ) -> Option<GeneratedContent> {
     let mut pseudo_rules = Vec::new();
     let mut winning_content = None;
@@ -192,7 +193,6 @@ pub(super) fn resolve_generated_content(
     }
     let (_, declaration) = winning_content?;
     let (value, _) = declaration_value(&declaration.value);
-    let text = parse_generated_content(value, attributes)?;
     let mut style = css_style::resolve_style_with_selector_tree_context(
         inherited,
         current,
@@ -207,6 +207,9 @@ pub(super) fn resolve_generated_content(
         None,
         &pseudo_rules,
     );
+    let mut updated_quote_depth = *quote_depth;
+    let text = parse_generated_content(value, attributes, &style.quotes, &mut updated_quote_depth)?;
+    *quote_depth = updated_quote_depth;
     style.opacity *= inherited.opacity;
     Some(GeneratedContent { text, style })
 }
@@ -265,7 +268,12 @@ fn declaration_value(value: &str) -> (&str, bool) {
     }
 }
 
-fn parse_generated_content(value: &str, attributes: &[(String, Option<String>)]) -> Option<String> {
+fn parse_generated_content(
+    value: &str,
+    attributes: &[(String, Option<String>)],
+    quotes: &[(String, String)],
+    quote_depth: &mut usize,
+) -> Option<String> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
     let mut output = String::new();
@@ -273,6 +281,24 @@ fn parse_generated_content(value: &str, attributes: &[(String, Option<String>)])
         let token = parser.next().ok()?;
         match token {
             Token::QuotedString(text) => output.push_str(text),
+            Token::Ident(name) if name.eq_ignore_ascii_case("open-quote") => {
+                if let Some((open, _)) = quote_at(quotes, *quote_depth) {
+                    output.push_str(open);
+                }
+                *quote_depth = quote_depth.saturating_add(1);
+            }
+            Token::Ident(name) if name.eq_ignore_ascii_case("close-quote") => {
+                *quote_depth = quote_depth.saturating_sub(1);
+                if let Some((_, close)) = quote_at(quotes, *quote_depth) {
+                    output.push_str(close);
+                }
+            }
+            Token::Ident(name) if name.eq_ignore_ascii_case("no-open-quote") => {
+                *quote_depth = quote_depth.saturating_add(1);
+            }
+            Token::Ident(name) if name.eq_ignore_ascii_case("no-close-quote") => {
+                *quote_depth = quote_depth.saturating_sub(1);
+            }
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
                 let attribute_name = parser
                     .parse_nested_block(|nested| -> Result<_, cssparser::ParseError<()>> {
@@ -298,4 +324,10 @@ fn parse_generated_content(value: &str, attributes: &[(String, Option<String>)])
         }
     }
     Some(output)
+}
+
+fn quote_at(quotes: &[(String, String)], depth: usize) -> Option<(&str, &str)> {
+    quotes
+        .get(depth.min(quotes.len().saturating_sub(1)))
+        .map(|(open, close)| (open.as_str(), close.as_str()))
 }

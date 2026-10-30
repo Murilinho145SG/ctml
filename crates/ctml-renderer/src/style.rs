@@ -95,6 +95,7 @@ pub(super) fn compile_runs_with_font_system(
     let mut next_node_id = 1;
     let mut last_was_space = true;
     let mut capitalize_next = true;
+    let mut quote_depth = 0;
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -115,6 +116,7 @@ pub(super) fn compile_runs_with_font_system(
             &mut runs,
             &mut last_was_space,
             &mut capitalize_next,
+            &mut quote_depth,
         );
     }
     trim_runs(&mut runs);

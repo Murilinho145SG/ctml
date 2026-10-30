@@ -55,6 +55,7 @@ pub(super) fn collect_runs(
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
+    quote_depth: &mut usize,
 ) {
     let siblings = selector_sibling_contexts(
         nodes,
@@ -154,8 +155,10 @@ pub(super) fn collect_runs(
                     path_positions,
                     selector_tree,
                     stylesheet,
+                    quote_depth,
                 );
-                let after_content = pseudo::resolve_generated_content(
+                let mut quote_depth_probe = *quote_depth;
+                let has_after_content = pseudo::resolve_generated_content(
                     "after",
                     &style,
                     &identity,
@@ -168,7 +171,9 @@ pub(super) fn collect_runs(
                     path_positions,
                     selector_tree,
                     stylesheet,
-                );
+                    &mut quote_depth_probe,
+                )
+                .is_some();
                 let block = style.display_block.unwrap_or_else(|| is_block(tag));
                 if block
                     && (style.width.is_some()
@@ -209,7 +214,7 @@ pub(super) fn collect_runs(
                     }
                     *capitalize_next = true;
                 }
-                path.push(identity);
+                path.push(identity.clone());
                 element_path.push(sibling.node_id);
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
@@ -243,7 +248,7 @@ pub(super) fn collect_runs(
                 if block
                     && children.is_empty()
                     && before_content.is_none()
-                    && after_content.is_none()
+                    && !has_after_content
                     && !list_item
                     && (style.height.is_some() || style.min_height.is_some())
                 {
@@ -289,6 +294,22 @@ pub(super) fn collect_runs(
                     output,
                     last_was_space,
                     capitalize_next,
+                    quote_depth,
+                );
+                let after_content = pseudo::resolve_generated_content(
+                    "after",
+                    &style,
+                    &identity,
+                    path,
+                    attributes,
+                    path_attributes,
+                    &siblings[..element_index],
+                    path_siblings,
+                    position,
+                    path_positions,
+                    selector_tree,
+                    stylesheet,
+                    quote_depth,
                 );
                 if let Some(content) = &after_content {
                     append_text(
