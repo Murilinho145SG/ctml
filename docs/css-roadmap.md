@@ -143,12 +143,13 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Legacy comma-separated `hsl()`/`hsla()` with degree, gradian, radian, or turn hue and alpha.
 - [x] Modern space-separated `rgb()`/`hsl()` syntax and slash alpha.
 - [x] `hwb()` colors with optional alpha.
-- [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-linear`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
+- [x] `lab()`, `lch()`, `oklab()`, `oklch()`, and `color()` for `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-pq`, `rec2100-hlg`, `rec2100-linear`, `xyz`, `xyz-d50`, and `xyz-d65` spaces.
 - [x] Perceptual gamut mapping to sRGB with OklCh chroma reduction and local MINDE.
 - [ ] Other predefined and custom color profiles.
-- [x] CSS HDR `rec2100-linear` profile in absolute `color()`, relative colors, and interpolation; remaining HDR transfer profiles and custom ICC profiles are not implemented.
+- [x] CSS HDR `rec2100-linear` profile in absolute `color()`, relative colors, and interpolation; other HDR color spaces and custom ICC profiles are not implemented.
+- [x] CSS HDR `rec2100-pq` and `rec2100-hlg` profiles in absolute `color()`, relative colors, and interpolation.
 - [x] Render absolute modern color functions with missing (`none`) components treated as zero, including hue and alpha.
-- [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-linear`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
+- [x] `color-mix()` in `srgb`, `srgb-linear`, `display-p3`, `display-p3-linear`, `a98-rgb`, `prophoto-rgb`, `rec2020`, `rec2100-pq`, `rec2100-hlg`, `rec2100-linear`, `xyz`, `xyz-d50`, `xyz-d65`, `lab`, `lch`, `oklab`, `oklch`, `hsl`, and `hwb` with two supported colors, optional percentages, nested color functions, alpha-aware interpolation, and shorter, longer, increasing, or decreasing hue interpolation for polar spaces.
 - [ ] Custom `color-mix()` interpolation spaces.
 - [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, `oklch(from ...)`, and `color(from ...)` relative colors in supported profiles with channel references, alpha preservation, supported numeric, percentage, and angle overrides, number, percentage, and angle calculations, and `none` components mapped to zero during conversion.
 - [x] Carry matching missing components and alpha from direct `color(srgb ...)` inputs through `color-mix(in srgb, ...)`.

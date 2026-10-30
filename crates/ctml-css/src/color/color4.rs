@@ -99,6 +99,8 @@ fn parse_color_space<'i, 't>(
         "a98-rgb" => a98_to_srgb([red, green, blue]),
         "prophoto-rgb" => prophoto_to_srgb([red, green, blue]),
         "rec2020" => rec2020_to_srgb([red, green, blue]),
+        "rec2100-pq" => super::hdr::rec2100_pq_to_srgb([red, green, blue]),
+        "rec2100-hlg" => super::hdr::rec2100_hlg_to_srgb([red, green, blue]),
         "rec2100-linear" => rec2020_linear_to_srgb([red, green, blue]),
         "xyz" | "xyz-d65" => xyz_d65_to_srgb([red, green, blue]),
         "xyz-d50" => xyz_d50_to_srgb([red, green, blue]),

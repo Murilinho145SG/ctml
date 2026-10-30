@@ -36,6 +36,8 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let a98_rgb = interpolation_space.eq_ignore_ascii_case("a98-rgb");
             let prophoto_rgb = interpolation_space.eq_ignore_ascii_case("prophoto-rgb");
             let rec2020 = interpolation_space.eq_ignore_ascii_case("rec2020");
+            let rec2100_pq = interpolation_space.eq_ignore_ascii_case("rec2100-pq");
+            let rec2100_hlg = interpolation_space.eq_ignore_ascii_case("rec2100-hlg");
             let rec2020_linear = interpolation_space.eq_ignore_ascii_case("rec2100-linear");
             let hsl = interpolation_space.eq_ignore_ascii_case("hsl");
             let hwb = interpolation_space.eq_ignore_ascii_case("hwb");
@@ -53,6 +55,8 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 && !a98_rgb
                 && !prophoto_rgb
                 && !rec2020
+                && !rec2100_pq
+                && !rec2100_hlg
                 && !rec2020_linear
                 && !hsl
                 && !hwb
@@ -160,7 +164,13 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                     (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
                 });
                 super::color4::display_p3_linear_to_srgb(mixed_p3)
-            } else if a98_rgb || prophoto_rgb || rec2020 || rec2020_linear {
+            } else if a98_rgb
+                || prophoto_rgb
+                || rec2020
+                || rec2100_pq
+                || rec2100_hlg
+                || rec2020_linear
+            {
                 let (convert, to_srgb): (fn([u8; 3]) -> [f32; 3], fn([f32; 3]) -> [u8; 3]) =
                     if a98_rgb {
                         (super::color4::srgb_to_a98, super::color4::a98_to_srgb)
@@ -173,6 +183,16 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                         (
                             super::color4::srgb_to_rec2020,
                             super::color4::rec2020_to_srgb,
+                        )
+                    } else if rec2100_pq {
+                        (
+                            super::hdr::srgb_to_rec2100_pq,
+                            super::hdr::rec2100_pq_to_srgb,
+                        )
+                    } else if rec2100_hlg {
+                        (
+                            super::hdr::srgb_to_rec2100_hlg,
+                            super::hdr::rec2100_hlg_to_srgb,
                         )
                     } else {
                         (

@@ -184,7 +184,9 @@ fn parse_mix_color<'i, 't>(
 pub(super) fn component_space(space: &str) -> Option<ComponentSpace> {
     match space {
         "srgb" | "srgb-linear" | "display-p3" | "display-p3-linear" | "a98-rgb"
-        | "prophoto-rgb" | "rec2020" | "rec2100-linear" => Some(ComponentSpace::Rgb),
+        | "prophoto-rgb" | "rec2020" | "rec2100-pq" | "rec2100-hlg" | "rec2100-linear" => {
+            Some(ComponentSpace::Rgb)
+        }
         "xyz" | "xyz-d50" | "xyz-d65" => Some(ComponentSpace::Xyz),
         "lab" => Some(ComponentSpace::Lab),
         "lch" => Some(ComponentSpace::Lch),

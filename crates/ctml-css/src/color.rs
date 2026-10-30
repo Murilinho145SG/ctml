@@ -1,6 +1,7 @@
 use cssparser::{Parser, ParserInput, Token};
 
 mod color4;
+mod hdr;
 mod missing;
 mod mix;
 mod relative;
@@ -407,6 +408,8 @@ mod tests {
             "color(a98-rgb 1 0 0)",
             "color(prophoto-rgb 1 0 0)",
             "color(rec2020 1 0 0)",
+            "color(rec2100-pq 0.5807 0.5807 0.5807)",
+            "color(rec2100-hlg 0.75 0.75 0.75)",
             "color(rec2100-linear 1 0 0)",
             "color(xyz 0.4123908 0.2126390 0.0193308)",
             "color(xyz-d50 0.4360747 0.2225045 0.0139322)",
@@ -490,6 +493,8 @@ mod tests {
             ("a98-rgb", "a98-rgb"),
             ("prophoto-rgb", "prophoto-rgb"),
             ("rec2020", "rec2020"),
+            ("rec2100-pq", "rec2100-pq"),
+            ("rec2100-hlg", "rec2100-hlg"),
             ("rec2100-linear", "rec2100-linear"),
         ] {
             let mixed = parse_color(&format!(
@@ -558,6 +563,14 @@ mod tests {
         assert_eq!(
             parse_color("color(rec2020 0.5 0.5 0.5)"),
             Some([120, 120, 120, 255])
+        );
+        assert_eq!(
+            parse_color("color(rec2100-pq 0.5807 0.5807 0.5807)"),
+            Some([255, 255, 255, 255])
+        );
+        assert_eq!(
+            parse_color("color(rec2100-hlg 0.75 0.75 0.75)"),
+            Some([255, 255, 255, 255])
         );
         assert_eq!(
             parse_color("color(rec2100-linear 0.5 0.5 0.5)"),
@@ -713,6 +726,8 @@ mod tests {
             ("a98-rgb", 129),
             ("prophoto-rgb", 146),
             ("rec2020", 120),
+            ("rec2100-pq", 59),
+            ("rec2100-hlg", 117),
             ("rec2100-linear", 188),
         ] {
             assert_eq!(
@@ -845,6 +860,8 @@ mod tests {
             "a98-rgb",
             "prophoto-rgb",
             "rec2020",
+            "rec2100-pq",
+            "rec2100-hlg",
             "rec2100-linear",
             "xyz",
             "xyz-d50",
