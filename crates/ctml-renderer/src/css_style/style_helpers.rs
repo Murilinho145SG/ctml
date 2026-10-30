@@ -26,6 +26,8 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "border-top-right-radius",
     "border-bottom-right-radius",
     "border-bottom-left-radius",
+    "border-image-source",
+    "border-image-slice",
     "outline",
     "outline-width",
     "outline-style",

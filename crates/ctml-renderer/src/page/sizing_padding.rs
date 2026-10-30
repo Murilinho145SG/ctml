@@ -23,7 +23,7 @@ pub(super) fn resolve_padding(size: &LayoutSize, containing_width: f32) -> [f32;
 
 pub(super) fn resolve_borders(size: &LayoutSize, containing_width: f32) -> [f32; 4] {
     std::array::from_fn(|index| {
-        if size.border_style[index] == BorderLineStyle::None {
+        if size.border_style[index] == BorderLineStyle::None && size.border_image_source.is_none() {
             return 0.0;
         }
         let Some(value) = size.border_width[index].as_deref() else {

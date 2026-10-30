@@ -18,6 +18,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
             || !style.box_shadows.is_empty()
             || !style.background_layers.is_empty()
             || !style.background_images.is_empty()
+            || style.border_image_source.is_some()
             || style.margin.iter().flatten().any(|margin| margin != "0")
             || style.padding.iter().flatten().any(|padding| padding != "0")
             || style
@@ -48,6 +49,9 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
         min_block_size: style.min_block_size.clone(),
         max_block_size: style.max_block_size.clone(),
         border_box: style.border_box,
+        border_image_source: style.border_image_source.clone(),
+        border_image_slice: style.border_image_slice,
+        border_image_fill: style.border_image_fill,
         border_width: style.border_width.clone(),
         border_style: style.border_style,
         border_color: style.border_color,

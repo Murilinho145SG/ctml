@@ -315,6 +315,7 @@ pub(super) fn collect_runs(
                         || style.aspect_ratio.is_some()
                         || !style.background_layers.is_empty()
                         || !style.background_images.is_empty()
+                        || style.border_image_source.is_some()
                         || ((style.size_contained
                             || style.content_visibility_auto
                             || inline_containment_is_block_axis)

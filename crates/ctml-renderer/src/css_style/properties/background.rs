@@ -248,7 +248,7 @@ fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<Backgro
     (!images.is_empty()).then_some(images)
 }
 
-fn parse_data_url(value: &str) -> Option<std::sync::Arc<[u8]>> {
+pub(super) fn parse_data_url(value: &str) -> Option<std::sync::Arc<[u8]>> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let url = match parser.next().ok()?.clone() {

@@ -321,6 +321,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `conic-gradient()` supports a starting angle, center position, angular color stops, and clockwise rendering.
   - [x] `repeating-conic-gradient()` repeats the color-stop pattern around the full sweep.
 - [ ] Border images and nine-slice behavior.
+  - [x] Decode embedded PNG/JPEG `data:` sources and paint the nine stretched source regions using numeric or percentage `border-image-slice` values, including optional center fill.
 - [ ] Filters and backdrop filters.
 - [ ] Masks, clipping paths, and mask compositing.
 - [ ] Transform properties, transform origin, and transform box.

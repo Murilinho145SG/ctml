@@ -50,6 +50,15 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .background_images
                 .clone_from(&inherited.background_images);
         }
+        "border-image-source" => {
+            style
+                .border_image_source
+                .clone_from(&inherited.border_image_source);
+        }
+        "border-image-slice" => {
+            style.border_image_slice = inherited.border_image_slice;
+            style.border_image_fill = inherited.border_image_fill;
+        }
         "background-repeat" => {
             style
                 .background_repeats
@@ -309,6 +318,11 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
             style.background_color = None;
         }
         "background-image" => style.background_images.clear(),
+        "border-image-source" => style.border_image_source = None,
+        "border-image-slice" => {
+            style.border_image_slice = [crate::style::BorderImageSlice::default(); 4];
+            style.border_image_fill = false;
+        }
         "background-repeat" => style.background_repeats.clear(),
         "background-position" => style.background_positions.clear(),
         "background-size" => style.background_sizes.clear(),

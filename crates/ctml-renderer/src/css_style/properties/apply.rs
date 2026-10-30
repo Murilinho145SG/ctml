@@ -85,6 +85,8 @@ pub(super) fn apply_declaration(
         "inline-size" => apply_inline_size(style, value),
         "box-sizing" => apply_box_sizing(style, value),
         "border-radius" => apply_border_radius(style, value),
+        "border-image-source" => apply_border_image_source(style, value),
+        "border-image-slice" => apply_border_image_slice(style, value),
         "border-top-left-radius" => apply_corner_radius(style, 0, value),
         "border-top-right-radius" => apply_corner_radius(style, 1, value),
         "border-bottom-right-radius" => apply_corner_radius(style, 2, value),

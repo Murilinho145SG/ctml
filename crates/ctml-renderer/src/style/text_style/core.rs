@@ -5,11 +5,11 @@ use winit::window::CursorIcon;
 
 use super::{
     BackgroundAttachment, BackgroundBox, BackgroundImage, BackgroundPosition, BackgroundRepeat,
-    BackgroundSize, BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction, FontVariantCaps,
-    FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, Overflow, OverflowWrap,
-    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
-    TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextTransform,
-    TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    BackgroundSize, BorderImageSlice, BorderLineStyle, BoxDecorationBreak, BoxShadow, Direction,
+    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, Overflow,
+    OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
+    TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
+    TextTransform, TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
@@ -64,6 +64,9 @@ pub(crate) struct TextStyle {
     pub(crate) min_inline_size: Option<String>,
     pub(crate) max_inline_size: Option<String>,
     pub(crate) border_box: bool,
+    pub(crate) border_image_source: Option<Arc<[u8]>>,
+    pub(crate) border_image_slice: [BorderImageSlice; 4],
+    pub(crate) border_image_fill: bool,
     pub(crate) border_width: [Option<String>; 4],
     pub(crate) logical_border_width: [Option<String>; 4],
     pub(crate) physical_border_width_orders: [usize; 4],
@@ -236,6 +239,9 @@ impl Default for TextStyle {
             min_inline_size: None,
             max_inline_size: None,
             border_box: false,
+            border_image_source: None,
+            border_image_slice: [BorderImageSlice::default(); 4],
+            border_image_fill: false,
             border_width: std::array::from_fn(|_| None),
             logical_border_width: std::array::from_fn(|_| None),
             physical_border_width_orders: [0; 4],

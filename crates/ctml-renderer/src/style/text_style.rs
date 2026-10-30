@@ -12,6 +12,7 @@ pub(crate) enum UserSelect {
 }
 
 mod background;
+mod border_image;
 mod core;
 mod layout;
 pub(crate) use background::{
@@ -19,6 +20,7 @@ pub(crate) use background::{
     BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, ConicGradient, LinearGradient,
     RadialGradient, RadialGradientExtent, RadialGradientShape,
 };
+pub(crate) use border_image::BorderImageSlice;
 pub(crate) use core::TextStyle;
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};
 

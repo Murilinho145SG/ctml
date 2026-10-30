@@ -40,6 +40,8 @@ mod background_box;
 mod background_images;
 #[path = "page_tests/backgrounds.rs"]
 mod backgrounds;
+#[path = "page_tests/border_images.rs"]
+mod border_images;
 #[path = "page_tests/border_radius.rs"]
 mod border_radius;
 #[path = "page_tests/borders.rs"]
