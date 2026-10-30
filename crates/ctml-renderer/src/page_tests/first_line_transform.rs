@@ -232,6 +232,32 @@ fn first_line_box_shadow_paints_outside_the_formatted_line() {
 }
 
 #[test]
+fn first_line_outline_paints_outside_the_formatted_line() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First formatted line".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-line".to_owned()],
+        layer: None,
+        declarations: [("outline", "2px solid red"), ("outline-offset", "2px")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+    let rendered = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(180, 70);
+    let above_line = &rendered[(4 * 180 + 20) * 4..][..3];
+
+    assert_eq!(above_line, [255, 0, 0]);
+}
+
+#[test]
 fn first_line_text_transform_changes_only_the_formatted_first_line() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

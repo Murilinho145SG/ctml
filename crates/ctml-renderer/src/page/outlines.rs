@@ -75,6 +75,103 @@ pub(super) fn draw_inline_outline(
     );
 }
 
+pub(super) fn draw_first_line_outlines(
+    runs: &[crate::style::TextRun],
+    buffer: &cosmic_text::Buffer,
+    spans: &[super::CursorSpan],
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    page_writing_mode: crate::style::WritingMode,
+    clips: &HashMap<usize, overflow_clip::ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
+) {
+    let first_lines = super::highlights::first_formatted_line_ranges(buffer, spans);
+    let vertical_origins =
+        super::local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
+    let lines = buffer.layout_runs().collect::<Vec<_>>();
+    let mut drawn = std::collections::HashSet::new();
+    for span in spans {
+        let Some(block) = span.first_line_block else {
+            continue;
+        };
+        if !drawn.insert((block, span.run_index)) || span.visibility_hidden {
+            continue;
+        }
+        let Some((line_index, line_end)) = first_lines.get(&block).copied() else {
+            continue;
+        };
+        if span.line != line_index || span.start >= line_end {
+            continue;
+        }
+        let Some((style, path)) = runs.get(span.run_index).and_then(|run| {
+            run.first_line_font_style
+                .as_ref()
+                .map(|style| (style, run.element_path.as_slice()))
+        }) else {
+            continue;
+        };
+        let Some(line) = lines.iter().find(|line| line.line_i == line_index) else {
+            continue;
+        };
+        let end = span.end.min(line_end);
+        let (mut left, mut right) = (f32::INFINITY, f32::NEG_INFINITY);
+        for glyph in line.glyphs {
+            if glyph.start < end && glyph.end > span.start {
+                left = left.min(glyph.x);
+                right = right.max(glyph.x + glyph.w);
+            }
+        }
+        if !left.is_finite() || !right.is_finite() || right <= left {
+            continue;
+        }
+        let mut rect = overflow_clip::ClipRect {
+            left: left + super::PAGE_PADDING,
+            top: line.line_top + super::PAGE_PADDING,
+            right: right + super::PAGE_PADDING,
+            bottom: line.line_top + line.line_height + super::PAGE_PADDING,
+        };
+        if let Some(transform) = super::local_writing::LocalVerticalTransform::from_run(
+            runs,
+            buffer,
+            line_index,
+            page_writing_mode,
+            width,
+            height,
+            &vertical_origins,
+        ) {
+            let (left, top, rect_width, rect_height) = transform.map_rect(
+                rect.left,
+                rect.top,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+            );
+            rect = overflow_clip::ClipRect {
+                left,
+                top,
+                right: left + rect_width,
+                bottom: top + rect_height,
+            };
+        }
+        let (scroll_x, scroll_y) =
+            overflow_clip::scroll_translation_for_path(path, nested_scroll, page_writing_mode);
+        rect.left -= scroll_x;
+        rect.right -= scroll_x;
+        rect.top -= scroll_y;
+        rect.bottom -= scroll_y;
+        draw_inline_outline(
+            pixels,
+            width,
+            height,
+            style,
+            rect,
+            span.opacity * runs[span.run_index].first_line_opacity.unwrap_or(1.0),
+            path,
+            clips,
+        );
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn draw_outline_with_values(
     pixels: &mut [u8],
