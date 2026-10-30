@@ -67,6 +67,90 @@ fn direction_rtl_sets_the_paragraph_base_bidi_level() {
 }
 
 #[test]
+fn unicode_bidi_isolate_applies_to_nested_inline_runs_without_rendered_controls() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Text("אב ".to_owned()),
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: Some("isolated".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![
+                    UiNode::Text("(".to_owned()),
+                    UiNode::Element {
+                        tag: "b".to_owned(),
+                        class: None,
+                        id: None,
+                        attributes: Vec::new(),
+                        children: vec![UiNode::Text("abc".to_owned())],
+                    },
+                    UiNode::Text(")".to_owned()),
+                ],
+            },
+            UiNode::Text(" גד".to_owned()),
+        ],
+    }];
+    let base = vec![
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "direction".to_owned(),
+                value: "rtl".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".isolated".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "direction".to_owned(),
+                value: "ltr".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["b".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
+    ];
+    let isolated = [
+        base[0].clone(),
+        base[1].clone(),
+        base[2].clone(),
+        StyleRule {
+            selectors: vec![".isolated".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "unicode-bidi".to_owned(),
+                value: "isolate".to_owned(),
+            }],
+        },
+    ];
+    let mut isolated_page = PageRasterizer::new(&nodes, &isolated);
+    isolated_page.snapshot_pixels(240, 60);
+
+    assert!(
+        isolated_page
+            .runs
+            .iter()
+            .any(|run| { run.style.bidi_isolate_direction == Some(crate::style::Direction::Ltr) })
+    );
+    assert!(isolated_page.runs.iter().all(|run| {
+        !run.text
+            .chars()
+            .any(|character| matches!(character, '\u{2066}' | '\u{2067}' | '\u{2069}'))
+    }));
+}
+
+#[test]
 fn focus_and_focus_within_restyle_clicked_links() {
     let nodes = [UiNode::Element {
         tag: "section".to_owned(),

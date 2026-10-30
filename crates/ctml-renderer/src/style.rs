@@ -18,7 +18,7 @@ pub(super) use text_style::{
     Direction, FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
     OverflowWrap, TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition,
     TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow,
-    TextStyle, TextTransform, WhiteSpace, WordBreak,
+    TextStyle, TextTransform, UnicodeBidi, WhiteSpace, WordBreak,
 };
 
 pub(super) fn compile_runs_with_font_system(

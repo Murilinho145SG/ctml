@@ -238,7 +238,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Parse and preserve the optional `left`/`right` side in `text-emphasis-position`; its vertical placement depends on writing modes.
 - [ ] Vertical text-emphasis side placement.
 - [x] `direction: ltr|rtl` establishes the inherited base bidi direction for each rendered paragraph.
-- [ ] Writing modes, bidirectional isolation, and vertical text.
+- [x] `unicode-bidi: isolate` adds Unicode isolate controls around the styled inline range without adding controls to rendered text.
+- [ ] Writing modes and vertical text.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
 - [x] Hebrew, Armenian, Georgian, basic CJK, localized decimal, and kana alphabet predefined `list-style-type` systems, with decimal fallback outside supported ranges.

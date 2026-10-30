@@ -229,6 +229,7 @@ fn apply_matching_styles_inner(
 ) {
     let inherited_style = inherited_style.cloned().unwrap_or_else(|| style.clone());
     style.background_color = None;
+    style.unicode_bidi = crate::style::UnicodeBidi::Normal;
     style.display_none = false;
     style.display_block = None;
     style.display_list_item = None;

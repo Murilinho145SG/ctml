@@ -3,7 +3,7 @@ use winit::window::CursorIcon;
 
 use crate::style::{
     Direction, FontVariantPosition, Hyphens, LineBreak, OverflowWrap, TextOrientation,
-    TextOverflow, TextRendering, TextStyle, TextTransform, WhiteSpace, WordBreak,
+    TextOverflow, TextRendering, TextStyle, TextTransform, UnicodeBidi, WhiteSpace, WordBreak,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -260,6 +260,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "text-rendering" => style.text_rendering = inherited.text_rendering,
         "text-orientation" => style.text_orientation = inherited.text_orientation,
         "direction" => style.direction = inherited.direction,
+        "unicode-bidi" => style.unicode_bidi = inherited.unicode_bidi,
         "quotes" => style.quotes = inherited.quotes.clone(),
         "text-indent" => {
             style.text_indent = inherited.text_indent;
@@ -368,6 +369,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-rendering" => style.text_rendering = TextRendering::Auto,
         "text-orientation" => style.text_orientation = TextOrientation::Mixed,
         "direction" => style.direction = Direction::Ltr,
+        "unicode-bidi" => style.unicode_bidi = UnicodeBidi::Normal,
         "quotes" => style.quotes = quotes::default_quotes(),
         "counter-reset" => style.counter_reset.clear(),
         "counter-increment" => style.counter_increment.clear(),
@@ -673,6 +675,13 @@ fn apply_declaration(
                 "ltr" => Direction::Ltr,
                 "rtl" => Direction::Rtl,
                 _ => style.direction,
+            };
+        }
+        "unicode-bidi" => {
+            style.unicode_bidi = match value.to_ascii_lowercase().as_str() {
+                "normal" => UnicodeBidi::Normal,
+                "isolate" => UnicodeBidi::Isolate,
+                _ => style.unicode_bidi,
             };
         }
         "quotes" => apply_quotes(style, value),

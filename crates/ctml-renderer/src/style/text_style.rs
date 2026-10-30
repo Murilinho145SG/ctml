@@ -86,6 +86,13 @@ pub(crate) enum Direction {
     Rtl,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum UnicodeBidi {
+    #[default]
+    Normal,
+    Isolate,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -155,6 +162,8 @@ pub(crate) struct TextStyle {
     pub(crate) text_rendering: TextRendering,
     pub(crate) text_orientation: TextOrientation,
     pub(crate) direction: Direction,
+    pub(crate) unicode_bidi: UnicodeBidi,
+    pub(crate) bidi_isolate_direction: Option<Direction>,
     pub(crate) quotes: Vec<(String, String)>,
     pub(crate) counter_reset: Vec<(String, i32)>,
     pub(crate) counter_increment: Vec<(String, i32)>,
@@ -362,6 +371,8 @@ impl Default for TextStyle {
             text_rendering: TextRendering::Auto,
             text_orientation: TextOrientation::Mixed,
             direction: Direction::Ltr,
+            unicode_bidi: UnicodeBidi::Normal,
+            bidi_isolate_direction: None,
             quotes: vec![
                 ("“".to_owned(), "”".to_owned()),
                 ("‘".to_owned(), "’".to_owned()),
@@ -545,6 +556,11 @@ impl TextStyle {
             .weight(self.weight)
             .stretch(self.stretch)
             .style(self.font_style);
+        attrs = attrs.bidi_control(match self.bidi_isolate_direction {
+            Some(Direction::Ltr) => Some(cosmic_text::BidiControl::IsolateLtr),
+            Some(Direction::Rtl) => Some(cosmic_text::BidiControl::IsolateRtl),
+            None => None,
+        });
         attrs = attrs.font_features(self.font_features());
         let mut variations = Vec::new();
         if self.font_optical_sizing

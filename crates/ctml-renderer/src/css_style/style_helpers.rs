@@ -54,6 +54,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "text-rendering",
     "text-orientation",
     "direction",
+    "unicode-bidi",
     "quotes",
     "text-decoration",
     "text-decoration-line",

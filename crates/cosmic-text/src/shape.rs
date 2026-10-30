@@ -4,14 +4,15 @@
 
 use crate::fallback::FontFallbackIter;
 use crate::{
-    math, Align, Attrs, AttrsList, CacheKeyFlags, Color, DecorationMetrics, DecorationSpan,
-    Ellipsize, EllipsizeHeightLimit, Family, Font, FontSystem, GlyphDecorationData, Hinting,
-    LayoutGlyph, LayoutLine, Metrics, TextJustify, Wrap,
+    math, Align, Attrs, AttrsList, BidiControl, CacheKeyFlags, Color, DecorationMetrics,
+    DecorationSpan, Ellipsize, EllipsizeHeightLimit, Family, Font, FontSystem, GlyphDecorationData,
+    Hinting, LayoutGlyph, LayoutLine, Metrics, TextJustify, Wrap,
 };
 #[cfg(not(feature = "std"))]
 use alloc::{format, vec, vec::Vec};
 
 use alloc::collections::VecDeque;
+use alloc::string::String;
 use core::cmp::{max, min};
 use core::fmt;
 use core::mem;
@@ -28,6 +29,69 @@ fn is_cjk_character(character: char) -> bool {
         character.script(),
         Script::Han | Script::Hiragana | Script::Katakana | Script::Hangul | Script::Bopomofo
     )
+}
+
+fn bidi_text_with_isolates(
+    line: &str,
+    attrs_list: &AttrsList,
+) -> (String, Vec<(usize, usize, usize)>) {
+    let mut controls = Vec::new();
+    let mut isolate_ranges: Vec<(Range<usize>, BidiControl)> = Vec::new();
+    for (range, attrs) in attrs_list.spans_iter() {
+        let Some(control) = attrs.bidi_control else {
+            continue;
+        };
+        let start = range.start.min(line.len());
+        let end = range.end.min(line.len());
+        if start < end {
+            if isolate_ranges
+                .last()
+                .is_some_and(|(previous, previous_control)| {
+                    previous.end == start && *previous_control == control
+                })
+            {
+                if let Some((previous, _)) = isolate_ranges.last_mut() {
+                    previous.end = end;
+                }
+            } else {
+                isolate_ranges.push((start..end, control));
+            }
+        }
+    }
+    for (range, control) in isolate_ranges {
+        let open = match control {
+            BidiControl::IsolateLtr => '\u{2066}',
+            BidiControl::IsolateRtl => '\u{2067}',
+        };
+        controls.push((range.start, 1_u8, open));
+        controls.push((range.end, 0_u8, '\u{2069}'));
+    }
+    controls.sort_unstable_by_key(|(offset, order, _)| (*offset, *order));
+
+    let mut bidi_text = String::with_capacity(line.len() + controls.len() * 3);
+    let mut source_offsets = Vec::with_capacity(line.chars().count());
+    let mut control_index = 0;
+    for (source_start, character) in line.char_indices() {
+        while controls
+            .get(control_index)
+            .is_some_and(|(offset, _, _)| *offset == source_start)
+        {
+            bidi_text.push(controls[control_index].2);
+            control_index += 1;
+        }
+        let bidi_start = bidi_text.len();
+        bidi_text.push(character);
+        source_offsets.push((
+            source_start,
+            source_start + character.len_utf8(),
+            bidi_start,
+        ));
+    }
+    while let Some((_, _, control)) = controls.get(control_index) {
+        bidi_text.push(*control);
+        control_index += 1;
+    }
+    (bidi_text, source_offsets)
 }
 
 /// The shaping strategy of some text.
@@ -1466,7 +1530,8 @@ impl ShapeLine {
                 unicode_bidi::Level::ltr()
             }
         });
-        let bidi = unicode_bidi::BidiInfo::new(line, base_level);
+        let (bidi_text, source_offsets) = bidi_text_with_isolates(line, attrs_list);
+        let bidi = unicode_bidi::BidiInfo::new(&bidi_text, base_level);
         let rtl = if bidi.paragraphs.is_empty() {
             false
         } else {
@@ -1479,29 +1544,27 @@ impl ShapeLine {
             let line_rtl = para_info.level.is_rtl();
             assert_eq!(line_rtl, rtl);
 
-            let line_range = para_info.range.clone();
             let levels = Self::adjust_levels(&unicode_bidi::Paragraph::new(&bidi, para_info));
-
-            // Find consecutive level runs. We use this to create Spans.
-            // Each span is a set of characters with equal levels.
-            let mut start = line_range.start;
-            let mut run_level = levels[start];
-            spans.reserve(line_range.end - start + 1);
-
-            for (i, &new_level) in levels
+            let source_chars = source_offsets
                 .iter()
-                .enumerate()
-                .take(line_range.end)
-                .skip(start + 1)
-            {
+                .filter(|(_, _, bidi_offset)| para_info.range.contains(bidi_offset))
+                .copied()
+                .collect::<Vec<_>>();
+            let Some((mut start, mut run_end, bidi_offset)) = source_chars.first().copied() else {
+                continue;
+            };
+            let mut run_level = levels[bidi_offset];
+            spans.reserve(source_chars.len());
+
+            for (source_start, source_end, bidi_offset) in source_chars.into_iter().skip(1) {
+                let new_level = levels[bidi_offset];
                 if new_level != run_level {
-                    // End of the previous run, start of a new one.
                     let mut span = cached_spans.pop().unwrap_or_else(ShapeSpan::empty);
                     span.build_with_keep_all(
                         font_system,
                         line,
                         attrs_list,
-                        start..i,
+                        start..run_end,
                         line_rtl,
                         run_level,
                         shaping,
@@ -1509,16 +1572,17 @@ impl ShapeLine {
                         hyphens_none,
                     );
                     spans.push(span);
-                    start = i;
+                    start = source_start;
                     run_level = new_level;
                 }
+                run_end = source_end;
             }
             let mut span = cached_spans.pop().unwrap_or_else(ShapeSpan::empty);
             span.build_with_keep_all(
                 font_system,
                 line,
                 attrs_list,
-                start..line_range.end,
+                start..run_end,
                 line_rtl,
                 run_level,
                 shaping,
@@ -3302,5 +3366,33 @@ impl ShapeLine {
         scratch.visual_lines.append(&mut cached_visual_lines);
         scratch.cached_visual_lines = cached_visual_lines;
         scratch.glyph_sets = cached_glyph_sets;
+    }
+}
+
+#[cfg(test)]
+mod bidi_isolate_tests {
+    use super::*;
+
+    #[test]
+    fn isolated_range_restores_following_text_to_the_paragraph_level() {
+        let line = "abc אבג 123";
+        let isolate_start = line.find("אבג").unwrap();
+        let mut attrs_list = AttrsList::new(&Attrs::new());
+        attrs_list.add_span(
+            isolate_start..isolate_start + "אבג".len(),
+            &Attrs::new().bidi_control(Some(BidiControl::IsolateRtl)),
+        );
+        let (bidi_text, source_offsets) = bidi_text_with_isolates(line, &attrs_list);
+        let base = unicode_bidi::BidiInfo::new(line, Some(unicode_bidi::Level::ltr()));
+        let isolated = unicode_bidi::BidiInfo::new(&bidi_text, Some(unicode_bidi::Level::ltr()));
+        let number_start = line.find("123").unwrap();
+        let mapped_number_start = source_offsets
+            .iter()
+            .find(|(start, _, _)| *start == number_start)
+            .unwrap()
+            .2;
+
+        assert_eq!(base.levels[number_start].number(), 2);
+        assert_eq!(isolated.levels[mapped_number_start].number(), 0);
     }
 }

@@ -145,6 +145,12 @@ pub(super) fn collect_runs(
                         .filter(|language| !language.trim().is_empty())
                         .map(str::to_owned);
                 }
+                style.bidi_isolate_direction = if style.unicode_bidi == super::UnicodeBidi::Isolate
+                {
+                    Some(style.direction)
+                } else {
+                    inherited.bidi_isolate_direction
+                };
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;

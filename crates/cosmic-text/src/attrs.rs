@@ -164,6 +164,13 @@ pub struct Feature {
     pub value: u32,
 }
 
+/// Optional Unicode bidi isolate behavior for an attributed text range.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum BidiControl {
+    IsolateLtr,
+    IsolateRtl,
+}
+
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct FontFeatures {
     pub features: Vec<Feature>,
@@ -323,6 +330,7 @@ pub struct Attrs<'a> {
     pub letter_spacing_opt: Option<LetterSpacing>,
     pub font_features: FontFeatures,
     pub text_decoration: TextDecoration,
+    pub bidi_control: Option<BidiControl>,
 }
 
 impl<'a> Attrs<'a> {
@@ -343,6 +351,7 @@ impl<'a> Attrs<'a> {
             letter_spacing_opt: None,
             font_features: FontFeatures::new(),
             text_decoration: TextDecoration::new(),
+            bidi_control: None,
         }
     }
 
@@ -409,6 +418,11 @@ impl<'a> Attrs<'a> {
     /// Set [`FontFeatures`]
     pub fn font_features(mut self, font_features: FontFeatures) -> Self {
         self.font_features = font_features;
+        self
+    }
+
+    pub const fn bidi_control(mut self, bidi_control: Option<BidiControl>) -> Self {
+        self.bidi_control = bidi_control;
         self
     }
 
@@ -489,6 +503,7 @@ pub struct AttrsOwned {
     pub letter_spacing_opt: Option<LetterSpacing>,
     pub font_features: FontFeatures,
     pub text_decoration: TextDecoration,
+    pub bidi_control: Option<BidiControl>,
 }
 
 impl AttrsOwned {
@@ -506,6 +521,7 @@ impl AttrsOwned {
             letter_spacing_opt: attrs.letter_spacing_opt,
             font_features: attrs.font_features.clone(),
             text_decoration: attrs.text_decoration,
+            bidi_control: attrs.bidi_control,
         }
     }
 
@@ -523,6 +539,7 @@ impl AttrsOwned {
             letter_spacing_opt: self.letter_spacing_opt,
             font_features: self.font_features.clone(),
             text_decoration: self.text_decoration,
+            bidi_control: self.bidi_control,
         }
     }
 }
