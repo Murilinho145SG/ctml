@@ -1,6 +1,7 @@
 use cssparser::{Parser, ParserInput, Token};
 
 mod color4;
+mod missing;
 mod mix;
 mod relative;
 mod system;
@@ -475,6 +476,29 @@ mod tests {
                 )),
                 parse_color(&format!("color-mix(in {space}, red, blue)")),
                 "missing alpha was not propagated in {space}"
+            );
+        }
+    }
+
+    #[test]
+    fn color_mix_carries_forward_rgb_components_across_rgb_spaces() {
+        for (space, profile) in [
+            ("srgb-linear", "srgb-linear"),
+            ("display-p3", "display-p3"),
+            ("display-p3-linear", "display-p3-linear"),
+            ("a98-rgb", "a98-rgb"),
+            ("prophoto-rgb", "prophoto-rgb"),
+            ("rec2020", "rec2020"),
+        ] {
+            let mixed = parse_color(&format!(
+                "color-mix(in {space}, color({profile} none 0 0), color({profile} 1 0 0))"
+            ));
+            let zero_component = parse_color(&format!(
+                "color-mix(in {space}, color({profile} 0 0 0), color({profile} 1 0 0))"
+            ));
+            assert_ne!(
+                mixed, zero_component,
+                "missing RGB component was treated as zero in {space}"
             );
         }
     }

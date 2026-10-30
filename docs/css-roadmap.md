@@ -128,6 +128,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Basic `rgb(from ...)`, `hsl(from ...)`, `hwb(from ...)`, `lab(from ...)`, `lch(from ...)`, `oklab(from ...)`, `oklch(from ...)`, and `color(from ...)` relative colors in supported profiles with channel references, alpha preservation, supported numeric, percentage, and angle overrides, number, percentage, and angle calculations, and `none` components mapped to zero during conversion.
 - [x] Carry matching missing components and alpha from direct `color(srgb ...)` inputs through `color-mix(in srgb, ...)`.
 - [x] Carry missing alpha components from direct `color(srgb ...)` inputs through other supported `color-mix()` spaces.
+- [x] Carry matching missing components from direct predefined RGB-profile colors through supported RGB interpolation spaces.
 - [ ] Propagate missing components through other color spaces, nested mixes, and powerless components.
 - [x] Standard and deprecated system color keywords using CTML's fixed light fallback palette.
 - [ ] Respond to OS forced-color palettes and element color schemes when the host exposes them.

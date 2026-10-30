@@ -1,6 +1,6 @@
 use cssparser::{Parser, ParserInput, Token};
 
-use super::parse_color_with_opacity_depth;
+use super::{missing::parse_missing_rgb_components, parse_color_with_opacity_depth};
 
 #[derive(Clone, Copy)]
 enum HueInterpolation {
@@ -129,16 +129,28 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
             let channels = if alpha == 0.0 {
                 [0; 3]
             } else if display_p3 {
-                let first_p3 = super::color4::srgb_to_display_p3(first.0);
-                let second_p3 = super::color4::srgb_to_display_p3(second.0);
+                let mut first_p3 = super::color4::srgb_to_display_p3(first.0);
+                let mut second_p3 = super::color4::srgb_to_display_p3(second.0);
+                carry_missing_components(
+                    &mut first_p3,
+                    &mut second_p3,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let mixed_p3 = std::array::from_fn(|index| {
                     (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
                 });
                 super::color4::display_p3_to_srgb(mixed_p3)
             } else if display_p3_linear {
-                let first_p3 = super::color4::srgb_to_display_p3_linear(first.0);
-                let second_p3 = super::color4::srgb_to_display_p3_linear(second.0);
+                let mut first_p3 = super::color4::srgb_to_display_p3_linear(first.0);
+                let mut second_p3 = super::color4::srgb_to_display_p3_linear(second.0);
+                carry_missing_components(
+                    &mut first_p3,
+                    &mut second_p3,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let mixed_p3 = std::array::from_fn(|index| {
                     (first_p3[index] * first_alpha + second_p3[index] * second_alpha) / alpha_sum
@@ -159,8 +171,14 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                             super::color4::rec2020_to_srgb,
                         )
                     };
-                let first_channels = convert(first.0);
-                let second_channels = convert(second.0);
+                let mut first_channels = convert(first.0);
+                let mut second_channels = convert(second.0);
+                carry_missing_components(
+                    &mut first_channels,
+                    &mut second_channels,
+                    first_missing,
+                    second_missing,
+                );
                 let alpha_sum = first_alpha + second_alpha;
                 let mixed = std::array::from_fn(|index| {
                     (first_channels[index] * first_alpha + second_channels[index] * second_alpha)
@@ -300,23 +318,31 @@ pub(super) fn parse_color_mix(value: &str, depth: usize) -> Option<([u8; 3], f32
                 let blackness =
                     (first_hwb.2 * first_alpha + second_hwb.2 * second_alpha) / alpha_sum;
                 super::hwb_to_rgb(hue, whiteness, blackness)
+            } else if linear_srgb {
+                let mut first_linear = first
+                    .0
+                    .map(|channel| super::color4::decode_srgb(channel as f32 / 255.0));
+                let mut second_linear = second
+                    .0
+                    .map(|channel| super::color4::decode_srgb(channel as f32 / 255.0));
+                carry_missing_components(
+                    &mut first_linear,
+                    &mut second_linear,
+                    first_missing,
+                    second_missing,
+                );
+                std::array::from_fn(|index| {
+                    let channel = (first_linear[index] * first_alpha
+                        + second_linear[index] * second_alpha)
+                        / (first_alpha + second_alpha);
+                    super::color4::encode_srgb(channel)
+                })
             } else {
                 std::array::from_fn(|index| {
-                    if linear_srgb {
-                        let first_channel =
-                            super::color4::decode_srgb(first.0[index] as f32 / 255.0);
-                        let second_channel =
-                            super::color4::decode_srgb(second.0[index] as f32 / 255.0);
-                        let channel = (first_channel * first_alpha + second_channel * second_alpha)
-                            / (first_alpha + second_alpha);
-                        super::color4::encode_srgb(channel)
-                    } else {
-                        ((first.0[index] as f32 * first_alpha
-                            + second.0[index] as f32 * second_alpha)
-                            / (first_alpha + second_alpha))
-                            .round()
-                            .clamp(0.0, 255.0) as u8
-                    }
+                    ((first.0[index] as f32 * first_alpha + second.0[index] as f32 * second_alpha)
+                        / (first_alpha + second_alpha))
+                        .round()
+                        .clamp(0.0, 255.0) as u8
                 })
             };
             Ok((channels, alpha.clamp(0.0, 1.0)))
@@ -391,7 +417,7 @@ fn parse_mix_component<'i, 't>(
     let color_value = input.slice(start..color_end).trim();
     let color = parse_color_with_opacity_depth(color_value, depth + 1)
         .ok_or_else(|| input.new_custom_error(()))?;
-    let missing = parse_srgb_missing_components(color_value);
+    let missing = parse_missing_rgb_components(color_value);
     let percentage = input
         .try_parse(|input| input.expect_percentage())
         .ok()
@@ -402,44 +428,23 @@ fn parse_mix_component<'i, 't>(
     Ok((color, percentage, missing))
 }
 
-fn parse_srgb_missing_components(value: &str) -> [bool; 4] {
-    let mut source = ParserInput::new(value);
-    let mut parser = Parser::new(&mut source);
-    if !parser
-        .expect_function()
-        .ok()
-        .is_some_and(|name| name.eq_ignore_ascii_case("color"))
-    {
-        return [false; 4];
+fn carry_missing_components(
+    first: &mut [f32; 3],
+    second: &mut [f32; 3],
+    first_missing: [bool; 4],
+    second_missing: [bool; 4],
+) {
+    for index in 0..3 {
+        match (first_missing[index], second_missing[index]) {
+            (true, true) => {
+                first[index] = 0.0;
+                second[index] = 0.0;
+            }
+            (true, false) => first[index] = second[index],
+            (false, true) => second[index] = first[index],
+            (false, false) => {}
+        }
     }
-    parser
-        .parse_nested_block(|input| -> Result<_, cssparser::ParseError<'_, ()>> {
-            input.expect_ident_matching("srgb")?;
-            let mut missing = [false; 4];
-            for component in &mut missing[..3] {
-                *component = input
-                    .try_parse(|input| input.expect_ident_matching("none"))
-                    .is_ok();
-                if !*component {
-                    input.next()?;
-                }
-            }
-            if input.is_exhausted() {
-                return Ok(missing);
-            }
-            input.expect_delim('/')?;
-            missing[3] = input
-                .try_parse(|input| input.expect_ident_matching("none"))
-                .is_ok();
-            if !missing[3] {
-                input.next()?;
-            }
-            if !input.is_exhausted() {
-                return Err(input.new_custom_error(()));
-            }
-            Ok(missing)
-        })
-        .unwrap_or([false; 4])
 }
 
 fn consume_all_tokens<'i, 't>(
