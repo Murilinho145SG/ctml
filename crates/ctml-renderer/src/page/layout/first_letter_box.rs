@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
+use crate::page::{CursorSpan, highlights::first_formatted_line_ranges};
 use crate::style::{Direction, TextRun, TextStyle, UserSelect, WritingMode};
 
 use super::super::sizing::{resolve_layout_width, resolve_width};
@@ -54,6 +56,99 @@ pub(in crate::page) fn insert_first_letter_spacing(
         index = end;
     }
     *runs = output;
+}
+
+pub(in crate::page) fn insert_first_line_spacing(
+    buffer: &cosmic_text::Buffer,
+    runs: &mut Vec<TextRun>,
+    spans: &[CursorSpan],
+    available_width: f32,
+    page_writing_mode: WritingMode,
+) -> bool {
+    let first_lines = first_formatted_line_ranges(buffer, spans);
+    let mut insertions: HashMap<usize, Vec<(usize, TextStyle, f32)>> = HashMap::new();
+    for (block, (line, end)) in first_lines {
+        let Some(first_span) = spans
+            .iter()
+            .filter(|span| span.first_line_block == Some(block) && span.line == line)
+            .filter(|span| span.start < end && span.first_line_font_style.is_some())
+            .min_by_key(|span| span.start)
+        else {
+            continue;
+        };
+        let Some(last_span) = spans
+            .iter()
+            .filter(|span| span.first_line_block == Some(block) && span.line == line)
+            .filter(|span| span.start < end && span.first_line_font_style.is_some())
+            .max_by_key(|span| span.end)
+        else {
+            continue;
+        };
+        let Some(pseudo_style) = first_span.first_line_font_style.as_ref() else {
+            continue;
+        };
+        let Some(originating_run) = runs.get(first_span.run_index) else {
+            continue;
+        };
+        let containing_width = containing_inline_width(
+            &originating_run.style,
+            block,
+            available_width,
+            page_writing_mode,
+        );
+        let (start_side, end_side) = inline_sides(
+            originating_run.style.writing_mode,
+            originating_run.style.direction,
+        );
+        let start_gap = resolve_box_side(pseudo_style, start_side, containing_width, true)
+            + resolve_box_side(pseudo_style, start_side, containing_width, false);
+        let end_gap = resolve_box_side(pseudo_style, end_side, containing_width, true)
+            + resolve_box_side(pseudo_style, end_side, containing_width, false);
+        if start_gap.abs() > f32::EPSILON {
+            insertions.entry(first_span.run_index).or_default().push((
+                first_span.run_offset,
+                pseudo_style.clone(),
+                start_gap,
+            ));
+        }
+        if end_gap.abs() > f32::EPSILON {
+            insertions.entry(last_span.run_index).or_default().push((
+                last_span.run_offset + last_span.character.len_utf8(),
+                pseudo_style.clone(),
+                end_gap,
+            ));
+        }
+    }
+    if insertions.is_empty() {
+        return false;
+    }
+
+    let mut output = Vec::with_capacity(runs.len() + insertions.len());
+    for (run_index, run) in runs.iter().enumerate() {
+        let Some(mut positions) = insertions.remove(&run_index) else {
+            output.push(run.clone());
+            continue;
+        };
+        positions.sort_by_key(|(offset, _, _)| *offset);
+        let mut offset = 0;
+        for (position, pseudo_style, spacing) in positions {
+            let position = position.min(run.text.len());
+            if position > offset {
+                let mut prefix = run.clone();
+                prefix.text = run.text[offset..position].to_owned();
+                output.push(prefix);
+            }
+            output.push(first_line_spacing_run(run, &pseudo_style, spacing));
+            offset = position;
+        }
+        if offset < run.text.len() {
+            let mut suffix = run.clone();
+            suffix.text = run.text[offset..].to_owned();
+            output.push(suffix);
+        }
+    }
+    *runs = output;
+    true
 }
 
 fn containing_inline_width(
@@ -157,5 +252,17 @@ fn spacing_run(source: &TextRun, pseudo_style: &TextStyle, spacing: f32) -> Text
     spacer.first_letter_font_style = Some(pseudo_style.clone());
     spacer.selection_background = None;
     spacer.selection_foreground = None;
+    spacer
+}
+
+fn first_line_spacing_run(source: &TextRun, pseudo_style: &TextStyle, spacing: f32) -> TextRun {
+    let mut spacer = spacing_run(source, pseudo_style, spacing);
+    spacer.first_letter_block = None;
+    spacer.first_letter_foreground = None;
+    spacer.first_letter_background = None;
+    spacer.first_letter_decoration = None;
+    spacer.first_letter_opacity = None;
+    spacer.first_letter_font_style = None;
+    spacer.first_line_font_style = Some(pseudo_style.clone());
     spacer
 }

@@ -2,6 +2,53 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
+fn first_line_inline_margin_and_padding_adjust_line_advance() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("AB".to_owned())],
+    }];
+    let line_width = |declarations: Vec<StyleDeclaration>| {
+        let stylesheet = [StyleRule {
+            selectors: vec!["p::first-line".to_owned()],
+            layer: None,
+            declarations,
+        }];
+        let mut page = PageRasterizer::new(&nodes, &stylesheet);
+        page.prepare_layout(300, 80);
+        page.buffer.layout_runs().next().unwrap().line_w
+    };
+    let natural_width = line_width(Vec::new());
+    let spaced_width = line_width(vec![
+        StyleDeclaration {
+            property: "padding-inline".to_owned(),
+            value: "5px".to_owned(),
+        },
+        StyleDeclaration {
+            property: "margin-inline".to_owned(),
+            value: "3px".to_owned(),
+        },
+    ]);
+    let negatively_margined_width = line_width(vec![StyleDeclaration {
+        property: "margin-inline".to_owned(),
+        value: "-2px".to_owned(),
+    }]);
+
+    assert!(
+        (spaced_width - natural_width - 16.0).abs() < 1.0,
+        "5px inline padding and 3px inline margin on each side should add 16px, got {}px",
+        spaced_width - natural_width
+    );
+    assert!(
+        (negatively_margined_width - natural_width + 4.0).abs() < 1.0,
+        "-2px inline margin on each side should remove 4px, got {}px",
+        negatively_margined_width - natural_width
+    );
+}
+
+#[test]
 fn first_line_block_padding_extends_its_background_without_changing_line_height() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

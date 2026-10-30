@@ -398,6 +398,16 @@ impl PageRasterizer {
             self.cursor_spans = cursor_spans(&self.runs);
             shape_buffer(self, content_width, content_height);
         }
+        if layout::insert_first_line_spacing(
+            &self.buffer,
+            &mut self.runs,
+            &self.cursor_spans,
+            content_width,
+            page_writing_mode,
+        ) {
+            self.cursor_spans = cursor_spans(&self.runs);
+            shape_buffer(self, content_width, content_height);
+        }
         if layout::apply_first_line_text_transform(&self.buffer, &mut self.runs, &self.cursor_spans)
         {
             self.cursor_spans = cursor_spans(&self.runs);

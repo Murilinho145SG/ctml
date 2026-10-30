@@ -71,6 +71,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `::first-letter` border-radius values round the initial glyph's painted border.
 - [x] `::first-line` border-radius rounds its supported background colors and images.
 - [x] `::first-line` block-axis padding extends the background paint area without changing line metrics.
+- [x] `::first-line` inline-axis margin and padding adjust the first formatted line's inline advance.
 - [x] `::first-letter` supports `outline` and its width, style, color, and offset properties.
 - [x] `::first-letter` physical and logical `margin` and `padding` properties adjust inline spacing; block padding expands its painted background and border area.
 - [ ] Other `::first-line` and `::first-letter` styles, including remaining pseudo-element properties not listed above.
