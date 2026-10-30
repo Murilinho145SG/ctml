@@ -54,6 +54,8 @@ mod pseudo;
 mod pseudo_opacity;
 #[path = "page_tests/pseudo_vertical_align.rs"]
 mod pseudo_vertical_align;
+#[path = "page_tests/scrolling.rs"]
+mod scrolling;
 #[path = "page_tests/selection.rs"]
 mod selection;
 #[path = "page_tests/sizing.rs"]

@@ -14,6 +14,7 @@ impl PageRasterizer {
             pixel[3] = 255;
         }
         let overflow_clips = &self.overflow_clips;
+        let nested_scroll = &self.nested_scroll;
         backgrounds::draw(
             &self.runs,
             &self.buffer,
@@ -23,6 +24,7 @@ impl PageRasterizer {
             self.root_style.background_color.is_some(),
             writing_mode,
             &overflow_clips,
+            nested_scroll,
         );
         self.draw_first_line_backgrounds(&mut pixels, width, height, &overflow_clips);
         self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
@@ -53,6 +55,7 @@ impl PageRasterizer {
             cursor_spans,
             writing_mode,
             &overflow_clips,
+            nested_scroll,
         );
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
@@ -113,6 +116,16 @@ impl PageRasterizer {
                                     transform.map_rect(source_x as f32, source_y as f32, 1.0, 1.0);
                                 (x.round() as i32, y.round() as i32)
                             });
+                        let nested_scroll_y =
+                            style_index
+                                .and_then(|index| runs.get(index))
+                                .map_or(0.0, |run| {
+                                    super::overflow_clip::scroll_offset_y_for_path(
+                                        &run.element_path,
+                                        nested_scroll,
+                                    )
+                                });
+                        let pixel_y = (pixel_y as f32 - nested_scroll_y).round() as i32;
                         if pixel_x >= 0
                             && pixel_y >= 0
                             && pixel_x < width as i32
@@ -138,6 +151,19 @@ impl PageRasterizer {
             }
         }
         for run in buffer.layout_runs() {
+            let nested_scroll_y = run
+                .glyphs
+                .first()
+                .and_then(|glyph| {
+                    super::local_writing::style_index_at(
+                        &style_ranges,
+                        line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
+                    )
+                })
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    super::overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
+                });
             let mut renderer = PixelRenderer {
                 pixels: &mut pixels,
                 width,
@@ -153,6 +179,7 @@ impl PageRasterizer {
                     &vertical_block_origins,
                 ),
                 clip_rect: None,
+                translate_y: nested_scroll_y,
             };
             decorations::render_patterned_decorations(
                 &mut renderer,

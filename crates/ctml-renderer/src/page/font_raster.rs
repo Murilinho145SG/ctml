@@ -33,6 +33,7 @@ pub(super) fn draw(
     cursor_spans: &[CursorSpan],
     writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let first_letters = super::highlights::first_formatted_letters(cursor_spans);
@@ -216,6 +217,11 @@ pub(super) fn draw(
             let local_vertical_mode = text_style.map(|style| style.writing_mode).filter(|mode| {
                 *mode != WritingMode::HorizontalTb && writing_mode == WritingMode::HorizontalTb
             });
+            let nested_scroll_y = style_index
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
+                });
             canvas.save();
             if let Some(clip) =
                 style_index
@@ -234,6 +240,9 @@ pub(super) fn draw(
                     None,
                     false,
                 );
+            }
+            if nested_scroll_y != 0.0 {
+                canvas.translate((0.0, -nested_scroll_y));
             }
             if let Some(mode) = local_vertical_mode {
                 let origin_y = style_index

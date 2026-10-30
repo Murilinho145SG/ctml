@@ -19,6 +19,7 @@ pub(super) fn draw(
     skip_root_background: bool,
     page_writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -58,6 +59,11 @@ pub(super) fn draw(
                 end += 1;
             }
             let fragment = &line.glyphs[start..end];
+            let scroll_offset = style_index
+                .and_then(|index| runs.get(index))
+                .map_or(0.0, |run| {
+                    overflow_clip::scroll_offset_y_for_path(&run.element_path, nested_scroll)
+                });
             let left = fragment
                 .iter()
                 .map(|glyph| glyph.x)
@@ -86,7 +92,7 @@ pub(super) fn draw(
                         );
                         let (left, top, rect_width, rect_height) = transform.map_rect(
                             left + crate::page::PAGE_PADDING,
-                            line.line_top + crate::page::PAGE_PADDING,
+                            line.line_top - scroll_offset + crate::page::PAGE_PADDING,
                             right - left,
                             line.line_height,
                         );
@@ -117,7 +123,7 @@ pub(super) fn draw(
                             width,
                             height,
                             left,
-                            line.line_top,
+                            line.line_top - scroll_offset,
                             right - left,
                             line.line_height,
                             color,

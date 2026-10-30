@@ -84,6 +84,10 @@ impl PageRasterizer {
                             height,
                             &vertical_origins,
                         ),
+                        overflow_clip::scroll_offset_y_for_path(
+                            &span.element_path,
+                            &self.nested_scroll,
+                        ),
                     );
                 }
             }
@@ -108,6 +112,7 @@ impl PageRasterizer {
                         height,
                         &vertical_origins,
                     ),
+                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -126,6 +131,7 @@ fn draw_decoration(
     all_ink_mask: &[u8],
     clip_rect: Option<ClipRect>,
     local_transform: Option<LocalVerticalTransform>,
+    translate_y: f32,
 ) {
     if start >= end || decoration.thickness <= 0.0 {
         return;
@@ -158,6 +164,7 @@ fn draw_decoration(
         },
         local_transform,
         clip_rect,
+        translate_y,
     };
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);

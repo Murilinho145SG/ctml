@@ -90,6 +90,7 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
+                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -169,6 +170,7 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
+                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -228,6 +230,7 @@ impl PageRasterizer {
                     height,
                     local_transform,
                     overflow_clip::clip_for_path(&path, clips),
+                    overflow_clip::scroll_offset_y_for_path(&path, &self.nested_scroll),
                 );
             }
         }
@@ -248,6 +251,7 @@ fn fill_highlight(
     height: u32,
     local_transform: Option<LocalVerticalTransform>,
     clip: Option<ClipRect>,
+    translate_y: f32,
 ) {
     let start = Cursor {
         line,
@@ -264,7 +268,7 @@ fn fill_highlight(
             local_transform.map_or((left, line_top, span_width, line_height), |transform| {
                 transform.map_rect(
                     left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
+                    line_top - translate_y + super::PAGE_PADDING,
                     span_width,
                     line_height,
                 )

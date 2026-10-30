@@ -194,7 +194,12 @@ impl ApplicationHandler for WindowApplication {
                     }
                 };
                 if let Some(renderer) = self.renderer.as_mut()
-                    && renderer.scroll_by(delta_x, delta_y)
+                    && renderer.scroll_by(
+                        delta_x,
+                        delta_y,
+                        self.cursor_position.x,
+                        self.cursor_position.y,
+                    )
                 {
                     window.request_redraw();
                 }

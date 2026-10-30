@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use cosmic_text::Buffer;
+use cosmic_text::{Buffer, FontSystem};
+use std::collections::HashSet;
 
 use crate::style::{LayoutSize, TextRun, WritingMode};
 
@@ -15,6 +16,12 @@ pub(super) struct ClipRect {
     pub(super) top: f32,
     pub(super) right: f32,
     pub(super) bottom: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(super) struct BlockGeometry {
+    pub(super) clip: ClipRect,
+    pub(super) content_block_extent: f32,
 }
 
 impl ClipRect {
@@ -34,6 +41,15 @@ pub(super) fn clip_for_path(path: &[usize], clips: &HashMap<usize, ClipRect>) ->
         .reduce(ClipRect::intersect)
 }
 
+pub(super) fn scroll_offset_y_for_path(
+    path: &[usize],
+    offsets: &HashMap<usize, (f32, f32)>,
+) -> f32 {
+    path.iter()
+        .filter_map(|node_id| offsets.get(node_id).map(|(_, offset_y)| *offset_y))
+        .sum()
+}
+
 #[derive(Clone, Debug)]
 struct BlockExtent {
     size: LayoutSize,
@@ -41,13 +57,14 @@ struct BlockExtent {
     content_height: f32,
 }
 
-pub(super) fn block_clip_rects(
+pub(super) fn block_geometries(
     runs: &[TextRun],
-    buffer: &Buffer,
+    buffer: &mut Buffer,
+    font_system: &mut FontSystem,
     width: u32,
     height: u32,
     page_writing_mode: WritingMode,
-) -> HashMap<usize, ClipRect> {
+) -> HashMap<usize, BlockGeometry> {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
     let mut extents = HashMap::<usize, BlockExtent>::new();
@@ -81,6 +98,45 @@ pub(super) fn block_clip_rects(
         }
     }
 
+    if extents.values().any(|extent| {
+        super::scrolling::user_scrollable_axes(extent.size.overflow_x, extent.size.overflow_y).1
+    }) {
+        let mut content_heights = HashMap::<usize, f32>::new();
+        let line_starts = local_writing::text_line_starts(runs);
+        let metrics = buffer.metrics();
+        for line_index in 0..buffer.lines.len() {
+            let Some(layout) = buffer.line_layout(font_system, line_index) else {
+                continue;
+            };
+            let line_start = line_starts.get(line_index).copied().unwrap_or(0);
+            for layout_line in layout {
+                let mut seen_blocks = HashSet::new();
+                for glyph in &layout_line.glyphs {
+                    let Some(style_index) =
+                        local_writing::style_index_at(&style_ranges, line_start + glyph.start)
+                    else {
+                        continue;
+                    };
+                    let Some(style_run) = runs.get(style_index) else {
+                        continue;
+                    };
+                    for size in &style_run.style.layout_sizes {
+                        if seen_blocks.insert(size.node_id) {
+                            *content_heights.entry(size.node_id).or_default() +=
+                                layout_line.line_height_opt.unwrap_or(metrics.line_height);
+                        }
+                    }
+                }
+            }
+        }
+        for (node_id, extent) in &mut extents {
+            extent.content_height = content_heights
+                .get(node_id)
+                .copied()
+                .unwrap_or(extent.content_height);
+        }
+    }
+
     let available_width = (width as f32 - PAGE_PADDING * 2.0).max(0.0);
     let available_height = (height as f32 - PAGE_PADDING * 2.0).max(0.0);
     extents
@@ -111,7 +167,7 @@ pub(super) fn block_clip_rects(
                 })
                 .unwrap_or_default();
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode);
-            let rect = if page_writing_mode == WritingMode::HorizontalTb
+            let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
             {
                 let transform = local_writing::LocalVerticalTransform::new(
@@ -140,7 +196,13 @@ pub(super) fn block_clip_rects(
                     bottom: PAGE_PADDING + extent.top + block_height.max(0.0),
                 }
             };
-            (node_id, rect)
+            (
+                node_id,
+                BlockGeometry {
+                    clip,
+                    content_block_extent: extent.content_height,
+                },
+            )
         })
         .collect()
 }

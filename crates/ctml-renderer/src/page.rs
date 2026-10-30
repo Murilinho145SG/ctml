@@ -52,7 +52,9 @@ pub(crate) struct PageRasterizer {
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
     overflow_clips: HashMap<usize, overflow_clip::ClipRect>,
+    overflow_geometry: HashMap<usize, overflow_clip::BlockGeometry>,
     root_scroll: Scroll,
+    nested_scroll: HashMap<usize, (f32, f32)>,
     spacer_line_flags: Vec<bool>,
     font_system: FontSystem,
     cache: SwashCache,
@@ -146,7 +148,9 @@ impl PageRasterizer {
             runs,
             cursor_spans,
             overflow_clips: HashMap::new(),
+            overflow_geometry: HashMap::new(),
             root_scroll: Scroll::default(),
+            nested_scroll: HashMap::new(),
             spacer_line_flags: Vec::new(),
             font_system,
             cache: SwashCache::new(),
@@ -369,15 +373,45 @@ impl PageRasterizer {
         self.buffer.set_scroll(self.root_scroll);
         self.buffer.shape_until_scroll(&mut self.font_system, false);
         self.root_scroll = self.buffer.scroll();
+        self.refresh_overflow_geometry(width, height);
+    }
+
+    fn refresh_overflow_geometry(&mut self, width: u32, height: u32) {
         let (layout_width, layout_height) =
             vertical::layout_dimensions(self.writing_mode(), width, height);
-        self.overflow_clips = overflow_clip::block_clip_rects(
+        let writing_mode = self.writing_mode();
+        let overflow_geometry = overflow_clip::block_geometries(
             &self.runs,
-            &self.buffer,
+            &mut self.buffer,
+            &mut self.font_system,
             layout_width,
             layout_height,
-            self.writing_mode(),
+            writing_mode,
         );
+        self.overflow_geometry = overflow_geometry;
+        self.overflow_clips = self
+            .overflow_geometry
+            .iter()
+            .map(|(node_id, geometry)| (*node_id, geometry.clip))
+            .collect();
+        self.nested_scroll.retain(|node_id, _| {
+            self.overflow_geometry.contains_key(node_id)
+                && self.runs.iter().any(|run| {
+                    run.style.layout_sizes.iter().any(|size| {
+                        size.node_id == *node_id
+                            && scrolling::user_scrollable_axes(size.overflow_x, size.overflow_y).1
+                    })
+                })
+        });
+        for (node_id, (_, offset_y)) in &mut self.nested_scroll {
+            if let Some(geometry) = self.overflow_geometry.get(node_id) {
+                *offset_y = offset_y.clamp(
+                    0.0,
+                    (geometry.content_block_extent - (geometry.clip.bottom - geometry.clip.top))
+                        .max(0.0),
+                );
+            }
+        }
     }
 
     pub(crate) fn redraw(&mut self, queue: &wgpu::Queue, texture: &wgpu::Texture) {
