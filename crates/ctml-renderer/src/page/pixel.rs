@@ -1,16 +1,41 @@
 use cosmic_text::{Color, Renderer};
 
-use super::PAGE_PADDING;
+use super::{PAGE_PADDING, local_writing::LocalVerticalTransform};
 
 pub(super) struct PixelRenderer<'a> {
     pub(super) pixels: &'a mut [u8],
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) skip_ink_mask: Option<&'a [u8]>,
+    pub(super) local_transform: Option<LocalVerticalTransform>,
 }
 
 impl Renderer for PixelRenderer<'_> {
     fn rectangle(&mut self, x: i32, y: i32, width: u32, height: u32, color: Color) {
+        let (x, y, width, height) = self.local_transform.map_or_else(
+            || {
+                (
+                    x + PAGE_PADDING as i32,
+                    y + PAGE_PADDING as i32,
+                    width,
+                    height,
+                )
+            },
+            |transform| {
+                let (left, top, mapped_width, mapped_height) = transform.map_rect(
+                    x as f32 + PAGE_PADDING,
+                    y as f32 + PAGE_PADDING,
+                    width as f32,
+                    height as f32,
+                );
+                (
+                    left.round() as i32,
+                    top.round() as i32,
+                    mapped_width.round() as u32,
+                    mapped_height.round() as u32,
+                )
+            },
+        );
         let blend = if color.a() < 255 {
             blend_pixel_rounded
         } else {
@@ -18,8 +43,8 @@ impl Renderer for PixelRenderer<'_> {
         };
         for offset_y in 0..height as i32 {
             for offset_x in 0..width as i32 {
-                let pixel_x = x + offset_x + PAGE_PADDING as i32;
-                let pixel_y = y + offset_y + PAGE_PADDING as i32;
+                let pixel_x = x + offset_x;
+                let pixel_y = y + offset_y;
                 if let Some(mask) = self.skip_ink_mask
                     && pixel_x >= 0
                     && pixel_y >= 0

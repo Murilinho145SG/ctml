@@ -75,37 +75,21 @@ pub(super) fn draw(
                             .and_then(|run| run.first_line_block)
                             .and_then(|block| vertical_block_origins.get(&block).copied())
                             .unwrap_or(line.line_y);
-                        let target_x = match mode {
-                            WritingMode::VerticalRl => width as f32 - origin_y,
-                            WritingMode::VerticalLr => origin_y,
-                            WritingMode::HorizontalTb => unreachable!(),
-                        };
-                        let target_y = match mode {
-                            WritingMode::VerticalRl => crate::page::PAGE_PADDING,
-                            WritingMode::VerticalLr => height as f32 - crate::page::PAGE_PADDING,
-                            WritingMode::HorizontalTb => unreachable!(),
-                        };
-                        let (left, top, rect_width, rect_height) = match mode {
-                            WritingMode::VerticalRl => (
-                                target_x + origin_y - line.line_top - line.line_height,
-                                target_y + left - crate::page::PAGE_PADDING,
-                                line.line_height,
-                                right - left,
-                            ),
-                            WritingMode::VerticalLr => (
-                                target_x + line.line_top - origin_y,
-                                target_y - right + crate::page::PAGE_PADDING,
-                                line.line_height,
-                                right - left,
-                            ),
-                            WritingMode::HorizontalTb => unreachable!(),
-                        };
+                        let transform = local_writing::LocalVerticalTransform::new(
+                            mode, origin_y, width, height,
+                        );
+                        let (left, top, rect_width, rect_height) = transform.map_rect(
+                            left + crate::page::PAGE_PADDING,
+                            line.line_top + crate::page::PAGE_PADDING,
+                            right - left,
+                            line.line_height,
+                        );
                         fill_rect_alpha(
                             pixels,
                             width,
                             height,
-                            left,
-                            top,
+                            left - crate::page::PAGE_PADDING,
+                            top - crate::page::PAGE_PADDING,
                             rect_width,
                             rect_height,
                             color,

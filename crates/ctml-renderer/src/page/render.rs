@@ -55,8 +55,33 @@ impl PageRasterizer {
         let default_color = Color::rgb(0, 0, 0);
         let mut auto_ink_mask = vec![0; pixels.len() / 4];
         let mut all_ink_mask = vec![0; pixels.len() / 4];
+        let vertical_block_origins =
+            super::local_writing::vertical_block_origins(runs, buffer, writing_mode);
+        let style_ranges = super::local_writing::text_style_ranges(runs);
+        let line_starts = super::local_writing::text_line_starts(runs);
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
+                let style_index = super::local_writing::style_index_at(
+                    &style_ranges,
+                    line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
+                );
+                let local_transform = style_index
+                    .and_then(|index| runs.get(index))
+                    .filter(|style_run| {
+                        writing_mode == crate::style::WritingMode::HorizontalTb
+                            && style_run.style.writing_mode
+                                != crate::style::WritingMode::HorizontalTb
+                    })
+                    .and_then(|style_run| {
+                        let block = style_run.first_line_block?;
+                        let origin_y = vertical_block_origins.get(&block).copied()?;
+                        Some(super::local_writing::LocalVerticalTransform::new(
+                            style_run.style.writing_mode,
+                            origin_y,
+                            width,
+                            height,
+                        ))
+                    });
                 let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
                 let mask_color = Color::rgba(255, 255, 255, 255);
                 let auto_mask = &mut auto_ink_mask;
@@ -69,8 +94,14 @@ impl PageRasterizer {
                     physical_glyph.cache_key,
                     mask_color,
                     |x, y, pixel_color| {
-                        let pixel_x = physical_glyph.x + x + PAGE_PADDING as i32;
-                        let pixel_y = physical_glyph.y + y + PAGE_PADDING as i32;
+                        let source_x = physical_glyph.x + x + PAGE_PADDING as i32;
+                        let source_y = physical_glyph.y + y + PAGE_PADDING as i32;
+                        let (pixel_x, pixel_y) =
+                            local_transform.map_or((source_x, source_y), |transform| {
+                                let (x, y, _, _) =
+                                    transform.map_rect(source_x as f32, source_y as f32, 1.0, 1.0);
+                                (x.round() as i32, y.round() as i32)
+                            });
                         if pixel_x >= 0
                             && pixel_y >= 0
                             && pixel_x < width as i32
@@ -95,6 +126,15 @@ impl PageRasterizer {
                 width,
                 height,
                 skip_ink_mask: None,
+                local_transform: super::local_writing::LocalVerticalTransform::from_run(
+                    runs,
+                    buffer,
+                    run.line_i,
+                    writing_mode,
+                    width,
+                    height,
+                    &vertical_block_origins,
+                ),
             };
             decorations::render_patterned_decorations(
                 &mut renderer,

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use cosmic_text::Cursor;
 
+use super::local_writing::{self, LocalVerticalTransform};
 use super::{CursorSpan, PageRasterizer, pixel::fill_rect_alpha};
 
 impl PageRasterizer {
@@ -14,6 +15,8 @@ impl PageRasterizer {
         } else {
             (second, first)
         };
+        let vertical_origins =
+            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
             if run.line_i < start.line || run.line_i > end.line {
                 continue;
@@ -53,6 +56,15 @@ impl PageRasterizer {
                 }
             }
             for (group_start, group_end, background) in groups {
+                let local_transform = LocalVerticalTransform::from_run(
+                    &self.runs,
+                    &self.buffer,
+                    run.line_i,
+                    self.writing_mode(),
+                    width,
+                    height,
+                    &vertical_origins,
+                );
                 fill_highlight(
                     run.line_i,
                     run.line_top,
@@ -64,6 +76,7 @@ impl PageRasterizer {
                     pixels,
                     width,
                     height,
+                    local_transform,
                 );
             }
         }
@@ -71,6 +84,8 @@ impl PageRasterizer {
 
     pub(super) fn draw_first_line_backgrounds(&self, pixels: &mut [u8], width: u32, height: u32) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
+        let vertical_origins =
+            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
             let mut groups: Vec<(usize, usize, usize, [u8; 4])> = Vec::new();
             for span in self
@@ -105,6 +120,15 @@ impl PageRasterizer {
                 }
             }
             for (group_start, group_end, _, background) in groups {
+                let local_transform = LocalVerticalTransform::from_run(
+                    &self.runs,
+                    &self.buffer,
+                    run.line_i,
+                    self.writing_mode(),
+                    width,
+                    height,
+                    &vertical_origins,
+                );
                 fill_highlight(
                     run.line_i,
                     run.line_top,
@@ -116,6 +140,7 @@ impl PageRasterizer {
                     pixels,
                     width,
                     height,
+                    local_transform,
                 );
             }
         }
@@ -123,6 +148,8 @@ impl PageRasterizer {
 
     pub(super) fn draw_first_letter_backgrounds(&self, pixels: &mut [u8], width: u32, height: u32) {
         let first_letters = first_formatted_letters(&self.cursor_spans);
+        let vertical_origins =
+            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
             let mut groups: Vec<(usize, usize, [u8; 4])> = Vec::new();
             for span in self
@@ -145,6 +172,15 @@ impl PageRasterizer {
                 groups.push((span.start, span.end, background));
             }
             for (group_start, group_end, background) in groups {
+                let local_transform = LocalVerticalTransform::from_run(
+                    &self.runs,
+                    &self.buffer,
+                    run.line_i,
+                    self.writing_mode(),
+                    width,
+                    height,
+                    &vertical_origins,
+                );
                 fill_highlight(
                     run.line_i,
                     run.line_top,
@@ -156,6 +192,7 @@ impl PageRasterizer {
                     pixels,
                     width,
                     height,
+                    local_transform,
                 );
             }
         }
@@ -171,6 +208,8 @@ impl PageRasterizer {
     ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let first_letters = first_formatted_letters(&self.cursor_spans);
+        let vertical_origins =
+            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
         for run in self.buffer.layout_runs() {
             let mut first_line_groups: Vec<(
                 usize,
@@ -215,6 +254,15 @@ impl PageRasterizer {
                         height,
                         auto_ink_mask,
                         all_ink_mask,
+                        LocalVerticalTransform::from_run(
+                            &self.runs,
+                            &self.buffer,
+                            run.line_i,
+                            self.writing_mode(),
+                            width,
+                            height,
+                            &vertical_origins,
+                        ),
                     );
                 }
             }
@@ -229,6 +277,15 @@ impl PageRasterizer {
                     height,
                     auto_ink_mask,
                     all_ink_mask,
+                    LocalVerticalTransform::from_run(
+                        &self.runs,
+                        &self.buffer,
+                        run.line_i,
+                        self.writing_mode(),
+                        width,
+                        height,
+                        &vertical_origins,
+                    ),
                 );
             }
         }
@@ -245,6 +302,7 @@ fn draw_decoration(
     height: u32,
     auto_ink_mask: &[u8],
     all_ink_mask: &[u8],
+    local_transform: Option<LocalVerticalTransform>,
 ) {
     if start >= end || decoration.thickness <= 0.0 {
         return;
@@ -275,6 +333,7 @@ fn draw_decoration(
             crate::style::TextDecorationSkipInk::Auto => Some(auto_ink_mask),
             crate::style::TextDecorationSkipInk::All => Some(all_ink_mask),
         },
+        local_transform,
     };
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);
@@ -386,6 +445,7 @@ fn fill_highlight(
     pixels: &mut [u8],
     width: u32,
     height: u32,
+    local_transform: Option<LocalVerticalTransform>,
 ) {
     let start = Cursor {
         line,
@@ -398,12 +458,21 @@ fn fill_highlight(
         affinity: cosmic_text::Affinity::After,
     };
     for (left, span_width) in run.highlight(start, end) {
+        let (left, top, span_width, line_height) =
+            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
+                transform.map_rect(
+                    left + super::PAGE_PADDING,
+                    line_top + super::PAGE_PADDING,
+                    span_width,
+                    line_height,
+                )
+            });
         fill_rect_alpha(
             pixels,
             width,
             height,
-            left,
-            line_top,
+            left - super::PAGE_PADDING,
+            top - super::PAGE_PADDING,
             span_width,
             line_height,
             color,

@@ -220,10 +220,14 @@ pub(super) fn draw(
                     .and_then(|style_run| style_run.first_line_block)
                     .and_then(|block| vertical_block_origins.get(&block).copied())
                     .unwrap_or(run.line_y);
-                let source = Point::new(PAGE_PADDING, origin_y);
+                let source = Point::new(PAGE_PADDING, origin_y + PAGE_PADDING);
                 let target = match mode {
-                    WritingMode::VerticalRl => Point::new(width as f32 - origin_y, PAGE_PADDING),
-                    WritingMode::VerticalLr => Point::new(origin_y, height as f32 - PAGE_PADDING),
+                    WritingMode::VerticalRl => {
+                        Point::new(width as f32 - origin_y - PAGE_PADDING, PAGE_PADDING)
+                    }
+                    WritingMode::VerticalLr => {
+                        Point::new(origin_y + PAGE_PADDING, height as f32 - PAGE_PADDING)
+                    }
                     WritingMode::HorizontalTb => unreachable!(),
                 };
                 canvas.save();

@@ -284,23 +284,46 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
         children: vec![UiNode::Text("Vertical text column ".repeat(16))],
     }];
     for writing_mode in ["vertical-rl", "vertical-lr"] {
-        let stylesheet = [StyleRule {
-            selectors: vec!["p".to_owned()],
-            layer: None,
-            declarations: vec![
-                StyleDeclaration {
-                    property: "writing-mode".to_owned(),
-                    value: writing_mode.to_owned(),
-                },
-                StyleDeclaration {
+        let stylesheet = [
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations: vec![
+                    StyleDeclaration {
+                        property: "writing-mode".to_owned(),
+                        value: writing_mode.to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "background-color".to_owned(),
+                        value: "#00ff00".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "text-decoration-line".to_owned(),
+                        value: "underline".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "text-decoration-color".to_owned(),
+                        value: "#ff0000".to_owned(),
+                    },
+                    StyleDeclaration {
+                        property: "text-decoration-skip-ink".to_owned(),
+                        value: "all".to_owned(),
+                    },
+                ],
+            },
+            StyleRule {
+                selectors: vec!["::selection".to_owned()],
+                layer: None,
+                declarations: vec![StyleDeclaration {
                     property: "background-color".to_owned(),
-                    value: "#00ff00".to_owned(),
-                },
-            ],
-        }];
+                    value: "#0000ff".to_owned(),
+                }],
+            },
+        ];
         let mut page = PageRasterizer::new(&nodes, &stylesheet);
         let pixels = page.snapshot_pixels(160, 400);
         let mut bounds = (160_u32, 400_u32, 0_u32, 0_u32);
+        let mut decoration_bounds = (160_u32, 400_u32, 0_u32, 0_u32);
         for y in 0..400 {
             for x in 0..160 {
                 let index = ((y * 160 + x) * 4) as usize;
@@ -310,6 +333,12 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
                     bounds.2 = bounds.2.max(x);
                     bounds.3 = bounds.3.max(y);
                 }
+                if pixels[index] > 200 && pixels[index + 1] < 80 && pixels[index + 2] < 80 {
+                    decoration_bounds.0 = decoration_bounds.0.min(x);
+                    decoration_bounds.1 = decoration_bounds.1.min(y);
+                    decoration_bounds.2 = decoration_bounds.2.max(x);
+                    decoration_bounds.3 = decoration_bounds.3.max(y);
+                }
             }
         }
         let painted_width = bounds.2.saturating_sub(bounds.0);
@@ -317,6 +346,38 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
         assert!(
             painted_height > painted_width * 2,
             "{writing_mode}: {bounds:?}"
+        );
+        let decoration_width = decoration_bounds.2.saturating_sub(decoration_bounds.0);
+        let decoration_height = decoration_bounds.3.saturating_sub(decoration_bounds.1);
+        assert!(
+            decoration_height > decoration_width * 2,
+            "{writing_mode} underline: {decoration_bounds:?}"
+        );
+
+        page.selection = Some((
+            cosmic_text::Cursor::new_with_affinity(0, 0, cosmic_text::Affinity::Before),
+            cosmic_text::Cursor::new_with_affinity(
+                0,
+                "Vertical".len(),
+                cosmic_text::Affinity::After,
+            ),
+        ));
+        let selected_pixels = page.snapshot_pixels(160, 400);
+        let mut selection_bounds = (160_u32, 400_u32, 0_u32, 0_u32);
+        for y in 0..400 {
+            for x in 0..160 {
+                let index = ((y * 160 + x) * 4) as usize;
+                if selected_pixels[index..index + 3] == [0, 0, 255] {
+                    selection_bounds.0 = selection_bounds.0.min(x);
+                    selection_bounds.1 = selection_bounds.1.min(y);
+                    selection_bounds.2 = selection_bounds.2.max(x);
+                    selection_bounds.3 = selection_bounds.3.max(y);
+                }
+            }
+        }
+        assert!(
+            selection_bounds.3 - selection_bounds.1 > (selection_bounds.2 - selection_bounds.0) * 2,
+            "{writing_mode} selection: {selection_bounds:?}"
         );
     }
 }
