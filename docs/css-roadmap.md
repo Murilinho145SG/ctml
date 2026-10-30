@@ -218,7 +218,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Writing modes, direction, bidirectional isolation, and vertical text.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
 - [x] Custom string markers through `list-style-type`.
-- [ ] Remaining predefined `list-style-type` systems, including Hebrew, Armenian, and CJK styles.
+- [x] Hebrew, Armenian, and basic CJK predefined `list-style-type` systems (`cjk-decimal`, `cjk-earthly-branch`, and `cjk-heavenly-stem`), with decimal fallback outside their supported ranges.
+- [ ] Remaining predefined `list-style-type` systems and counter styles.
 - [x] Generated `open-quote`, `close-quote`, `no-open-quote`, and `no-close-quote` content with inherited custom `quotes` pairs.
 - [x] `counter-reset`, `counter-increment`, and `counter-set` with scoped values, plus decimal, decimal-leading-zero, alphabetic, Greek, and Roman `counter()`/`counters()` formatting.
 - [ ] Remaining generated-content values and counter styles beyond the supported built-in systems.

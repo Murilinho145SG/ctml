@@ -95,6 +95,68 @@ fn list_style_type_formats_roman_greek_and_leading_zero_markers() {
 }
 
 #[test]
+fn list_style_type_formats_hebrew_armenian_and_cjk_counters() {
+    use super::list_marker::format_counter_value;
+
+    for (style, value, expected) in [
+        ("armenian", 2024, "ՍԻԴ"),
+        ("lower-armenian", 2024, "սիդ"),
+        ("hebrew", 5784, "ה׳תשפד"),
+        ("cjk-decimal", 100, "一〇〇"),
+        ("cjk-earthly-branch", 12, "亥"),
+        ("cjk-heavenly-stem", 10, "癸"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style}"
+        );
+    }
+
+    assert_eq!(format_counter_value("hebrew", 0).as_deref(), Some("0"));
+    assert_eq!(
+        format_counter_value("armenian", 10_000).as_deref(),
+        Some("10000")
+    );
+}
+
+#[test]
+fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
+    for style_type in [
+        "armenian",
+        "upper-armenian",
+        "lower-armenian",
+        "hebrew",
+        "cjk-decimal",
+        "cjk-earthly-branch",
+        "cjk-heavenly-stem",
+    ] {
+        let stylesheet = [StyleRule {
+            selectors: vec!["ol".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "list-style-type".to_owned(),
+                value: style_type.to_owned(),
+            }],
+        }];
+        let (runs, _) = compile_runs(
+            &[list_container("ol", &["item"])],
+            &stylesheet,
+            &[],
+            &[],
+            &[],
+            false,
+        );
+        assert_eq!(
+            runs.first()
+                .and_then(|run| run.style.list_style_type.as_deref()),
+            Some(style_type),
+            "{style_type}"
+        );
+    }
+}
+
+#[test]
 fn list_style_type_none_suppresses_markers_without_hiding_items() {
     let nodes = [list_container("ul", &["apple", "pear"])];
     let stylesheet = [StyleRule {

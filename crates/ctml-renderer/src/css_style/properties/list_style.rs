@@ -11,6 +11,13 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "lower-greek",
     "lower-roman",
     "upper-roman",
+    "armenian",
+    "upper-armenian",
+    "lower-armenian",
+    "hebrew",
+    "cjk-decimal",
+    "cjk-earthly-branch",
+    "cjk-heavenly-stem",
     "none",
 ];
 

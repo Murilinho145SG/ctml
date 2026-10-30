@@ -29,6 +29,12 @@ pub(super) fn format_marker(
         ),
         "lower-roman" => format!("{}. ", roman_marker(index).to_ascii_lowercase()),
         "upper-roman" => format!("{}. ", roman_marker(index)),
+        "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "cjk-decimal"
+        | "cjk-earthly-branch" | "cjk-heavenly-stem" => format!(
+            "{}. ",
+            format_counter_value(list_style_type, index as i32)
+                .unwrap_or_else(|| index.to_string())
+        ),
         _ => return None,
     })
 }
@@ -68,8 +74,182 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
                 }
             },
         )),
-        _ => None,
+        "armenian" | "upper-armenian" => {
+            additive_numeral(value, &ARMENIAN_SYMBOLS, 9999).or_else(|| Some(value.to_string()))
+        }
+        "lower-armenian" => additive_numeral(value, &LOWER_ARMENIAN_SYMBOLS, 9999)
+            .or_else(|| Some(value.to_string())),
+        "hebrew" => {
+            additive_numeral(value, &HEBREW_SYMBOLS, 10_999).or_else(|| Some(value.to_string()))
+        }
+        "cjk-decimal" => Some(cjk_decimal(value)),
+        "cjk-earthly-branch" => Some(fixed_cjk(value, "子丑寅卯辰巳午未申酉戌亥")),
+        "cjk-heavenly-stem" => Some(fixed_cjk(value, "甲乙丙丁戊己庚辛壬癸")),
+        _ => Some(value.to_string()),
     }
+}
+
+const ARMENIAN_SYMBOLS: &[(i32, &str)] = &[
+    (9000, "Ք"),
+    (8000, "Փ"),
+    (7000, "Ւ"),
+    (6000, "Ց"),
+    (5000, "Ր"),
+    (4000, "Տ"),
+    (3000, "Վ"),
+    (2000, "Ս"),
+    (1000, "Ռ"),
+    (900, "Ջ"),
+    (800, "Պ"),
+    (700, "Չ"),
+    (600, "Ո"),
+    (500, "Շ"),
+    (400, "Ն"),
+    (300, "Յ"),
+    (200, "Մ"),
+    (100, "Ճ"),
+    (90, "Ղ"),
+    (80, "Ձ"),
+    (70, "Հ"),
+    (60, "Կ"),
+    (50, "Ծ"),
+    (40, "Խ"),
+    (30, "Լ"),
+    (20, "Ի"),
+    (10, "Ժ"),
+    (9, "Թ"),
+    (8, "Ը"),
+    (7, "Է"),
+    (6, "Զ"),
+    (5, "Ե"),
+    (4, "Դ"),
+    (3, "Գ"),
+    (2, "Բ"),
+    (1, "Ա"),
+];
+
+const LOWER_ARMENIAN_SYMBOLS: &[(i32, &str)] = &[
+    (9000, "ք"),
+    (8000, "փ"),
+    (7000, "ւ"),
+    (6000, "ց"),
+    (5000, "ր"),
+    (4000, "տ"),
+    (3000, "վ"),
+    (2000, "ս"),
+    (1000, "ռ"),
+    (900, "ջ"),
+    (800, "պ"),
+    (700, "չ"),
+    (600, "ո"),
+    (500, "շ"),
+    (400, "ն"),
+    (300, "յ"),
+    (200, "մ"),
+    (100, "ճ"),
+    (90, "ղ"),
+    (80, "ձ"),
+    (70, "հ"),
+    (60, "կ"),
+    (50, "ծ"),
+    (40, "խ"),
+    (30, "լ"),
+    (20, "ի"),
+    (10, "ժ"),
+    (9, "թ"),
+    (8, "ը"),
+    (7, "է"),
+    (6, "զ"),
+    (5, "ե"),
+    (4, "դ"),
+    (3, "գ"),
+    (2, "բ"),
+    (1, "ա"),
+];
+
+const HEBREW_SYMBOLS: &[(i32, &str)] = &[
+    (10000, "י׳"),
+    (9000, "ט׳"),
+    (8000, "ח׳"),
+    (7000, "ז׳"),
+    (6000, "ו׳"),
+    (5000, "ה׳"),
+    (4000, "ד׳"),
+    (3000, "ג׳"),
+    (2000, "ב׳"),
+    (1000, "א׳"),
+    (400, "ת"),
+    (300, "ש"),
+    (200, "ר"),
+    (100, "ק"),
+    (90, "צ"),
+    (80, "פ"),
+    (70, "ע"),
+    (60, "ס"),
+    (50, "נ"),
+    (40, "מ"),
+    (30, "ל"),
+    (20, "כ"),
+    (19, "יט"),
+    (18, "יח"),
+    (17, "יז"),
+    (16, "טז"),
+    (15, "טו"),
+    (10, "י"),
+    (9, "ט"),
+    (8, "ח"),
+    (7, "ז"),
+    (6, "ו"),
+    (5, "ה"),
+    (4, "ד"),
+    (3, "ג"),
+    (2, "ב"),
+    (1, "א"),
+];
+
+fn additive_numeral(value: i32, symbols: &[(i32, &str)], max: i32) -> Option<String> {
+    if !(1..=max).contains(&value) {
+        return None;
+    }
+    let mut remaining = value;
+    let mut result = String::new();
+    for &(weight, symbol) in symbols {
+        let count = remaining / weight;
+        for _ in 0..count {
+            result.push_str(symbol);
+        }
+        remaining %= weight;
+        if remaining == 0 {
+            return Some(result);
+        }
+    }
+    None
+}
+
+fn cjk_decimal(value: i32) -> String {
+    if !(-9999..=9999).contains(&value) {
+        return value.to_string();
+    }
+    let digits = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    let mut output = value
+        .unsigned_abs()
+        .to_string()
+        .bytes()
+        .map(|digit| digits[usize::from(digit - b'0')])
+        .collect::<String>();
+    if value < 0 {
+        output.insert(0, '-');
+    }
+    output
+}
+
+fn fixed_cjk(value: i32, symbols: &str) -> String {
+    let symbols = symbols.chars().collect::<Vec<_>>();
+    usize::try_from(value)
+        .ok()
+        .and_then(|value| value.checked_sub(1))
+        .and_then(|index| symbols.get(index).copied())
+        .map_or_else(|| value.to_string(), |symbol| symbol.to_string())
 }
 
 fn alphabetic_marker(index: usize, uppercase: bool) -> String {
