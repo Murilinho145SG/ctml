@@ -56,3 +56,32 @@ fn radial_gradient_supports_ellipse_circle_and_position_descriptors() {
     assert!(circle_center[0] > circle_center[2], "{circle_center:?}");
     assert!(circle_edge[2] > circle_edge[0], "{circle_edge:?}");
 }
+
+#[test]
+fn repeating_radial_gradient_repeats_percentage_stop_patterns() {
+    let (page, pixels) =
+        render("repeating-radial-gradient(circle, red 0%, red 25%, blue 25%, blue 50%)");
+    let rect = page.overflow_geometry[&1].border_box;
+    let origin_x = (rect.left - PAGE_PADDING).round() as usize;
+    let origin_y = (rect.top - PAGE_PADDING).round() as usize;
+    let center_x = origin_x + 40;
+    let center_y = origin_y + 20;
+    let center = sample(&pixels, center_x, center_y);
+    let first_blue_ring = sample(&pixels, center_x + 14, center_y);
+    let repeated_red_ring = sample(&pixels, center_x + 25, center_y);
+    let repeated_blue_ring = sample(&pixels, center_x + 35, center_y);
+
+    assert!(center[0] > center[2], "center={center:?}");
+    assert!(
+        first_blue_ring[2] > first_blue_ring[0],
+        "{first_blue_ring:?}"
+    );
+    assert!(
+        repeated_red_ring[0] > repeated_red_ring[2],
+        "{repeated_red_ring:?}"
+    );
+    assert!(
+        repeated_blue_ring[2] > repeated_blue_ring[0],
+        "{repeated_blue_ring:?}"
+    );
+}

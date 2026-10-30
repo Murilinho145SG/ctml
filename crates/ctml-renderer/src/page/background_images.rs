@@ -303,12 +303,26 @@ fn radial_gradient_shader(gradient: &RadialGradient, rect: Rect) -> Option<skia_
             )
         })
         .collect::<Vec<_>>();
-    let positions = gradient
+    let mut positions = gradient
         .stops
         .iter()
         .map(|(_, position)| *position)
         .collect::<Vec<_>>();
-    let colors = gradient::Colors::new(&colors, Some(&positions), TileMode::Clamp, None);
+    let (tile_mode, repeat_scale) = if gradient.repeating {
+        let first = *positions.first()?;
+        let last = *positions.last()?;
+        let span = last - first;
+        if first > f32::EPSILON || span <= 0.0 {
+            return None;
+        }
+        for position in &mut positions {
+            *position /= span;
+        }
+        (TileMode::Repeat, span)
+    } else {
+        (TileMode::Clamp, 1.0)
+    };
+    let colors = gradient::Colors::new(&colors, Some(&positions), tile_mode, None);
     let shader_gradient = gradient::Gradient::new(colors, gradient::Interpolation::default());
     let center_x = rect.left + rect.width() * gradient.center_x_percent;
     let center_y = rect.top + rect.height() * gradient.center_y_percent;
@@ -371,6 +385,8 @@ fn radial_gradient_shader(gradient: &RadialGradient, rect: Rect) -> Option<skia_
             *corner
         }
     };
+    let radius_x = radius_x * repeat_scale;
+    let radius_y = radius_y * repeat_scale;
     if radius_x <= 0.0 || radius_y <= 0.0 {
         return None;
     }

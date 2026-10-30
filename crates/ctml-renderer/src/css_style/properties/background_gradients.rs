@@ -51,7 +51,8 @@ pub(super) fn parse_radial_gradient(style: &TextStyle, value: &str) -> Option<Ra
     let value = value.trim();
     let opening = value.find('(')?;
     let name = value[..opening].trim();
-    if !name.eq_ignore_ascii_case("radial-gradient") || !value.ends_with(')') {
+    let repeating = name.eq_ignore_ascii_case("repeating-radial-gradient");
+    if !(repeating || name.eq_ignore_ascii_case("radial-gradient")) || !value.ends_with(')') {
         return None;
     }
     let arguments = &value[opening + 1..value.len() - 1];
@@ -81,6 +82,9 @@ pub(super) fn parse_radial_gradient(style: &TextStyle, value: &str) -> Option<Ra
         return None;
     }
     resolve_gradient_stop_positions(&mut stops)?;
+    if repeating && stops.first()?.1? > f32::EPSILON {
+        return None;
+    }
     let stops = stops
         .into_iter()
         .map(|(color, position)| Some((color, position?)))
@@ -91,6 +95,7 @@ pub(super) fn parse_radial_gradient(style: &TextStyle, value: &str) -> Option<Ra
         center_x_percent,
         center_y_percent,
         stops,
+        repeating,
     })
 }
 

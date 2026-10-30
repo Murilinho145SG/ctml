@@ -229,7 +229,9 @@ fn parse_background_images(style: &TextStyle, value: &str) -> Option<Vec<Backgro
             images.push(BackgroundImage::LinearGradient(
                 super::background_gradients::parse_linear_gradient(style, layer)?,
             ));
-        } else if layer_name.starts_with("radial-gradient(") {
+        } else if layer_name.starts_with("radial-gradient(")
+            || layer_name.starts_with("repeating-radial-gradient(")
+        {
             images.push(BackgroundImage::RadialGradient(
                 super::background_gradients::parse_radial_gradient(style, layer)?,
             ));
