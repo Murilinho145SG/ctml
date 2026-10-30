@@ -175,4 +175,9 @@ fn first_line_word_spacing_changes_wrapping_without_spacing_later_lines() {
 
     assert!(spaced_spaces > 0);
     assert!(normal_spaces > 0);
+    assert!(page.runs.iter().any(|run| {
+        !run.text.trim().is_empty()
+            && run.style.word_spacing_percent == Some(10.0)
+            && run.style.letter_spacing == 0.0
+    }));
 }

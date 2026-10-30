@@ -78,11 +78,11 @@ pub(super) fn line_alignments(
 
 pub(super) fn apply_first_line_word_spacing(
     buffer: &cosmic_text::Buffer,
-    runs: &mut [TextRun],
+    runs: &mut Vec<TextRun>,
     spans: &[CursorSpan],
 ) -> bool {
     let first_lines = first_formatted_line_ranges(buffer, spans);
-    let mut changed = false;
+    let mut spacing_by_run: HashMap<usize, Vec<(usize, usize, TextStyle)>> = HashMap::new();
     for span in spans {
         if !span.character.is_whitespace() {
             continue;
@@ -99,7 +99,7 @@ pub(super) fn apply_first_line_word_spacing(
         let Some(pseudo_style) = &span.first_line_font_style else {
             continue;
         };
-        let Some(run) = runs.get_mut(span.run_index) else {
+        let Some(run) = runs.get(span.run_index) else {
             continue;
         };
         let font_size = run.style.font_size.max(1.0);
@@ -111,16 +111,62 @@ pub(super) fn apply_first_line_word_spacing(
         if delta == 0.0 {
             continue;
         }
-        if run.style.letter_spacing_px {
-            run.style.letter_spacing /= font_size;
-            run.style.letter_spacing_px = false;
-        }
-        run.style.letter_spacing += delta / font_size;
-        run.style.word_spacing_px = pseudo_style.word_spacing_px;
-        run.style.word_spacing_percent = pseudo_style.word_spacing_percent;
-        changed = true;
+        spacing_by_run.entry(span.run_index).or_default().push((
+            span.run_offset,
+            span.run_offset + span.character.len_utf8(),
+            pseudo_style.clone(),
+        ));
     }
-    changed
+    if spacing_by_run.is_empty() {
+        return false;
+    }
+
+    let mut output = Vec::with_capacity(runs.len() + spacing_by_run.len());
+    for (run_index, run) in runs.iter().enumerate() {
+        let Some(mut ranges) = spacing_by_run.remove(&run_index) else {
+            output.push(run.clone());
+            continue;
+        };
+        ranges.sort_by_key(|(start, _, _)| *start);
+        let mut offset = 0;
+        for (start, end, pseudo_style) in ranges {
+            let start = start.min(run.text.len());
+            let end = end.min(run.text.len());
+            if start > offset {
+                let mut prefix = run.clone();
+                prefix.text = run.text[offset..start].to_owned();
+                output.push(prefix);
+            }
+            if end <= start {
+                offset = offset.max(end);
+                continue;
+            }
+            let mut spaced = run.clone();
+            spaced.text = run.text[start..end].to_owned();
+            let font_size = spaced.style.font_size.max(1.0);
+            let pseudo_spacing = pseudo_style.word_spacing_px
+                + pseudo_style.word_spacing_percent.unwrap_or_default() * font_size / 100.0;
+            let current_spacing = run.style.word_spacing_px
+                + run.style.word_spacing_percent.unwrap_or_default() * font_size / 100.0;
+            let delta = pseudo_spacing - current_spacing;
+            if spaced.style.letter_spacing_px {
+                spaced.style.letter_spacing /= font_size;
+                spaced.style.letter_spacing_px = false;
+            }
+            spaced.style.letter_spacing += delta / font_size;
+            spaced.style.word_spacing_px = pseudo_style.word_spacing_px;
+            spaced.style.word_spacing_percent = pseudo_style.word_spacing_percent;
+            output.push(spaced);
+            offset = end;
+        }
+        if offset < run.text.len() {
+            let mut suffix = run.clone();
+            suffix.text = run.text[offset..].to_owned();
+            output.push(suffix);
+        }
+    }
+    *runs = output;
+    true
 }
 
 pub(super) fn apply_first_line_line_height(
