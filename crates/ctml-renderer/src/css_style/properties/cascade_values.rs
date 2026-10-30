@@ -59,6 +59,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.border_image_slice = inherited.border_image_slice;
             style.border_image_fill = inherited.border_image_fill;
         }
+        "border-image-repeat" => style.border_image_repeat = inherited.border_image_repeat,
         "background-repeat" => {
             style
                 .background_repeats
@@ -322,6 +323,9 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "border-image-slice" => {
             style.border_image_slice = [crate::style::BorderImageSlice::default(); 4];
             style.border_image_fill = false;
+        }
+        "border-image-repeat" => {
+            style.border_image_repeat = [crate::style::BorderImageRepeat::Stretch; 2];
         }
         "background-repeat" => style.background_repeats.clear(),
         "background-position" => style.background_positions.clear(),

@@ -13,6 +13,7 @@ use crate::{
 mod background_images;
 mod backgrounds;
 mod block_sizing;
+mod border_images;
 mod border_radius;
 mod borders;
 mod box_shadows;

@@ -18,10 +18,10 @@ mod text_style;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
     BackgroundAttachment, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
-    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageSlice, BorderLineStyle,
-    BoxDecorationBreak, BoxShadow, ConicGradient, Direction, FontVariantCaps, FontVariantPosition,
-    Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow, OverflowWrap,
-    RadialGradient, RadialGradientExtent, RadialGradientShape, TextDecorationSkipInk,
+    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageRepeat, BorderImageSlice,
+    BorderLineStyle, BoxDecorationBreak, BoxShadow, ConicGradient, Direction, FontVariantCaps,
+    FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow,
+    OverflowWrap, RadialGradient, RadialGradientExtent, RadialGradientShape, TextDecorationSkipInk,
     TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
     TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle, TextTransform,
     TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,

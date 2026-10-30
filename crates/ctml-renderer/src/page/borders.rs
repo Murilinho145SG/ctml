@@ -1,10 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::style::{BorderLineStyle, LayoutSize, TextRun, WritingMode};
-use skia_safe::{
-    AlphaType, ColorSpace, ColorType, Data, Image, ImageInfo, Paint, Rect,
-    canvas::SrcRectConstraint, surfaces,
-};
 
 use super::{
     PAGE_PADDING,
@@ -97,7 +93,7 @@ fn draw_block_border(
         .map(|color| color.unwrap_or(*current_color));
     let styles = size.border_style;
     let radii = resolve_radii(size, rect);
-    if draw_border_image(
+    if super::border_images::draw(
         pixels,
         width,
         height,
@@ -180,142 +176,6 @@ fn draw_block_border(
         edge_color(colors[3], opacity),
         clip,
     );
-}
-
-#[allow(clippy::too_many_arguments)]
-fn draw_border_image(
-    pixels: &mut [u8],
-    width: u32,
-    height: u32,
-    size: &LayoutSize,
-    rect: overflow_clip::ClipRect,
-    border_widths: [f32; 4],
-    opacity: f32,
-    clip: Option<overflow_clip::ClipRect>,
-) -> bool {
-    let Some(encoded) = size.border_image_source.as_ref() else {
-        return false;
-    };
-    let Some(image) = Image::from_encoded(Data::new_copy(encoded.as_ref())) else {
-        return false;
-    };
-    let image_width = image.width() as f32;
-    let image_height = image.height() as f32;
-    if image_width <= 0.0 || image_height <= 0.0 {
-        return false;
-    }
-    let mut slices = size.border_image_slice.map(|slice| {
-        if slice.percentage {
-            slice.value
-        } else {
-            slice.value
-        }
-    });
-    slices[0] *= if size.border_image_slice[0].percentage {
-        image_height
-    } else {
-        1.0
-    };
-    slices[2] *= if size.border_image_slice[2].percentage {
-        image_height
-    } else {
-        1.0
-    };
-    slices[1] *= if size.border_image_slice[1].percentage {
-        image_width
-    } else {
-        1.0
-    };
-    slices[3] *= if size.border_image_slice[3].percentage {
-        image_width
-    } else {
-        1.0
-    };
-    (slices[3], slices[1]) = scale_opposing_slices(slices[3], slices[1], image_width);
-    (slices[0], slices[2]) = scale_opposing_slices(slices[0], slices[2], image_height);
-
-    let left = rect.left;
-    let top = rect.top;
-    let right = rect.right;
-    let bottom = rect.bottom;
-    let mut dest = [
-        border_widths[3],
-        border_widths[1],
-        border_widths[0],
-        border_widths[2],
-    ];
-    (dest[0], dest[1]) = scale_opposing_slices(dest[0], dest[1], (right - left).max(0.0));
-    (dest[2], dest[3]) = scale_opposing_slices(dest[2], dest[3], (bottom - top).max(0.0));
-    let source_x = [0.0, slices[3], image_width - slices[1], image_width];
-    let source_y = [0.0, slices[0], image_height - slices[2], image_height];
-    let dest_x = [left, left + dest[0], right - dest[1], right];
-    let dest_y = [top, top + dest[2], bottom - dest[3], bottom];
-
-    let info = ImageInfo::new(
-        (width as i32, height as i32),
-        ColorType::RGBA8888,
-        AlphaType::Premul,
-        ColorSpace::new_srgb(),
-    );
-    let Some(mut surface) = surfaces::wrap_pixels(&info, pixels, Some(width as usize * 4), None)
-    else {
-        return false;
-    };
-    let canvas = surface.canvas();
-    canvas.save();
-    if let Some(clip) = clip {
-        canvas.clip_rect(
-            Rect::from_ltrb(clip.left, clip.top, clip.right, clip.bottom),
-            skia_safe::ClipOp::Intersect,
-            false,
-        );
-    }
-    let mut paint = Paint::default();
-    paint.set_alpha_f(opacity.clamp(0.0, 1.0));
-    for row in 0..3 {
-        for column in 0..3 {
-            if row == 1 && column == 1 && !size.border_image_fill {
-                continue;
-            }
-            let source = Rect::from_ltrb(
-                source_x[column],
-                source_y[row],
-                source_x[column + 1],
-                source_y[row + 1],
-            );
-            let destination = Rect::from_ltrb(
-                dest_x[column],
-                dest_y[row],
-                dest_x[column + 1],
-                dest_y[row + 1],
-            );
-            if source.width() <= 0.0
-                || source.height() <= 0.0
-                || destination.width() <= 0.0
-                || destination.height() <= 0.0
-            {
-                continue;
-            }
-            canvas.draw_image_rect(
-                &image,
-                Some((&source, SrcRectConstraint::Strict)),
-                &destination,
-                &paint,
-            );
-        }
-    }
-    canvas.restore();
-    true
-}
-
-fn scale_opposing_slices(mut first: f32, mut second: f32, total: f32) -> (f32, f32) {
-    let sum = first + second;
-    if sum > total && sum > 0.0 {
-        let scale = total / sum;
-        first *= scale;
-        second *= scale;
-    }
-    (first, second)
 }
 
 #[allow(clippy::too_many_arguments)]

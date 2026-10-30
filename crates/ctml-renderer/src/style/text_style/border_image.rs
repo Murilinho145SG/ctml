@@ -4,6 +4,15 @@ pub(crate) struct BorderImageSlice {
     pub(crate) percentage: bool,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BorderImageRepeat {
+    #[default]
+    Stretch,
+    Repeat,
+    Round,
+    Space,
+}
+
 impl Default for BorderImageSlice {
     fn default() -> Self {
         Self {

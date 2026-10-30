@@ -52,6 +52,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
         border_image_source: style.border_image_source.clone(),
         border_image_slice: style.border_image_slice,
         border_image_fill: style.border_image_fill,
+        border_image_repeat: style.border_image_repeat,
         border_width: style.border_width.clone(),
         border_style: style.border_style,
         border_color: style.border_color,
