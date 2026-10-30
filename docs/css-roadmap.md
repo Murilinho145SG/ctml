@@ -181,7 +181,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `aspect-ratio`.
 - [ ] Box shadows and border images.
 - [ ] Box decorations across fragmented content.
-- [ ] `visibility`, `content-visibility`, and containment behavior.
+- [x] `visibility: visible|hidden|collapse`; `collapse` is treated as hidden because CTML has no table formatting context.
+- [ ] `content-visibility` and containment behavior.
 
 ## Layout
 

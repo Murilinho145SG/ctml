@@ -1,5 +1,7 @@
 use cosmic_text::{Color, DecorationSpan, LayoutRun, Renderer, UnderlineStyle};
 
+use super::CursorSpan;
+
 use crate::style::{TextDecorationSkipInk, TextDecorationStyle};
 
 use super::pixel::PixelRenderer;
@@ -10,8 +12,20 @@ pub(super) fn render_patterned_decorations<'a>(
     default_color: Color,
     auto_ink_mask: &'a [u8],
     all_ink_mask: &'a [u8],
+    cursor_spans: &[CursorSpan],
 ) {
     for span in run.decorations {
+        let Some(glyph) = run.glyphs.get(span.glyph_range.start) else {
+            continue;
+        };
+        if cursor_spans.iter().any(|span| {
+            span.line == run.line_i
+                && span.start <= glyph.start
+                && glyph.start < span.end
+                && span.visibility_hidden
+        }) {
+            continue;
+        }
         let metadata = run
             .glyphs
             .get(span.glyph_range.start)

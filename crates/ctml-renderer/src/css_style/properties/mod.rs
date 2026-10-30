@@ -188,6 +188,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-rendering"
             | "text-orientation"
             | "writing-mode"
+            | "visibility"
             | "direction"
             | "quotes"
             | "text-decoration-skip-ink"
@@ -199,6 +200,7 @@ fn is_inherited_property(property: &str) -> bool {
 fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = inherited.opacity,
+        "visibility" => style.visibility_hidden = inherited.visibility_hidden,
         "background-color" => {
             style.background = inherited.background;
             style.background_color = inherited.background_color;
@@ -331,6 +333,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
 fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
+        "visibility" => style.visibility_hidden = false,
         "background-color" => {
             style.background = [255, 255, 255];
             style.background_color = None;
@@ -475,6 +478,11 @@ fn apply_declaration(
                 style.opacity = opacity.clamp(0.0, 1.0);
             }
         }
+        "visibility" => match value.to_ascii_lowercase().as_str() {
+            "visible" => style.visibility_hidden = false,
+            "hidden" | "collapse" => style.visibility_hidden = true,
+            _ => {}
+        },
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),
         "display" => apply_display(style, value),
         "width" => apply_width(style, value),

@@ -496,24 +496,20 @@ impl PageRasterizer {
             }
         }
         for run in buffer.layout_runs() {
-            let use_custom_decorations = !run.decorations.is_empty();
             let mut renderer = PixelRenderer {
                 pixels: &mut pixels,
                 width,
                 height,
                 skip_ink_mask: None,
             };
-            if use_custom_decorations {
-                decorations::render_patterned_decorations(
-                    &mut renderer,
-                    &run,
-                    default_color,
-                    &auto_ink_mask,
-                    &all_ink_mask,
-                );
-            } else {
-                cosmic_text::render_decoration(&mut renderer, &run, default_color);
-            }
+            decorations::render_patterned_decorations(
+                &mut renderer,
+                &run,
+                default_color,
+                &auto_ink_mask,
+                &all_ink_mask,
+                &self.cursor_spans,
+            );
         }
         self.draw_pseudo_decorations(&mut pixels, width, height, &auto_ink_mask, &all_ink_mask);
         pixels

@@ -962,6 +962,21 @@ fn logical_and_physical_size_aliases_keep_declaration_order() {
 }
 
 #[test]
+fn visibility_inherits_and_supports_css_wide_keywords() {
+    let hidden = style_for_declarations(&[("visibility", "hidden")]);
+    assert!(hidden.visibility_hidden);
+
+    let visible = style_for_declarations(&[("visibility", "hidden"), ("visibility", "visible")]);
+    assert!(!visible.visibility_hidden);
+
+    let collapse = style_for_declarations(&[("visibility", "collapse")]);
+    assert!(collapse.visibility_hidden);
+
+    let reset = style_for_declarations(&[("visibility", "hidden"), ("visibility", "initial")]);
+    assert!(!reset.visibility_hidden);
+}
+
+#[test]
 fn resolves_custom_css_quote_pairs() {
     let quotes = style_for_declarations(&[("quotes", "\"«\" \"»\" \"‹\" \"›\"")]);
     assert_eq!(

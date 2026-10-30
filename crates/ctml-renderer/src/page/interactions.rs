@@ -184,7 +184,17 @@ impl PageRasterizer {
                 && y >= run.line_top
                 && y < run.line_top + run.line_height
         });
-        inside_text_line.then(|| self.buffer.hit(x, y)).flatten()
+        inside_text_line
+            .then(|| self.buffer.hit(x, y))
+            .flatten()
+            .filter(|cursor| {
+                self.cursor_spans.iter().any(|span| {
+                    span.line == cursor.line
+                        && cursor.index >= span.start
+                        && cursor.index < span.end
+                        && !span.visibility_hidden
+                })
+            })
     }
 
     fn layout_point(&self, x: f32, y: f32) -> (f32, f32) {

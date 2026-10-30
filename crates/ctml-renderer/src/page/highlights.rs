@@ -22,7 +22,7 @@ impl PageRasterizer {
             for span in self
                 .cursor_spans
                 .iter()
-                .filter(|span| span.line == run.line_i)
+                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
             {
                 if (start.line == run.line_i && span.end <= start.index)
                     || (end.line == run.line_i && span.start >= end.index)
@@ -78,7 +78,7 @@ impl PageRasterizer {
             for span in self
                 .cursor_spans
                 .iter()
-                .filter(|span| span.line == run.line_i)
+                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
             {
                 let Some(block) = span.first_line_block else {
                     continue;
@@ -130,7 +130,7 @@ impl PageRasterizer {
             for span in self
                 .cursor_spans
                 .iter()
-                .filter(|span| span.line == run.line_i)
+                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
             {
                 let Some(block) = span.first_letter_block else {
                     continue;
@@ -183,7 +183,7 @@ impl PageRasterizer {
             for span in self
                 .cursor_spans
                 .iter()
-                .filter(|span| span.line == run.line_i)
+                .filter(|span| span.line == run.line_i && !span.visibility_hidden)
             {
                 if let Some(block) = span.first_line_block
                     && let Some((line, end)) = first_lines.get(&block).copied()

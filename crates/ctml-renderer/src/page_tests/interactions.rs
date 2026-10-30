@@ -182,6 +182,115 @@ fn vertical_text_orientation_controls_mixed_upright_and_sideways_glyphs() {
 }
 
 #[test]
+fn visibility_hidden_preserves_layout_without_painting_text() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Hidden text".to_owned())],
+    }];
+    let hidden_stylesheet = [StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "visibility".to_owned(),
+            value: "hidden".to_owned(),
+        }],
+    }];
+    let mut hidden = PageRasterizer::new(&nodes, &hidden_stylesheet);
+    let pixels = hidden.snapshot_pixels(160, 60);
+    let line_count = hidden.buffer.layout_runs().count();
+    let blank_pixels = PageRasterizer::new(&[], &[]).snapshot_pixels(160, 60);
+
+    assert_eq!(pixels, blank_pixels);
+    assert!(
+        line_count > 0,
+        "hidden text must remain in the layout buffer"
+    );
+}
+
+#[test]
+fn visibility_hidden_suppresses_fragment_backgrounds_and_decorations() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Hidden paint".to_owned())],
+    }];
+    let style = |declarations: Vec<StyleDeclaration>| StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations,
+    };
+    let hidden = style(vec![StyleDeclaration {
+        property: "visibility".to_owned(),
+        value: "hidden".to_owned(),
+    }]);
+    let hidden_with_paints = style(vec![
+        StyleDeclaration {
+            property: "visibility".to_owned(),
+            value: "hidden".to_owned(),
+        },
+        StyleDeclaration {
+            property: "background-color".to_owned(),
+            value: "red".to_owned(),
+        },
+        StyleDeclaration {
+            property: "text-decoration-line".to_owned(),
+            value: "underline".to_owned(),
+        },
+    ]);
+    let baseline = PageRasterizer::new(&nodes, &[hidden]).snapshot_pixels(160, 60);
+    let painted = PageRasterizer::new(&nodes, &[hidden_with_paints]).snapshot_pixels(160, 60);
+
+    assert_eq!(painted, baseline);
+}
+
+#[test]
+fn visible_descendant_overrides_inherited_hidden_visibility() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Visible child".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["p".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "visibility".to_owned(),
+                value: "hidden".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "visibility".to_owned(),
+                value: "visible".to_owned(),
+            }],
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(160, 60);
+
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] != [255, 255, 255])
+    );
+}
+
+#[test]
 fn unicode_bidi_isolate_applies_to_nested_inline_runs_without_rendered_controls() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

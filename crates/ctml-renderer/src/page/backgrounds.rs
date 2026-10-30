@@ -23,6 +23,10 @@ pub(super) fn draw(
                 start += 1;
                 continue;
             };
+            if style.visibility_hidden {
+                start += 1;
+                continue;
+            }
             let layer_start =
                 usize::from(skip_root_background && !style.background_layers.is_empty());
             if layer_start == style.background_layers.len() {
