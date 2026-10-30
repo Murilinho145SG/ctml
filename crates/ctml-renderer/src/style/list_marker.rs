@@ -144,7 +144,8 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "georgian" => {
             additive_numeral(value, &GEORGIAN_SYMBOLS, 19_999).or_else(|| Some(value.to_string()))
         }
-        "cjk-decimal" | "cjk-ideographic" => Some(cjk_decimal(value)),
+        "cjk-decimal" => Some(cjk_decimal(value)),
+        "cjk-ideographic" => Some(chinese::format("trad-chinese-informal", value)),
         "cjk-earthly-branch" => Some(fixed_cjk(value, "子丑寅卯辰巳午未申酉戌亥")),
         "cjk-heavenly-stem" => Some(fixed_cjk(value, "甲乙丙丁戊己庚辛壬癸")),
         "hiragana" => Some(alphabetic_string(

@@ -104,7 +104,8 @@ fn list_style_type_formats_hebrew_armenian_georgian_and_cjk_counters() {
         ("hebrew", 5784, "ה׳תשפד"),
         ("georgian", 2025, "\u{10ea}\u{10d9}\u{10d4}"),
         ("cjk-decimal", 100, "一〇〇"),
-        ("cjk-ideographic", 100, "一〇〇"),
+        ("cjk-ideographic", 100, "一百"),
+        ("cjk-ideographic", 6001, "六千零一"),
         ("cjk-earthly-branch", 12, "亥"),
         ("cjk-heavenly-stem", 10, "癸"),
     ] {
@@ -325,8 +326,19 @@ fn list_style_type_formats_disclosure_markers() {
 }
 
 #[test]
-fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
+fn list_style_types_accept_predefined_counter_style_names() {
     for style_type in [
+        "disc",
+        "circle",
+        "square",
+        "none",
+        "decimal",
+        "decimal-leading-zero",
+        "lower-alpha",
+        "upper-alpha",
+        "lower-greek",
+        "lower-roman",
+        "upper-roman",
         "armenian",
         "upper-armenian",
         "lower-armenian",
