@@ -121,7 +121,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Support CSS trigonometric functions for numbers and angle tokens, including inverse functions and `atan2()`.
 - [ ] Remaining `attr()` forms, including typed values and fallbacks, plus `env()` where relevant.
 - [x] Generated-content `attr()` converts simple finite `<percentage>`, `<length>`, `<length-percentage>`, `<angle>`, `<time>`, `<frequency>`, and `<resolution>` attribute tokens; invalid values use the fallback.
-- [x] Apply string, integer, number, percentage, length, and length-percentage `attr()` substitution to supported style declarations, including typed fallback values.
+- [x] Apply string, integer, number, percentage, length, length-percentage, and color `attr()` substitution to supported style declarations, including typed fallback values.
 - [x] Parse CSS `url()` token and string forms and load local resources relative to a stylesheet; canonicalize paths within a configured root, bound reads, and reject external schemes and root escapes.
 - [x] Connect local `url()` resources to `@font-face` font loading.
 - [ ] Locale-independent numeric parsing and well-defined rounding behavior.

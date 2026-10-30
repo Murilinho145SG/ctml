@@ -109,6 +109,7 @@ enum AttrType {
     Percentage,
     Length,
     LengthPercentage,
+    Color,
 }
 
 impl AttrType {
@@ -120,6 +121,7 @@ impl AttrType {
             "percentage" => Some(Self::Percentage),
             "length" => Some(Self::Length),
             "length-percentage" => Some(Self::LengthPercentage),
+            "color" => Some(Self::Color),
             _ => None,
         }
     }
@@ -141,6 +143,12 @@ fn convert_attribute(value: &str, attr_type: Option<AttrType>) -> Option<String>
         Some(AttrType::LengthPercentage) => ctml_css::parse_css_percentage(value)
             .map(|value| format!("{value}%"))
             .or_else(|| parse_dimension(value, LENGTH_UNITS)),
+        Some(AttrType::Color) => ctml_css::parse_color(value).map(|color| {
+            format!(
+                "#{:02x}{:02x}{:02x}{:02x}",
+                color[0], color[1], color[2], color[3]
+            )
+        }),
     }
 }
 

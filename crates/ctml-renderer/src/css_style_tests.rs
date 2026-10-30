@@ -59,6 +59,14 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
                 value: "attr(data-size type(<length>),)".to_owned(),
             },
             StyleDeclaration {
+                property: "color".to_owned(),
+                value: "attr(data-color type(<color>), red)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "text-decoration-color".to_owned(),
+                value: "attr(data-invalid-color type(<color>), blue)".to_owned(),
+            },
+            StyleDeclaration {
                 property: "opacity".to_owned(),
                 value: "attr(data-opacity type(<number>), 0.5)".to_owned(),
             },
@@ -75,13 +83,23 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
     };
     let attributes = [
         ("data-size".to_owned(), Some("22px".to_owned())),
+        (
+            "data-color".to_owned(),
+            Some("rgb(255 0 0 / 50%)".to_owned()),
+        ),
         ("data-opacity".to_owned(), Some("invalid".to_owned())),
+        (
+            "data-invalid-color".to_owned(),
+            Some("not-a-color".to_owned()),
+        ),
     ];
 
     let style =
         resolve_style_with_attributes(&TextStyle::default(), &paragraph, &[], &attributes, &[rule]);
 
     assert_eq!(style.font_size, 22.0);
+    assert_eq!(style.color, [255, 0, 0, 128]);
+    assert_eq!(style.text_decoration_color, Some([0, 0, 255, 255]));
     assert_eq!(style.opacity, 0.5);
     assert_eq!(style.letter_spacing, 3.0);
     assert!(style.letter_spacing_px);
