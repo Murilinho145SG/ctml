@@ -319,13 +319,28 @@ fn parse_generated_content(
                 *quote_depth = quote_depth.saturating_sub(1);
             }
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
-                let (attribute_name, fallback) =
+                let (attribute_name, attr_type, fallback) =
                     parser.parse_nested_block(parse_attr_arguments).ok()?;
-                if let Some((_, Some(attribute_value))) = attributes
+                let attribute_value = attributes
                     .iter()
                     .find(|(name, _)| name.eq_ignore_ascii_case(&attribute_name))
-                {
-                    output.push_str(attribute_value);
+                    .and_then(|(_, value)| value.as_deref());
+                let converted = attribute_value.and_then(|value| match attr_type {
+                    None | Some(AttrType::String) => Some(value.to_owned()),
+                    Some(AttrType::Integer) => value
+                        .trim()
+                        .parse::<i64>()
+                        .ok()
+                        .map(|value| value.to_string()),
+                    Some(AttrType::Number) => value
+                        .trim()
+                        .parse::<f64>()
+                        .ok()
+                        .filter(|value| value.is_finite())
+                        .map(|value| value.to_string()),
+                });
+                if let Some(value) = converted {
+                    output.push_str(&value);
                 } else if let Some(fallback) = fallback {
                     output.push_str(&fallback);
                 }
@@ -365,15 +380,50 @@ fn parse_generated_content(
 
 fn parse_attr_arguments<'i, 't>(
     parser: &mut Parser<'i, 't>,
-) -> Result<(String, Option<String>), cssparser::ParseError<'i, ()>> {
+) -> Result<(String, Option<AttrType>, Option<String>), cssparser::ParseError<'i, ()>> {
     let name = parser.expect_ident_cloned()?;
     parser.skip_whitespace();
     if parser.is_exhausted() {
-        return Ok((name.to_string(), None));
+        return Ok((name.to_string(), None, None));
     }
-    parser.expect_comma()?;
+    let attr_type = match parser.next()? {
+        Token::Comma => None,
+        Token::Function(function) if function.eq_ignore_ascii_case("type") => {
+            Some(parser.parse_nested_block(|nested| {
+                nested.expect_delim('<')?;
+                let type_name = nested.expect_ident_cloned()?;
+                nested.expect_delim('>')?;
+                if !nested.is_exhausted() {
+                    return Err(nested.new_custom_error(()));
+                }
+                AttrType::parse(&type_name).ok_or_else(|| nested.new_custom_error(()))
+            })?)
+        }
+        _ => return Err(parser.new_custom_error(())),
+    };
+    if attr_type.is_some() {
+        parser.expect_comma()?;
+    }
     let fallback = serialize_attr_fallback(parser)?;
-    Ok((name.to_string(), Some(fallback)))
+    Ok((name.to_string(), attr_type, Some(fallback)))
+}
+
+#[derive(Clone, Copy)]
+enum AttrType {
+    String,
+    Integer,
+    Number,
+}
+
+impl AttrType {
+    fn parse(name: &str) -> Option<Self> {
+        match name.to_ascii_lowercase().as_str() {
+            "string" => Some(Self::String),
+            "integer" => Some(Self::Integer),
+            "number" => Some(Self::Number),
+            _ => None,
+        }
+    }
 }
 
 fn serialize_attr_fallback<'i, 't>(

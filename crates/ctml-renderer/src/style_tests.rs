@@ -581,6 +581,36 @@ fn generated_content_attr_uses_tokenized_fallbacks_only_when_missing() {
 }
 
 #[test]
+fn generated_content_attr_converts_string_number_and_integer_types() {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![
+            ("count".to_owned(), Some("0012".to_owned())),
+            ("ratio".to_owned(), Some("2.50".to_owned())),
+            ("invalid".to_owned(), Some("not-a-number".to_owned())),
+        ],
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["span::before".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "content".to_owned(),
+            value: "attr(count type(<integer>),) \"/\" attr(ratio type(<number>),) \"/\" attr(invalid type(<integer>), \"N/A\") \"/\" attr(missing type(<integer>), 7)".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "12/2.5/ N/A/ 7"
+    );
+}
+
+#[test]
 fn display_none_hides_element_descendants_and_generated_content() {
     let nodes = [
         UiNode::Element {
