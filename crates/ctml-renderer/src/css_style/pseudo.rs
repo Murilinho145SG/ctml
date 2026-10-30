@@ -124,6 +124,7 @@ fn resolve_pseudo_style(
                             "text-emphasis-style",
                             "text-emphasis-color",
                             "text-emphasis-position",
+                            "text-rendering",
                             "text-transform",
                             "text-decoration",
                             "text-decoration-line",
@@ -205,6 +206,7 @@ fn resolve_pseudo_style(
                     "text-emphasis-style",
                     "text-emphasis-color",
                     "text-emphasis-position",
+                    "text-rendering",
                     "text-transform",
                     "opacity",
                 ]

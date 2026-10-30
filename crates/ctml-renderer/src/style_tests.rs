@@ -1,6 +1,6 @@
 use super::{
-    FontVariantCaps, TextRun, TextStyle, WhiteSpace, append_text, compile_runs_with_font_system,
-    synthesize_font_variant_caps,
+    FontVariantCaps, TextRendering, TextRun, TextStyle, WhiteSpace, append_text,
+    compile_runs_with_font_system, synthesize_font_variant_caps,
 };
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
@@ -237,6 +237,7 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
     }];
     let stylesheet = [
         ("p::first-letter", "font-optical-sizing", "none"),
+        ("p::first-letter", "text-rendering", "optimizeSpeed"),
         (
             "p::first-letter",
             "font-variation-settings",
@@ -257,6 +258,10 @@ fn first_letter_applies_font_optical_sizing_and_variation_settings() {
 
     assert!(!first_letter.style.font_optical_sizing);
     assert_eq!(
+        first_letter.style.text_rendering,
+        TextRendering::OptimizeSpeed
+    );
+    assert_eq!(
         first_letter.style.font_variation_settings,
         vec![(*b"wght", 725.0), (*b"wdth", 90.0)]
     );
@@ -273,6 +278,7 @@ fn first_line_resolves_font_optical_sizing_and_variation_settings() {
     }];
     let stylesheet = [
         ("p::first-line", "font-optical-sizing", "none"),
+        ("p::first-line", "text-rendering", "optimizeSpeed"),
         (
             "p::first-line",
             "font-variation-settings",
@@ -292,6 +298,7 @@ fn first_line_resolves_font_optical_sizing_and_variation_settings() {
     let first_line = runs[0].first_line_font_style.as_ref().unwrap();
 
     assert!(!first_line.font_optical_sizing);
+    assert_eq!(first_line.text_rendering, TextRendering::OptimizeSpeed);
     assert_eq!(
         first_line.font_variation_settings,
         vec![(*b"wght", 650.0), (*b"opsz", 13.0)]
