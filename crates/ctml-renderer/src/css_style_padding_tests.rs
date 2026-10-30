@@ -104,6 +104,15 @@ fn padding_shorthand_expands_in_physical_side_order_and_longhands_override_it() 
         ]
     );
     assert_eq!(
+        style_for("padding", "10% 5%").padding,
+        [
+            Some("10%".to_owned()),
+            Some("5%".to_owned()),
+            Some("10%".to_owned()),
+            Some("5%".to_owned()),
+        ]
+    );
+    assert_eq!(
         style_for("padding", "-1px").padding,
         std::array::from_fn(|_| None)
     );

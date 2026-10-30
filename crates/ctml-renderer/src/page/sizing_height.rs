@@ -3,6 +3,7 @@ use ctml_css::{FontRelativeUnits, ViewportSize};
 use crate::style::{LayoutSize, WritingMode};
 
 use super::sizing::{block_size_constraints, resolve_width};
+use super::sizing_padding::resolve_padding;
 
 pub(super) fn resolve_content_block_height(
     height: Option<&str>,
@@ -33,23 +34,37 @@ pub(super) fn resolve_layout_height_with_ancestors(
     min_height: Option<&str>,
     max_height: Option<&str>,
     available_height: f32,
+    available_width: f32,
     ancestors: &[LayoutSize],
     page_writing_mode: WritingMode,
     border_box: bool,
-    padding: [f32; 4],
+    padding: &[Option<String>; 4],
     font_size: f32,
     line_height: f32,
     font_relative_units: FontRelativeUnits,
     viewport_size: ViewportSize,
 ) -> f32 {
     let mut containing_height = available_height;
+    let mut containing_width = available_width;
     for ancestor in ancestors.iter().take(ancestors.len().saturating_sub(1)) {
+        let next_width = super::sizing::resolve_layout_width(
+            std::slice::from_ref(ancestor),
+            containing_width,
+            page_writing_mode,
+        );
         let (height, min_height, max_height) = block_size_constraints(ancestor, page_writing_mode);
         if height.is_none() && min_height.is_none() && max_height.is_none() {
+            containing_width = next_width;
             continue;
         }
-        containing_height =
-            resolve_block_box_extent(ancestor, 0.0, containing_height, page_writing_mode);
+        containing_height = resolve_block_box_extent(
+            ancestor,
+            0.0,
+            containing_height,
+            containing_width,
+            page_writing_mode,
+        );
+        containing_width = next_width;
     }
     resolve_block_size(
         height,
@@ -57,7 +72,17 @@ pub(super) fn resolve_layout_height_with_ancestors(
         max_height,
         0.0,
         containing_height,
-        block_padding_extent(padding, page_writing_mode),
+        block_padding_extent(
+            resolve_padding_values(
+                padding,
+                containing_width,
+                font_size,
+                line_height,
+                font_relative_units,
+                viewport_size,
+            ),
+            page_writing_mode,
+        ),
         border_box,
         font_size,
         line_height,
@@ -70,13 +95,15 @@ pub(super) fn resolve_block_box_extent(
     size: &LayoutSize,
     content_height: f32,
     available_height: f32,
+    containing_width: f32,
     page_writing_mode: WritingMode,
 ) -> f32 {
     let (height, min_height, max_height) = block_size_constraints(size, page_writing_mode);
+    let padding = resolve_padding(size, containing_width);
     let padding_start = if page_writing_mode == WritingMode::HorizontalTb
         && size.writing_mode == WritingMode::HorizontalTb
     {
-        size.padding[0]
+        padding[0]
     } else {
         0.0
     };
@@ -86,13 +113,38 @@ pub(super) fn resolve_block_box_extent(
         max_height,
         (content_height - padding_start).max(0.0),
         available_height,
-        block_padding_extent(size.padding, page_writing_mode),
+        block_padding_extent(padding, page_writing_mode),
         size.border_box,
         size.font_size,
         size.line_height,
         size.font_relative_units,
         size.viewport_size,
     )
+}
+
+fn resolve_padding_values(
+    padding: &[Option<String>; 4],
+    containing_width: f32,
+    font_size: f32,
+    line_height: f32,
+    units: FontRelativeUnits,
+    viewport: ViewportSize,
+) -> [f32; 4] {
+    std::array::from_fn(|index| {
+        padding[index]
+            .as_deref()
+            .and_then(|value| {
+                resolve_width(
+                    value,
+                    containing_width,
+                    font_size,
+                    line_height,
+                    units,
+                    viewport,
+                )
+            })
+            .unwrap_or_default()
+    })
 }
 
 fn block_padding_extent(padding: [f32; 4], page_writing_mode: WritingMode) -> f32 {

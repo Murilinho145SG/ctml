@@ -43,6 +43,8 @@ fn parse_padding_value(style: &TextStyle, value: &str) -> Option<String> {
     let value = value.trim();
     if value == "0" {
         Some("0".to_owned())
+    } else if parse_css_percentage(value).is_some_and(|percentage| percentage >= 0.0) {
+        Some(value.to_ascii_lowercase())
     } else if parse_nonnegative_font_relative_length_with_viewport(
         value,
         style.font_size,

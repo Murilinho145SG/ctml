@@ -10,6 +10,7 @@ pub(super) fn block_spacer_heights(
     line_sizes: &[Vec<LayoutSize>],
     buffer: &Buffer,
     available_height: f32,
+    available_width: f32,
     _font_size: f32,
     default_line_height: f32,
     page_writing_mode: WritingMode,
@@ -63,10 +64,23 @@ pub(super) fn block_spacer_heights(
             &block_sizes,
             &content_heights,
             available_height,
+            available_width,
             page_writing_mode,
         );
-        let requested_height =
-            resolve_block_box_extent(size, content_height, containing_height, page_writing_mode);
+        let containing_width = containing_block_width(
+            node_id,
+            &parents,
+            &block_sizes,
+            available_width,
+            page_writing_mode,
+        );
+        let requested_height = resolve_block_box_extent(
+            size,
+            content_height,
+            containing_height,
+            containing_width,
+            page_writing_mode,
+        );
         let flow_adjustment = requested_height - content_height;
         if flow_adjustment.abs() < f32::EPSILON {
             continue;
@@ -89,6 +103,7 @@ fn containing_block_height(
     block_sizes: &HashMap<usize, LayoutSize>,
     content_heights: &HashMap<usize, f32>,
     available_height: f32,
+    available_width: f32,
     page_writing_mode: WritingMode,
 ) -> f32 {
     let mut ancestors = Vec::new();
@@ -109,6 +124,13 @@ fn containing_block_height(
         if height.is_none() && min_height.is_none() && max_height.is_none() {
             continue;
         }
+        let containing_width = containing_block_width(
+            ancestor_id,
+            parents,
+            block_sizes,
+            available_width,
+            page_writing_mode,
+        );
         containing_height = resolve_block_box_extent(
             size,
             content_heights
@@ -116,10 +138,32 @@ fn containing_block_height(
                 .copied()
                 .unwrap_or_default(),
             containing_height,
+            containing_width,
             page_writing_mode,
         );
     }
     containing_height
+}
+
+fn containing_block_width(
+    node_id: usize,
+    parents: &HashMap<usize, usize>,
+    block_sizes: &HashMap<usize, LayoutSize>,
+    available_width: f32,
+    page_writing_mode: WritingMode,
+) -> f32 {
+    let mut ancestors = Vec::new();
+    let mut ancestor = parents.get(&node_id).copied();
+    while let Some(ancestor_id) = ancestor {
+        ancestors.push(ancestor_id);
+        ancestor = parents.get(&ancestor_id).copied();
+    }
+    ancestors.reverse();
+    let sizes = ancestors
+        .iter()
+        .filter_map(|ancestor_id| block_sizes.get(ancestor_id).cloned())
+        .collect::<Vec<_>>();
+    super::sizing::resolve_layout_width(&sizes, available_width, page_writing_mode)
 }
 
 pub(super) fn insert_block_spacers(

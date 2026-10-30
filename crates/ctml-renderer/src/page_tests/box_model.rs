@@ -123,6 +123,73 @@ fn inline_start_padding_offsets_text_and_resolves_font_relative_lengths() {
 }
 
 #[test]
+fn percentage_padding_uses_the_containing_block_inline_size() {
+    let nodes = [UiNode::Element {
+        tag: "section".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "div".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("inside".to_owned())],
+            },
+            text_paragraph("after"),
+        ],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["section".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "200px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "padding-left".to_owned(),
+                    value: "10%".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "padding-top".to_owned(),
+                    value: "10%".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "padding-bottom".to_owned(),
+                    value: "10%".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    let mut padded = PageRasterizer::new(&nodes, &stylesheet);
+    natural.prepare_layout(300, 300);
+    padded.prepare_layout(300, 300);
+    let horizontal_offset = text_line_x(&padded, "inside") - text_line_x(&natural, "inside");
+    let vertical_offset = text_line_y(&padded, "inside") - text_line_y(&natural, "inside");
+    let flow_offset = text_line_y(&padded, "after") - text_line_y(&natural, "after");
+    assert!(
+        (horizontal_offset - 20.0).abs() < 2.0,
+        "10% left padding in a 200px containing block should offset text by 20px, got {horizontal_offset}px"
+    );
+    assert!(
+        (vertical_offset - 20.0).abs() < 3.0,
+        "10% top padding should resolve against the 200px containing inline size, got {vertical_offset}px"
+    );
+    assert!(
+        (flow_offset - 40.0).abs() < 5.0,
+        "10% top and bottom padding should add 40px to flow, got {flow_offset}px"
+    );
+}
+
+#[test]
 fn zero_padding_does_not_insert_an_empty_flow_line() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

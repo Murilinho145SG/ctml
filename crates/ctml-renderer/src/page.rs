@@ -31,6 +31,7 @@ mod scrolling;
 mod selection_backgrounds;
 mod sizing;
 mod sizing_height;
+mod sizing_padding;
 mod vertical;
 mod viewport;
 
@@ -333,6 +334,7 @@ impl PageRasterizer {
             &line_sizes,
             &self.buffer,
             content_height,
+            content_width,
             metrics.font_size,
             metrics.line_height,
             self.writing_mode(),

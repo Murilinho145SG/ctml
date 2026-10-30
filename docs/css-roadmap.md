@@ -200,9 +200,10 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Nested content-bearing block `height`, `block-size`, `min-height`, `min-block-size`, `max-height`, and `max-block-size` percentages resolve against an explicitly sized containing block's used block extent.
 - [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and `border-box` includes supported physical padding in width and block-size calculations.
-- [x] Physical `padding` shorthand and `padding-top/right/bottom/left` accept non-negative font-relative lengths, inset text, and add to block flow.
+- [x] Physical `padding` shorthand and `padding-top/right/bottom/left` accept non-negative font-relative lengths and percentages of the containing block's inline size, inset text, and add to block flow.
 - [ ] Apply `border-box` to borders; intrinsic sizing keywords.
-- [ ] Percentage and logical padding; margin and logical margin/padding properties.
+- [x] Percentage physical padding resolves against the containing block's inline size.
+- [ ] Logical padding; margin and logical margin/padding properties.
 - [ ] Borders, per-side styles/colors/widths, and logical border properties.
 - [ ] `border-radius` and corner shaping.
 - [ ] `outline` and `outline-offset`.

@@ -7,7 +7,8 @@ use crate::style::{LayoutSize, TextRun, WritingMode};
 
 use super::{
     PAGE_PADDING, local_writing,
-    sizing::{inline_padding, is_vertical, resolve_layout_width},
+    sizing::{is_vertical, resolve_layout_width},
+    sizing_padding::inline_padding,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -207,10 +208,21 @@ pub(super) fn block_geometries(
                 &sizes,
                 &extents,
                 available_height,
+                available_width,
+                page_writing_mode,
+            );
+            let containing_width = resolve_layout_width(
+                &sizes[..sizes.len().saturating_sub(1)],
+                available_width,
                 page_writing_mode,
             );
             let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode)
-                + inline_padding(std::slice::from_ref(&extent.size), page_writing_mode).1;
+                + inline_padding(
+                    std::slice::from_ref(&extent.size),
+                    containing_width,
+                    page_writing_mode,
+                )
+                .1;
             let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
             {
@@ -257,17 +269,21 @@ fn used_block_height_for_path(
     sizes: &[LayoutSize],
     extents: &HashMap<usize, BlockExtent>,
     available_height: f32,
+    available_width: f32,
     page_writing_mode: WritingMode,
 ) -> f32 {
     let mut containing_height = available_height;
-    for size in sizes {
+    for (index, size) in sizes.iter().enumerate() {
         let Some(extent) = extents.get(&size.node_id) else {
             continue;
         };
+        let containing_width =
+            resolve_layout_width(&sizes[..index], available_width, page_writing_mode);
         let used_height = used_block_height(
             size,
             extent.content_height,
             containing_height,
+            containing_width,
             page_writing_mode,
         );
         if size.node_id == target_node_id {
@@ -284,12 +300,14 @@ fn used_block_height(
     size: &LayoutSize,
     content_height: f32,
     available_height: f32,
+    available_width: f32,
     page_writing_mode: WritingMode,
 ) -> f32 {
     super::sizing_height::resolve_block_box_extent(
         size,
         content_height,
         available_height,
+        available_width,
         page_writing_mode,
     )
 }
