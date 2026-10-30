@@ -1,6 +1,6 @@
 use super::PageRasterizer;
 use crate::style::WritingMode;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 impl PageRasterizer {
     pub(super) fn render_layout_pixels(
@@ -9,25 +9,47 @@ impl PageRasterizer {
         height: u32,
         writing_mode: WritingMode,
     ) -> Vec<u8> {
-        let raw_output = self.render_layout_pixels_raw(width, height, writing_mode);
-        let mut output = raw_output.clone();
-        let nested_groups = self.nested_opacity_groups();
-        let mut groups = self
-            .opacity_groups
-            .iter()
-            .filter(|(node_id, opacity)| {
-                **opacity > 0.0 && **opacity < 1.0 && !nested_groups.contains(node_id)
-            })
-            .map(|(node_id, opacity)| (*node_id, *opacity))
-            .collect::<Vec<_>>();
-        groups.sort_by_key(|(node_id, _)| *node_id);
+        self.render_composited_scope(&HashMap::new(), None, width, height, writing_mode)
+    }
 
+    fn render_composited_scope(
+        &mut self,
+        overrides: &HashMap<usize, f32>,
+        scope: Option<usize>,
+        width: u32,
+        height: u32,
+        writing_mode: WritingMode,
+    ) -> Vec<u8> {
+        let raw_output = self.render_with_opacity_overrides(overrides, width, height, writing_mode);
+        let mut output = raw_output.clone();
+        if scope.is_some_and(|node_id| overrides.get(&node_id) == Some(&0.0)) {
+            return output;
+        }
+
+        let mut children = self
+            .opacity_group_children(scope)
+            .into_iter()
+            .collect::<Vec<_>>();
+        children.sort_unstable_by_key(|node_id| *node_id);
         let mut painted_group_mask = vec![false; raw_output.len() / 4];
-        for (node_id, opacity) in groups {
-            let without_group =
-                self.render_with_opacity_override(node_id, 0.0, width, height, writing_mode);
-            let full_group =
-                self.render_with_opacity_override(node_id, 1.0, width, height, writing_mode);
+        for node_id in children {
+            let opacity = self.opacity_groups[&node_id];
+            let without_overrides = with_opacity_override(overrides, node_id, 0.0);
+            let full_overrides = with_opacity_override(overrides, node_id, 1.0);
+            let without_group = self.render_composited_scope(
+                &without_overrides,
+                Some(node_id),
+                width,
+                height,
+                writing_mode,
+            );
+            let full_group = self.render_composited_scope(
+                &full_overrides,
+                Some(node_id),
+                width,
+                height,
+                writing_mode,
+            );
             let mut group_mask = vec![false; painted_group_mask.len()];
             let mut overlaps_another_group = false;
             for ((without_group, full_group), (index, seen)) in without_group
@@ -65,30 +87,32 @@ impl PageRasterizer {
         output
     }
 
-    fn nested_opacity_groups(&self) -> HashSet<usize> {
-        let mut nested_groups = HashSet::new();
+    fn opacity_group_children(&self, scope: Option<usize>) -> HashSet<usize> {
+        let mut children = HashSet::new();
         for run in &self.runs {
-            let groups = run
-                .element_path
-                .iter()
-                .filter(|node_id| {
-                    self.opacity_groups
-                        .get(node_id)
-                        .is_some_and(|opacity| *opacity > 0.0 && *opacity < 1.0)
-                })
-                .copied()
-                .collect::<Vec<_>>();
-            if groups.len() > 1 {
-                nested_groups.extend(groups);
+            let start = scope.map_or(0, |scope| {
+                run.element_path
+                    .iter()
+                    .position(|node_id| *node_id == scope)
+                    .map_or(run.element_path.len(), |index| index + 1)
+            });
+            if start == run.element_path.len() {
+                continue;
+            }
+            if let Some(node_id) = run.element_path[start..].iter().find(|node_id| {
+                self.opacity_groups
+                    .get(node_id)
+                    .is_some_and(|opacity| *opacity > 0.0 && *opacity < 1.0)
+            }) {
+                children.insert(*node_id);
             }
         }
-        nested_groups
+        children
     }
 
-    fn render_with_opacity_override(
+    fn render_with_opacity_overrides(
         &mut self,
-        node_id: usize,
-        opacity: f32,
+        overrides: &HashMap<usize, f32>,
         width: u32,
         height: u32,
         writing_mode: WritingMode,
@@ -97,30 +121,31 @@ impl PageRasterizer {
         let original_cursor_spans = std::mem::take(&mut self.cursor_spans);
         self.runs = original_runs.clone();
         for run in &mut self.runs {
-            let Some(group_index) = run.element_path.iter().position(|id| *id == node_id) else {
-                continue;
+            let original_opacity =
+                opacity_for_path(&run.element_path, &self.opacity_groups, &HashMap::new());
+            let new_opacity = opacity_for_path(&run.element_path, &self.opacity_groups, overrides);
+            let ratio = if original_opacity == 0.0 {
+                0.0
+            } else {
+                new_opacity / original_opacity
             };
-            run.style.opacity =
-                opacity_for_path(&run.element_path, &self.opacity_groups, node_id, opacity);
+            run.style.opacity = new_opacity;
             for size in &mut run.style.layout_sizes {
                 let Some(size_index) = run.element_path.iter().position(|id| *id == size.node_id)
                 else {
                     continue;
                 };
-                if size_index >= group_index {
-                    size.opacity = opacity_for_path(
-                        &run.element_path[..=size_index],
-                        &self.opacity_groups,
-                        node_id,
-                        opacity,
-                    );
-                }
+                size.opacity = opacity_for_path(
+                    &run.element_path[..=size_index],
+                    &self.opacity_groups,
+                    overrides,
+                );
             }
             if let Some(decoration) = &mut run.first_line_decoration {
-                adjust_decoration_opacity(decoration, self.opacity_groups[&node_id], opacity);
+                adjust_decoration_opacity(decoration, ratio);
             }
             if let Some(decoration) = &mut run.first_letter_decoration {
-                adjust_decoration_opacity(decoration, self.opacity_groups[&node_id], opacity);
+                adjust_decoration_opacity(decoration, ratio);
             }
         }
         self.cursor_spans = super::cursor_spans::cursor_spans(&self.runs);
@@ -131,32 +156,33 @@ impl PageRasterizer {
     }
 }
 
+fn with_opacity_override(
+    current: &HashMap<usize, f32>,
+    node_id: usize,
+    opacity: f32,
+) -> HashMap<usize, f32> {
+    let mut overrides = current.clone();
+    overrides.insert(node_id, opacity);
+    overrides
+}
+
 fn opacity_for_path(
     path: &[usize],
-    opacity_groups: &std::collections::HashMap<usize, f32>,
-    override_node: usize,
-    override_opacity: f32,
+    opacity_groups: &HashMap<usize, f32>,
+    overrides: &HashMap<usize, f32>,
 ) -> f32 {
     path.iter().fold(1.0, |opacity, node_id| {
         opacity
-            * if *node_id == override_node {
-                override_opacity
-            } else {
-                opacity_groups.get(node_id).copied().unwrap_or(1.0)
-            }
+            * overrides
+                .get(node_id)
+                .or_else(|| opacity_groups.get(node_id))
+                .copied()
+                .unwrap_or(1.0)
     })
 }
 
-fn adjust_decoration_opacity(
-    decoration: &mut crate::css_style::PseudoDecoration,
-    original_opacity: f32,
-    new_opacity: f32,
-) {
-    if original_opacity == 0.0 {
-        decoration.color[3] = 0;
-    } else {
-        decoration.color[3] = (f32::from(decoration.color[3]) * new_opacity / original_opacity)
-            .round()
-            .clamp(0.0, 255.0) as u8;
-    }
+fn adjust_decoration_opacity(decoration: &mut crate::css_style::PseudoDecoration, ratio: f32) {
+    decoration.color[3] = (f32::from(decoration.color[3]) * ratio)
+        .round()
+        .clamp(0.0, 255.0) as u8;
 }

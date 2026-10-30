@@ -186,6 +186,78 @@ fn nested_element_opacity_composites_its_background_and_text_as_one_group() {
 }
 
 #[test]
+fn nested_opacity_groups_compose_recursively_across_overlapping_boxes() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "p".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("Overlap".to_owned())],
+            }],
+        }],
+    }];
+    let styles_for = |parent_opacity: &str| {
+        [
+            StyleRule {
+                selectors: vec!["div".to_owned()],
+                layer: None,
+                declarations: vec![
+                    declaration("background-color", "yellow"),
+                    declaration("opacity", parent_opacity),
+                ],
+            },
+            StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations: vec![
+                    declaration("background-color", "blue"),
+                    declaration("border", "2px solid lime"),
+                    declaration("box-shadow", "3px 3px 2px 1px green"),
+                    declaration("color", "red"),
+                    declaration("opacity", "0.5"),
+                ],
+            },
+            StyleRule {
+                selectors: vec!["span".to_owned()],
+                layer: None,
+                declarations: vec![
+                    declaration("background-color", "lime"),
+                    declaration("color", "red"),
+                    declaration("opacity", "0.5"),
+                ],
+            },
+        ]
+    };
+    let child_group = PageRasterizer::new(&nodes, &styles_for("1")).snapshot_pixels(160, 70);
+    let nested_groups = PageRasterizer::new(&nodes, &styles_for("0.5")).snapshot_pixels(160, 70);
+    let max_error = child_group
+        .chunks_exact(4)
+        .zip(nested_groups.chunks_exact(4))
+        .flat_map(|(source, actual)| {
+            source[..3]
+                .iter()
+                .zip(&actual[..3])
+                .map(|(source, actual)| {
+                    let expected = (255.0 + (f32::from(*source) - 255.0) * 0.5).round() as u8;
+                    actual.abs_diff(expected)
+                })
+        })
+        .max()
+        .unwrap_or_default();
+    assert!(max_error <= 1, "maximum channel error was {max_error}");
+}
+
+#[test]
 fn element_opacity_scales_text_decorations() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
