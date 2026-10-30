@@ -39,6 +39,49 @@ fn content_block_height_keeps_content_at_the_block_start_and_flows_after_its_use
 }
 
 #[test]
+fn contain_size_removes_intrinsic_block_height_but_keeps_overflowing_text() {
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("word ".repeat(24))],
+        },
+        text_paragraph("after"),
+    ];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "contain".to_owned(),
+            value: "size".to_owned(),
+        }],
+    }];
+    let mut natural = PageRasterizer::new(&nodes, &[]);
+    let mut contained = PageRasterizer::new(&nodes, &stylesheet);
+    natural.prepare_layout(200, 260);
+    contained.prepare_layout(200, 260);
+
+    let natural_after_y = text_line_y(&natural, "after");
+    let contained_after_y = text_line_y(&contained, "after");
+    let pixels = contained.snapshot_pixels(200, 260);
+    let dark_pixels = pixels
+        .chunks_exact(4)
+        .filter(|pixel| pixel[..3].iter().all(|channel| *channel < 100))
+        .count();
+
+    assert!(
+        contained_after_y < natural_after_y - 20.0,
+        "size containment should remove intrinsic block flow height: {contained_after_y} vs {natural_after_y}"
+    );
+    assert!(
+        dark_pixels > 0,
+        "contained text should still paint and overflow"
+    );
+}
+
+#[test]
 fn overflow_hidden_clips_descendant_text_and_backgrounds_at_the_used_block_extent() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

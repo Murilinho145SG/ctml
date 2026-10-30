@@ -74,9 +74,14 @@ pub(super) fn block_spacer_heights(
             available_width,
             page_writing_mode,
         );
+        let sizing_content_height = if size.size_contained {
+            0.0
+        } else {
+            content_height
+        };
         let requested_height = resolve_block_box_extent(
             size,
-            content_height,
+            sizing_content_height,
             containing_height,
             containing_width,
             page_writing_mode,
@@ -135,12 +140,17 @@ fn containing_block_height(
             available_width,
             page_writing_mode,
         );
-        containing_height = resolve_block_box_extent(
-            size,
+        let sizing_content_height = if size.size_contained {
+            0.0
+        } else {
             content_heights
                 .get(&ancestor_id)
                 .copied()
-                .unwrap_or_default(),
+                .unwrap_or_default()
+        };
+        containing_height = resolve_block_box_extent(
+            size,
+            sizing_content_height,
             containing_height,
             containing_width,
             page_writing_mode,

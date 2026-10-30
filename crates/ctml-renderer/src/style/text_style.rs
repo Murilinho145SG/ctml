@@ -180,6 +180,7 @@ pub(crate) struct LayoutSize {
     pub(crate) overflow_x: Overflow,
     pub(crate) overflow_y: Overflow,
     pub(crate) paint_contained: bool,
+    pub(crate) size_contained: bool,
     pub(crate) size_property_orders: HashMap<String, usize>,
     pub(crate) writing_mode: WritingMode,
     pub(crate) font_size: f32,

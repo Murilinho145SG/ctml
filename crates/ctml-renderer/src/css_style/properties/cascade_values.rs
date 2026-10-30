@@ -7,7 +7,10 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
         "content-visibility" => {
             style.content_visibility_hidden = inherited.content_visibility_hidden;
         }
-        "contain" => style.paint_contained = inherited.paint_contained,
+        "contain" => {
+            style.paint_contained = inherited.paint_contained;
+            style.size_contained = inherited.size_contained;
+        }
         "overflow" => {
             style.overflow_x = inherited.overflow_x;
             style.overflow_y = inherited.overflow_y;
@@ -220,7 +223,10 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
         "content-visibility" => style.content_visibility_hidden = false,
-        "contain" => style.paint_contained = false,
+        "contain" => {
+            style.paint_contained = false;
+            style.size_contained = false;
+        }
         "overflow" => {
             style.overflow_x = Overflow::Visible;
             style.overflow_y = Overflow::Visible;

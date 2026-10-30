@@ -312,7 +312,11 @@ fn used_block_height_for_path(
             resolve_layout_width(&sizes[..index], available_width, page_writing_mode);
         let used_height = used_block_height(
             size,
-            extent.content_height,
+            if size.size_contained {
+                0.0
+            } else {
+                extent.content_height
+            },
             containing_height,
             containing_width,
             page_writing_mode,

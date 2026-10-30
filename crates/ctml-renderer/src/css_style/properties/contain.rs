@@ -1,12 +1,13 @@
 use super::*;
 
 pub(super) fn apply_contain(style: &mut TextStyle, value: &str) {
-    if let Some(paint_contained) = parse_contain(value) {
+    if let Some((paint_contained, size_contained)) = parse_contain(value) {
         style.paint_contained = paint_contained;
+        style.size_contained = size_contained;
     }
 }
 
-fn parse_contain(value: &str) -> Option<bool> {
+fn parse_contain(value: &str) -> Option<(bool, bool)> {
     let values = value
         .split_ascii_whitespace()
         .map(str::to_ascii_lowercase)
@@ -16,8 +17,10 @@ fn parse_contain(value: &str) -> Option<bool> {
     }
     if values.len() == 1 {
         return match values[0].as_str() {
-            "none" | "size" | "inline-size" | "layout" | "style" => Some(false),
-            "paint" | "content" | "strict" => Some(true),
+            "none" | "inline-size" | "layout" | "style" => Some((false, false)),
+            "size" => Some((false, true)),
+            "paint" | "content" => Some((true, false)),
+            "strict" => Some((true, true)),
             _ => None,
         };
     }
@@ -44,5 +47,8 @@ fn parse_contain(value: &str) -> Option<bool> {
             size_kind = true;
         }
     }
-    Some(values.iter().any(|value| value == "paint"))
+    Some((
+        values.iter().any(|value| value == "paint"),
+        values.iter().any(|value| value == "size"),
+    ))
 }

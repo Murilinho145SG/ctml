@@ -214,7 +214,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `border-image` and image slicing/repetition. The renderer has no decoded-image resource path yet; this depends on native image loading and decoding.
 - [x] `box-decoration-break: slice | clone` repeats inline text fragment side borders for `clone`; `slice` draws only the outer inline start/end edges.
 - [x] `visibility: visible|hidden|collapse`; `collapse` is treated as hidden because CTML has no table formatting context.
-- [ ] `content-visibility` and containment behavior. `content-visibility: visible | hidden | auto` is parsed; `hidden` suppresses subtree painting while preserving current text flow, and `auto` behaves as `visible` because the renderer has no viewport-based skipping. `contain: paint`, `content`, and `strict` apply paint clipping; layout/style/size containment and `contain-intrinsic-size` remain unimplemented.
+- [ ] `content-visibility` and containment behavior. `content-visibility: visible | hidden | auto` is parsed; `hidden` suppresses subtree painting while preserving current text flow, and `auto` behaves as `visible` because the renderer has no viewport-based skipping. `contain: paint`, `content`, and `strict` apply paint clipping. `contain: size` and `strict` remove intrinsic block flow height from content-bearing blocks while allowing visible overflow; layout/style containment, inline-axis size containment, viewport skipping, and `contain-intrinsic-size` remain unimplemented.
 
 ## Layout
 
