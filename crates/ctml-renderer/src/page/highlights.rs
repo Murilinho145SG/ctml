@@ -176,6 +176,7 @@ fn draw_decoration(
         clip_rect,
         translate_x,
         translate_y,
+        decoration_opacity_scale: 1.0,
     };
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);

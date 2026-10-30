@@ -11,6 +11,7 @@ pub(super) struct PixelRenderer<'a> {
     pub(super) clip_rect: Option<ClipRect>,
     pub(super) translate_x: f32,
     pub(super) translate_y: f32,
+    pub(super) decoration_opacity_scale: f32,
 }
 
 impl Renderer for PixelRenderer<'_> {
@@ -41,6 +42,14 @@ impl Renderer for PixelRenderer<'_> {
         );
         let x = x - self.translate_x.round() as i32;
         let y = y - self.translate_y.round() as i32;
+        let color = cosmic_text::Color::rgba(
+            color.r(),
+            color.g(),
+            color.b(),
+            (f32::from(color.a()) * self.decoration_opacity_scale)
+                .round()
+                .clamp(0.0, 255.0) as u8,
+        );
         let blend = if color.a() < 255 {
             blend_pixel_rounded
         } else {

@@ -10,10 +10,13 @@ impl PageRasterizer {
         width: u32,
         height: u32,
         writing_mode: crate::style::WritingMode,
+        background: [u8; 3],
+        scoped: bool,
+        apply_root_opacity: bool,
     ) -> Vec<u8> {
         let mut pixels = vec![0_u8; width as usize * height as usize * 4];
         for pixel in pixels.chunks_exact_mut(4) {
-            pixel[..3].copy_from_slice(&self.root_style.background);
+            pixel[..3].copy_from_slice(&background);
             pixel[3] = 255;
         }
         let overflow_clips = &self.overflow_clips;
@@ -56,7 +59,7 @@ impl PageRasterizer {
             &mut pixels,
             width,
             height,
-            self.root_style.background_color.is_some(),
+            scoped || self.root_style.background_color.is_some(),
             writing_mode,
             &overflow_clips,
             nested_scroll,
@@ -90,7 +93,9 @@ impl PageRasterizer {
             &self.overflow_geometry,
             &self.overflow_clips,
         );
-        borders::draw_root_border(&mut pixels, width, height, &self.root_style);
+        if !scoped {
+            borders::draw_root_border(&mut pixels, width, height, &self.root_style);
+        }
         box_shadows::draw_first_line(
             &self.runs,
             &self.buffer,
@@ -171,6 +176,7 @@ impl PageRasterizer {
             font_system,
             cache,
             cursor_spans,
+            decoration_opacity_scales,
             ..
         } = self;
         font_raster::draw(
@@ -315,6 +321,17 @@ impl PageRasterizer {
                 clip_rect: None,
                 translate_y: nested_scroll_y,
                 translate_x: nested_scroll_x,
+                decoration_opacity_scale: run
+                    .glyphs
+                    .first()
+                    .and_then(|glyph| {
+                        super::local_writing::style_index_at(
+                            &style_ranges,
+                            line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
+                        )
+                    })
+                    .and_then(|index| decoration_opacity_scales.get(index).copied())
+                    .unwrap_or(1.0),
             };
             decorations::render_patterned_decorations(
                 &mut renderer,
@@ -334,8 +351,10 @@ impl PageRasterizer {
             &all_ink_mask,
             &overflow_clips,
         );
-        self.draw_root_scrollbars(&mut pixels, width, height, writing_mode);
-        if self.root_opacity < 1.0 {
+        if !scoped {
+            self.draw_root_scrollbars(&mut pixels, width, height, writing_mode);
+        }
+        if apply_root_opacity && self.root_opacity < 1.0 {
             let opacity = self.root_opacity.clamp(0.0, 1.0);
             for pixel in pixels.chunks_exact_mut(4) {
                 for channel in &mut pixel[..3] {

@@ -78,6 +78,7 @@ pub(crate) struct PageRasterizer {
     root_style: TextStyle,
     root_opacity: f32,
     opacity_groups: HashMap<usize, f32>,
+    decoration_opacity_scales: Vec<f32>,
     selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
     selection_anchor: Option<Cursor>,
@@ -178,6 +179,7 @@ impl PageRasterizer {
             root_style,
             root_opacity,
             opacity_groups,
+            decoration_opacity_scales: Vec::new(),
             selection_background_color,
             selection: None,
             selection_anchor: None,
@@ -571,6 +573,7 @@ impl PageRasterizer {
             })
             .collect();
         self.opacity_groups = opacity_groups;
+        self.decoration_opacity_scales.clear();
         self.root_opacity = root_style.opacity;
         self.root_style = root_style;
         self.root_style.opacity = 1.0;

@@ -39,6 +39,7 @@ pub(super) fn resize_styles(
         })
         .collect();
     page.opacity_groups = opacity_groups;
+    page.decoration_opacity_scales.clear();
     page.root_opacity = root_style.opacity;
     page.root_style = root_style;
     page.root_style.opacity = 1.0;
