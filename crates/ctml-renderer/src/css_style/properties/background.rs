@@ -12,6 +12,7 @@ pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
         style.background_repeats.clear();
         style.background_positions.clear();
         style.background_sizes.clear();
+        style.background_attachments.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some(images) = parse_background_images(style, value) {
@@ -19,6 +20,7 @@ pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
         style.background_repeats.clear();
         style.background_positions.clear();
         style.background_sizes.clear();
+        style.background_attachments.clear();
         style.background = [255, 255, 255];
         style.background_color = None;
     } else if let Some((channels, alpha)) = parse_background_color(style, value) {
@@ -26,6 +28,7 @@ pub(super) fn apply_background_shorthand(style: &mut TextStyle, value: &str) {
         style.background_repeats.clear();
         style.background_positions.clear();
         style.background_sizes.clear();
+        style.background_attachments.clear();
         set_background_color(style, channels, alpha);
     } else {
         return;

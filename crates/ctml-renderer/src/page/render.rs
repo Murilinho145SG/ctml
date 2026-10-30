@@ -70,6 +70,7 @@ impl PageRasterizer {
             height,
             writing_mode,
             &overflow_clips,
+            nested_scroll,
             &mut background_image_cache,
         );
         box_shadows::draw_inset(

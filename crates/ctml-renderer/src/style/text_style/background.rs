@@ -40,6 +40,14 @@ pub(crate) enum BackgroundFit {
     Contain,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BackgroundAttachment {
+    #[default]
+    Scroll,
+    Fixed,
+    Local,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct BackgroundSize {
     pub(crate) width: Option<BackgroundSizeAxis>,

@@ -19,6 +19,7 @@ use background::{
     apply_background_color, apply_background_image, apply_background_position,
     apply_background_repeat, apply_background_shorthand, apply_background_size,
 };
+use background_attachment::apply_background_attachment;
 use border::{
     apply_border_color, apply_border_color_side, apply_border_shorthand, apply_border_side,
     apply_border_style, apply_border_style_side, apply_border_width, apply_border_width_side,
@@ -76,6 +77,7 @@ use text_shadow::apply_text_shadow;
 mod apply;
 mod aspect_ratio;
 mod background;
+mod background_attachment;
 mod border;
 mod border_cascade;
 mod border_radius;

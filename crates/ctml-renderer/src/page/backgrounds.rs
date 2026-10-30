@@ -49,6 +49,11 @@ pub(super) fn draw_block_boxes(
                 nested_scroll,
                 page_writing_mode,
             );
+            let element_scroll = overflow_clip::scroll_translation_for_path(
+                &[size.node_id],
+                nested_scroll,
+                page_writing_mode,
+            );
             let rect = geometry.border_box;
             for layer in &size.background_layers {
                 let mut color = *layer;
@@ -72,6 +77,9 @@ pub(super) fn draw_block_boxes(
                 &size.background_repeats,
                 &size.background_positions,
                 &size.background_sizes,
+                &size.background_attachments,
+                (scroll_x, scroll_y),
+                element_scroll,
                 size.opacity,
                 pixels,
                 width,
@@ -168,6 +176,16 @@ pub(super) fn draw(
                         page_writing_mode,
                     )
                 });
+            let element_scroll = style_index
+                .and_then(|index| runs.get(index))
+                .and_then(|run| run.element_path.last())
+                .map_or((0.0, 0.0), |node_id| {
+                    overflow_clip::scroll_translation_for_path(
+                        &[*node_id],
+                        nested_scroll,
+                        page_writing_mode,
+                    )
+                });
             let left = fragment
                 .iter()
                 .map(|glyph| glyph.x)
@@ -247,6 +265,9 @@ pub(super) fn draw(
                     &style.background_repeats,
                     &style.background_positions,
                     &style.background_sizes,
+                    &style.background_attachments,
+                    (scroll_offset_x, scroll_offset_y),
+                    element_scroll,
                     style.opacity,
                     pixels,
                     width,

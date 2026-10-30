@@ -181,6 +181,7 @@ pub(super) fn apply_declaration(
         "background-repeat" => apply_background_repeat(style, value),
         "background-position" => apply_background_position(style, value),
         "background-size" => apply_background_size(style, value),
+        "background-attachment" => apply_background_attachment(style, value),
         "font-size" => {
             if let Some(size) = parse_font_size_with_font_units(
                 value,

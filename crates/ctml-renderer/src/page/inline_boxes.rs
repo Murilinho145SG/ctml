@@ -33,6 +33,7 @@ pub(super) fn draw(
     height: u32,
     page_writing_mode: WritingMode,
     clips: &HashMap<usize, ClipRect>,
+    nested_scroll: &HashMap<usize, (f32, f32)>,
     image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
@@ -183,6 +184,18 @@ pub(super) fn draw(
             };
             let top = fragment.top + PAGE_PADDING - block_padding[0];
             let fragment_height = fragment_height + block_padding[0] + block_padding[2];
+            let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
+                &run.element_path,
+                nested_scroll,
+                page_writing_mode,
+            );
+            let element_scroll = run.element_path.last().map_or((0.0, 0.0), |node_id| {
+                overflow_clip::scroll_translation_for_path(
+                    &[*node_id],
+                    nested_scroll,
+                    page_writing_mode,
+                )
+            });
             if has_background {
                 let inline_available = if super::sizing::is_vertical(page_writing_mode) {
                     height as f32 - PAGE_PADDING * 2.0
@@ -225,15 +238,18 @@ pub(super) fn draw(
                     &style.background_repeats,
                     &style.background_positions,
                     &style.background_sizes,
+                    &style.background_attachments,
+                    (scroll_x, scroll_y),
+                    element_scroll,
                     style.opacity,
                     pixels,
                     width,
                     height,
                     ClipRect {
-                        left: background_left,
-                        top: background_top,
-                        right: background_left + background_width,
-                        bottom: background_top + background_height,
+                        left: background_left - scroll_x,
+                        top: background_top - scroll_y,
+                        right: background_left + background_width - scroll_x,
+                        bottom: background_top + background_height - scroll_y,
                     },
                     clip,
                     image_cache,

@@ -5,8 +5,8 @@ use skia_safe::{
 use std::{collections::HashMap, sync::Arc};
 
 use crate::style::{
-    BackgroundFit, BackgroundImage, BackgroundPosition, BackgroundRepeat, BackgroundSize,
-    BackgroundSizeAxis, LinearGradient,
+    BackgroundAttachment, BackgroundFit, BackgroundImage, BackgroundPosition, BackgroundRepeat,
+    BackgroundSize, BackgroundSizeAxis, LinearGradient,
 };
 
 use super::overflow_clip::ClipRect;
@@ -18,6 +18,9 @@ pub(super) fn draw_background_image_layers(
     repeats: &[BackgroundRepeat],
     positions: &[BackgroundPosition],
     sizes: &[BackgroundSize],
+    attachments: &[BackgroundAttachment],
+    scroll_translation: (f32, f32),
+    element_scroll: (f32, f32),
     opacity: f32,
     pixels: &mut [u8],
     width: u32,
@@ -50,6 +53,16 @@ pub(super) fn draw_background_image_layers(
     }
     let rect = Rect::from_ltrb(rect.left, rect.top, rect.right, rect.bottom);
     for (index, background) in images.iter().enumerate().rev() {
+        let attachment = attachments
+            .get(index % attachments.len().max(1))
+            .copied()
+            .unwrap_or_default();
+        let (attachment_x, attachment_y) = match attachment {
+            BackgroundAttachment::Scroll => (0.0, 0.0),
+            BackgroundAttachment::Fixed => scroll_translation,
+            BackgroundAttachment::Local => (-element_scroll.0, -element_scroll.1),
+        };
+        let layer_rect = rect.with_offset((attachment_x, attachment_y));
         let repeat = repeats
             .get(index % repeats.len().max(1))
             .copied()
@@ -72,8 +85,8 @@ pub(super) fn draw_background_image_layers(
                 };
                 let (image_width, image_height) = resolve_background_size(
                     size,
-                    rect.width(),
-                    rect.height(),
+                    layer_rect.width(),
+                    layer_rect.height(),
                     image.width() as f32,
                     image.height() as f32,
                 );
@@ -82,33 +95,33 @@ pub(super) fn draw_background_image_layers(
                 }
                 let scale_x = image_width / image.width() as f32;
                 let scale_y = image_height / image.height() as f32;
-                let image_left = rect.left
-                    + (rect.width() - image_width) * position.x_percent
+                let image_left = layer_rect.left
+                    + (layer_rect.width() - image_width) * position.x_percent
                     + position.x_offset;
-                let image_top = rect.top
-                    + (rect.height() - image_height) * position.y_percent
+                let image_top = layer_rect.top
+                    + (layer_rect.height() - image_height) * position.y_percent
                     + position.y_offset;
                 let clip = (!repeat.x || !repeat.y).then(|| {
                     Rect::from_ltrb(
                         if repeat.x {
-                            rect.left
+                            layer_rect.left
                         } else {
-                            image_left.max(rect.left)
+                            image_left.max(layer_rect.left)
                         },
                         if repeat.y {
-                            rect.top
+                            layer_rect.top
                         } else {
-                            image_top.max(rect.top)
+                            image_top.max(layer_rect.top)
                         },
                         if repeat.x {
-                            rect.right
+                            layer_rect.right
                         } else {
-                            (image_left + image_width).min(rect.right)
+                            (image_left + image_width).min(layer_rect.right)
                         },
                         if repeat.y {
-                            rect.bottom
+                            layer_rect.bottom
                         } else {
-                            (image_top + image_height).min(rect.bottom)
+                            (image_top + image_height).min(layer_rect.bottom)
                         },
                     )
                 });
@@ -124,7 +137,7 @@ pub(super) fn draw_background_image_layers(
                 )
             }
             BackgroundImage::LinearGradient(gradient) => {
-                (linear_gradient_shader(gradient, rect), None)
+                (linear_gradient_shader(gradient, layer_rect), None)
             }
         };
         let Some(shader) = shader else { continue };
@@ -135,7 +148,7 @@ pub(super) fn draw_background_image_layers(
         let mut paint = Paint::default();
         paint.set_shader(shader);
         paint.set_alpha_f(opacity.clamp(0.0, 1.0));
-        canvas.draw_rect(rect, &paint);
+        canvas.draw_rect(layer_rect, &paint);
         canvas.restore();
     }
     canvas.restore();
