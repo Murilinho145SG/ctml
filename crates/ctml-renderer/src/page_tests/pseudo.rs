@@ -486,3 +486,39 @@ fn first_letter_font_styles_apply_to_the_first_non_whitespace_character() {
     assert_eq!(first.style.stretch, cosmic_text::Stretch::Condensed);
     assert_eq!(following.style.font_size, 16.0);
 }
+
+#[test]
+fn first_letter_border_paints_around_the_initial_glyph() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First letter".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-letter".to_owned()],
+        layer: None,
+        declarations: [("border", "2px solid red"), ("border-left-color", "blue")]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+    }];
+
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(140, 70);
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [255, 0, 0]),
+        "the initial glyph should receive the pseudo-element border"
+    );
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [0, 0, 255]),
+        "a border side longhand should override the shorthand"
+    );
+}
