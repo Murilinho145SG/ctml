@@ -15,6 +15,7 @@ mod block_sizing;
 mod border_radius;
 mod borders;
 mod box_shadows;
+mod content_visibility;
 mod cursor_spans;
 mod decorations;
 mod focus;
@@ -338,6 +339,40 @@ impl PageRasterizer {
         );
         self.cursor_spans = cursor_spans(&self.runs);
         shape_buffer(self, content_width, content_height);
+        let page_writing_mode = self.writing_mode();
+        let skipped_auto_nodes = if self
+            .runs
+            .iter()
+            .any(|run| run.style.content_visibility_auto)
+        {
+            let mut auto_visibility_buffer = self.buffer.clone();
+            auto_visibility_buffer.set_size(Some(content_width.max(content_height)), None);
+            auto_visibility_buffer.set_scroll(Scroll::default());
+            auto_visibility_buffer.shape_until_scroll(&mut self.font_system, false);
+            let auto_visibility_geometries = overflow_clip::block_geometries(
+                &self.runs,
+                &mut auto_visibility_buffer,
+                &mut self.font_system,
+                layout_width,
+                layout_height,
+                page_writing_mode,
+            );
+            content_visibility::offscreen_auto_nodes(
+                &self.runs,
+                &auto_visibility_geometries,
+                layout_width,
+                layout_height,
+                content_visibility::vertical_scroll_offset(&self.buffer),
+                self.selection.is_some(),
+                &self.focused_path,
+            )
+        } else {
+            Default::default()
+        };
+        if !skipped_auto_nodes.is_empty() {
+            content_visibility::skip_auto_contents(&mut self.runs, &skipped_auto_nodes);
+            self.cursor_spans = cursor_spans(&self.runs);
+        }
         let metrics = self.buffer.metrics();
         let line_sizes = line_layout_sizes(&self.runs, self.buffer.lines.len());
         let spacer_heights = block_spacer_heights(

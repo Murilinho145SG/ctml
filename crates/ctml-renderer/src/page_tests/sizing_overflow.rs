@@ -108,6 +108,7 @@ fn content_visibility_hidden_uses_contain_intrinsic_height_fallback() {
     }];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
     page.prepare_layout(240, 120);
+
     let mut zero_placeholder = PageRasterizer::new(
         &nodes,
         &[StyleRule {
@@ -127,6 +128,142 @@ fn content_visibility_hidden_uses_contain_intrinsic_height_fallback() {
         (after_y - zero_after_y - 40.0).abs() < 5.0,
         "the skipped block should add its 40px intrinsic height: {after_y} vs {zero_after_y}"
     );
+}
+
+#[test]
+fn content_visibility_auto_skips_offscreen_content_and_uses_intrinsic_height() {
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("spacer".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("automatic".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Offscreen content".to_owned())],
+        },
+        text_paragraph("after"),
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".spacer".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "height".to_owned(),
+                value: "400px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".automatic".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "content-visibility".to_owned(),
+                    value: "auto".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain-intrinsic-height".to_owned(),
+                    value: "40px".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(240, 120);
+
+    assert!(page.runs.iter().any(|run| {
+        run.style.content_skipped
+            && run
+                .style
+                .layout_sizes
+                .iter()
+                .any(|size| size.size_contained)
+    }));
+    let after_y = all_text_line_y(&page, "after");
+    assert!(
+        (after_y - 8.0 - 400.0 - 40.0).abs() < 6.0,
+        "offscreen auto content should reserve its 40px intrinsic block size, got y={after_y}"
+    );
+}
+
+#[test]
+fn content_visibility_auto_keeps_visible_content_and_empty_fallback() {
+    let nodes = [
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("visible".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Visible content".to_owned())],
+        },
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("spacer".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("empty".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+    ];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".visible".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "content-visibility".to_owned(),
+                value: "auto".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".spacer".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "height".to_owned(),
+                value: "400px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".empty".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "content-visibility".to_owned(),
+                    value: "auto".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "contain-intrinsic-height".to_owned(),
+                    value: "32px".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(240, 120);
+
+    assert!(
+        page.runs
+            .iter()
+            .any(|run| { run.style.content_visibility_auto && !run.style.content_skipped })
+    );
+    assert!(page.runs.iter().any(|run| {
+        run.style.content_skipped
+            && run
+                .style
+                .empty_block_height
+                .as_ref()
+                .is_some_and(|height| height.size_contained)
+    }));
 }
 
 #[test]
@@ -617,4 +754,18 @@ fn text_line_y(page: &PageRasterizer, text: &str) -> f32 {
         .find(|line| line.text.contains(text))
         .expect("text line should be in layout")
         .line_top
+}
+
+fn all_text_line_y(page: &PageRasterizer, text: &str) -> f32 {
+    let metrics = page.buffer.metrics();
+    let mut top = 0.0;
+    for line in &page.buffer.lines {
+        if line.text().contains(text) {
+            return top;
+        }
+        for layout in line.layout_runs(None, metrics.line_height) {
+            top += layout.line_height;
+        }
+    }
+    panic!("text line should be in the formatted buffer");
 }
