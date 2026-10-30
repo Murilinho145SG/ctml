@@ -216,7 +216,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Vertical text-emphasis side placement.
 - [ ] Writing modes, direction, bidirectional isolation, and vertical text.
 - [x] Basic list markers and inherited list marker types, including decimal-leading-zero, alphabetic, Greek, and Roman counters.
-- [ ] CSS counters, custom markers, and other `list-style-type` values such as Hebrew, Armenian, and CJK styles.
+- [x] Custom string markers through `list-style-type`.
+- [ ] CSS counters and remaining predefined `list-style-type` systems, including Hebrew, Armenian, and CJK styles.
 - [ ] Generated content with `content`, counters, and quotes.
 - [ ] Ruby annotations and other specialized typography where relevant.
 

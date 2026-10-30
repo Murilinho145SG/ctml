@@ -174,3 +174,23 @@ fn list_container(tag: &str, labels: &[&str]) -> UiNode {
             .collect(),
     }
 }
+
+#[test]
+fn list_style_type_accepts_custom_string_markers() {
+    let nodes = [list_container("ul", &["apple", "pear"])];
+    let stylesheet = [StyleRule {
+        selectors: vec!["ul".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "list-style-type".to_owned(),
+            value: "\"→\"".to_owned(),
+        }],
+    }];
+
+    let (runs, _) = compile_runs(&nodes, &stylesheet, &[], &[], &[], false);
+
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "→ apple\n→ pear"
+    );
+}

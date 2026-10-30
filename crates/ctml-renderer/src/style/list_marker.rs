@@ -5,6 +5,9 @@ pub(super) fn format_marker(
 ) -> Option<String> {
     let list_style_type =
         list_style_type.unwrap_or(if ordered_parent { "decimal" } else { "disc" });
+    if let Some(marker) = list_style_type.strip_prefix("custom:") {
+        return Some(format!("{marker} "));
+    }
     Some(match list_style_type {
         "none" => return None,
         "disc" => "• ".to_owned(),

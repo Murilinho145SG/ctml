@@ -15,9 +15,12 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
 ];
 
 pub(super) fn apply_list_style_type(style: &mut TextStyle, value: &str) {
-    let value = value.trim().to_ascii_lowercase();
-    if SUPPORTED_LIST_STYLE_TYPES.contains(&value.as_str()) {
-        style.list_style_type = Some(value);
+    let value = value.trim();
+    let keyword = value.to_ascii_lowercase();
+    if SUPPORTED_LIST_STYLE_TYPES.contains(&keyword.as_str()) {
+        style.list_style_type = Some(keyword);
+    } else if let Some(marker) = ctml_css::parse_css_string(value) {
+        style.list_style_type = Some(format!("custom:{marker}"));
     }
 }
 
