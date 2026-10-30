@@ -1,7 +1,9 @@
 use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
-use crate::style::{FontVariantPosition, TextStyle, TextTransform};
+use crate::style::{
+    FontVariantPosition, OverflowWrap, TextStyle, TextTransform, WhiteSpace, WordBreak,
+};
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
 
@@ -133,6 +135,9 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-align-last"
             | "text-justify"
             | "text-indent"
+            | "white-space"
+            | "overflow-wrap"
+            | "word-break"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -236,6 +241,9 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "text-align" => style.text_align = inherited.text_align,
         "text-align-last" => style.text_align_last = inherited.text_align_last,
         "text-justify" => style.text_justify = inherited.text_justify,
+        "white-space" => style.white_space = inherited.white_space,
+        "overflow-wrap" => style.overflow_wrap = inherited.overflow_wrap,
+        "word-break" => style.word_break = inherited.word_break,
         "text-indent" => {
             style.text_indent = inherited.text_indent;
             style.text_indent_percent = inherited.text_indent_percent;
@@ -335,6 +343,9 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "text-align" => style.text_align = cosmic_text::Align::Left,
         "text-align-last" => style.text_align_last = None,
         "text-justify" => style.text_justify = cosmic_text::TextJustify::Auto,
+        "white-space" => style.white_space = WhiteSpace::Normal,
+        "overflow-wrap" => style.overflow_wrap = OverflowWrap::Normal,
+        "word-break" => style.word_break = WordBreak::Normal,
         "text-indent" => {
             style.text_indent = 0.0;
             style.text_indent_percent = 0.0;
@@ -575,6 +586,34 @@ fn apply_declaration(
                 "inter-word" => cosmic_text::TextJustify::InterWord,
                 "inter-character" | "distribute" => cosmic_text::TextJustify::InterCharacter,
                 _ => style.text_justify,
+            };
+        }
+        "white-space" => {
+            style.white_space = match value.to_ascii_lowercase().as_str() {
+                "normal" => WhiteSpace::Normal,
+                "nowrap" => WhiteSpace::NoWrap,
+                "pre" => WhiteSpace::Pre,
+                "pre-wrap" => WhiteSpace::PreWrap,
+                "pre-line" => WhiteSpace::PreLine,
+                "break-spaces" => WhiteSpace::BreakSpaces,
+                _ => style.white_space,
+            };
+        }
+        "overflow-wrap" => {
+            style.overflow_wrap = match value.to_ascii_lowercase().as_str() {
+                "normal" => OverflowWrap::Normal,
+                "break-word" => OverflowWrap::BreakWord,
+                "anywhere" => OverflowWrap::Anywhere,
+                _ => style.overflow_wrap,
+            };
+        }
+        "word-break" => {
+            style.word_break = match value.to_ascii_lowercase().as_str() {
+                "normal" => WordBreak::Normal,
+                "break-all" => WordBreak::BreakAll,
+                "keep-all" => WordBreak::KeepAll,
+                "break-word" => WordBreak::BreakWord,
+                _ => style.word_break,
             };
         }
         "text-indent" => apply_text_indent(style, value),

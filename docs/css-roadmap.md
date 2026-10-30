@@ -200,7 +200,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `text-align-last` for automatic, logical and physical edge, centered, and justified final lines.
 - [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
 - [x] `text-justify`: `auto`, `none`, `inter-word`, `inter-character`, and legacy `distribute`.
-- [ ] White-space collapsing/wrapping controls, including `white-space`, `overflow-wrap`, and `word-break`.
+- [x] `white-space` collapsing and preservation (`normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`), `overflow-wrap` (`normal`, `break-word`, `anywhere`), and `word-break` (`normal`, `break-all`, `keep-all`, `break-word`). Intrinsic min-content sizing differences for `anywhere` are not modeled.
 - [ ] Hyphenation, line breaking, and language-sensitive text shaping controls.
 - [ ] Text overflow and line clamping.
 - [x] Word spacing, including inherited values, lengths and percentages.

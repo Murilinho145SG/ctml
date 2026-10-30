@@ -21,6 +21,9 @@ pub struct BufferLine {
     indent_hanging: bool,
     indent_each_line: bool,
     text_justify: TextJustify,
+    keep_all: bool,
+    wrap: Wrap,
+    preserve_spaces: bool,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -47,6 +50,9 @@ impl BufferLine {
             indent_hanging: false,
             indent_each_line: false,
             text_justify: TextJustify::Auto,
+            keep_all: false,
+            wrap: Wrap::WordOrGlyph,
+            preserve_spaces: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -73,6 +79,9 @@ impl BufferLine {
         self.indent_hanging = false;
         self.indent_each_line = false;
         self.text_justify = TextJustify::Auto;
+        self.keep_all = false;
+        self.wrap = Wrap::WordOrGlyph;
+        self.preserve_spaces = false;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -208,6 +217,39 @@ impl BufferLine {
         }
     }
 
+    /// Prevent line breaks between adjacent CJK characters when `keep_all` is true.
+    pub fn set_keep_all(&mut self, keep_all: bool) -> bool {
+        if self.keep_all != keep_all {
+            self.keep_all = keep_all;
+            self.reset_shaping();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Set the line wrapping mode and invalidate its layout if it changes.
+    pub fn set_wrap(&mut self, wrap: Wrap) -> bool {
+        if self.wrap != wrap {
+            self.wrap = wrap;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Preserve trailing spaces when wrapping a line.
+    pub fn set_preserve_spaces(&mut self, preserve_spaces: bool) -> bool {
+        if self.preserve_spaces != preserve_spaces {
+            self.preserve_spaces = preserve_spaces;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Append line at end of this line
     ///
     /// The wrap setting of the appended line will be lost
@@ -248,6 +290,9 @@ impl BufferLine {
         new.indent_hanging = self.indent_hanging;
         new.indent_each_line = self.indent_each_line;
         new.text_justify = self.text_justify;
+        new.keep_all = self.keep_all;
+        new.wrap = self.wrap;
+        new.preserve_spaces = self.preserve_spaces;
         new
     }
 
@@ -276,12 +321,13 @@ impl BufferLine {
                 .shape_opt
                 .take_unused()
                 .unwrap_or_else(ShapeLine::empty);
-            line.build(
+            line.build_with_keep_all(
                 font_system,
                 &self.text,
                 &self.attrs_list,
                 self.shaping,
                 tab_width,
+                self.keep_all,
             );
             self.shape_opt.set_used(line);
             self.layout_opt.set_unused();
@@ -311,6 +357,7 @@ impl BufferLine {
         tab_width: u16,
         hinting: Hinting,
     ) -> &[LayoutLine] {
+        self.set_wrap(wrap);
         if self.layout_opt.is_unused() {
             let align = self.align;
             let align_last = self.align_last;
@@ -318,6 +365,7 @@ impl BufferLine {
             let indent_hanging = self.indent_hanging;
             let indent_each_line = self.indent_each_line;
             let text_justify = self.text_justify;
+            let preserve_spaces = self.preserve_spaces;
             let mut layout = self
                 .layout_opt
                 .take_unused()
@@ -335,6 +383,7 @@ impl BufferLine {
                 indent_hanging,
                 indent_each_line,
                 text_justify,
+                preserve_spaces,
                 &mut layout,
                 match_mono_width,
                 hinting,
@@ -379,6 +428,9 @@ impl BufferLine {
             indent_hanging: false,
             indent_each_line: false,
             text_justify: TextJustify::Auto,
+            keep_all: false,
+            wrap: Wrap::WordOrGlyph,
+            preserve_spaces: false,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -530,5 +582,27 @@ mod tests {
         buffer.shape_until_scroll(&mut font_system, false);
         let inter_character_width = buffer.layout_runs().next().unwrap().line_w;
         assert!((inter_character_width - 120.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn keep_all_suppresses_cjk_line_break_opportunities() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(20.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "日本語",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+
+        buffer.shape_until_scroll(&mut font_system, false);
+        let normal_lines = buffer.layout_runs().count();
+        assert!(normal_lines > 1);
+
+        buffer.lines[0].set_keep_all(true);
+        buffer.shape_until_scroll(&mut font_system, false);
+        assert_eq!(buffer.layout_runs().count(), 1);
     }
 }

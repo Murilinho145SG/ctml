@@ -1,6 +1,6 @@
 use cosmic_text::{
     Align, Attrs, CacheKeyFlags, Color, Family, FeatureTag, FontFeatures, Metrics, Stretch, Style,
-    Weight,
+    Weight, Wrap,
 };
 use ctml_css::{FontRelativeUnits, ViewportSize};
 use std::collections::HashMap;
@@ -8,6 +8,34 @@ use winit::window::CursorIcon;
 
 const DEFAULT_FONT_SIZE: f32 = 16.0;
 const DEFAULT_LINE_HEIGHT: f32 = 20.0;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum WhiteSpace {
+    #[default]
+    Normal,
+    NoWrap,
+    Pre,
+    PreWrap,
+    PreLine,
+    BreakSpaces,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum OverflowWrap {
+    #[default]
+    Normal,
+    BreakWord,
+    Anywhere,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum WordBreak {
+    #[default]
+    Normal,
+    BreakAll,
+    KeepAll,
+    BreakWord,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
@@ -67,6 +95,9 @@ pub(crate) struct TextStyle {
     pub(crate) text_align: Align,
     pub(crate) text_align_last: Option<Align>,
     pub(crate) text_justify: cosmic_text::TextJustify,
+    pub(crate) white_space: WhiteSpace,
+    pub(crate) overflow_wrap: OverflowWrap,
+    pub(crate) word_break: WordBreak,
     pub(crate) text_indent: f32,
     pub(crate) text_indent_percent: f32,
     pub(crate) text_indent_hanging: bool,
@@ -252,6 +283,9 @@ impl Default for TextStyle {
             text_align: Align::Left,
             text_align_last: None,
             text_justify: cosmic_text::TextJustify::Auto,
+            white_space: WhiteSpace::Normal,
+            overflow_wrap: OverflowWrap::Normal,
+            word_break: WordBreak::Normal,
             text_indent: 0.0,
             text_indent_percent: 0.0,
             text_indent_hanging: false,
@@ -269,6 +303,22 @@ impl Default for TextStyle {
             text_emphasis_color: None,
             text_emphasis_position: TextEmphasisPosition::Over,
             custom_properties: HashMap::new(),
+        }
+    }
+}
+
+impl TextStyle {
+    pub(crate) fn wrap_mode(&self) -> Wrap {
+        if matches!(self.white_space, WhiteSpace::NoWrap | WhiteSpace::Pre) {
+            return Wrap::None;
+        }
+        match self.word_break {
+            WordBreak::BreakAll => Wrap::Glyph,
+            WordBreak::BreakWord => Wrap::WordOrGlyph,
+            WordBreak::Normal | WordBreak::KeepAll => match self.overflow_wrap {
+                OverflowWrap::Normal => Wrap::Word,
+                OverflowWrap::BreakWord | OverflowWrap::Anywhere => Wrap::WordOrGlyph,
+            },
         }
     }
 }

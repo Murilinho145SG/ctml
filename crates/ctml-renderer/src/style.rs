@@ -14,9 +14,9 @@ mod text;
 mod text_style;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
-    FontVariantCaps, FontVariantPosition, LayoutHeight, LayoutSize, TextDecorationSkipInk,
-    TextDecorationStyle, TextEmphasisPosition, TextEmphasisStyle, TextShadow, TextStyle,
-    TextTransform,
+    FontVariantCaps, FontVariantPosition, LayoutHeight, LayoutSize, OverflowWrap,
+    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisStyle,
+    TextShadow, TextStyle, TextTransform, WhiteSpace, WordBreak,
 };
 
 pub(super) fn compile_runs_with_font_system(
@@ -376,23 +376,30 @@ pub(super) fn synthesize_font_variant_caps(run: TextRun) -> Vec<TextRun> {
 }
 
 fn trim_runs(runs: &mut Vec<TextRun>) {
-    while runs
-        .first()
-        .is_some_and(|run| run.text.chars().all(char::is_whitespace))
-    {
+    while runs.first().is_some_and(|run| {
+        !keeps_edge_whitespace(run.style.white_space) && run.text.chars().all(char::is_whitespace)
+    }) {
         runs.remove(0);
     }
-    while runs
-        .last()
-        .is_some_and(|run| run.text.chars().all(char::is_whitespace))
-    {
+    while runs.last().is_some_and(|run| {
+        !keeps_edge_whitespace(run.style.white_space) && run.text.chars().all(char::is_whitespace)
+    }) {
         runs.pop();
     }
-    if let Some(last) = runs.last_mut() {
-        let trimmed = last.text.trim_end().to_owned();
+    if let Some(last) = runs.last_mut()
+        && !keeps_edge_whitespace(last.style.white_space)
+    {
+        let trimmed = last.text.trim_end_matches(' ').to_owned();
         last.text = trimmed;
     }
     runs.retain(|run| !run.text.is_empty());
+}
+
+fn keeps_edge_whitespace(white_space: WhiteSpace) -> bool {
+    matches!(
+        white_space,
+        WhiteSpace::Pre | WhiteSpace::PreWrap | WhiteSpace::PreLine | WhiteSpace::BreakSpaces
+    )
 }
 
 #[cfg(test)]

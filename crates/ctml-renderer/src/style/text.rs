@@ -1,4 +1,4 @@
-use super::{TextRun, TextStyle, TextTransform};
+use super::{TextRun, TextStyle, TextTransform, WhiteSpace};
 
 pub fn append_text(
     text: &str,
@@ -8,39 +8,106 @@ pub fn append_text(
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
 ) {
-    for character in text.chars() {
-        if character.is_whitespace() {
-            if !*last_was_space {
+    let preserve_spaces = matches!(
+        style.white_space,
+        WhiteSpace::Pre | WhiteSpace::PreWrap | WhiteSpace::BreakSpaces
+    );
+    let preserve_breaks = matches!(
+        style.white_space,
+        WhiteSpace::Pre | WhiteSpace::PreWrap | WhiteSpace::PreLine | WhiteSpace::BreakSpaces
+    );
+    let mut characters = text.chars().peekable();
+    while let Some(character) = characters.next() {
+        if is_segment_break(character) && preserve_breaks {
+            if character == '\r' && characters.peek() == Some(&'\n') {
+                characters.next();
+            }
+            if style.white_space == WhiteSpace::PreLine {
+                trim_trailing_collapsible(output);
+            }
+            push_character('\n', style, element_path, output);
+            *last_was_space = true;
+            *capitalize_next = true;
+        } else if character.is_whitespace() {
+            if preserve_spaces {
+                push_preserved_space(character, style, element_path, output);
+            } else if !*last_was_space {
                 push_space(style, element_path, output);
             }
             *last_was_space = true;
             *capitalize_next = true;
         } else {
-            match style.text_transform {
-                TextTransform::Uppercase => {
-                    for transformed in character.to_uppercase() {
-                        push_variant_character(transformed, character, style, element_path, output);
-                    }
-                }
-                TextTransform::Lowercase => {
-                    for transformed in character.to_lowercase() {
-                        push_variant_character(transformed, character, style, element_path, output);
-                    }
-                }
-                TextTransform::Capitalize if *capitalize_next => {
-                    for transformed in character.to_uppercase() {
-                        push_variant_character(transformed, character, style, element_path, output);
-                    }
-                }
-                _ => push_variant_character(character, character, style, element_path, output),
-            }
+            push_transformed_character(character, style, element_path, output, *capitalize_next);
             *last_was_space = false;
             *capitalize_next = !character.is_alphanumeric();
         }
     }
 }
 
+fn is_segment_break(character: char) -> bool {
+    matches!(character, '\n' | '\r' | '\u{000c}')
+}
+
+fn trim_trailing_collapsible(output: &mut [TextRun]) {
+    if let Some(last) = output.last_mut() {
+        if matches!(
+            last.style.white_space,
+            WhiteSpace::Pre | WhiteSpace::PreWrap | WhiteSpace::BreakSpaces
+        ) {
+            return;
+        }
+        while last.text.ends_with(' ') {
+            last.text.pop();
+        }
+    }
+}
+
+fn push_transformed_character(
+    character: char,
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+    capitalize_next: bool,
+) {
+    match style.text_transform {
+        TextTransform::Uppercase => {
+            for transformed in character.to_uppercase() {
+                push_variant_character(transformed, character, style, element_path, output);
+            }
+        }
+        TextTransform::Lowercase => {
+            for transformed in character.to_lowercase() {
+                push_variant_character(transformed, character, style, element_path, output);
+            }
+        }
+        TextTransform::Capitalize if capitalize_next => {
+            for transformed in character.to_uppercase() {
+                push_variant_character(transformed, character, style, element_path, output);
+            }
+        }
+        _ => push_variant_character(character, character, style, element_path, output),
+    }
+}
+
 fn push_space(style: &TextStyle, element_path: &[usize], output: &mut Vec<TextRun>) {
+    push_space_character(' ', style, element_path, output);
+}
+
+fn push_preserved_space(
+    character: char,
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+) {
+    push_space_character(character, style, element_path, output);
+}
+
+fn push_space_character(
+    character: char,
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+) {
     let mut space_style = style.clone();
     space_style.word_spacing_space = true;
     let word_spacing = style.word_spacing_px
@@ -53,7 +120,7 @@ fn push_space(style: &TextStyle, element_path: &[usize], output: &mut Vec<TextRu
         } + word_spacing / style.font_size.max(1.0);
         space_style.letter_spacing_px = false;
     }
-    push_character(' ', &space_style, element_path, output);
+    push_character(character, &space_style, element_path, output);
 }
 
 fn push_variant_character(
@@ -73,7 +140,11 @@ pub fn push_line_break(
     last_was_space: &mut bool,
 ) {
     if let Some(last) = output.last_mut() {
-        while last.text.ends_with(' ') {
+        let preserve_spaces = matches!(
+            style.white_space,
+            WhiteSpace::Pre | WhiteSpace::PreWrap | WhiteSpace::BreakSpaces
+        );
+        while !preserve_spaces && last.text.ends_with(' ') {
             last.text.pop();
         }
         if !last.text.ends_with('\n') {

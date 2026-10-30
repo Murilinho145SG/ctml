@@ -23,6 +23,13 @@ use fontdb::Style;
 use unicode_script::{Script, UnicodeScript};
 use unicode_segmentation::UnicodeSegmentation;
 
+fn is_cjk_character(character: char) -> bool {
+    matches!(
+        character.script(),
+        Script::Han | Script::Hiragana | Script::Katakana | Script::Hangul | Script::Bopomofo
+    )
+}
+
 /// The shaping strategy of some text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shaping {
@@ -960,6 +967,29 @@ impl ShapeSpan {
         level: unicode_bidi::Level,
         shaping: Shaping,
     ) {
+        self.build_with_keep_all(
+            font_system,
+            line,
+            attrs_list,
+            span_range,
+            line_rtl,
+            level,
+            shaping,
+            false,
+        );
+    }
+
+    pub fn build_with_keep_all(
+        &mut self,
+        font_system: &mut FontSystem,
+        line: &str,
+        attrs_list: &AttrsList,
+        span_range: Range<usize>,
+        line_rtl: bool,
+        level: unicode_bidi::Level,
+        shaping: Shaping,
+        keep_all: bool,
+    ) {
         let span = &line[span_range.start..span_range.end];
 
         log::trace!(
@@ -981,7 +1011,19 @@ impl ShapeSpan {
         }
 
         let mut start_word = 0;
+        let mut previous_break = 0;
         for (end_lb, _) in unicode_linebreak::linebreaks(span) {
+            let suppress_cjk_break = keep_all
+                && end_lb < span.len()
+                && span[previous_break..end_lb]
+                    .chars()
+                    .next_back()
+                    .is_some_and(is_cjk_character)
+                && span[end_lb..].chars().next().is_some_and(is_cjk_character);
+            previous_break = end_lb;
+            if suppress_cjk_break {
+                continue;
+            }
             // Check if this break opportunity splits a likely ligature (e.g. "|>" or "!=")
             if end_lb > 0 && end_lb < span.len() {
                 let start_idx = span_range.start;
@@ -1352,6 +1394,18 @@ impl ShapeLine {
         shaping: Shaping,
         tab_width: u16,
     ) {
+        self.build_with_keep_all(font_system, line, attrs_list, shaping, tab_width, false);
+    }
+
+    pub fn build_with_keep_all(
+        &mut self,
+        font_system: &mut FontSystem,
+        line: &str,
+        attrs_list: &AttrsList,
+        shaping: Shaping,
+        tab_width: u16,
+        keep_all: bool,
+    ) {
         // Clear stale ellipsis span so it gets recomputed with the current attrs.
         // Without this, reusing a ShapeLine from a previous text (via Cached::Unused)
         // would keep an ellipsis shaped with the old attrs.
@@ -1395,7 +1449,7 @@ impl ShapeLine {
                 if new_level != run_level {
                     // End of the previous run, start of a new one.
                     let mut span = cached_spans.pop().unwrap_or_else(ShapeSpan::empty);
-                    span.build(
+                    span.build_with_keep_all(
                         font_system,
                         line,
                         attrs_list,
@@ -1403,6 +1457,7 @@ impl ShapeLine {
                         line_rtl,
                         run_level,
                         shaping,
+                        keep_all,
                     );
                     spans.push(span);
                     start = i;
@@ -1410,7 +1465,7 @@ impl ShapeLine {
                 }
             }
             let mut span = cached_spans.pop().unwrap_or_else(ShapeSpan::empty);
-            span.build(
+            span.build_with_keep_all(
                 font_system,
                 line,
                 attrs_list,
@@ -1418,6 +1473,7 @@ impl ShapeLine {
                 line_rtl,
                 run_level,
                 shaping,
+                keep_all,
             );
             spans.push(span);
         }
@@ -2346,6 +2402,7 @@ impl ShapeLine {
             false,
             false,
             TextJustify::Auto,
+            false,
             layout_lines,
             match_mono_width,
             hinting,
@@ -2365,6 +2422,7 @@ impl ShapeLine {
         indent_hanging: bool,
         indent_each_line: bool,
         text_justify: TextJustify,
+        preserve_spaces: bool,
         layout_lines: &mut Vec<LayoutLine>,
         match_mono_width: Option<f32>,
         hinting: Hinting,
@@ -2583,7 +2641,7 @@ impl ShapeLine {
                                         .get(i + 1)
                                         .is_some_and(|previous_word| previous_word.blank);
 
-                                    if trailing_blank {
+                                    if trailing_blank && !preserve_spaces {
                                         number_of_blanks = number_of_blanks.saturating_sub(1);
                                         self.add_to_visual_line(
                                             &mut current_visual_line,
@@ -2763,7 +2821,7 @@ impl ShapeLine {
                                     // previous word if it's a whitespace.
                                     let trailing_blank = i > 0 && span.words[i - 1].blank;
 
-                                    if trailing_blank {
+                                    if trailing_blank && !preserve_spaces {
                                         number_of_blanks = number_of_blanks.saturating_sub(1);
                                         self.add_to_visual_line(
                                             &mut current_visual_line,

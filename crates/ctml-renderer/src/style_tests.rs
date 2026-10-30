@@ -1,5 +1,5 @@
 use super::{
-    FontVariantCaps, TextRun, TextStyle, append_text, compile_runs_with_font_system,
+    FontVariantCaps, TextRun, TextStyle, WhiteSpace, append_text, compile_runs_with_font_system,
     synthesize_font_variant_caps,
 };
 use crate::{StyleDeclaration, StyleRule, UiNode};
@@ -50,6 +50,62 @@ fn preserves_small_caps_for_font_feature_shaping() {
     assert_eq!(runs[0].style.font_size, 12.0);
     assert_eq!(runs[0].style.line_height, 20.0);
     assert_eq!(runs[0].style.font_variant_caps, FontVariantCaps::SmallCaps);
+}
+
+#[test]
+fn white_space_modes_collapse_or_preserve_source_text() {
+    let mut runs = Vec::<TextRun>::new();
+    let (mut last_was_space, mut capitalize_next) = (true, false);
+    append_text(
+        "  one \t two\nthree  ",
+        &TextStyle::default(),
+        &[],
+        &mut runs,
+        &mut last_was_space,
+        &mut capitalize_next,
+    );
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "one two three "
+    );
+
+    let pre = TextStyle {
+        white_space: WhiteSpace::Pre,
+        ..TextStyle::default()
+    };
+    runs.clear();
+    last_was_space = false;
+    append_text(
+        "  one \t two\nthree  ",
+        &pre,
+        &[],
+        &mut runs,
+        &mut last_was_space,
+        &mut capitalize_next,
+    );
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "  one \t two\nthree  "
+    );
+
+    let pre_line = TextStyle {
+        white_space: WhiteSpace::PreLine,
+        ..TextStyle::default()
+    };
+    runs.clear();
+    last_was_space = false;
+    append_text(
+        "one \t two\nthree",
+        &pre_line,
+        &[],
+        &mut runs,
+        &mut last_was_space,
+        &mut capitalize_next,
+    );
+    assert_eq!(
+        runs.iter().map(|run| run.text.as_str()).collect::<String>(),
+        "one two\nthree"
+    );
 }
 
 #[test]

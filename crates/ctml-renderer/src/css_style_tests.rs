@@ -564,6 +564,55 @@ fn resolves_text_justify_methods_and_legacy_distribute_alias() {
 }
 
 #[test]
+fn resolves_white_space_and_wrapping_modes() {
+    use super::super::style::{OverflowWrap, WhiteSpace, WordBreak};
+
+    for (value, expected) in [
+        ("normal", WhiteSpace::Normal),
+        ("nowrap", WhiteSpace::NoWrap),
+        ("pre", WhiteSpace::Pre),
+        ("pre-wrap", WhiteSpace::PreWrap),
+        ("pre-line", WhiteSpace::PreLine),
+        ("break-spaces", WhiteSpace::BreakSpaces),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("white-space", value)]).white_space,
+            expected,
+            "{value}"
+        );
+    }
+
+    assert_eq!(
+        style_for_declarations(&[("overflow-wrap", "break-word")]).wrap_mode(),
+        cosmic_text::Wrap::WordOrGlyph
+    );
+    assert_eq!(
+        style_for_declarations(&[("overflow-wrap", "anywhere")]).wrap_mode(),
+        cosmic_text::Wrap::WordOrGlyph
+    );
+    assert_eq!(
+        style_for_declarations(&[("word-break", "break-all")]).wrap_mode(),
+        cosmic_text::Wrap::Glyph
+    );
+    assert_eq!(
+        style_for_declarations(&[("word-break", "keep-all")]).word_break,
+        WordBreak::KeepAll
+    );
+    assert_eq!(
+        style_for_declarations(&[("white-space", "pre")]).wrap_mode(),
+        cosmic_text::Wrap::None
+    );
+    assert_eq!(
+        style_for_declarations(&[("white-space", "nowrap")]).wrap_mode(),
+        cosmic_text::Wrap::None
+    );
+    assert_eq!(
+        style_for_declarations(&[("overflow-wrap", "invalid")]).overflow_wrap,
+        OverflowWrap::Normal
+    );
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);
