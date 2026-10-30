@@ -324,11 +324,14 @@ pub(super) fn first_formatted_letters(
         {
             continue;
         }
-        if span.character.is_whitespace() {
-            continue;
-        }
         first_letters
             .entry(block)
+            .and_modify(|(line, start, end): &mut (usize, usize, usize)| {
+                if *line == span.line {
+                    *start = (*start).min(span.start);
+                    *end = (*end).max(span.end);
+                }
+            })
             .or_insert((span.line, span.start, span.end));
     }
     first_letters

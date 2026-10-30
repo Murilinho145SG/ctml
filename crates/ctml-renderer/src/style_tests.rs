@@ -354,7 +354,7 @@ fn synthesizes_small_caps_when_the_font_has_no_feature() {
     };
     let runs = synthesize_font_variant_caps(TextRun {
         text: "aB".to_owned(),
-        source_first_non_whitespace: Some('a'),
+        source_first_letter_character: Some('a'),
         style,
         element_path: Vec::new(),
         selection_background: Some([255, 0, 0, 255]),
@@ -408,7 +408,7 @@ fn rounds_synthetic_caps_to_a_pixel_size() {
         };
         let runs = synthesize_font_variant_caps(TextRun {
             text: "a".to_owned(),
-            source_first_non_whitespace: Some('a'),
+            source_first_letter_character: Some('a'),
             style,
             element_path: Vec::new(),
             selection_background: None,

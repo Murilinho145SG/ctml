@@ -27,6 +27,14 @@ fn first_line_text_transform_changes_only_the_formatted_first_line() {
                 value: "uppercase".to_owned(),
             }],
         },
+        StyleRule {
+            selectors: vec!["p::first-letter".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-weight".to_owned(),
+                value: "700".to_owned(),
+            }],
+        },
     ];
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
     page.snapshot_pixels(180, 120);

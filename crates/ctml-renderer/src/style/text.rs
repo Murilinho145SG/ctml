@@ -1,4 +1,5 @@
 use super::{TextRun, TextStyle, TextTransform, WhiteSpace};
+use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 pub fn append_text(
     text: &str,
@@ -175,13 +176,15 @@ fn push_character_with_source(
         && last.element_path == element_path
     {
         last.text.push(character);
-        if last.source_first_non_whitespace.is_none() && !source_character.is_whitespace() {
-            last.source_first_non_whitespace = Some(source_character);
+        if last.source_first_letter_character.is_none()
+            && is_first_letter_character(source_character)
+        {
+            last.source_first_letter_character = Some(source_character);
         }
     } else {
         output.push(TextRun {
             text: character.to_string(),
-            source_first_non_whitespace: (!source_character.is_whitespace())
+            source_first_letter_character: is_first_letter_character(source_character)
                 .then_some(source_character),
             style: style.clone(),
             element_path: element_path.to_vec(),
@@ -201,4 +204,22 @@ fn push_character_with_source(
             first_letter_font_style: None,
         });
     }
+}
+
+fn is_first_letter_character(character: char) -> bool {
+    matches!(
+        character.general_category(),
+        GeneralCategory::UppercaseLetter
+            | GeneralCategory::LowercaseLetter
+            | GeneralCategory::TitlecaseLetter
+            | GeneralCategory::ModifierLetter
+            | GeneralCategory::OtherLetter
+            | GeneralCategory::DecimalNumber
+            | GeneralCategory::LetterNumber
+            | GeneralCategory::OtherNumber
+            | GeneralCategory::MathSymbol
+            | GeneralCategory::CurrencySymbol
+            | GeneralCategory::ModifierSymbol
+            | GeneralCategory::OtherSymbol
+    )
 }

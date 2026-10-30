@@ -168,12 +168,15 @@ pub(super) fn compile_runs_with_font_system(
             run.first_line_background = first_line.background;
             run.first_line_decoration = first_line.decoration;
             run.first_line_opacity = first_line.opacity;
+            let mut first_letter_inherited = first_line.resolved.clone();
+            first_letter_inherited.opacity = run.style.opacity;
+            first_letter_inherited.vertical_align_offset = run.style.vertical_align_offset;
             run.first_line_font_style = first_line
                 .has_rendered_text_style
                 .then_some(first_line.resolved);
             run.first_letter_block = Some(block.node_id);
             let first_letter = css_style::first_letter_style(
-                &run.style,
+                &first_letter_inherited,
                 &block.element,
                 block.position,
                 &selector_tree,
@@ -183,7 +186,9 @@ pub(super) fn compile_runs_with_font_system(
             run.first_letter_background = first_letter.background;
             run.first_letter_decoration = first_letter.decoration;
             run.first_letter_opacity = first_letter.opacity;
-            run.first_letter_font_style = Some(first_letter.resolved);
+            run.first_letter_font_style = first_letter
+                .has_rendered_text_style
+                .then_some(first_letter.resolved);
         }
     }
     pseudo::style_first_letters(&mut runs);
@@ -193,7 +198,7 @@ pub(super) fn compile_runs_with_font_system(
 #[derive(Clone)]
 pub(super) struct TextRun {
     pub(super) text: String,
-    pub(super) source_first_non_whitespace: Option<char>,
+    pub(super) source_first_letter_character: Option<char>,
     pub(super) style: TextStyle,
     pub(super) element_path: Vec<usize>,
     pub(super) selection_background: Option<[u8; 4]>,

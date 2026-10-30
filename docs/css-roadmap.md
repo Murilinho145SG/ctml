@@ -45,11 +45,12 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Element-scoped `::selection` background colors.
 - [x] Global and element-scoped `::selection` foreground colors.
 - [x] `::first-line` foreground and background colors on the first formatted line of a block.
-- [x] `::first-letter` foreground and background colors on the first non-whitespace character of a block.
+- [x] `::first-letter` foreground and background colors on the first typographic character and its associated punctuation.
 - [x] `text-decoration-line` values `underline`, `overline`, and `line-through` on `::first-line` and `::first-letter`, with supported decoration style, color, and thickness.
-- [x] `::first-letter` applies `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch` to its first non-whitespace character.
+- [x] `::first-letter` applies `font-family`, `font-size`, `font-weight`, `font-style`, and `font-stretch` to the first typographic character and its associated punctuation.
 - [x] `::first-letter` also applies supported font kerning, variant, feature, line-height, letter-spacing, text-shadow, and text-emphasis properties to that character.
 - [x] `::first-letter` applies `font-optical-sizing` and `font-variation-settings` to the initial glyph.
+- [x] `::first-letter` includes the first typographic character and associated Unicode punctuation and intervening spaces across adjacent text runs; `text-transform` changes the character while preserving the punctuation.
 - [x] `::first-line` font family, size, weight, style, stretch, kerning, supported variants/features, and letter spacing in glyph rendering; wrapping and line metrics still come from the base text layout.
 - [x] `::first-line` applies `font-optical-sizing` and `font-variation-settings` during glyph rendering.
 - [x] Apply `text-rendering` to `::first-line` and `::first-letter` glyph shaping.

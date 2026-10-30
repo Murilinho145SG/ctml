@@ -16,6 +16,7 @@ skia-safe = {
 }
 thiserror.workspace = true
 unicode-segmentation.workspace = true
+unicode-properties = "0.1.4"
 wgpu.workspace = true
 winit.workspace = true
 

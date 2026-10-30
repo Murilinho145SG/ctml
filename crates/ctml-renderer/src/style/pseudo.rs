@@ -1,130 +1,18 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-
 use cssparser::{Parser, ParserInput, ToCss, Token};
+use std::collections::HashMap;
 
-use crate::style::TextTransform;
 use crate::{StyleDeclaration, StyleRule, css_style, style::TextStyle};
 use ctml_css::{
     ElementIdentity, SelectorPosition, SelectorSibling, SelectorTreeElement,
     selector_matches_with_selector_tree_context, selector_specificity,
 };
 
+mod first_letter;
+pub(super) use first_letter::style_first_letters;
+
 pub(super) struct GeneratedContent {
     pub(super) text: String,
     pub(super) style: TextStyle,
-}
-
-pub(super) fn style_first_letters(runs: &mut Vec<super::TextRun>) {
-    let mut styled_blocks = HashSet::new();
-    let mut output = Vec::with_capacity(runs.len());
-    for run in runs.drain(..) {
-        let Some(block) = run.first_letter_block else {
-            output.push(run);
-            continue;
-        };
-        if styled_blocks.contains(&block) {
-            output.push(run);
-            continue;
-        }
-        let Some((start, character)) = run
-            .text
-            .char_indices()
-            .find(|(_, character)| !character.is_whitespace())
-        else {
-            output.push(run);
-            continue;
-        };
-        let source_character = run.source_first_non_whitespace.unwrap_or(character);
-        let original_transform = apply_text_transform(source_character, run.style.text_transform);
-        let selected_character_count = original_transform.chars().count().max(1);
-        let end = run.text[start..]
-            .char_indices()
-            .nth(selected_character_count)
-            .map_or(run.text.len(), |(offset, _)| start + offset);
-        if start > 0 {
-            let mut prefix = run.clone();
-            prefix.text = run.text[..start].to_owned();
-            prefix.source_first_non_whitespace = None;
-            prefix.first_letter_font_style = None;
-            output.push(prefix);
-        }
-        let mut first_letter = run.clone();
-        first_letter.text = apply_text_transform(
-            source_character,
-            run.first_letter_font_style
-                .as_ref()
-                .map_or(run.style.text_transform, |style| style.text_transform),
-        );
-        first_letter.source_first_non_whitespace = Some(source_character);
-        if let Some(pseudo_style) = &run.first_letter_font_style {
-            first_letter.style.family.clone_from(&pseudo_style.family);
-            first_letter.style.font_size = pseudo_style.font_size;
-            first_letter.style.font_scale = pseudo_style.font_scale;
-            first_letter.style.weight = pseudo_style.weight;
-            first_letter.style.font_style = pseudo_style.font_style;
-            first_letter.style.stretch = pseudo_style.stretch;
-            first_letter.style.kerning = pseudo_style.kerning;
-            first_letter.style.common_ligatures = pseudo_style.common_ligatures;
-            first_letter.style.discretionary_ligatures = pseudo_style.discretionary_ligatures;
-            first_letter.style.historical_ligatures = pseudo_style.historical_ligatures;
-            first_letter.style.contextual_alternates = pseudo_style.contextual_alternates;
-            first_letter.style.font_variant_caps = pseudo_style.font_variant_caps;
-            first_letter.style.font_variant_position = pseudo_style.font_variant_position;
-            first_letter.style.text_rendering = pseudo_style.text_rendering;
-            first_letter.style.font_optical_sizing = pseudo_style.font_optical_sizing;
-            first_letter
-                .style
-                .font_variation_settings
-                .clone_from(&pseudo_style.font_variation_settings);
-            first_letter
-                .style
-                .font_variant_numeric
-                .clone_from(&pseudo_style.font_variant_numeric);
-            first_letter
-                .style
-                .font_variant_east_asian
-                .clone_from(&pseudo_style.font_variant_east_asian);
-            first_letter
-                .style
-                .font_feature_settings
-                .clone_from(&pseudo_style.font_feature_settings);
-            first_letter.style.line_height = pseudo_style.line_height;
-            first_letter.style.line_height_multiplier = pseudo_style.line_height_multiplier;
-            first_letter.style.line_height_normal = pseudo_style.line_height_normal;
-            first_letter.style.vertical_align_offset = pseudo_style.vertical_align_offset;
-            first_letter.style.letter_spacing = pseudo_style.letter_spacing;
-            first_letter.style.letter_spacing_px = pseudo_style.letter_spacing_px;
-            first_letter
-                .style
-                .text_shadows
-                .clone_from(&pseudo_style.text_shadows);
-            first_letter
-                .style
-                .text_emphasis_style
-                .clone_from(&pseudo_style.text_emphasis_style);
-            first_letter.style.text_emphasis_color = pseudo_style.text_emphasis_color;
-            first_letter.style.text_emphasis_position = pseudo_style.text_emphasis_position;
-        }
-        first_letter.first_letter_font_style = None;
-        output.push(first_letter);
-        if end < run.text.len() {
-            let mut suffix = run.clone();
-            suffix.text = run.text[end..].to_owned();
-            suffix.first_letter_font_style = None;
-            output.push(suffix);
-        }
-        styled_blocks.insert(block);
-    }
-    *runs = output;
-}
-
-fn apply_text_transform(character: char, transform: TextTransform) -> String {
-    match transform {
-        TextTransform::Uppercase | TextTransform::Capitalize => character.to_uppercase().collect(),
-        TextTransform::Lowercase => character.to_lowercase().collect(),
-        TextTransform::None => character.to_string(),
-    }
 }
 
 #[allow(clippy::too_many_arguments)]
