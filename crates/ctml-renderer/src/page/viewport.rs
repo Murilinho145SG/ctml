@@ -16,17 +16,18 @@ pub(super) fn resize_styles(
         width: width as f32,
         height: height as f32,
     };
-    let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
-        &page.nodes,
-        &page.stylesheet,
-        &page.hovered_path,
-        &page.active_path,
-        &page.focused_path,
-        page.keyboard_focus,
-        Some(&page.font_system),
-        &page.color_profiles,
-        viewport,
-    );
+    let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+        compile_runs_with_opacity_map(
+            &page.nodes,
+            &page.stylesheet,
+            &page.hovered_path,
+            &page.active_path,
+            &page.focused_path,
+            page.keyboard_focus,
+            Some(&page.font_system),
+            &page.color_profiles,
+            viewport,
+        );
     page.runs = compiled_runs
         .into_iter()
         .flat_map(|run| {
@@ -39,6 +40,7 @@ pub(super) fn resize_styles(
         })
         .collect();
     page.opacity_groups = opacity_groups;
+    page.mix_blend_modes = mix_blend_modes;
     page.decoration_opacity_scales.clear();
     page.root_opacity = root_style.opacity;
     page.root_style = root_style;

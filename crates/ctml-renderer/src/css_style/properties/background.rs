@@ -16,29 +16,39 @@ pub(super) fn apply_background_image(style: &mut TextStyle, value: &str) {
 pub(super) fn apply_background_blend_mode(style: &mut TextStyle, value: &str) {
     let modes = split_top_level_commas(value)
         .into_iter()
-        .map(|mode| match mode.trim().to_ascii_lowercase().as_str() {
-            "normal" => Some(BackgroundBlendMode::Normal),
-            "multiply" => Some(BackgroundBlendMode::Multiply),
-            "screen" => Some(BackgroundBlendMode::Screen),
-            "overlay" => Some(BackgroundBlendMode::Overlay),
-            "darken" => Some(BackgroundBlendMode::Darken),
-            "lighten" => Some(BackgroundBlendMode::Lighten),
-            "color-dodge" => Some(BackgroundBlendMode::ColorDodge),
-            "color-burn" => Some(BackgroundBlendMode::ColorBurn),
-            "hard-light" => Some(BackgroundBlendMode::HardLight),
-            "soft-light" => Some(BackgroundBlendMode::SoftLight),
-            "difference" => Some(BackgroundBlendMode::Difference),
-            "exclusion" => Some(BackgroundBlendMode::Exclusion),
-            "hue" => Some(BackgroundBlendMode::Hue),
-            "saturation" => Some(BackgroundBlendMode::Saturation),
-            "color" => Some(BackgroundBlendMode::Color),
-            "luminosity" => Some(BackgroundBlendMode::Luminosity),
-            _ => None,
-        })
+        .map(parse_blend_mode)
         .collect::<Option<Vec<_>>>();
     if let Some(modes) = modes.filter(|modes| !modes.is_empty()) {
         style.background_blend_modes = modes;
     }
+}
+
+pub(super) fn apply_mix_blend_mode(style: &mut TextStyle, value: &str) {
+    if let Some(mode) = parse_blend_mode(value) {
+        style.mix_blend_mode = mode;
+    }
+}
+
+pub(super) fn parse_blend_mode(value: &str) -> Option<BackgroundBlendMode> {
+    Some(match value.trim().to_ascii_lowercase().as_str() {
+        "normal" => BackgroundBlendMode::Normal,
+        "multiply" => BackgroundBlendMode::Multiply,
+        "screen" => BackgroundBlendMode::Screen,
+        "overlay" => BackgroundBlendMode::Overlay,
+        "darken" => BackgroundBlendMode::Darken,
+        "lighten" => BackgroundBlendMode::Lighten,
+        "color-dodge" => BackgroundBlendMode::ColorDodge,
+        "color-burn" => BackgroundBlendMode::ColorBurn,
+        "hard-light" => BackgroundBlendMode::HardLight,
+        "soft-light" => BackgroundBlendMode::SoftLight,
+        "difference" => BackgroundBlendMode::Difference,
+        "exclusion" => BackgroundBlendMode::Exclusion,
+        "hue" => BackgroundBlendMode::Hue,
+        "saturation" => BackgroundBlendMode::Saturation,
+        "color" => BackgroundBlendMode::Color,
+        "luminosity" => BackgroundBlendMode::Luminosity,
+        _ => return None,
+    })
 }
 
 pub(super) fn apply_background_repeat(style: &mut TextStyle, value: &str) {

@@ -18,6 +18,7 @@ use aspect_ratio::apply_aspect_ratio;
 use background::{
     apply_background_blend_mode, apply_background_color, apply_background_image,
     apply_background_position, apply_background_repeat, apply_background_size,
+    apply_mix_blend_mode,
 };
 use background_attachment::apply_background_attachment;
 use background_box::{

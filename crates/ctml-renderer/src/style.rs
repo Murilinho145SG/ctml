@@ -42,7 +42,7 @@ pub(super) fn compile_runs_with_font_system(
     color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
-    let (runs, root_style, _) = compile_runs_with_opacity_map(
+    let (runs, root_style, _, _) = compile_runs_with_opacity_map(
         nodes,
         stylesheet,
         hovered_path,
@@ -66,7 +66,12 @@ pub(super) fn compile_runs_with_opacity_map(
     font_system: Option<&cosmic_text::FontSystem>,
     color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
-) -> (Vec<TextRun>, TextStyle, HashMap<usize, f32>) {
+) -> (
+    Vec<TextRun>,
+    TextStyle,
+    HashMap<usize, f32>,
+    HashMap<usize, BackgroundBlendMode>,
+) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
         node_id: 0,
@@ -138,6 +143,7 @@ pub(super) fn compile_runs_with_opacity_map(
     let mut quote_depth = 0;
     let mut counters = HashMap::new();
     let mut opacity_groups = HashMap::new();
+    let mut mix_blend_modes = HashMap::new();
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -155,6 +161,7 @@ pub(super) fn compile_runs_with_opacity_map(
             &selector_tree,
             &inherited_root_style,
             &mut opacity_groups,
+            &mut mix_blend_modes,
             root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,
@@ -234,7 +241,7 @@ pub(super) fn compile_runs_with_opacity_map(
         }
     }
     pseudo::style_first_letters(&mut runs);
-    (runs, root_style, opacity_groups)
+    (runs, root_style, opacity_groups, mix_blend_modes)
 }
 
 #[derive(Clone)]

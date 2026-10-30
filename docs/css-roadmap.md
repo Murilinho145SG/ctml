@@ -196,7 +196,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `accent-color`, `color-scheme`, and color adjustment properties.
 - [ ] Blend modes and isolation.
   - [x] `background-blend-mode` for normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, and luminosity modes.
-  - [ ] `mix-blend-mode`, stacking-context interaction, and `isolation`.
+  - [x] `mix-blend-mode` for all standard blend modes on element subtrees.
+  - [ ] Root `body` blend mode, stacking-context interaction, and `isolation`.
 
 ## Box model and sizing
 
@@ -353,7 +354,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] 2D and 3D transforms and perspective.
 - [ ] Blend modes, compositing, and isolation.
   - [x] Blend background image layers with `background-blend-mode`.
-  - [ ] `mix-blend-mode` and `isolation` across element stacking contexts.
+  - [x] `mix-blend-mode` on element subtrees.
+  - [ ] Root `body` blend mode and `isolation` across stacking contexts.
 - [ ] Image rendering and object fit/position for replaced content.
 
 ## Interaction and user interface

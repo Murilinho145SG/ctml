@@ -7,7 +7,10 @@ use crate::{
     StyleRule, UiNode,
     font_family::resolve_family_list,
     page::pixel::PixelRenderer,
-    style::{TextRun, TextStyle, compile_runs_with_opacity_map, synthesize_font_variant_caps},
+    style::{
+        BackgroundBlendMode, TextRun, TextStyle, compile_runs_with_opacity_map,
+        synthesize_font_variant_caps,
+    },
 };
 
 mod background_blend;
@@ -79,6 +82,7 @@ pub(crate) struct PageRasterizer {
     root_style: TextStyle,
     root_opacity: f32,
     opacity_groups: HashMap<usize, f32>,
+    mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
     decoration_opacity_scales: Vec<f32>,
     selection_background_color: [u8; 4],
     selection: Option<(Cursor, Cursor)>,
@@ -126,17 +130,18 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
-        let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
-            nodes,
-            stylesheet,
-            &[],
-            &[],
-            &[],
-            false,
-            Some(&font_system),
-            color_profiles,
-            ctml_css::ViewportSize::default(),
-        );
+        let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+            compile_runs_with_opacity_map(
+                nodes,
+                stylesheet,
+                &[],
+                &[],
+                &[],
+                false,
+                Some(&font_system),
+                color_profiles,
+                ctml_css::ViewportSize::default(),
+            );
         let focus_manager = focus::FocusManager::new(nodes);
         let selection_background_color =
             crate::css_style::selection_background_color(stylesheet, color_profiles);
@@ -180,6 +185,7 @@ impl PageRasterizer {
             root_style,
             root_opacity,
             opacity_groups,
+            mix_blend_modes,
             decoration_opacity_scales: Vec::new(),
             selection_background_color,
             selection: None,
@@ -545,23 +551,24 @@ impl PageRasterizer {
     }
 
     fn rebuild_interaction_styles(&mut self) {
-        let (compiled_runs, root_style, opacity_groups) = compile_runs_with_opacity_map(
-            &self.nodes,
-            &self.stylesheet,
-            &self.hovered_path,
-            &self.active_path,
-            &self.focused_path,
-            self.keyboard_focus,
-            Some(&self.font_system),
-            &self.color_profiles,
-            self.layout_size
-                .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
-                    ctml_css::ViewportSize {
-                        width: width as f32,
-                        height: height as f32,
-                    }
-                }),
-        );
+        let (compiled_runs, root_style, opacity_groups, mix_blend_modes) =
+            compile_runs_with_opacity_map(
+                &self.nodes,
+                &self.stylesheet,
+                &self.hovered_path,
+                &self.active_path,
+                &self.focused_path,
+                self.keyboard_focus,
+                Some(&self.font_system),
+                &self.color_profiles,
+                self.layout_size
+                    .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
+                        ctml_css::ViewportSize {
+                            width: width as f32,
+                            height: height as f32,
+                        }
+                    }),
+            );
         self.runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
@@ -574,6 +581,7 @@ impl PageRasterizer {
             })
             .collect();
         self.opacity_groups = opacity_groups;
+        self.mix_blend_modes = mix_blend_modes;
         self.decoration_opacity_scales.clear();
         self.root_opacity = root_style.opacity;
         self.root_style = root_style;

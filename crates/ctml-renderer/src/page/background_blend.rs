@@ -1,5 +1,7 @@
 use crate::style::BackgroundBlendMode;
 
+use skia_safe::{AlphaType, ColorSpace, ColorType, Data, ImageInfo, Paint, Point, surfaces};
+
 pub(super) fn to_skia(mode: BackgroundBlendMode) -> skia_safe::BlendMode {
     use skia_safe::BlendMode;
     match mode {
@@ -20,4 +22,53 @@ pub(super) fn to_skia(mode: BackgroundBlendMode) -> skia_safe::BlendMode {
         BackgroundBlendMode::Color => BlendMode::Color,
         BackgroundBlendMode::Luminosity => BlendMode::Luminosity,
     }
+}
+
+pub(super) fn composite_with_mode(
+    destination: &mut [u8],
+    black: &[u8],
+    white: &[u8],
+    opacity: f32,
+    mode: BackgroundBlendMode,
+    width: u32,
+    height: u32,
+) {
+    if width == 0 || height == 0 {
+        return;
+    }
+    let mut source = vec![0; black.len()];
+    for ((source, black), white) in source
+        .chunks_exact_mut(4)
+        .zip(black.chunks_exact(4))
+        .zip(white.chunks_exact(4))
+    {
+        source[..3].copy_from_slice(&black[..3]);
+        let transmittance = (0..3)
+            .map(|channel| (i16::from(white[channel]) - i16::from(black[channel])) as f32 / 255.0)
+            .sum::<f32>()
+            / 3.0;
+        source[3] = ((1.0 - transmittance).clamp(0.0, 1.0) * 255.0).round() as u8;
+    }
+    let info = ImageInfo::new(
+        (width as i32, height as i32),
+        ColorType::RGBA8888,
+        AlphaType::Premul,
+        ColorSpace::new_srgb(),
+    );
+    let Some(image) =
+        skia_safe::images::raster_from_data(&info, Data::new_copy(&source), width as usize * 4)
+    else {
+        return;
+    };
+    let Some(mut surface) =
+        surfaces::wrap_pixels(&info, destination, Some(width as usize * 4), None)
+    else {
+        return;
+    };
+    let mut paint = Paint::default();
+    paint.set_blend_mode(to_skia(mode));
+    paint.set_alpha_f(opacity.clamp(0.0, 1.0));
+    surface
+        .canvas()
+        .draw_image(&image, Point::new(0.0, 0.0), Some(&paint));
 }

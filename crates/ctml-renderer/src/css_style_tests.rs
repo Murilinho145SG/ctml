@@ -48,6 +48,37 @@ fn resolves_background_blend_mode_lists_and_ignores_invalid_lists() {
 }
 
 #[test]
+fn resolves_mix_blend_mode_and_ignores_invalid_keywords() {
+    for (keyword, expected) in [
+        ("normal", BackgroundBlendMode::Normal),
+        ("multiply", BackgroundBlendMode::Multiply),
+        ("screen", BackgroundBlendMode::Screen),
+        ("overlay", BackgroundBlendMode::Overlay),
+        ("darken", BackgroundBlendMode::Darken),
+        ("lighten", BackgroundBlendMode::Lighten),
+        ("color-dodge", BackgroundBlendMode::ColorDodge),
+        ("color-burn", BackgroundBlendMode::ColorBurn),
+        ("hard-light", BackgroundBlendMode::HardLight),
+        ("soft-light", BackgroundBlendMode::SoftLight),
+        ("difference", BackgroundBlendMode::Difference),
+        ("exclusion", BackgroundBlendMode::Exclusion),
+        ("hue", BackgroundBlendMode::Hue),
+        ("saturation", BackgroundBlendMode::Saturation),
+        ("color", BackgroundBlendMode::Color),
+        ("luminosity", BackgroundBlendMode::Luminosity),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("mix-blend-mode", keyword)]).mix_blend_mode,
+            expected,
+            "{keyword}"
+        );
+    }
+
+    let invalid = style_for_declarations(&[("mix-blend-mode", "multiply-ish")]);
+    assert_eq!(invalid.mix_blend_mode, BackgroundBlendMode::Normal);
+}
+
+#[test]
 fn resolves_numeric_weight_font_style_and_stretch() {
     let style = style_for_declarations(&[
         ("font-weight", "350"),

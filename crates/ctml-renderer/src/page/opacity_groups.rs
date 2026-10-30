@@ -1,5 +1,5 @@
 use super::PageRasterizer;
-use crate::style::WritingMode;
+use crate::style::{BackgroundBlendMode, WritingMode};
 use std::collections::HashSet;
 
 const BLACK: [u8; 3] = [0, 0, 0];
@@ -32,7 +32,15 @@ impl PageRasterizer {
                 if opacity > 0.0 && opacity < 1.0 {
                     let (black, white) =
                         self.render_group_layer(node_id, width, height, writing_mode);
-                    composite_group_layer(&mut pixels, &black, &white, opacity);
+                    composite_group_layer(
+                        &mut pixels,
+                        &black,
+                        &white,
+                        opacity,
+                        self.mix_blend_modes[&node_id],
+                        width,
+                        height,
+                    );
                 } else if opacity == 0.0 {
                     continue;
                 } else {
@@ -88,7 +96,15 @@ impl PageRasterizer {
                 if opacity > 0.0 && opacity < 1.0 {
                     let (black, white) =
                         self.render_group_layer(child, width, height, writing_mode);
-                    composite_group_layer(&mut pixels, &black, &white, opacity);
+                    composite_group_layer(
+                        &mut pixels,
+                        &black,
+                        &white,
+                        opacity,
+                        self.mix_blend_modes[&child],
+                        width,
+                        height,
+                    );
                 } else if opacity == 0.0 {
                     continue;
                 } else {
@@ -204,13 +220,29 @@ impl PageRasterizer {
             false,
             true,
         );
-        composite_group_layer(pixels, &black, &white, 1.0);
+        composite_group_layer(
+            pixels,
+            &black,
+            &white,
+            1.0,
+            self.mix_blend_modes[&node_id],
+            width,
+            height,
+        );
         for child in self.child_ids(node_id) {
             if let Some(opacity) = self.opacity_groups.get(&child).copied() {
                 if opacity > 0.0 && opacity < 1.0 {
                     let (black, white) =
                         self.render_group_layer(child, width, height, writing_mode);
-                    composite_group_layer(pixels, &black, &white, opacity);
+                    composite_group_layer(
+                        pixels,
+                        &black,
+                        &white,
+                        opacity,
+                        self.mix_blend_modes[&child],
+                        width,
+                        height,
+                    );
                 } else if opacity == 0.0 {
                     continue;
                 } else {
@@ -274,7 +306,27 @@ fn adjust_decoration_opacity(
     }
 }
 
-fn composite_group_layer(destination: &mut [u8], black: &[u8], white: &[u8], opacity: f32) {
+fn composite_group_layer(
+    destination: &mut [u8],
+    black: &[u8],
+    white: &[u8],
+    opacity: f32,
+    blend_mode: BackgroundBlendMode,
+    width: u32,
+    height: u32,
+) {
+    if blend_mode != BackgroundBlendMode::Normal {
+        super::background_blend::composite_with_mode(
+            destination,
+            black,
+            white,
+            opacity,
+            blend_mode,
+            width,
+            height,
+        );
+        return;
+    }
     for ((destination, black), white) in destination
         .chunks_exact_mut(4)
         .zip(black.chunks_exact(4))

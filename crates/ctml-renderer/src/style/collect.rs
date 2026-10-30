@@ -53,6 +53,7 @@ pub(super) fn collect_runs(
     selector_tree: &[SelectorTreeElement],
     inherited: &TextStyle,
     opacity_groups: &mut HashMap<usize, f32>,
+    mix_blend_modes: &mut HashMap<usize, super::BackgroundBlendMode>,
     page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
@@ -172,6 +173,7 @@ pub(super) fn collect_runs(
                     inherited.bidi_isolate_direction
                 };
                 opacity_groups.insert(sibling.node_id, style.opacity);
+                mix_blend_modes.insert(sibling.node_id, style.mix_blend_mode);
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     element_index += 1;
@@ -391,6 +393,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     &style,
                     opacity_groups,
+                    mix_blend_modes,
                     page_writing_mode,
                     font_metrics,
                     output,
