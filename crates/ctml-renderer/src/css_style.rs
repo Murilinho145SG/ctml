@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+mod attributes;
 mod font_units;
 mod font_variant;
 mod style_helpers;
 mod variables;
 
+use attributes::substitute_attr_functions;
 pub(super) use font_units::{
     resolve_style_with_selector_tree_context,
     resolve_style_with_selector_tree_context_and_font_units,
@@ -366,6 +368,7 @@ fn apply_matching_styles_inner(
         }
         let (value, _) = declaration_value(&declaration.value);
         let Some(value) = substitute_vars(value, &style.custom_properties)
+            .and_then(|value| substitute_attr_functions(&value, attributes))
             .filter(|value| !value.trim().is_empty())
         else {
             apply_color_declaration(style, "unset", inherited_color);
@@ -390,6 +393,7 @@ fn apply_matching_styles_inner(
         }
         let (value, _) = declaration_value(&declaration.value);
         let value = substitute_vars(value, &style.custom_properties)
+            .and_then(|value| substitute_attr_functions(&value, attributes))
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "unset".to_owned());
         apply_declaration_with_inherited(style, &declaration.property, &value, &inherited_style);

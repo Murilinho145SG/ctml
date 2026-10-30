@@ -1,7 +1,10 @@
 use cosmic_text::{Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
-use super::{ElementIdentity, resolve_style, selector_matches, selector_specificity};
+use super::{
+    ElementIdentity, resolve_style, resolve_style_with_attributes, selector_matches,
+    selector_specificity,
+};
 use crate::{
     StyleDeclaration, StyleRule,
     style::{TextDecorationStyle, TextStyle},
@@ -43,6 +46,45 @@ fn resolves_numeric_weight_font_style_and_stretch() {
     assert_eq!(style.weight, Weight(350));
     assert_eq!(style.font_style, Style::Oblique);
     assert_eq!(style.stretch, Stretch::Condensed);
+}
+
+#[test]
+fn resolves_typed_attr_values_in_supported_style_properties() {
+    let rule = StyleRule {
+        selectors: vec![".sample".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "attr(data-size type(<length>),)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "opacity".to_owned(),
+                value: "attr(data-opacity type(<number>), 0.5)".to_owned(),
+            },
+            StyleDeclaration {
+                property: "letter-spacing".to_owned(),
+                value: "attr(data-missing type(<length>), 3px)".to_owned(),
+            },
+        ],
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: Some("sample".to_owned()),
+        id: None,
+    };
+    let attributes = [
+        ("data-size".to_owned(), Some("22px".to_owned())),
+        ("data-opacity".to_owned(), Some("invalid".to_owned())),
+    ];
+
+    let style =
+        resolve_style_with_attributes(&TextStyle::default(), &paragraph, &[], &attributes, &[rule]);
+
+    assert_eq!(style.font_size, 22.0);
+    assert_eq!(style.opacity, 0.5);
+    assert_eq!(style.letter_spacing, 3.0);
+    assert!(style.letter_spacing_px);
 }
 
 #[test]
