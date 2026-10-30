@@ -10,6 +10,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
         "contain" => {
             style.paint_contained = inherited.paint_contained;
             style.size_contained = inherited.size_contained;
+            style.inline_size_contained = inherited.inline_size_contained;
         }
         "overflow" => {
             style.overflow_x = inherited.overflow_x;
@@ -226,6 +227,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "contain" => {
             style.paint_contained = false;
             style.size_contained = false;
+            style.inline_size_contained = false;
         }
         "overflow" => {
             style.overflow_x = Overflow::Visible;

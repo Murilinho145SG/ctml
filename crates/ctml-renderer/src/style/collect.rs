@@ -281,6 +281,7 @@ pub(super) fn collect_runs(
                         overflow_y: style.overflow_y,
                         paint_contained: style.paint_contained,
                         size_contained: style.size_contained,
+                        inline_size_contained: style.inline_size_contained,
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

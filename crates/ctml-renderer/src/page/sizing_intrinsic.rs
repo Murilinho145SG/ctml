@@ -55,6 +55,9 @@ pub(super) fn resolve_intrinsic_layout_width(
     value: &str,
     available: f32,
 ) -> Option<f32> {
+    if size.inline_size_contained {
+        return Some(0.0);
+    }
     resolve_intrinsic_width(
         value,
         available,

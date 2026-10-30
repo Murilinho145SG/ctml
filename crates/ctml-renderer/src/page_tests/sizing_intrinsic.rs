@@ -58,6 +58,44 @@ fn nested_intrinsic_width_keywords_measure_their_own_text() {
     );
 }
 
+#[test]
+fn contain_inline_size_removes_intrinsic_width_contribution() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("small word ".repeat(8))],
+    }];
+    let line_count = |contained: bool| {
+        let mut declarations = vec![StyleDeclaration {
+            property: "width".to_owned(),
+            value: "max-content".to_owned(),
+        }];
+        if contained {
+            declarations.push(StyleDeclaration {
+                property: "contain".to_owned(),
+                value: "inline-size".to_owned(),
+            });
+        }
+        let mut page = PageRasterizer::new(
+            &nodes,
+            &[StyleRule {
+                selectors: vec!["p".to_owned()],
+                layer: None,
+                declarations,
+            }],
+        );
+        page.prepare_layout(400, 300);
+        page.buffer.layout_runs().count()
+    };
+
+    let natural_lines = line_count(false);
+    let contained_lines = line_count(true);
+    assert_eq!(natural_lines, 1);
+    assert!(contained_lines > natural_lines);
+}
+
 fn line_count_with_rule(selector: &str, property: &str, value: &str, text: String) -> usize {
     let nodes = [UiNode::Text(text)];
     let stylesheet = [StyleRule {
