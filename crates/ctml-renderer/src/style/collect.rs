@@ -218,7 +218,7 @@ pub(super) fn collect_runs(
                 )
                 .is_some();
                 let block = style.display_block.unwrap_or_else(|| is_block(tag));
-                if block
+                let has_block_size = block
                     && (style.width.is_some()
                         || style.min_width.is_some()
                         || style.max_width.is_some()
@@ -230,8 +230,8 @@ pub(super) fn collect_runs(
                         || style.max_height.is_some()
                         || style.block_size.is_some()
                         || style.min_block_size.is_some()
-                        || style.max_block_size.is_some())
-                {
+                        || style.max_block_size.is_some());
+                if has_block_size {
                     style.layout_sizes.push(LayoutSize {
                         node_id: sibling.node_id,
                         width: style.width.clone(),
@@ -256,28 +256,6 @@ pub(super) fn collect_runs(
                 }
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
-                    if style.width.is_some()
-                        || style.min_width.is_some()
-                        || style.max_width.is_some()
-                        || style.inline_size.is_some()
-                        || style.min_inline_size.is_some()
-                        || style.max_inline_size.is_some()
-                        || style.height.is_some()
-                        || style.min_height.is_some()
-                        || style.max_height.is_some()
-                        || style.block_size.is_some()
-                        || style.min_block_size.is_some()
-                        || style.max_block_size.is_some()
-                    {
-                        if let Some(layout_size) = style
-                            .layout_sizes
-                            .iter()
-                            .find(|size| size.node_id == sibling.node_id)
-                            && let Some(last_run) = output.last_mut()
-                        {
-                            last_run.style.layout_end_sizes.push(layout_size.clone());
-                        }
-                    }
                     *capitalize_next = true;
                 }
                 path.push(identity.clone());
@@ -410,6 +388,33 @@ pub(super) fn collect_runs(
                         last_was_space,
                         capitalize_next,
                     );
+                }
+                if has_block_size
+                    && (!children.is_empty() || before_content.is_some() || has_after_content)
+                {
+                    let last_was_space_before = *last_was_space;
+                    let capitalize_next_before = *capitalize_next;
+                    let mut end_marker_style = style.clone();
+                    end_marker_style.layout_sizes.clear();
+                    end_marker_style.layout_end_sizes.clear();
+                    append_text(
+                        "\u{200b}",
+                        &end_marker_style,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                    *last_was_space = last_was_space_before;
+                    *capitalize_next = capitalize_next_before;
+                    if let Some(layout_size) = style
+                        .layout_sizes
+                        .iter()
+                        .find(|size| size.node_id == sibling.node_id)
+                        && let Some(last_run) = output.last_mut()
+                    {
+                        last_run.style.layout_end_sizes.push(layout_size.clone());
+                    }
                 }
                 path.pop();
                 element_path.pop();

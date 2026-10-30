@@ -3,7 +3,10 @@ use std::collections::HashMap;
 
 use crate::style::{LayoutSize, TextRun, WritingMode};
 
-use super::sizing::{is_vertical, resolve_layout_height, select_axis_size};
+use super::{
+    sizing::{is_vertical, select_axis_size},
+    sizing_height::resolve_content_block_height,
+};
 
 pub(super) fn block_spacer_heights(
     runs: &[TextRun],
@@ -135,25 +138,27 @@ pub(super) fn block_spacer_heights(
             physical_max_name,
         )
         .flatten();
-        let requested_height = resolve_layout_height(
+        let requested_height = resolve_content_block_height(
             block_size,
             min_block_size,
             max_block_size,
+            content_height,
             available_height,
             size.font_size,
             size.line_height,
             size.font_relative_units,
             size.viewport_size,
         );
-        let extra_height = (requested_height - content_height).max(0.0);
-        if extra_height <= 0.0 {
+        let flow_adjustment = requested_height - content_height;
+        if flow_adjustment.abs() < f32::EPSILON {
             continue;
         }
 
-        spacers.insert(node_id, extra_height);
+        spacers.insert(node_id, flow_adjustment);
         let mut ancestor = parents.get(&node_id).copied();
         while let Some(ancestor_id) = ancestor {
-            *content_heights.entry(ancestor_id).or_default() += extra_height;
+            let content_height = content_heights.entry(ancestor_id).or_default();
+            *content_height = (*content_height + flow_adjustment).max(0.0);
             ancestor = parents.get(&ancestor_id).copied();
         }
     }
@@ -172,7 +177,7 @@ pub(super) fn insert_block_spacers(
             let Some(height) = spacer_heights.get(&size.node_id).copied() else {
                 continue;
             };
-            if height <= 0.0 {
+            if height == 0.0 {
                 continue;
             }
             let mut style = run.style.clone();

@@ -9,7 +9,8 @@ use crate::{
 
 use super::{
     CursorSpan, PageRasterizer,
-    sizing::{line_layout_sizes, resolve_layout_height, resolve_layout_width, select_axis_size},
+    sizing::{line_layout_sizes, resolve_layout_width, select_axis_size},
+    sizing_height::resolve_layout_height,
 };
 
 pub(super) fn line_alignments(

@@ -58,6 +58,8 @@ mod pseudo_vertical_align;
 mod selection;
 #[path = "page_tests/sizing.rs"]
 mod sizing;
+#[path = "page_tests/sizing_overflow.rs"]
+mod sizing_overflow;
 #[path = "page_tests/viewport_units.rs"]
 mod viewport_units;
 

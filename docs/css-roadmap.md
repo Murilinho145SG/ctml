@@ -186,8 +186,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-greek`, `lower-roman`, and `upper-roman`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
 - [ ] Remaining `display` values and CSS formatting box generation.
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` size the inline axis for horizontal and page-root vertical writing modes.
-- [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; content-bearing block `height` and `min-height` reserve remaining space, and `max-height` caps the requested space when content fits. `block-size` and its min/max forms size the block axis for horizontal and page-root vertical writing modes.
-- [ ] Fixed and maximum height overflow behavior for content-bearing blocks, and sizing behavior beyond text flow.
+- [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space. `block-size` and its min/max forms size the block axis for horizontal and page-root vertical writing modes.
+- [x] Content-bearing fixed heights and `max-height`/`max-block-size` use the requested used block extent for following flow, keep overflowing text visible under the default `overflow: visible`, and size auto-height blocks from content before applying maximums.
+- [ ] Clipping, scrolling, and additional sizing behavior beyond text flow for content-bearing blocks.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.
 - [ ] Apply `border-box` to padding and borders; intrinsic sizing keywords.
 - [ ] Margin, padding, and logical margin/padding properties.
