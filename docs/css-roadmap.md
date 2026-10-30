@@ -68,6 +68,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Scale alpha for supported first-line and first-letter text, backgrounds, shadows, and decorations with pseudo-element `opacity`.
 - [x] Apply `vertical-align` values `baseline`, `sub`, `super`, `middle`, `text-top`, `text-bottom`, `top`, `bottom`, signed lengths, and percentages of line height to `::first-line` and `::first-letter` glyphs.
 - [x] `::first-letter` physical and logical border shorthands, side shorthands, and side longhands for width, style, and color paint around the initial glyph.
+- [x] `::first-letter` applies the supported `border-image` source, slice, repeat, width, and outset values, including shorthand expansion, around the initial glyph.
 - [x] `::first-letter` outer and inset `box-shadow` paint around the initial letter's inline box.
 - [x] `::first-letter` border-radius values round the initial glyph's painted border.
 - [x] `::first-line` border-radius rounds its supported background colors and images.

@@ -1,4 +1,4 @@
-use crate::style::{BorderImageOutset, BorderImageRepeat, LayoutSize};
+use crate::style::{BorderImageOutset, BorderImageRepeat, LayoutSize, TextStyle};
 use skia_safe::{
     AlphaType, ColorSpace, ColorType, Data, Image, ImageInfo, Paint, Rect,
     canvas::SrcRectConstraint, surfaces,
@@ -17,7 +17,68 @@ pub(super) fn draw(
     opacity: f32,
     clip: Option<overflow_clip::ClipRect>,
 ) -> bool {
-    let Some(encoded) = size.border_image_source.as_ref() else {
+    draw_parts(
+        pixels,
+        width,
+        height,
+        size.border_image_source.as_ref(),
+        size.border_image_slice,
+        size.border_image_fill,
+        size.border_image_repeat,
+        size.border_image_width,
+        size.border_image_outset,
+        rect,
+        border_widths,
+        opacity,
+        clip,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn draw_inline(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    style: &TextStyle,
+    rect: overflow_clip::ClipRect,
+    border_widths: [f32; 4],
+    opacity: f32,
+    clip: Option<overflow_clip::ClipRect>,
+) -> bool {
+    draw_parts(
+        pixels,
+        width,
+        height,
+        style.border_image_source.as_ref(),
+        style.border_image_slice,
+        style.border_image_fill,
+        style.border_image_repeat,
+        style.border_image_width,
+        style.border_image_outset,
+        rect,
+        border_widths,
+        opacity,
+        clip,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_parts(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    encoded: Option<&std::sync::Arc<[u8]>>,
+    border_image_slice: [crate::style::BorderImageSlice; 4],
+    border_image_fill: bool,
+    border_image_repeat: [BorderImageRepeat; 2],
+    border_image_width: [Option<crate::style::BorderImageWidth>; 4],
+    border_image_outset: [Option<BorderImageOutset>; 4],
+    rect: overflow_clip::ClipRect,
+    border_widths: [f32; 4],
+    opacity: f32,
+    clip: Option<overflow_clip::ClipRect>,
+) -> bool {
+    let Some(encoded) = encoded else {
         return false;
     };
     let Some(image) = Image::from_encoded(Data::new_copy(encoded.as_ref())) else {
@@ -28,29 +89,29 @@ pub(super) fn draw(
     if image_width <= 0.0 || image_height <= 0.0 {
         return false;
     }
-    let mut slices = size.border_image_slice.map(|slice| {
+    let mut slices = border_image_slice.map(|slice| {
         if slice.percentage {
             slice.value
         } else {
             slice.value
         }
     });
-    slices[0] *= if size.border_image_slice[0].percentage {
+    slices[0] *= if border_image_slice[0].percentage {
         image_height
     } else {
         1.0
     };
-    slices[2] *= if size.border_image_slice[2].percentage {
+    slices[2] *= if border_image_slice[2].percentage {
         image_height
     } else {
         1.0
     };
-    slices[1] *= if size.border_image_slice[1].percentage {
+    slices[1] *= if border_image_slice[1].percentage {
         image_width
     } else {
         1.0
     };
-    slices[3] *= if size.border_image_slice[3].percentage {
+    slices[3] *= if border_image_slice[3].percentage {
         image_width
     } else {
         1.0
@@ -58,7 +119,7 @@ pub(super) fn draw(
     (slices[3], slices[1]) = scale_opposing_slices(slices[3], slices[1], image_width);
     (slices[0], slices[2]) = scale_opposing_slices(slices[0], slices[2], image_height);
 
-    let outsets: [f32; 4] = std::array::from_fn(|side| match size.border_image_outset[side] {
+    let outsets: [f32; 4] = std::array::from_fn(|side| match border_image_outset[side] {
         Some(BorderImageOutset::Number(multiplier)) => border_widths[side] * multiplier,
         Some(BorderImageOutset::Length(length)) => length,
         None => 0.0,
@@ -69,7 +130,7 @@ pub(super) fn draw(
     let bottom = rect.bottom + outsets[2];
     let image_widths: [f32; 4] = std::array::from_fn(|side| {
         let border_width = border_widths[side];
-        match size.border_image_width[side] {
+        match border_image_width[side] {
             Some(crate::style::BorderImageWidth::Number(multiplier)) => border_width * multiplier,
             Some(crate::style::BorderImageWidth::Length(length)) => length,
             Some(crate::style::BorderImageWidth::Percentage(percentage)) => {
@@ -120,7 +181,7 @@ pub(super) fn draw(
     paint.set_alpha_f(opacity.clamp(0.0, 1.0));
     for row in 0..3 {
         for column in 0..3 {
-            if row == 1 && column == 1 && !size.border_image_fill {
+            if row == 1 && column == 1 && !border_image_fill {
                 continue;
             }
             let source = Rect::from_ltrb(
@@ -143,11 +204,11 @@ pub(super) fn draw(
                 continue;
             }
             let repeat_x = match (row, column) {
-                (1, 1) | (0 | 2, 1) => size.border_image_repeat[0],
+                (1, 1) | (0 | 2, 1) => border_image_repeat[0],
                 _ => BorderImageRepeat::Stretch,
             };
             let repeat_y = match (row, column) {
-                (1, 1) | (1, 0 | 2) => size.border_image_repeat[1],
+                (1, 1) | (1, 0 | 2) => border_image_repeat[1],
                 _ => BorderImageRepeat::Stretch,
             };
             let center_natural_size = (row == 1 && column == 1).then(|| {

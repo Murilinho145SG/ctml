@@ -186,6 +186,14 @@ fn apply_first_letter_style(
     style.border_width.clone_from(&pseudo_style.border_width);
     style.border_style = pseudo_style.border_style;
     style.border_color = pseudo_style.border_color;
+    style
+        .border_image_source
+        .clone_from(&pseudo_style.border_image_source);
+    style.border_image_slice = pseudo_style.border_image_slice;
+    style.border_image_fill = pseudo_style.border_image_fill;
+    style.border_image_repeat = pseudo_style.border_image_repeat;
+    style.border_image_width = pseudo_style.border_image_width;
+    style.border_image_outset = pseudo_style.border_image_outset;
     style.box_shadows.clone_from(&pseudo_style.box_shadows);
     style.border_radius.clone_from(&pseudo_style.border_radius);
     style.outline_width.clone_from(&pseudo_style.outline_width);

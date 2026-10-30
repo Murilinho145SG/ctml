@@ -61,7 +61,8 @@ pub(super) fn draw(
                 .style
                 .border_style
                 .iter()
-                .any(|style| *style != BorderLineStyle::None);
+                .any(|style| *style != BorderLineStyle::None)
+                || run.style.border_image_source.is_some();
             let has_outline = run.first_letter_block.is_some()
                 && !matches!(
                     run.style.outline_style,
@@ -113,7 +114,9 @@ pub(super) fn draw(
                 );
             let has_background = has_inline_background(run);
             let widths: [f32; 4] = std::array::from_fn(|side| {
-                if style.border_style[side] == BorderLineStyle::None {
+                if style.border_style[side] == BorderLineStyle::None
+                    && style.border_image_source.is_none()
+                {
                     return 0.0;
                 }
                 match style.border_width[side].as_deref().unwrap_or("medium") {
@@ -297,6 +300,25 @@ pub(super) fn draw(
                     &parent_path,
                     clips,
                 );
+            }
+            if style.border_image_source.is_some()
+                && super::border_images::draw_inline(
+                    pixels,
+                    width,
+                    height,
+                    style,
+                    overflow_clip::ClipRect {
+                        left,
+                        top,
+                        right: left + length,
+                        bottom: top + fragment_height,
+                    },
+                    widths,
+                    style.opacity * run.first_letter_opacity.unwrap_or(1.0),
+                    clip,
+                )
+            {
+                continue;
             }
             if run.first_letter_block.is_some()
                 && style.border_radius.iter().flatten().any(Option::is_some)
