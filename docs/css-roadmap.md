@@ -194,7 +194,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Basic scrollbar visuals for page-root `overflow: scroll` and overflowing `auto` axes; thumb size and position follow formatted content and scroll offset.
 - [x] Nested `overflow-y: auto | scroll` scrolling and scrollbar visuals for content-bearing blocks under a horizontal page root.
 - [x] Nested `overflow-x: auto | scroll` scrolling and scrollbar visuals for content-bearing blocks under a horizontal page root.
-- [ ] Nested scrollers under a vertical page root and nested scroll-chain composition.
+- [x] Nested scroll-chain composition under a horizontal page root, passing unconsumed wheel deltas from inner scrollers to their ancestors and then to the page root.
+- [ ] Nested scrollers under a vertical page root.
 - [ ] Overflow clipping for nested orthogonal blocks under a vertical page root.
 - [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and both values cascade correctly. The text-flow model has no padding or borders yet, so the values currently produce the same text area.

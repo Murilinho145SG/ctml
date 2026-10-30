@@ -212,6 +212,57 @@ fn nested_overflow_x_scrolls_unwrapped_text_horizontally() {
     }));
 }
 
+#[test]
+fn nested_scroll_chains_to_parent_scrollers_at_inner_boundaries() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("outer".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("inner".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("nested scroll chain ".repeat(48))],
+            }],
+        }],
+    }];
+    let overflow_rule = |class: &str, height: &str| StyleRule {
+        selectors: vec![format!(".{class}")],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "height".to_owned(),
+                value: height.to_owned(),
+            },
+            StyleDeclaration {
+                property: "overflow-y".to_owned(),
+                value: "auto".to_owned(),
+            },
+        ],
+    };
+    let stylesheet = [
+        overflow_rule("outer", "48px"),
+        overflow_rule("inner", "24px"),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.snapshot_pixels(300, 120);
+
+    assert!(page.scroll_by_at(0.0, -10_000.0, 32.0, 24.0));
+
+    let inner = page.nested_scroll.get(&2).copied().unwrap_or_default();
+    let outer = page.nested_scroll.get(&1).copied().unwrap_or_default();
+    assert!(inner.1 > 0.0);
+    assert!(outer.1 > 0.0);
+    assert_eq!(page.buffer.scroll(), cosmic_text::Scroll::default());
+}
+
 fn text_paragraph(text: &str) -> UiNode {
     UiNode::Element {
         tag: "p".to_owned(),

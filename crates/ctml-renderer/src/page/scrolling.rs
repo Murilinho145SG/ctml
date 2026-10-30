@@ -22,8 +22,11 @@ impl PageRasterizer {
                     pointer_y as f32,
                 )
             });
-            if let Some((node_id, max_x, max_y)) =
-                nested_scroll_target(&self.runs, &self.overflow_geometry, layout_x, layout_y)
+            let mut remaining_x = delta_x;
+            let mut remaining_y = delta_y;
+            let mut nested_changed = false;
+            for (node_id, max_x, max_y) in
+                nested_scroll_targets(&self.runs, &self.overflow_geometry, layout_x, layout_y)
             {
                 let current = self
                     .nested_scroll
@@ -31,14 +34,18 @@ impl PageRasterizer {
                     .copied()
                     .unwrap_or_default();
                 let next = (
-                    (current.0 - delta_x).clamp(0.0, max_x),
-                    (current.1 - delta_y).clamp(0.0, max_y),
+                    (current.0 - remaining_x).clamp(0.0, max_x),
+                    (current.1 - remaining_y).clamp(0.0, max_y),
                 );
                 if next != current {
                     self.nested_scroll.insert(node_id, next);
-                    return true;
+                    remaining_x += next.0 - current.0;
+                    remaining_y += next.1 - current.1;
+                    nested_changed = true;
                 }
             }
+            let page_changed = self.scroll_by(remaining_x, remaining_y);
+            return nested_changed || page_changed;
         }
         self.scroll_by(delta_x, delta_y)
     }
@@ -104,14 +111,14 @@ pub(super) fn user_scrollable_axes(x: Overflow, y: Overflow) -> (bool, bool) {
     (is_user_scrollable(x, y), is_user_scrollable(y, x))
 }
 
-fn nested_scroll_target(
+fn nested_scroll_targets(
     runs: &[crate::style::TextRun],
     geometry: &std::collections::HashMap<usize, super::overflow_clip::BlockGeometry>,
     pointer_x: f32,
     pointer_y: f32,
-) -> Option<(usize, f32, f32)> {
+) -> Vec<(usize, f32, f32)> {
     let mut candidates = HashSet::new();
-    let mut target: Option<(usize, f32, f32, usize)> = None;
+    let mut targets = Vec::new();
     for run in runs {
         for size in &run.style.layout_sizes {
             if !candidates.insert(size.node_id) {
@@ -151,12 +158,14 @@ fn nested_scroll_target(
                 .iter()
                 .position(|node_id| *node_id == size.node_id)
                 .unwrap_or_default();
-            if target.is_none_or(|(_, _, _, current_depth)| depth >= current_depth) {
-                target = Some((size.node_id, max_x, max_y, depth));
-            }
+            targets.push((size.node_id, max_x, max_y, depth));
         }
     }
-    target.map(|(node_id, max_x, max_y, _)| (node_id, max_x, max_y))
+    targets.sort_by_key(|(_, _, _, depth)| std::cmp::Reverse(*depth));
+    targets
+        .into_iter()
+        .map(|(node_id, max_x, max_y, _)| (node_id, max_x, max_y))
+        .collect()
 }
 
 pub(super) fn scrollbar_axis(value: Overflow, other: Overflow) -> Option<bool> {
