@@ -61,4 +61,11 @@ mod tests {
             assert_eq!(parse_css_percentage(value), None, "{value}");
         }
     }
+
+    #[test]
+    fn parses_decimal_numbers_independently_of_locale_conventions() {
+        assert_eq!(parse_css_number("1.5"), Some(1.5));
+        assert_eq!(parse_css_number("1,5"), None);
+        assert_eq!(parse_css_number("١٫٥"), None);
+    }
 }

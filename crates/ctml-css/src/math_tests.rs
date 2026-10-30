@@ -58,8 +58,11 @@ fn evaluates_number_expressions_separately_from_lengths() {
 fn evaluates_css_round_with_strategies_and_typed_intervals() {
     assert_eq!(parse_math_number("round(1.5)"), Some(2.0));
     assert_eq!(parse_math_number("round(nearest, -1.5)"), Some(-1.0));
+    assert_eq!(parse_math_number("round(nearest, -2.5)"), Some(-2.0));
     assert_eq!(parse_math_number("round(up, -1.2)"), Some(-1.0));
+    assert_eq!(parse_math_number("round(up, 1.2)"), Some(2.0));
     assert_eq!(parse_math_number("round(down, 1.2)"), Some(1.0));
+    assert_eq!(parse_math_number("round(down, -1.2)"), Some(-2.0));
     assert_eq!(parse_math_number("round(to-zero, -1.2)"), Some(-1.0));
     assert_eq!(parse("round(12.5px, 5px)"), Some(15.0));
     assert_eq!(parse("round(-12.5px, 5px)"), Some(-10.0));
