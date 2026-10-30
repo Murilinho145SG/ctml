@@ -227,13 +227,14 @@ pub(super) fn shape_buffer(page: &mut PageRasterizer, content_width: f32, conten
         Shaping::Advanced,
         Some(page.root_style.text_align),
     );
-    for (line, align) in page
+    for (line, (align, align_last)) in page
         .buffer
         .lines
         .iter_mut()
         .zip(line_alignments(&page.runs))
     {
         line.set_align(Some(align));
+        line.set_align_last(align_last);
     }
     page.buffer.shape_until_scroll(&mut page.font_system, false);
     let line_sizes = line_layout_sizes(&page.runs, page.buffer.lines.len());

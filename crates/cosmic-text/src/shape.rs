@@ -2307,6 +2307,33 @@ impl ShapeLine {
         match_mono_width: Option<f32>,
         hinting: Hinting,
     ) {
+        self.layout_to_buffer_with_last_align(
+            scratch,
+            font_size,
+            width_opt,
+            wrap,
+            ellipsize,
+            align,
+            None,
+            layout_lines,
+            match_mono_width,
+            hinting,
+        );
+    }
+
+    pub fn layout_to_buffer_with_last_align(
+        &self,
+        scratch: &mut ShapeBuffer,
+        font_size: f32,
+        width_opt: Option<f32>,
+        wrap: Wrap,
+        ellipsize: Ellipsize,
+        align: Option<Align>,
+        align_last: Option<Align>,
+        layout_lines: &mut Vec<LayoutLine>,
+        match_mono_width: Option<f32>,
+        hinting: Hinting,
+    ) {
         // For each visual line a list of  (span index,  and range of words in that span)
         // Note that a BiDi visual line could have multiple spans or parts of them
         // let mut vl_range_of_spans = Vec::with_capacity(1);
@@ -2797,6 +2824,11 @@ impl ShapeLine {
             if visual_line.ranges.is_empty() {
                 continue;
             }
+            let line_align = if index == number_of_visual_lines - 1 {
+                align_last.unwrap_or(align)
+            } else {
+                align
+            };
 
             let new_order = self.reorder(&visual_line.ranges);
 
@@ -2807,14 +2839,16 @@ impl ShapeLine {
             let mut y = 0.;
             let mut max_ascent: f32 = 0.;
             let mut max_descent: f32 = 0.;
-            let alignment_correction = match (align, self.rtl) {
+            let alignment_correction = match (line_align, self.rtl) {
                 (Align::Left, true) => (line_width - visual_line.w).max(0.),
                 (Align::Left, false) => 0.,
                 (Align::Right, true) => 0.,
                 (Align::Right, false) => (line_width - visual_line.w).max(0.),
                 (Align::Center, _) => (line_width - visual_line.w).max(0.) / 2.0,
+                (Align::Start, true) => 0.,
+                (Align::Start, false) => 0.,
                 (Align::End, _) => (line_width - visual_line.w).max(0.),
-                (Align::Justified, _) => 0.,
+                (Align::Justified | Align::JustifiedLast, _) => 0.,
             };
 
             if self.rtl {
@@ -2842,11 +2876,9 @@ impl ShapeLine {
             //  still be expanded)
 
             // Amount of extra width added to each blank space within a line.
-            let justification_expansion = if matches!(align, Align::Justified)
-                && visual_line.spaces > 0
-                // Don't justify the last line in a paragraph.
-                && index != number_of_visual_lines - 1
-            {
+            let should_justify = matches!(line_align, Align::JustifiedLast)
+                || (matches!(line_align, Align::Justified) && index != number_of_visual_lines - 1);
+            let justification_expansion = if should_justify && visual_line.spaces > 0 {
                 (line_width - visual_line.w) / visual_line.spaces as f32
             } else {
                 0.
@@ -3042,7 +3074,7 @@ impl ShapeLine {
             }
 
             layout_lines.push(LayoutLine {
-                w: if align != Align::Justified {
+                w: if !matches!(line_align, Align::Justified | Align::JustifiedLast) {
                     visual_line.w
                 } else if self.rtl {
                     start_x - x

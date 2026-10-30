@@ -1,4 +1,4 @@
-use cosmic_text::{Stretch, Style, Weight};
+use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{FontVariantPosition, TextStyle, TextTransform};
@@ -128,6 +128,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "word-spacing"
             | "text-transform"
             | "text-align"
+            | "text-align-last"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -229,6 +230,7 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         }
         "text-transform" => style.text_transform = inherited.text_transform,
         "text-align" => style.text_align = inherited.text_align,
+        "text-align-last" => style.text_align_last = inherited.text_align_last,
         "text-decoration" => {
             inherit_text_decoration(style, inherited);
         }
@@ -320,6 +322,7 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         }
         "text-transform" => style.text_transform = TextTransform::None,
         "text-align" => style.text_align = cosmic_text::Align::Left,
+        "text-align-last" => style.text_align_last = None,
         "text-decoration" | "text-decoration-line" => {
             if property == "text-decoration" {
                 reset_text_decoration(style);
@@ -526,12 +529,25 @@ fn apply_declaration(
         }
         "text-align" => {
             style.text_align = match value.to_ascii_lowercase().as_str() {
-                "left" | "start" => cosmic_text::Align::Left,
+                "left" => cosmic_text::Align::Left,
+                "start" => cosmic_text::Align::Start,
                 "right" => cosmic_text::Align::Right,
                 "end" => cosmic_text::Align::End,
                 "center" => cosmic_text::Align::Center,
                 "justify" => cosmic_text::Align::Justified,
                 _ => style.text_align,
+            };
+        }
+        "text-align-last" => {
+            style.text_align_last = match value.to_ascii_lowercase().as_str() {
+                "auto" => None,
+                "left" => Some(Align::Left),
+                "start" => Some(Align::Start),
+                "right" => Some(Align::Right),
+                "end" => Some(Align::End),
+                "center" => Some(Align::Center),
+                "justify" => Some(Align::JustifiedLast),
+                _ => style.text_align_last,
             };
         }
         "text-decoration"

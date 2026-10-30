@@ -16,6 +16,7 @@ pub struct BufferLine {
     ending: LineEnding,
     attrs_list: AttrsList,
     align: Option<Align>,
+    align_last: Option<Align>,
     shape_opt: Cached<ShapeLine>,
     layout_opt: Cached<Vec<LayoutLine>>,
     shaping: Shaping,
@@ -37,6 +38,7 @@ impl BufferLine {
             ending,
             attrs_list,
             align: None,
+            align_last: None,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping,
@@ -58,6 +60,7 @@ impl BufferLine {
         self.ending = ending;
         self.attrs_list = attrs_list;
         self.align = None;
+        self.align_last = None;
         self.shape_opt.set_unused();
         self.layout_opt.set_unused();
         self.shaping = shaping;
@@ -155,6 +158,17 @@ impl BufferLine {
         }
     }
 
+    /// Set a special alignment for the final visual line of this paragraph.
+    pub fn set_align_last(&mut self, align: Option<Align>) -> bool {
+        if align != self.align_last {
+            self.align_last = align;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Append line at end of this line
     ///
     /// The wrap setting of the appended line will be lost
@@ -190,6 +204,7 @@ impl BufferLine {
         // To preserve line endings, it moves to the new line
         self.ending = LineEnding::None;
         new.align = self.align;
+        new.align_last = self.align_last;
         new
     }
 
@@ -255,18 +270,20 @@ impl BufferLine {
     ) -> &[LayoutLine] {
         if self.layout_opt.is_unused() {
             let align = self.align;
+            let align_last = self.align_last;
             let mut layout = self
                 .layout_opt
                 .take_unused()
                 .unwrap_or_else(|| Vec::with_capacity(1));
             let shape = self.shape(font_system, tab_width);
-            shape.layout_to_buffer(
+            shape.layout_to_buffer_with_last_align(
                 &mut font_system.shape_buffer,
                 font_size,
                 width_opt,
                 wrap,
                 ellipsize,
                 align,
+                align_last,
                 &mut layout,
                 match_mono_width,
                 hinting,
@@ -306,6 +323,7 @@ impl BufferLine {
             ending: LineEnding::None,
             attrs_list: AttrsList::new(&Attrs::new()),
             align: None,
+            align_last: None,
             shape_opt: Cached::Empty,
             layout_opt: Cached::Empty,
             shaping: Shaping::Advanced,
@@ -327,5 +345,41 @@ impl BufferLine {
         let mut text = mem::take(&mut self.text);
         text.clear();
         text
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Buffer, Metrics};
+
+    #[test]
+    fn aligns_the_last_wrapped_visual_line_independently() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(80.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "one two three four five six seven eight",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+        buffer.lines[0].set_align_last(Some(Align::Center));
+        buffer.shape_until_scroll(&mut font_system, false);
+
+        let runs: Vec<_> = buffer.layout_runs().collect();
+        assert!(runs.len() > 1, "text should wrap to multiple visual lines");
+        let last = runs.last().expect("wrapped lines should have a final line");
+        let left = last
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .min_by(f32::total_cmp)
+            .expect("final visual line should contain glyphs");
+        assert!(
+            left > 0.0,
+            "centered final line should have a positive offset"
+        );
     }
 }

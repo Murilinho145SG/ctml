@@ -428,16 +428,17 @@ fn is_underline_descender(character: char) -> bool {
     matches!(character, 'g' | 'j' | 'p' | 'q' | 'y')
 }
 
-fn line_alignments(runs: &[TextRun]) -> Vec<cosmic_text::Align> {
-    let mut alignments = vec![cosmic_text::Align::Left];
+fn line_alignments(runs: &[TextRun]) -> Vec<(cosmic_text::Align, Option<cosmic_text::Align>)> {
+    let mut alignments = vec![(cosmic_text::Align::Left, None)];
     let mut line_has_text = false;
     for run in runs {
         for character in run.text.chars() {
             if character == '\n' {
-                alignments.push(run.style.text_align);
+                alignments.push((run.style.text_align, run.style.text_align_last));
                 line_has_text = false;
             } else if !line_has_text {
-                *alignments.last_mut().expect("at least one text line") = run.style.text_align;
+                *alignments.last_mut().expect("at least one text line") =
+                    (run.style.text_align, run.style.text_align_last);
                 line_has_text = true;
             }
         }

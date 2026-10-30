@@ -41,6 +41,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "word-spacing",
     "text-transform",
     "text-align",
+    "text-align-last",
     "text-decoration",
     "text-decoration-line",
     "text-decoration-style",

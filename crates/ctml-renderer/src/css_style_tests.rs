@@ -527,6 +527,18 @@ fn resolves_supported_text_alignment_values() {
         style_for_declarations(&[("text-align", "justify")]).text_align,
         cosmic_text::Align::Justified
     );
+    assert_eq!(
+        style_for_declarations(&[("text-align", "start")]).text_align,
+        cosmic_text::Align::Start
+    );
+    assert_eq!(
+        style_for_declarations(&[("text-align-last", "justify")]).text_align_last,
+        Some(cosmic_text::Align::JustifiedLast)
+    );
+    assert_eq!(
+        style_for_declarations(&[("text-align-last", "auto")]).text_align_last,
+        None
+    );
 }
 
 #[test]
