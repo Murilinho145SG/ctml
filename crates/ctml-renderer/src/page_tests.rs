@@ -42,6 +42,8 @@ mod first_letter_transform;
 mod first_line_transform;
 #[path = "page_tests/font_relative_units.rs"]
 mod font_relative_units;
+#[path = "page_tests/hyphens.rs"]
+mod hyphens;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
 #[path = "page_tests/parity.rs"]

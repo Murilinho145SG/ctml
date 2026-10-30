@@ -234,8 +234,72 @@ pub(super) fn draw(
                     }
                 }
             }
+            if let Some(style) = text_style {
+                draw_conditional_hyphens(
+                    canvas,
+                    shaper.as_ref(),
+                    &run,
+                    group,
+                    &font,
+                    style,
+                    baseline,
+                    color,
+                    opacity,
+                );
+            }
             start = end;
         }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_conditional_hyphens(
+    canvas: &skia_safe::Canvas,
+    shaper: Option<&Shaper>,
+    line: &cosmic_text::LayoutRun<'_>,
+    glyphs: &[cosmic_text::LayoutGlyph],
+    font: &Font,
+    style: &TextStyle,
+    baseline: f32,
+    color: cosmic_text::Color,
+    opacity: f32,
+) {
+    let Some(shaper) = shaper else {
+        return;
+    };
+    let line_end = line.glyphs.iter().map(|glyph| glyph.end).max().unwrap_or(0);
+    for glyph in glyphs {
+        if glyph.end != line_end
+            || line.text.get(glyph.start..glyph.end) != Some("\u{00ad}")
+            || line
+                .text
+                .get(glyph.end..)
+                .is_none_or(|remaining| remaining.is_empty() || remaining.starts_with('\n'))
+        {
+            continue;
+        }
+        let Some(blob) = shape_group(
+            shaper,
+            "\u{2010}",
+            font,
+            style,
+            glyph.level.number(),
+            Point::new(
+                glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
+                baseline + PAGE_PADDING + font.metrics().1.ascent,
+            ),
+        ) else {
+            continue;
+        };
+        let mut paint = Paint::default();
+        paint.set_color(Color::from_argb(
+            scale_alpha(color.a(), opacity),
+            color.r(),
+            color.g(),
+            color.b(),
+        ));
+        draw_text_shadows(canvas, &blob, style, opacity);
+        canvas.draw_text_blob(blob, Point::default(), &paint);
     }
 }
 

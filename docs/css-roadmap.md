@@ -222,7 +222,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `white-space` collapsing and preservation (`normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`), `overflow-wrap` (`normal`, `break-word`, `anywhere`), and `word-break` (`normal`, `break-all`, `keep-all`, `break-word`). Intrinsic min-content sizing differences for `anywhere` are not modeled.
 - [x] `line-break`: parses `auto`, `loose`, `normal`, `strict`, and `anywhere`; `anywhere` allows glyph-level breaks. `strict`/`loose` CJK tailoring is not modeled yet.
 - [x] `hyphens: none|manual|auto` values; `none` disables line breaks at soft hyphens. `auto` currently behaves like manual soft-hyphen breaks.
-- [ ] Rendering the discretionary hyphen, dictionary-driven automatic hyphenation, and language-sensitive shaping controls.
+- [x] Render a visible hyphen when a line breaks at a manual U+00AD soft-hyphen opportunity; keep the character invisible when no break occurs or `hyphens: none` disables it.
+- [ ] Dictionary-driven automatic hyphenation and language-sensitive shaping controls.
 - [x] `text-overflow: clip|ellipsis` for `nowrap`/`pre` lines and positive `line-clamp` line counts. Clipping and the layout-mode prerequisites used by browser CSS are not modeled.
 - [x] Word spacing, including inherited values, lengths and percentages.
 - [x] `text-rendering` controls kerning and common ligatures; `text-orientation` parses `mixed`, `upright`, and `sideways`. Orientation has no visual effect until vertical writing is implemented.
