@@ -311,7 +311,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Paint backgrounds across the border boxes of empty sized blocks, including their padding area.
 - [x] Paint block backgrounds across used border boxes for content-bearing blocks, with nested clipping and writing-mode placement.
 - [x] Paint backgrounds on empty inline elements and extend fragmented inline backgrounds through their padding area.
-- [ ] Background painting for empty elements and complete CSS boxes, including padding, sizing, and fragmented inline boxes.
+- [x] Paint inline background colors on every wrapped text fragment.
+- [x] Background painting for empty elements and complete CSS boxes, including padding, sizing, and fragmented inline boxes.
 - [ ] Multiple backgrounds, images, repeat, position, size, attachment, and origin/clip.
   - [x] Decode embedded base64 PNG/JPEG `data:` URLs in `background-image`; paint comma-separated layers in CSS order with intrinsic-size repeat and element opacity/clipping.
   - [x] `background-repeat` supports `repeat`, `no-repeat`, `repeat-x`, `repeat-y`, and per-axis keyword pairs across comma-separated layers.

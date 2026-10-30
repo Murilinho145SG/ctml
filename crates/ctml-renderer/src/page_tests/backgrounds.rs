@@ -201,6 +201,57 @@ fn paints_background_for_an_empty_inline_element() {
 }
 
 #[test]
+fn paints_inline_background_on_each_wrapped_text_fragment() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("narrow".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("highlight".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("alpha beta gamma delta".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".narrow".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "65px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".highlight".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "background-color".to_owned(),
+                value: "red".to_owned(),
+            }],
+        },
+    ];
+    let rendered = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(120, 120);
+    let red_rows = rendered
+        .chunks_exact(4)
+        .enumerate()
+        .filter(|(_, pixel)| pixel[..3] == [255, 0, 0])
+        .map(|(index, _)| index / 120)
+        .collect::<std::collections::HashSet<_>>();
+
+    assert!(
+        red_rows.len() > 20,
+        "wrapped inline background should paint every text line fragment"
+    );
+    assert!(
+        red_rows.iter().max().unwrap() - red_rows.iter().min().unwrap() >= 20,
+        "background should span multiple line fragments"
+    );
+}
+
+#[test]
 fn empty_inline_background_does_not_change_adjacent_text_transformation() {
     let nodes = [
         UiNode::Text("apple".to_owned()),
