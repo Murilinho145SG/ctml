@@ -176,8 +176,15 @@ pub(super) fn draw_background_image_layers(
         canvas.save();
         canvas.clip_rect(layer_rect, ClipOp::Intersect, false);
         if let Some(radii) = border_radii {
+            let radii =
+                super::border_radius::inset_radii(boxes.border, layer_boxes.get(clip_box), radii);
             let rounded_rect = RRect::new_rect_radii(
-                layer_rect,
+                Rect::from_ltrb(
+                    layer_rect.left() + super::PAGE_PADDING,
+                    layer_rect.top() + super::PAGE_PADDING,
+                    layer_rect.right() + super::PAGE_PADDING,
+                    layer_rect.bottom() + super::PAGE_PADDING,
+                ),
                 &[
                     Vector::new(radii[0][0], radii[0][1]),
                     Vector::new(radii[1][0], radii[1][1]),

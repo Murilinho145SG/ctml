@@ -73,22 +73,42 @@ pub(super) fn draw_block_boxes(
             let color_clip_box = size.background_clips.last().copied().unwrap_or_default();
             let color_clip = fill_boxes.get(color_clip_box);
             let color_clip = Some(clip.map_or(color_clip, |outer| outer.intersect(color_clip)));
+            let border_radii = super::border_radius::resolve_radii(size, rect);
+            let has_border_radii = border_radii.iter().flatten().any(|radius| *radius > 0.0);
+            let color_rect = ClipRect {
+                left: rect.left - scroll_x,
+                top: rect.top - scroll_y,
+                right: rect.right - scroll_x,
+                bottom: rect.bottom - scroll_y,
+            };
             for layer in &size.background_layers {
                 let mut color = *layer;
                 color[3] = (f32::from(color[3]) * size.opacity)
                     .round()
                     .clamp(0.0, 255.0) as u8;
-                fill_rect_alpha_clipped(
-                    pixels,
-                    width,
-                    height,
-                    rect.left - super::PAGE_PADDING - scroll_x,
-                    rect.top - super::PAGE_PADDING - scroll_y,
-                    rect.right - rect.left,
-                    rect.bottom - rect.top,
-                    color,
-                    color_clip,
-                );
+                if has_border_radii {
+                    super::pixel::fill_rounded_rect_alpha_clipped(
+                        pixels,
+                        width,
+                        height,
+                        color_rect,
+                        border_radii,
+                        color,
+                        color_clip,
+                    );
+                } else {
+                    fill_rect_alpha_clipped(
+                        pixels,
+                        width,
+                        height,
+                        rect.left - super::PAGE_PADDING - scroll_x,
+                        rect.top - super::PAGE_PADDING - scroll_y,
+                        rect.right - rect.left,
+                        rect.bottom - rect.top,
+                        color,
+                        color_clip,
+                    );
+                }
             }
             super::background_images::draw_background_image_layers(
                 &size.background_images,
@@ -106,7 +126,7 @@ pub(super) fn draw_block_boxes(
                 height,
                 boxes,
                 clip,
-                None,
+                has_border_radii.then_some(border_radii),
                 image_cache,
             );
         }

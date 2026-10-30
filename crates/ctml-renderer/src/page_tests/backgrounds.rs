@@ -252,6 +252,88 @@ fn paints_inline_background_on_each_wrapped_text_fragment() {
 }
 
 #[test]
+fn clips_block_background_color_to_border_radius() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("rounded".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".rounded".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "40px"),
+            ("height", "40px"),
+            ("border-radius", "16px"),
+            ("background-color", "red"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(100, 90);
+    let rect = page.overflow_geometry[&1].border_box;
+    let rendered = page.snapshot_pixels(100, 90);
+    let pixel_at = |x: f32, y: f32| {
+        let index = ((y.round() as usize) * 100 + x.round() as usize) * 4;
+        &rendered[index..index + 3]
+    };
+
+    assert_eq!(pixel_at(rect.left + 1.0, rect.top + 1.0), [255, 255, 255]);
+    assert_eq!(pixel_at(rect.left + 20.0, rect.top + 20.0), [255, 0, 0]);
+}
+
+#[test]
+fn clips_block_background_image_to_border_radius() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("rounded".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: Vec::new(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".rounded".to_owned()],
+        layer: None,
+        declarations: [
+            ("width", "40px"),
+            ("height", "40px"),
+            ("border-radius", "16px"),
+            ("background-image", "linear-gradient(red, red)"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(100, 90);
+    let rect = page.overflow_geometry[&1].border_box;
+    assert!(page.runs.iter().any(|run| {
+        run.style.layout_sizes.iter().any(|size| {
+            size.border_radius[0][0].as_deref() == Some("16px")
+                && !size.background_images.is_empty()
+        })
+    }));
+    let rendered = page.snapshot_pixels(100, 90);
+    let pixel_at = |x: f32, y: f32| {
+        let index = ((y.round() as usize) * 100 + x.round() as usize) * 4;
+        &rendered[index..index + 3]
+    };
+
+    assert_eq!(pixel_at(rect.left + 1.0, rect.top + 1.0), [255, 255, 255]);
+    assert_eq!(pixel_at(rect.left + 20.0, rect.top + 20.0), [255, 0, 0]);
+}
+
+#[test]
 fn empty_inline_background_does_not_change_adjacent_text_transformation() {
     let nodes = [
         UiNode::Text("apple".to_owned()),

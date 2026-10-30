@@ -18,6 +18,29 @@ pub(super) fn resolve_radii(size: &LayoutSize, rect: overflow_clip::ClipRect) ->
     )
 }
 
+pub(super) fn inset_radii(
+    border: overflow_clip::ClipRect,
+    clip: overflow_clip::ClipRect,
+    radii: [[f32; 2]; 4],
+) -> [[f32; 2]; 4] {
+    let left = (clip.left - border.left).max(0.0);
+    let top = (clip.top - border.top).max(0.0);
+    let right = (border.right - clip.right).max(0.0);
+    let bottom = (border.bottom - clip.bottom).max(0.0);
+    [
+        [(radii[0][0] - left).max(0.0), (radii[0][1] - top).max(0.0)],
+        [(radii[1][0] - right).max(0.0), (radii[1][1] - top).max(0.0)],
+        [
+            (radii[2][0] - right).max(0.0),
+            (radii[2][1] - bottom).max(0.0),
+        ],
+        [
+            (radii[3][0] - left).max(0.0),
+            (radii[3][1] - bottom).max(0.0),
+        ],
+    ]
+}
+
 pub(super) fn resolve_radii_values(
     values: &[[Option<String>; 2]; 4],
     font_size: f32,
