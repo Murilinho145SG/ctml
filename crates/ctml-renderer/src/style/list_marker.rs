@@ -30,11 +30,26 @@ pub(super) fn format_marker(
         "lower-roman" => format!("{}. ", roman_marker(index).to_ascii_lowercase()),
         "upper-roman" => format!("{}. ", roman_marker(index)),
         "armenian" | "upper-armenian" | "lower-armenian" | "hebrew" | "cjk-decimal"
-        | "cjk-earthly-branch" | "cjk-heavenly-stem" => format!(
-            "{}. ",
-            format_counter_value(list_style_type, index as i32)
-                .unwrap_or_else(|| index.to_string())
-        ),
+        | "cjk-earthly-branch" | "cjk-heavenly-stem" | "lower-latin" | "upper-latin"
+        | "hiragana" | "hiragana-iroha" | "katakana" | "katakana-iroha" => {
+            let marker = format_counter_value(list_style_type, index as i32)
+                .unwrap_or_else(|| index.to_string());
+            let suffix = if matches!(
+                list_style_type,
+                "cjk-decimal"
+                    | "cjk-earthly-branch"
+                    | "cjk-heavenly-stem"
+                    | "hiragana"
+                    | "hiragana-iroha"
+                    | "katakana"
+                    | "katakana-iroha"
+            ) {
+                "、 "
+            } else {
+                ". "
+            };
+            format!("{marker}{suffix}")
+        }
         _ => return None,
     })
 }
@@ -48,7 +63,13 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "lower-alpha" => {
             Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, false)))
         }
+        "lower-latin" => {
+            Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, false)))
+        }
         "upper-alpha" => {
+            Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, true)))
+        }
+        "upper-latin" => {
             Some(positive.map_or_else(|| value.to_string(), |n| alphabetic_marker(n, true)))
         }
         "lower-greek" => Some(positive.map_or_else(
@@ -85,6 +106,22 @@ pub(super) fn format_counter_value(style: &str, value: i32) -> Option<String> {
         "cjk-decimal" => Some(cjk_decimal(value)),
         "cjk-earthly-branch" => Some(fixed_cjk(value, "子丑寅卯辰巳午未申酉戌亥")),
         "cjk-heavenly-stem" => Some(fixed_cjk(value, "甲乙丙丁戊己庚辛壬癸")),
+        "hiragana" => Some(alphabetic_string(
+            value,
+            "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをん",
+        )),
+        "hiragana-iroha" => Some(alphabetic_string(
+            value,
+            "いろはにほへとちりぬるをわかよたれそつねならむうゐのおくやまけふこえてあさきゆめみしゑひもせす",
+        )),
+        "katakana" => Some(alphabetic_string(
+            value,
+            "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲン",
+        )),
+        "katakana-iroha" => Some(alphabetic_string(
+            value,
+            "イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス",
+        )),
         "arabic-indic" => Some(localized_decimal(value, '٠')),
         "bengali" => Some(localized_decimal(value, '০')),
         "cambodian" | "khmer" => Some(localized_decimal(value, '០')),
@@ -244,20 +281,16 @@ fn additive_numeral(value: i32, symbols: &[(i32, &str)], max: i32) -> Option<Str
 }
 
 fn cjk_decimal(value: i32) -> String {
-    if !(-9999..=9999).contains(&value) {
+    if value < 0 {
         return value.to_string();
     }
     let digits = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-    let mut output = value
+    value
         .unsigned_abs()
         .to_string()
         .bytes()
         .map(|digit| digits[usize::from(digit - b'0')])
-        .collect::<String>();
-    if value < 0 {
-        output.insert(0, '-');
-    }
-    output
+        .collect()
 }
 
 fn localized_decimal(value: i32, zero: char) -> String {
@@ -278,7 +311,18 @@ fn fixed_cjk(value: i32, symbols: &str) -> String {
         .ok()
         .and_then(|value| value.checked_sub(1))
         .and_then(|index| symbols.get(index).copied())
-        .map_or_else(|| value.to_string(), |symbol| symbol.to_string())
+        .map_or_else(|| cjk_decimal(value), |symbol| symbol.to_string())
+}
+
+fn alphabetic_string(value: i32, symbols: &str) -> String {
+    let alphabet = symbols.chars().collect::<Vec<_>>();
+    usize::try_from(value)
+        .ok()
+        .filter(|value| *value > 0)
+        .map_or_else(
+            || value.to_string(),
+            |value| alphabetic_marker_from(value, &alphabet),
+        )
 }
 
 fn alphabetic_marker(index: usize, uppercase: bool) -> String {

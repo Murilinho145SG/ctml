@@ -141,6 +141,34 @@ fn list_style_type_formats_localized_decimal_digits() {
 }
 
 #[test]
+fn list_style_type_formats_latin_and_kana_alphabets() {
+    use super::list_marker::{format_counter_value, format_marker};
+
+    for (style, value, expected) in [
+        ("lower-latin", 27, "aa"),
+        ("upper-latin", 28, "AB"),
+        ("hiragana", 1, "あ"),
+        ("hiragana-iroha", 2, "ろ"),
+        ("katakana", 1, "ア"),
+        ("katakana-iroha", 2, "ロ"),
+    ] {
+        assert_eq!(
+            format_counter_value(style, value).as_deref(),
+            Some(expected),
+            "{style}"
+        );
+    }
+    assert_eq!(
+        format_marker(Some("hiragana"), true, 1).as_deref(),
+        Some("あ、 ")
+    );
+    assert_eq!(
+        format_marker(Some("lower-latin"), true, 27).as_deref(),
+        Some("aa. ")
+    );
+}
+
+#[test]
 fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
     for style_type in [
         "armenian",
@@ -168,6 +196,12 @@ fn list_style_types_accept_hebrew_armenian_and_cjk_names() {
         "telugu",
         "thai",
         "tibetan",
+        "lower-latin",
+        "upper-latin",
+        "hiragana",
+        "hiragana-iroha",
+        "katakana",
+        "katakana-iroha",
     ] {
         let stylesheet = [StyleRule {
             selectors: vec!["ol".to_owned()],

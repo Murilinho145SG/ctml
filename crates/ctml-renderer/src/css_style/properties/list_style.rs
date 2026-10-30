@@ -36,6 +36,12 @@ const SUPPORTED_LIST_STYLE_TYPES: &[&str] = &[
     "telugu",
     "thai",
     "tibetan",
+    "lower-latin",
+    "upper-latin",
+    "hiragana",
+    "hiragana-iroha",
+    "katakana",
+    "katakana-iroha",
     "none",
 ];
 
