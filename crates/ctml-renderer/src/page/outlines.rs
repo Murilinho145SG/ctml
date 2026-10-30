@@ -104,6 +104,9 @@ pub(super) fn draw_first_line_outlines(
         if span.line != line_index || span.start >= line_end {
             continue;
         }
+        let Some(run) = runs.get(span.run_index) else {
+            continue;
+        };
         let Some((style, path)) = runs.get(span.run_index).and_then(|run| {
             run.first_line_font_style
                 .as_ref()
@@ -131,6 +134,24 @@ pub(super) fn draw_first_line_outlines(
             right: right + super::PAGE_PADDING,
             bottom: line.line_top + line.line_height + super::PAGE_PADDING,
         };
+        let inline_available = if super::sizing::is_vertical(page_writing_mode) {
+            height as f32 - super::PAGE_PADDING * 2.0
+        } else {
+            width as f32 - super::PAGE_PADDING * 2.0
+        };
+        let padding = super::layout::resolve_first_letter_padding(
+            &run.style,
+            style,
+            block,
+            inline_available.max(0.0),
+            page_writing_mode,
+        );
+        let border: [f32; 4] =
+            std::array::from_fn(|side| super::layout::resolve_border_side(style, side));
+        rect.left -= padding[3] + border[3];
+        rect.right += padding[1] + border[1];
+        rect.top -= padding[0] + border[0];
+        rect.bottom += padding[2] + border[2];
         if let Some(transform) = super::local_writing::LocalVerticalTransform::from_run(
             runs,
             buffer,
