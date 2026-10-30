@@ -43,11 +43,15 @@ pub(super) fn parse_font_stretch(value: &str) -> Option<fontdb::Stretch> {
 }
 
 fn font_face_query_values(font: &FontFace) -> (fontdb::Weight, fontdb::Stretch, fontdb::Style) {
-    let weight = font.weight.map_or(fontdb::Weight::NORMAL, fontdb::Weight);
+    let weight = font.weight_range.map_or_else(
+        || font.weight.map_or(fontdb::Weight::NORMAL, fontdb::Weight),
+        |(start, end)| fontdb::Weight(start + (end - start) / 2),
+    );
     let style = match font
         .style
         .as_deref()
         .map(str::trim)
+        .and_then(|value| value.split_ascii_whitespace().next())
         .map(str::to_ascii_lowercase)
         .as_deref()
     {
@@ -66,9 +70,18 @@ fn font_face_query_values(font: &FontFace) -> (fontdb::Weight, fontdb::Stretch, 
 fn apply_font_face_descriptors(face: &mut fontdb::FaceInfo, font: &FontFace) {
     if let Some(weight) = font.weight {
         face.weight = fontdb::Weight(weight);
+    } else if let Some((start, end)) = font.weight_range {
+        face.weight = fontdb::Weight(start + (end - start) / 2);
     }
     if let Some(style) = font.style.as_deref() {
-        face.style = match style.trim().to_ascii_lowercase().as_str() {
+        face.style = match style
+            .trim()
+            .split_ascii_whitespace()
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str()
+        {
             "italic" => fontdb::Style::Italic,
             "oblique" => fontdb::Style::Oblique,
             _ => fontdb::Style::Normal,
@@ -111,15 +124,33 @@ pub(super) fn register_font_faces(font_system: &mut FontSystem, fonts: &[FontFac
             if candidates.is_empty() {
                 continue;
             }
+            let mut registered = Vec::new();
             let database = font_system.db_mut();
             for mut face in candidates {
                 if let Some((_, language)) = face.families.first() {
                     face.families = vec![(font.family.clone(), language.clone())];
                 }
                 apply_font_face_descriptors(&mut face, font);
-                database.push_face_info(face);
+                registered.push(database.push_face_info(face));
+            }
+            let oblique_range = font.style_range.as_ref().and_then(|(start, end)| {
+                Some((parse_oblique_angle(start)?, parse_oblique_angle(end)?))
+            });
+            let weight_range = font.weight_range;
+            for id in registered {
+                if weight_range.is_some() || oblique_range.is_some() {
+                    font_system.set_font_face_ranges(id, weight_range, oblique_range);
+                }
             }
             break;
         }
     }
+}
+
+fn parse_oblique_angle(value: &str) -> Option<f32> {
+    value
+        .trim()
+        .strip_suffix("deg")
+        .and_then(|degrees| degrees.parse::<f32>().ok())
+        .filter(|degrees| degrees.is_finite() && (-90.0..=90.0).contains(degrees))
 }

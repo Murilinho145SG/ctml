@@ -31,7 +31,9 @@ fn local_font_face_sources_skip_missing_candidates_and_register_aliases() {
                 FontFaceSource::Local(local_family),
             ],
             weight: Some(650),
+            weight_range: None,
             style: Some("italic".to_owned()),
+            style_range: None,
             stretch: Some("condensed".to_owned()),
         }],
     );

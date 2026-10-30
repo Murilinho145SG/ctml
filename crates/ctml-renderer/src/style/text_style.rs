@@ -384,6 +384,21 @@ impl TextStyle {
         {
             variations.push(cosmic_text::FontVariation::new(*b"opsz", self.font_size));
         }
+        if self.font_style == Style::Italic
+            && !self
+                .font_variation_settings
+                .iter()
+                .any(|(tag, _)| *tag == *b"ital")
+        {
+            variations.push(cosmic_text::FontVariation::new(*b"ital", 1.0));
+        } else if self.font_style == Style::Oblique
+            && !self
+                .font_variation_settings
+                .iter()
+                .any(|(tag, _)| *tag == *b"slnt")
+        {
+            variations.push(cosmic_text::FontVariation::new(*b"slnt", -14.0));
+        }
         variations.extend(
             self.font_variation_settings
                 .iter()

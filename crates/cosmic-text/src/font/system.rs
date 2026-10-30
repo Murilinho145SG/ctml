@@ -30,22 +30,44 @@ pub struct FontMatchKey {
 }
 
 impl FontMatchKey {
-    fn new(attrs: &Attrs, face: &FaceInfo, db: &fontdb::Database) -> FontMatchKey {
+    fn new(
+        attrs: &Attrs,
+        face: &FaceInfo,
+        db: &fontdb::Database,
+        ranges: Option<(Option<(u16, u16)>, Option<(f32, f32)>)>,
+    ) -> FontMatchKey {
         // TODO: smarter way of detecting emoji
         let not_emoji = !face.post_script_name.contains("Emoji");
-        let font_weight_diff = attrs.weight.0.abs_diff(face.weight.0);
+        let font_weight_diff = ranges.and_then(|(weight, _)| weight).map_or_else(
+            || attrs.weight.0.abs_diff(face.weight.0),
+            |(start, end)| {
+                if (start..=end).contains(&attrs.weight.0) {
+                    0
+                } else {
+                    attrs
+                        .weight
+                        .0
+                        .abs_diff(start)
+                        .min(attrs.weight.0.abs_diff(end))
+                }
+            },
+        );
 
         let variable_weight_match = font_weight_diff != 0
-            && db.with_face_data(face.id, |font_data, face_index| {
-                let font_ref = skrifa::FontRef::from_index(font_data, face_index).ok()?;
-                let axis = font_ref.axes().get_by_tag(skrifa::Tag::new(b"wght"))?;
-                let w = attrs.weight.0 as f32;
-                Some(w >= axis.min_value() && w <= axis.max_value())
-            }) == Some(Some(true));
+            && if ranges.and_then(|(weight, _)| weight).is_some() {
+                true
+            } else {
+                db.with_face_data(face.id, |font_data, face_index| {
+                    let font_ref = skrifa::FontRef::from_index(font_data, face_index).ok()?;
+                    let axis = font_ref.axes().get_by_tag(skrifa::Tag::new(b"wght"))?;
+                    let w = attrs.weight.0 as f32;
+                    Some(w >= axis.min_value() && w <= axis.max_value())
+                }) == Some(Some(true))
+            };
         let font_weight = face.weight.0;
         let font_stretch_diff = attrs.stretch.to_number().abs_diff(face.stretch.to_number());
         let font_stretch = face.stretch.to_number();
-        let font_style_diff = match (attrs.style, face.style) {
+        let mut font_style_diff = match (attrs.style, face.style) {
             (Style::Normal, Style::Normal)
             | (Style::Italic, Style::Italic)
             | (Style::Oblique, Style::Oblique) => 0,
@@ -55,6 +77,13 @@ impl FontMatchKey {
             | (Style::Italic, Style::Normal)
             | (Style::Oblique, Style::Normal) => 2,
         };
+        if attrs.style == Style::Oblique {
+            if let Some((_, Some((start, end)))) = ranges {
+                if !(start..=end).contains(&14.0) {
+                    font_style_diff = 2;
+                }
+            }
+        }
         let id = face.id;
         FontMatchKey {
             not_emoji,
@@ -155,6 +184,7 @@ pub struct FontSystem {
 
     /// Cache for font matches.
     font_matches_cache: HashMap<FontMatchAttrs, Arc<Vec<FontMatchKey>>>,
+    font_face_ranges: HashMap<fontdb::ID, (Option<(u16, u16)>, Option<(f32, f32)>)>,
 
     /// Scratch buffer for shaping and laying out.
     pub(crate) shape_buffer: ShapeBuffer,
@@ -268,6 +298,7 @@ impl FontSystem {
             variations_by_id: HashMap::default(),
             next_variation_id: 1,
             font_matches_cache: HashMap::default(),
+            font_face_ranges: HashMap::default(),
             font_codepoint_support_info_cache: HashMap::default(),
             monospace_fallbacks_buffer: BTreeSet::default(),
             #[cfg(feature = "shape-run-cache")]
@@ -297,6 +328,18 @@ impl FontSystem {
     pub fn db_mut(&mut self) -> &mut fontdb::Database {
         self.font_matches_cache.clear();
         &mut self.db
+    }
+
+    /// Associates CSS @font-face descriptor ranges with a registered face.
+    pub fn set_font_face_ranges(
+        &mut self,
+        id: fontdb::ID,
+        weight_range: Option<(u16, u16)>,
+        oblique_range: Option<(f32, f32)>,
+    ) {
+        self.font_face_ranges
+            .insert(id, (weight_range, oblique_range));
+        self.font_matches_cache.clear();
     }
 
     /// Consume this [`FontSystem`] and return the locale and database.
@@ -338,11 +381,23 @@ impl FontSystem {
         weight: fontdb::Weight,
         variation_key: u64,
     ) -> Option<Arc<Font>> {
-        let variations = self
+        let mut variations = self
             .variations_by_id
             .get(&variation_key)
             .cloned()
             .unwrap_or_default();
+        if !variations
+            .iter()
+            .any(|variation| variation.tag() == *b"wght")
+        {
+            if let Some(Some((min, max))) = self.font_face_ranges.get(&id).map(|(weight, _)| weight)
+            {
+                let selected_weight = weight.0.clamp(*min, *max);
+                if selected_weight != weight.0 {
+                    variations.push(FontVariation::new(*b"wght", f32::from(selected_weight)));
+                }
+            }
+        }
         self.font_cache
             .entry((id, weight, variation_key))
             .or_insert_with(|| {
@@ -413,10 +468,13 @@ impl FontSystem {
                 #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
                 let now = std::time::Instant::now();
 
+                let face_ranges = &self.font_face_ranges;
                 let mut font_match_keys = self
                     .db
                     .faces()
-                    .map(|face| FontMatchKey::new(attrs, face, &self.db))
+                    .map(|face| {
+                        FontMatchKey::new(attrs, face, &self.db, face_ranges.get(&face.id).copied())
+                    })
                     .collect::<Vec<_>>();
 
                 // Sort so we get the keys with weight_offset=0 first
@@ -431,21 +489,23 @@ impl FontSystem {
                 };
 
                 if let Some(id) = self.db.query(&query) {
-                    if let Some(i) = font_match_keys
-                        .iter()
-                        .enumerate()
-                        .find(|(_i, key)| key.id == id)
-                        .map(|(i, _)| i)
-                    {
-                        // if exists move to front
-                        let match_key = font_match_keys.remove(i);
-                        font_match_keys.insert(0, match_key);
-                    } else if let Some(face) = self.db.face(id) {
-                        // else insert in front
-                        let match_key = FontMatchKey::new(attrs, face, &self.db);
-                        font_match_keys.insert(0, match_key);
-                    } else {
-                        log::error!("Could not get face from db, that should've been there.");
+                    if !face_ranges.contains_key(&id) {
+                        if let Some(i) = font_match_keys
+                            .iter()
+                            .enumerate()
+                            .find(|(_i, key)| key.id == id)
+                            .map(|(i, _)| i)
+                        {
+                            // if exists move to front
+                            let match_key = font_match_keys.remove(i);
+                            font_match_keys.insert(0, match_key);
+                        } else if let Some(face) = self.db.face(id) {
+                            // else insert in front
+                            let match_key = FontMatchKey::new(attrs, face, &self.db, None);
+                            font_match_keys.insert(0, match_key);
+                        } else {
+                            log::error!("Could not get face from db, that should've been there.");
+                        }
                     }
                 }
 
@@ -497,6 +557,67 @@ impl FontSystem {
         for source in fonts {
             db.load_font_source(source);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FontMatchKey, FontSystem};
+    use crate::{Attrs, Family};
+    use fontdb::{Style, Weight};
+
+    #[test]
+    fn font_face_ranges_constrain_weight_and_default_oblique_angle_matching() {
+        let mut font_system = FontSystem::new();
+        let mut face = font_system
+            .db()
+            .faces()
+            .next()
+            .expect("system should have at least one font")
+            .clone();
+        face.style = Style::Oblique;
+        let family_name = face
+            .families
+            .first()
+            .expect("font should have a family")
+            .0
+            .as_str();
+        let ranges = Some((Some((300, 700)), Some((10.0, 20.0))));
+
+        let inside = Attrs::new()
+            .family(Family::Name(family_name))
+            .weight(Weight(500))
+            .style(Style::Oblique);
+        let key = FontMatchKey::new(&inside, &face, font_system.db(), ranges);
+        assert_eq!(key.font_weight_diff, 0);
+        assert_eq!(key.font_style_diff, 0);
+
+        let outside = Attrs::new()
+            .family(Family::Name(family_name))
+            .weight(Weight(200))
+            .style(Style::Oblique);
+        let key = FontMatchKey::new(&outside, &face, font_system.db(), ranges);
+        assert_eq!(key.font_weight_diff, 100);
+        assert_eq!(key.font_style_diff, 0);
+        let outside_style = FontMatchKey::new(
+            &inside,
+            &face,
+            font_system.db(),
+            Some((Some((300, 700)), Some((20.0, 30.0)))),
+        );
+        assert_eq!(outside_style.font_style_diff, 2);
+
+        font_system.set_font_face_ranges(face.id, Some((300, 700)), None);
+        let font = font_system
+            .get_font_with_variations(face.id, Weight(800), &[])
+            .expect("registered font should load");
+        assert_eq!(
+            font.variations()
+                .iter()
+                .find(|variation| variation.tag() == *b"wght")
+                .map(|variation| variation.value()),
+            Some(700.0)
+        );
     }
 }
 

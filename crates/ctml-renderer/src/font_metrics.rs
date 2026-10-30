@@ -168,6 +168,21 @@ fn variation_settings(style: &TextStyle) -> Vec<([u8; 4], f32)> {
     {
         variations.push((*b"opsz", style.font_size));
     }
+    if style.font_style == cosmic_text::Style::Italic
+        && !style
+            .font_variation_settings
+            .iter()
+            .any(|(tag, _)| *tag == *b"ital")
+    {
+        variations.push((*b"ital", 1.0));
+    } else if style.font_style == cosmic_text::Style::Oblique
+        && !style
+            .font_variation_settings
+            .iter()
+            .any(|(tag, _)| *tag == *b"slnt")
+    {
+        variations.push((*b"slnt", -14.0));
+    }
     variations.extend(style.font_variation_settings.iter().copied());
     variations
 }

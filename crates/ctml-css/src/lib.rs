@@ -59,8 +59,53 @@ pub struct CssFontFace {
     pub weight: Option<String>,
     pub style: Option<String>,
     pub stretch: Option<String>,
+    pub weight_range: Option<(u16, u16)>,
+    pub style_range: Option<(String, String)>,
     /// Source stylesheet, populated by `parse_stylesheet_file`.
     pub stylesheet_path: Option<std::path::PathBuf>,
+}
+
+fn parse_font_weight_range(value: &str) -> Option<(u16, u16)> {
+    let mut parts = value.split_ascii_whitespace();
+    let start = parts.next()?.parse::<u16>().ok()?;
+    let end = parts.next()?.parse::<u16>().ok()?;
+    if parts.next().is_some() || !(1..=1000).contains(&start) || !(1..=1000).contains(&end) {
+        return None;
+    }
+    (start <= end).then_some((start, end))
+}
+
+fn parse_oblique_angle_range(value: &str) -> Option<(String, String)> {
+    let mut parts = value.split_ascii_whitespace();
+    if !parts.next()?.eq_ignore_ascii_case("oblique") {
+        return None;
+    }
+    let parse_angle = |part: &str| {
+        if part == "0" {
+            return Some(0.0);
+        }
+        let part = part.to_ascii_lowercase();
+        let (number, unit) = ["deg", "grad", "rad", "turn"]
+            .into_iter()
+            .find_map(|unit| part.strip_suffix(unit).map(|number| (number, unit)))?;
+        let number = number.parse::<f32>().ok()?;
+        let degrees = match unit {
+            "deg" => number,
+            "grad" => number * 0.9,
+            "rad" => number.to_degrees(),
+            "turn" => number * 360.0,
+            _ => return None,
+        };
+        (degrees.is_finite() && (-90.0..=90.0).contains(&degrees)).then_some(degrees)
+    };
+    let start = parts.next()?;
+    let end = parts.next()?;
+    let start_degrees = parse_angle(start)?;
+    let end_degrees = parse_angle(end)?;
+    if parts.next().is_some() || start_degrees > end_degrees {
+        return None;
+    }
+    Some((format!("{start_degrees}deg"), format!("{end_degrees}deg")))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -264,6 +309,14 @@ fn parse_rule_list<'i, 't>(
                         .iter()
                         .find(|item| item.property == "font-stretch")
                         .map(|item| item.value.clone()),
+                    weight_range: declarations
+                        .iter()
+                        .find(|item| item.property == "font-weight")
+                        .and_then(|item| parse_font_weight_range(&item.value)),
+                    style_range: declarations
+                        .iter()
+                        .find(|item| item.property == "font-style")
+                        .and_then(|item| parse_oblique_angle_range(&item.value)),
                     stylesheet_path: None,
                 });
             }

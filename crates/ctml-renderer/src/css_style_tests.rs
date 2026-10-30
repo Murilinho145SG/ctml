@@ -630,6 +630,21 @@ fn resolves_optical_sizing_and_variation_settings() {
     assert_eq!(attrs.font_variations[0].tag(), *b"wght");
     assert_eq!(attrs.font_variations[1].tag(), *b"opsz");
     assert_eq!(attrs.font_variations[1].value(), 16.5);
+
+    let oblique = style_for_declarations(&[("font-style", "oblique")]).to_attrs("sans-serif");
+    assert!(
+        oblique
+            .font_variations
+            .iter()
+            .any(|setting| setting.tag() == *b"slnt" && setting.value() == -14.0)
+    );
+    let italic = style_for_declarations(&[("font-style", "italic")]).to_attrs("sans-serif");
+    assert!(
+        italic
+            .font_variations
+            .iter()
+            .any(|setting| setting.tag() == *b"ital" && setting.value() == 1.0)
+    );
 }
 
 #[test]

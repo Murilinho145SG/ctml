@@ -55,7 +55,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 face.family.clone(),
                 sources,
                 face.weight.clone(),
+                face.weight_range,
                 face.style.clone(),
+                face.style_range.clone(),
                 face.stretch.clone(),
             ));
         }
@@ -178,15 +180,19 @@ fn rust_fonts(
         String,
         Vec<(Option<String>, Option<PathBuf>)>,
         Option<String>,
+        Option<(u16, u16)>,
         Option<String>,
+        Option<(String, String)>,
         Option<String>,
     )],
 ) -> String {
-    fonts.iter().map(|(family, sources, weight, style, stretch)| {
+    fonts.iter().map(|(family, sources, weight, weight_range, style, style_range, stretch)| {
         let weight = weight.as_deref().and_then(parse_font_weight)
             .map_or_else(|| "None".to_owned(), |weight| format!("Some({weight})"));
-        let style = style.as_deref().filter(|value| matches!(value.trim().to_ascii_lowercase().as_str(), "normal" | "italic" | "oblique"))
+        let weight_range = weight_range.map_or_else(|| "None".to_owned(), |(start, end)| format!("Some(({start}, {end}))"));
+        let style = style.as_deref().filter(|value| is_font_style(value))
             .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
+        let style_range = style_range.as_ref().map_or_else(|| "None".to_owned(), |(start, end)| format!("Some(({start:?}.to_owned(), {end:?}.to_owned()))"));
         let stretch = stretch.as_deref().filter(|value| is_font_stretch(value))
             .map_or_else(|| "None".to_owned(), |value| format!("Some({value:?}.to_owned())"));
         let sources = sources.iter().map(|(local, path)| match (local, path) {
@@ -198,7 +204,7 @@ fn rust_fonts(
             _ => unreachable!("font source candidate must have exactly one variant"),
         }).collect::<Vec<_>>().join(", ");
         format!(
-            "ctml::FontFace {{ family: {family:?}.to_owned(), sources: vec![{sources}], weight: {weight}, style: {style}, stretch: {stretch} }}"
+            "ctml::FontFace {{ family: {family:?}.to_owned(), sources: vec![{sources}], weight: {weight}, weight_range: {weight_range}, style: {style}, style_range: {style_range}, stretch: {stretch} }}"
         )
     }).collect::<Vec<_>>().join(", ")
 }
@@ -212,6 +218,43 @@ fn parse_font_weight(value: &str) -> Option<u16> {
             .ok()
             .filter(|weight: &u16| (1..=1000).contains(weight)),
     }
+}
+
+fn is_font_style(value: &str) -> bool {
+    let mut parts = value.split_ascii_whitespace();
+    match parts.next().map(str::to_ascii_lowercase).as_deref() {
+        Some("normal" | "italic") => parts.next().is_none(),
+        Some("oblique") => {
+            let angles = parts.collect::<Vec<_>>();
+            angles.is_empty()
+                || ((angles.len() == 1 || angles.len() == 2)
+                    && angles.iter().all(|angle| {
+                        parse_css_angle(angle).is_some_and(|degrees| {
+                            degrees.is_finite() && (-90.0..=90.0).contains(&degrees)
+                        })
+                    }))
+        }
+        _ => false,
+    }
+}
+
+fn parse_css_angle(value: &str) -> Option<f32> {
+    if value == "0" {
+        return Some(0.0);
+    }
+    let value = value.to_ascii_lowercase();
+    let (number, unit) = ["deg", "grad", "rad", "turn"]
+        .into_iter()
+        .find_map(|unit| value.strip_suffix(unit).map(|number| (number, unit)))?;
+    let number = number.parse::<f32>().ok()?;
+    let degrees = match unit {
+        "deg" => number,
+        "grad" => number * 0.9,
+        "rad" => number.to_degrees(),
+        "turn" => number * 360.0,
+        _ => return None,
+    };
+    degrees.is_finite().then_some(degrees)
 }
 
 fn is_font_stretch(value: &str) -> bool {

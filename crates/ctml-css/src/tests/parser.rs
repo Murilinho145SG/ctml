@@ -20,6 +20,32 @@ fn parses_local_font_face_descriptors() {
 }
 
 #[test]
+fn parses_variable_font_weight_and_oblique_style_ranges() {
+    let stylesheet = parse_stylesheet(
+        "@font-face { font-family: 'Variable Sans'; src: url(variable.woff2); font-weight: 300 700; font-style: oblique 10deg 20deg; }",
+    )
+    .unwrap();
+    let face = &stylesheet.font_faces[0];
+    assert_eq!(face.weight_range, Some((300, 700)));
+    assert_eq!(
+        face.style_range,
+        Some(("10deg".to_owned(), "20deg".to_owned()))
+    );
+}
+
+#[test]
+fn normalizes_css_angle_units_in_oblique_font_face_ranges() {
+    let stylesheet = parse_stylesheet(
+        "@font-face { font-family: 'Slanted Sans'; src: url(variable.woff2); font-style: oblique 0.25turn 100grad; }",
+    )
+    .unwrap();
+    assert_eq!(
+        stylesheet.font_faces[0].style_range,
+        Some(("90deg".to_owned(), "90deg".to_owned()))
+    );
+}
+
+#[test]
 fn parses_rules_groups_declarations_and_important_values() {
     let stylesheet = parse_stylesheet("p.notice, #target { color: red !important; }").unwrap();
 
