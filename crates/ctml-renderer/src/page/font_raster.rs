@@ -107,7 +107,7 @@ pub(super) fn draw(
             ) * style_index
                 .and_then(|index| runs.get(index))
                 .map_or(1.0, |run| {
-                    if run.style.visibility_hidden {
+                    if run.style.visibility_hidden || run.style.content_skipped {
                         0.0
                     } else {
                         run.style.opacity

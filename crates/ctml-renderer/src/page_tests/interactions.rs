@@ -404,10 +404,10 @@ fn visibility_hidden_preserves_layout_without_painting_text() {
 }
 
 #[test]
-fn content_visibility_hidden_preserves_flow_and_hides_descendants() {
-    let nodes = [UiNode::Element {
+fn content_visibility_hidden_skips_contents_and_intrinsic_flow_space() {
+    let hidden_block = UiNode::Element {
         tag: "p".to_owned(),
-        class: None,
+        class: Some("hidden".to_owned()),
         id: None,
         attributes: Vec::new(),
         children: vec![UiNode::Element {
@@ -417,10 +417,18 @@ fn content_visibility_hidden_preserves_flow_and_hides_descendants() {
             attributes: Vec::new(),
             children: vec![UiNode::Text("Hidden descendant".to_owned())],
         }],
-    }];
+    };
+    let after = UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("After".to_owned())],
+    };
+    let nodes = [hidden_block, after.clone()];
     let stylesheet = [
         StyleRule {
-            selectors: vec!["p".to_owned()],
+            selectors: vec![".hidden".to_owned()],
             layer: None,
             declarations: vec![StyleDeclaration {
                 property: "content-visibility".to_owned(),
@@ -444,14 +452,30 @@ fn content_visibility_hidden_preserves_flow_and_hides_descendants() {
     ];
     let mut hidden = PageRasterizer::new(&nodes, &stylesheet);
     let pixels = hidden.snapshot_pixels(160, 60);
-    let line_count = hidden.buffer.layout_runs().count();
-    let blank_pixels = PageRasterizer::new(&[], &[]).snapshot_pixels(160, 60);
-
-    assert_eq!(pixels, blank_pixels);
+    let mut after_only_page = PageRasterizer::new(&[after], &[]);
+    let after_only = after_only_page.snapshot_pixels(160, 60);
+    let hidden_after_y = hidden
+        .buffer
+        .layout_runs()
+        .find(|line| line.text.contains("After"))
+        .expect("following text should be in the layout")
+        .line_top;
+    let after_only_y = after_only_page
+        .buffer
+        .layout_runs()
+        .find(|line| line.text.contains("After"))
+        .expect("following text should be in the baseline layout")
+        .line_top;
+    let differing_pixels = pixels
+        .chunks_exact(4)
+        .zip(after_only.chunks_exact(4))
+        .filter(|(left, right)| left != right)
+        .count();
     assert!(
-        line_count > 0,
-        "hidden contents must retain the current flow layout"
+        (hidden_after_y - after_only_y).abs() < 1.0,
+        "hidden contents should not add intrinsic flow height: {hidden_after_y} vs {after_only_y}"
     );
+    assert_eq!(differing_pixels, 0, "hidden subtree should not paint");
 }
 
 #[test]

@@ -24,8 +24,18 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "content-visibility" => match value.to_ascii_lowercase().as_str() {
-            "hidden" => style.content_visibility_hidden = true,
-            "visible" | "auto" => style.content_visibility_hidden = false,
+            "hidden" => {
+                style.content_visibility_hidden = true;
+                style.content_visibility_auto = false;
+            }
+            "auto" => {
+                style.content_visibility_hidden = false;
+                style.content_visibility_auto = true;
+            }
+            "visible" => {
+                style.content_visibility_hidden = false;
+                style.content_visibility_auto = false;
+            }
             _ => {}
         },
         "contain" => apply_contain(style, value),

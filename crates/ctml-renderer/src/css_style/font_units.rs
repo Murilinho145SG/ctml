@@ -91,6 +91,13 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.outline_offset = None;
     style.aspect_ratio = None;
     style.box_shadows.clear();
+    style.content_visibility_hidden = false;
+    style.content_visibility_auto = false;
+    style.content_skipped = false;
+    style.content_skipped_by_ancestor = false;
+    style.paint_contained = false;
+    style.size_contained = false;
+    style.inline_size_contained = false;
     style.box_decoration_break = crate::style::BoxDecorationBreak::Slice;
     style.inline_box = false;
     style.margin = std::array::from_fn(|_| None);

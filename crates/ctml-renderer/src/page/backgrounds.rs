@@ -37,7 +37,7 @@ pub(super) fn draw(
                 start += 1;
                 continue;
             };
-            if style.visibility_hidden {
+            if style.visibility_hidden || style.content_skipped {
                 start += 1;
                 continue;
             }

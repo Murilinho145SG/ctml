@@ -47,7 +47,7 @@ pub(super) fn draw(
             let Some(run) = runs.get(style_index) else {
                 continue;
             };
-            if !run.style.inline_box || run.style.visibility_hidden {
+            if !run.style.inline_box || run.style.visibility_hidden || run.style.content_skipped {
                 continue;
             }
             let Some(node_id) = run.element_path.last().copied() else {

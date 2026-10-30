@@ -61,7 +61,7 @@ pub(super) fn cursor_spans(runs: &[TextRun]) -> Vec<CursorSpan> {
                 end,
                 icon: run.style.cursor,
                 hidden: run.style.cursor_hidden,
-                visibility_hidden: run.style.visibility_hidden,
+                visibility_hidden: run.style.visibility_hidden || run.style.content_skipped,
                 pointer_events_none: run.style.pointer_events_none,
                 user_select_none: run.style.user_select_none,
                 user_select_all_owner: run.style.user_select_all_owner,

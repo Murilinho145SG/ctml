@@ -1130,6 +1130,7 @@ fn content_visibility_accepts_supported_values_and_css_wide_keywords() {
 
     let auto = style_for_declarations(&[("content-visibility", "auto")]);
     assert!(!auto.content_visibility_hidden);
+    assert!(auto.content_visibility_auto);
 
     let visible = style_for_declarations(&[
         ("content-visibility", "hidden"),

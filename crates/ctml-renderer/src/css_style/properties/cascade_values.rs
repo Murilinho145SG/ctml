@@ -6,6 +6,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
         "content-visibility" => {
             style.content_visibility_hidden = inherited.content_visibility_hidden;
+            style.content_visibility_auto = inherited.content_visibility_auto;
         }
         "contain" => {
             style.paint_contained = inherited.paint_contained;
@@ -223,7 +224,10 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
-        "content-visibility" => style.content_visibility_hidden = false,
+        "content-visibility" => {
+            style.content_visibility_hidden = false;
+            style.content_visibility_auto = false;
+        }
         "contain" => {
             style.paint_contained = false;
             style.size_contained = false;

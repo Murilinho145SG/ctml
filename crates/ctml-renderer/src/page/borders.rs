@@ -20,7 +20,7 @@ pub(super) fn draw(
 ) {
     let mut drawn = HashSet::new();
     for run in runs {
-        if run.style.visibility_hidden {
+        if run.style.visibility_hidden || run.style.content_skipped_by_ancestor {
             continue;
         }
         for size in &run.style.layout_sizes {

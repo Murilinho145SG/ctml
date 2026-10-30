@@ -136,8 +136,16 @@ pub(super) fn collect_runs(
                     stylesheet,
                     local_font_units,
                 );
-                style.content_visibility_hidden |= inherited.content_visibility_hidden;
-                style.visibility_hidden |= style.content_visibility_hidden;
+                style.content_skipped_by_ancestor = inherited.content_skipped;
+                style.content_skipped =
+                    inherited.content_skipped || style.content_visibility_hidden;
+                if style.content_visibility_hidden {
+                    style.paint_contained = true;
+                    style.size_contained = true;
+                    style.inline_size_contained = true;
+                } else if style.content_visibility_auto {
+                    style.paint_contained = true;
+                }
                 if style.user_select == UserSelect::All {
                     style.user_select_all_owner = Some(sibling.node_id);
                     style.user_select_none = false;
@@ -180,7 +188,7 @@ pub(super) fn collect_runs(
                     }
                 }
                 let list_item = style.display_list_item.unwrap_or(tag == "li");
-                if list_item {
+                if list_item && !style.content_skipped {
                     list_item_index += 1;
                 }
                 let ordered_list_item =
@@ -324,7 +332,9 @@ pub(super) fn collect_runs(
                         );
                     }
                 }
-                if let Some(content) = &before_content {
+                if let Some(content) = &before_content
+                    && !style.content_skipped
+                {
                     append_text(
                         &content.text,
                         &content.style,
@@ -439,7 +449,9 @@ pub(super) fn collect_runs(
                     quote_depth,
                     counters,
                 );
-                if let Some(content) = &after_content {
+                if let Some(content) = &after_content
+                    && !style.content_skipped
+                {
                     append_text(
                         &content.text,
                         &content.style,
