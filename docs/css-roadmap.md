@@ -205,7 +205,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Soft-hyphen visibility, automatic hyphenation, and language-sensitive shaping controls.
 - [x] `text-overflow: clip|ellipsis` for `nowrap`/`pre` lines and positive `line-clamp` line counts. Clipping and the layout-mode prerequisites used by browser CSS are not modeled.
 - [x] Word spacing, including inherited values, lengths and percentages.
-- [ ] Text rendering and text orientation.
+- [x] `text-rendering` controls kerning and common ligatures; `text-orientation` parses `mixed`, `upright`, and `sideways`. Orientation has no visual effect until vertical writing is implemented.
 - [x] `text-decoration-color` for underline, overline, and line-through.
 - [x] Solid, double, dotted, dashed, and wavy text decoration styles.
 - [x] `text-decoration-skip-ink` values `auto`, `none`, and `all`.

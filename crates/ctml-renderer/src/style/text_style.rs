@@ -54,6 +54,23 @@ pub(crate) enum TextOverflow {
     Ellipsis,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextRendering {
+    #[default]
+    Auto,
+    OptimizeSpeed,
+    OptimizeLegibility,
+    GeometricPrecision,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TextOrientation {
+    #[default]
+    Mixed,
+    Upright,
+    Sideways,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -118,6 +135,8 @@ pub(crate) struct TextStyle {
     pub(crate) line_break: LineBreak,
     pub(crate) text_overflow: TextOverflow,
     pub(crate) line_clamp: Option<usize>,
+    pub(crate) text_rendering: TextRendering,
+    pub(crate) text_orientation: TextOrientation,
     pub(crate) text_indent: f32,
     pub(crate) text_indent_percent: f32,
     pub(crate) text_indent_hanging: bool,
@@ -309,6 +328,8 @@ impl Default for TextStyle {
             line_break: LineBreak::Auto,
             text_overflow: TextOverflow::Clip,
             line_clamp: None,
+            text_rendering: TextRendering::Auto,
+            text_orientation: TextOrientation::Mixed,
             text_indent: 0.0,
             text_indent_percent: 0.0,
             text_indent_hanging: false,
@@ -364,10 +385,20 @@ impl TextStyle {
 impl TextStyle {
     pub(crate) fn font_features(&self) -> FontFeatures {
         let mut font_features = FontFeatures::new();
-        if let Some(kerning) = self.kerning {
+        let rendering_kerning = match self.text_rendering {
+            TextRendering::Auto => None,
+            TextRendering::OptimizeSpeed => Some(false),
+            TextRendering::OptimizeLegibility | TextRendering::GeometricPrecision => Some(true),
+        };
+        if let Some(kerning) = self.kerning.or(rendering_kerning) {
             font_features.set(FeatureTag::KERNING, u32::from(kerning));
         }
-        if let Some(enabled) = self.common_ligatures {
+        let rendering_ligatures = match self.text_rendering {
+            TextRendering::Auto => None,
+            TextRendering::OptimizeSpeed => Some(false),
+            TextRendering::OptimizeLegibility | TextRendering::GeometricPrecision => Some(true),
+        };
+        if let Some(enabled) = self.common_ligatures.or(rendering_ligatures) {
             font_features.set(FeatureTag::STANDARD_LIGATURES, u32::from(enabled));
             font_features.set(FeatureTag::CONTEXTUAL_LIGATURES, u32::from(enabled));
         }

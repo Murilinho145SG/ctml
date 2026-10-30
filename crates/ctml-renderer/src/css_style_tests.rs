@@ -673,6 +673,61 @@ fn resolves_text_overflow_and_line_clamp() {
 }
 
 #[test]
+fn resolves_text_rendering_features_and_text_orientation() {
+    use super::super::style::{TextOrientation, TextRendering};
+
+    for (value, expected) in [
+        ("auto", TextRendering::Auto),
+        ("optimizeSpeed", TextRendering::OptimizeSpeed),
+        ("optimizeLegibility", TextRendering::OptimizeLegibility),
+        ("geometricPrecision", TextRendering::GeometricPrecision),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("text-rendering", value)]).text_rendering,
+            expected,
+            "{value}"
+        );
+    }
+
+    let speed = style_for_declarations(&[("text-rendering", "optimizeSpeed")]);
+    let features = speed.font_features();
+    assert!(
+        features.features.iter().any(|feature| {
+            feature.tag == cosmic_text::FeatureTag::KERNING && feature.value == 0
+        })
+    );
+    assert!(features.features.iter().any(|feature| {
+        feature.tag == cosmic_text::FeatureTag::STANDARD_LIGATURES && feature.value == 0
+    }));
+
+    let explicit_kerning = style_for_declarations(&[
+        ("text-rendering", "optimizeSpeed"),
+        ("font-kerning", "normal"),
+    ]);
+    assert!(
+        explicit_kerning
+            .font_features()
+            .features
+            .iter()
+            .any(|feature| {
+                feature.tag == cosmic_text::FeatureTag::KERNING && feature.value == 1
+            })
+    );
+
+    for (value, expected) in [
+        ("mixed", TextOrientation::Mixed),
+        ("upright", TextOrientation::Upright),
+        ("sideways", TextOrientation::Sideways),
+    ] {
+        assert_eq!(
+            style_for_declarations(&[("text-orientation", value)]).text_orientation,
+            expected,
+            "{value}"
+        );
+    }
+}
+
+#[test]
 fn resolves_text_indent_lengths_percentages_and_flags() {
     let em_indent = style_for_declarations(&[("text-indent", "2em hanging each-line")]);
     assert_eq!(em_indent.text_indent, 32.0);

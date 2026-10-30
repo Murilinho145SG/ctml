@@ -2,8 +2,8 @@ use cosmic_text::{Align, Stretch, Style, Weight};
 use winit::window::CursorIcon;
 
 use crate::style::{
-    FontVariantPosition, LineBreak, OverflowWrap, TextOverflow, TextStyle, TextTransform,
-    WhiteSpace, WordBreak,
+    FontVariantPosition, LineBreak, OverflowWrap, TextOrientation, TextOverflow, TextRendering,
+    TextStyle, TextTransform, WhiteSpace, WordBreak,
 };
 use ctml_css::parse_nonnegative_font_relative_length_with_viewport;
 use ctml_css::parse_signed_font_relative_length_with_viewport;
@@ -140,6 +140,8 @@ fn is_inherited_property(property: &str) -> bool {
             | "overflow-wrap"
             | "word-break"
             | "line-break"
+            | "text-rendering"
+            | "text-orientation"
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
@@ -247,6 +249,8 @@ fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str
         "overflow-wrap" => style.overflow_wrap = inherited.overflow_wrap,
         "word-break" => style.word_break = inherited.word_break,
         "line-break" => style.line_break = inherited.line_break,
+        "text-rendering" => style.text_rendering = inherited.text_rendering,
+        "text-orientation" => style.text_orientation = inherited.text_orientation,
         "text-indent" => {
             style.text_indent = inherited.text_indent;
             style.text_indent_percent = inherited.text_indent_percent;
@@ -350,6 +354,8 @@ fn initial_property(style: &mut TextStyle, property: &str) {
         "overflow-wrap" => style.overflow_wrap = OverflowWrap::Normal,
         "word-break" => style.word_break = WordBreak::Normal,
         "line-break" => style.line_break = LineBreak::Auto,
+        "text-rendering" => style.text_rendering = TextRendering::Auto,
+        "text-orientation" => style.text_orientation = TextOrientation::Mixed,
         "text-overflow" => style.text_overflow = TextOverflow::Clip,
         "line-clamp" => style.line_clamp = None,
         "text-indent" => {
@@ -630,6 +636,23 @@ fn apply_declaration(
                 "strict" => LineBreak::Strict,
                 "anywhere" => LineBreak::Anywhere,
                 _ => style.line_break,
+            };
+        }
+        "text-rendering" => {
+            style.text_rendering = match value.to_ascii_lowercase().as_str() {
+                "auto" => TextRendering::Auto,
+                "optimizespeed" => TextRendering::OptimizeSpeed,
+                "optimizelegibility" => TextRendering::OptimizeLegibility,
+                "geometricprecision" => TextRendering::GeometricPrecision,
+                _ => style.text_rendering,
+            };
+        }
+        "text-orientation" => {
+            style.text_orientation = match value.to_ascii_lowercase().as_str() {
+                "mixed" => TextOrientation::Mixed,
+                "upright" => TextOrientation::Upright,
+                "sideways" => TextOrientation::Sideways,
+                _ => style.text_orientation,
             };
         }
         "text-overflow" => {
