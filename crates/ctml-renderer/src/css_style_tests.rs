@@ -151,6 +151,20 @@ fn resolves_typed_attr_values_in_supported_style_properties() {
 }
 
 #[test]
+fn resolves_safe_area_env_values_and_unknown_env_fallbacks() {
+    let style = style_for_declarations(&[
+        (
+            "font-size",
+            "calc(10px + env(safe-area-inset-left) + env(safe-area-max-inset-top))",
+        ),
+        ("letter-spacing", "env(unknown-environment-value, 3px)"),
+    ]);
+
+    assert_eq!(style.font_size, 10.0);
+    assert_eq!(style.letter_spacing, 3.0);
+}
+
+#[test]
 fn untyped_attr_is_a_css_string_not_an_injected_token_sequence() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],

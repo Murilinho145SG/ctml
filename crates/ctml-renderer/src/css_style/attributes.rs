@@ -29,6 +29,18 @@ fn serialize_tokens<'i, 't>(
     while !parser.is_exhausted() {
         let token = parser.next_including_whitespace()?;
         match token {
+            Token::Function(name) if name.eq_ignore_ascii_case("env") => {
+                let (name, fallback) = parser.parse_nested_block(|nested| {
+                    parse_env_arguments(nested, attributes, color_profiles)
+                })?;
+                if is_zero_safe_area_environment_variable(&name) {
+                    output.push_str("0px");
+                } else if let Some(fallback) = fallback {
+                    output.push_str(&fallback);
+                } else {
+                    return Err(parser.new_custom_error(()));
+                }
+            }
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
                 let (name, attr_type, fallback) = parser
                     .parse_nested_block(|nested| parse_attr_arguments(nested, color_profiles))?;
@@ -69,6 +81,31 @@ fn serialize_tokens<'i, 't>(
         }
     }
     Ok(())
+}
+
+fn parse_env_arguments<'i, 't>(
+    parser: &mut Parser<'i, 't>,
+    attributes: &[(String, Option<String>)],
+    color_profiles: &[ctml_css::CssColorProfile],
+) -> Result<(String, Option<String>), cssparser::ParseError<'i, ()>> {
+    let name = parser.expect_ident_cloned()?.to_string();
+    parser.skip_whitespace();
+    if parser.is_exhausted() {
+        return Ok((name, None));
+    }
+    parser.expect_comma()?;
+    let mut fallback = String::new();
+    serialize_tokens(parser, attributes, color_profiles, &mut fallback)?;
+    Ok((name, Some(fallback)))
+}
+
+fn is_zero_safe_area_environment_variable(name: &str) -> bool {
+    ["safe-area-inset-", "safe-area-max-inset-"]
+        .iter()
+        .any(|prefix| {
+            name.strip_prefix(prefix)
+                .is_some_and(|side| matches!(side, "top" | "right" | "bottom" | "left"))
+        })
 }
 
 fn parse_attr_arguments<'i, 't>(
