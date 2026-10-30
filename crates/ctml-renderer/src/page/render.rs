@@ -109,6 +109,17 @@ impl PageRasterizer {
             &overflow_clips,
             &mut background_image_cache,
         );
+        super::first_line_boxes::draw_borders(
+            &self.runs,
+            &self.buffer,
+            &self.cursor_spans,
+            &mut pixels,
+            width,
+            height,
+            writing_mode,
+            &overflow_clips,
+            &self.nested_scroll,
+        );
         outlines::draw_first_line_outlines(
             &self.runs,
             &self.buffer,

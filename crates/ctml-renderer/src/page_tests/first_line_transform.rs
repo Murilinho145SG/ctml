@@ -258,6 +258,45 @@ fn first_line_outline_paints_outside_the_formatted_line() {
 }
 
 #[test]
+fn first_line_border_paints_around_the_formatted_line() {
+    let nodes = [UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("First formatted line".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["p::first-line".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "border".to_owned(),
+            value: "2px solid red".to_owned(),
+        }],
+    }];
+    let mut baseline = PageRasterizer::new(&nodes, &[]);
+    baseline.prepare_layout(180, 70);
+    let baseline_width = baseline.buffer.layout_runs().next().unwrap().line_w;
+    let mut bordered = PageRasterizer::new(&nodes, &stylesheet);
+    bordered.prepare_layout(180, 70);
+    let bordered_width = bordered.buffer.layout_runs().next().unwrap().line_w;
+    let rendered = bordered.snapshot_pixels(180, 70);
+
+    assert!(
+        rendered
+            .chunks_exact(4)
+            .enumerate()
+            .any(|(index, pixel)| index / 180 == 6 && pixel[..3] == [255, 0, 0]),
+        "the first-line border should paint along the formatted line's top edge"
+    );
+    assert!(
+        (bordered_width - baseline_width - 4.0).abs() < 1.0,
+        "2px start and end borders should add 4px to the first-line advance, got {}px",
+        bordered_width - baseline_width
+    );
+}
+
+#[test]
 fn first_line_text_transform_changes_only_the_formatted_first_line() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

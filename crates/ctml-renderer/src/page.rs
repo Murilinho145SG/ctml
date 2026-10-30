@@ -20,6 +20,7 @@ mod box_shadows;
 mod content_visibility;
 mod cursor_spans;
 mod decorations;
+mod first_line_boxes;
 mod focus;
 mod font_faces;
 mod font_features;

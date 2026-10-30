@@ -43,9 +43,11 @@ pub(in crate::page) fn insert_first_letter_spacing(
         let (start_side, end_side) =
             inline_sides(pseudo_style.writing_mode, pseudo_style.direction);
         let start_gap = resolve_box_side(pseudo_style, start_side, containing_width, true)
-            + resolve_box_side(pseudo_style, start_side, containing_width, false);
+            + resolve_box_side(pseudo_style, start_side, containing_width, false)
+            + resolve_border_side(pseudo_style, start_side);
         let end_gap = resolve_box_side(pseudo_style, end_side, containing_width, true)
-            + resolve_box_side(pseudo_style, end_side, containing_width, false);
+            + resolve_box_side(pseudo_style, end_side, containing_width, false)
+            + resolve_border_side(pseudo_style, end_side);
         if start_gap.abs() > f32::EPSILON {
             output.push(spacing_run(&runs[index], pseudo_style, start_gap));
         }
@@ -101,9 +103,11 @@ pub(in crate::page) fn insert_first_line_spacing(
             originating_run.style.direction,
         );
         let start_gap = resolve_box_side(pseudo_style, start_side, containing_width, true)
-            + resolve_box_side(pseudo_style, start_side, containing_width, false);
+            + resolve_box_side(pseudo_style, start_side, containing_width, false)
+            + resolve_border_side(pseudo_style, start_side);
         let end_gap = resolve_box_side(pseudo_style, end_side, containing_width, true)
-            + resolve_box_side(pseudo_style, end_side, containing_width, false);
+            + resolve_box_side(pseudo_style, end_side, containing_width, false)
+            + resolve_border_side(pseudo_style, end_side);
         if start_gap.abs() > f32::EPSILON {
             insertions.entry(first_span.run_index).or_default().push((
                 first_span.run_offset,
@@ -225,6 +229,28 @@ fn resolve_box_side(style: &TextStyle, side: usize, containing_width: f32, paddi
             )
         })
         .unwrap_or_default()
+}
+
+pub(in crate::page) fn resolve_border_side(style: &TextStyle, side: usize) -> f32 {
+    if style.border_style[side] == crate::style::BorderLineStyle::None
+        && style.border_image_source.is_none()
+    {
+        return 0.0;
+    }
+    match style.border_width[side].as_deref().unwrap_or("medium") {
+        "thin" => 1.0,
+        "medium" => 3.0,
+        "thick" => 5.0,
+        value => resolve_width(
+            value,
+            0.0,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+        .unwrap_or_default(),
+    }
 }
 
 fn spacing_run(source: &TextRun, pseudo_style: &TextStyle, spacing: f32) -> TextRun {
