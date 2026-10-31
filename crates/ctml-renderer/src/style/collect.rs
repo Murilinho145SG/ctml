@@ -26,6 +26,7 @@ pub(super) fn collect_runs(
     opacity_groups: &mut HashMap<usize, f32>,
     mix_blend_modes: &mut HashMap<usize, super::BackgroundBlendMode>,
     isolation_groups: &mut HashSet<usize>,
+    transition_styles: &mut HashMap<usize, (bool, f32, f32, super::TransitionEasing)>,
     page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
@@ -135,6 +136,15 @@ pub(super) fn collect_runs(
                 if style.isolation {
                     isolation_groups.insert(sibling.node_id);
                 }
+                transition_styles.insert(
+                    sibling.node_id,
+                    (
+                        style.transition_opacity,
+                        style.transition_duration_ms,
+                        style.transition_delay_ms,
+                        style.transition_easing,
+                    ),
+                );
                 style.opacity *= inherited.opacity;
                 if style.display_none {
                     continue;
@@ -387,6 +397,7 @@ pub(super) fn collect_runs(
                         opacity_groups,
                         mix_blend_modes,
                         isolation_groups,
+                        transition_styles,
                         page_writing_mode,
                         font_metrics,
                         output,

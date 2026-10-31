@@ -48,6 +48,7 @@ pub(super) fn begin_transitions(
     previous_root_opacity: f32,
     previous_opacity_groups: &HashMap<usize, f32>,
     root_style: &TextStyle,
+    transition_styles: &HashMap<usize, (bool, f32, f32, TransitionEasing)>,
 ) {
     page.root_opacity = root_style.opacity;
     page.root_opacity_transition = start_transition(
@@ -64,23 +65,7 @@ pub(super) fn begin_transitions(
 
     page.opacity_transitions.clear();
     let now = Instant::now();
-    let mut transitions_by_node = HashMap::new();
-    for run in &page.runs {
-        let Some(node_id) = run.element_path.last().copied() else {
-            continue;
-        };
-        if run.style.transition_opacity {
-            transitions_by_node.insert(
-                node_id,
-                (
-                    run.style.transition_duration_ms,
-                    run.style.transition_delay_ms,
-                    run.style.transition_easing,
-                ),
-            );
-        }
-    }
-    for (node_id, (duration_ms, delay_ms, easing)) in transitions_by_node {
+    for (node_id, (enabled, duration_ms, delay_ms, easing)) in transition_styles {
         let Some(target) = page.opacity_groups.get(&node_id).copied() else {
             continue;
         };
@@ -88,14 +73,15 @@ pub(super) fn begin_transitions(
             .get(&node_id)
             .copied()
             .unwrap_or(1.0);
-        let Some(transition) = start_transition(from, target, true, duration_ms, delay_ms, easing)
+        let Some(transition) =
+            start_transition(from, target, *enabled, *duration_ms, *delay_ms, *easing)
         else {
             continue;
         };
         page.opacity_groups
-            .insert(node_id, interpolate_opacity(&transition, now));
+            .insert(*node_id, interpolate_opacity(&transition, now));
         if now < transition.starts_at + transition.duration {
-            page.opacity_transitions.insert(node_id, transition);
+            page.opacity_transitions.insert(*node_id, transition);
         }
     }
 }

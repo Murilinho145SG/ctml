@@ -48,7 +48,7 @@ pub(super) fn compile_runs_with_font_system(
     color_profiles: &[ctml_css::CssColorProfile],
     viewport_size: ViewportSize,
 ) -> (Vec<TextRun>, TextStyle) {
-    let (runs, root_style, _, _, _) = compile_runs_with_opacity_map(
+    let (runs, root_style, _, _, _, _) = compile_runs_with_opacity_map(
         nodes,
         stylesheet,
         hovered_path,
@@ -78,6 +78,7 @@ pub(super) fn compile_runs_with_opacity_map(
     HashMap<usize, f32>,
     HashMap<usize, BackgroundBlendMode>,
     HashSet<usize>,
+    HashMap<usize, (bool, f32, f32, TransitionEasing)>,
 ) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {
@@ -152,6 +153,7 @@ pub(super) fn compile_runs_with_opacity_map(
     let mut opacity_groups = HashMap::new();
     let mut mix_blend_modes = HashMap::new();
     let mut isolation_groups = HashSet::new();
+    let mut transition_styles = HashMap::new();
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
@@ -171,6 +173,7 @@ pub(super) fn compile_runs_with_opacity_map(
             &mut opacity_groups,
             &mut mix_blend_modes,
             &mut isolation_groups,
+            &mut transition_styles,
             root_style.writing_mode,
             font_metrics.as_ref(),
             &mut runs,
@@ -256,6 +259,7 @@ pub(super) fn compile_runs_with_opacity_map(
         opacity_groups,
         mix_blend_modes,
         isolation_groups,
+        transition_styles,
     )
 }
 

@@ -137,7 +137,7 @@ impl PageRasterizer {
         if let Some(family) = crate::fontconfig::matched_family("Courier New") {
             font_system.db_mut().set_monospace_family(family);
         }
-        let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
+        let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups, _) =
             compile_runs_with_opacity_map(
                 nodes,
                 stylesheet,
@@ -573,24 +573,30 @@ impl PageRasterizer {
     fn rebuild_interaction_styles(&mut self) {
         let previous_root_opacity = self.root_opacity;
         let previous_opacity_groups = self.opacity_groups.clone();
-        let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
-            compile_runs_with_opacity_map(
-                &self.nodes,
-                &self.stylesheet,
-                &self.hovered_path,
-                &self.active_path,
-                &self.focused_path,
-                self.keyboard_focus,
-                Some(&self.font_system),
-                &self.color_profiles,
-                self.layout_size
-                    .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
-                        ctml_css::ViewportSize {
-                            width: width as f32,
-                            height: height as f32,
-                        }
-                    }),
-            );
+        let (
+            compiled_runs,
+            root_style,
+            opacity_groups,
+            mix_blend_modes,
+            isolation_groups,
+            transition_styles,
+        ) = compile_runs_with_opacity_map(
+            &self.nodes,
+            &self.stylesheet,
+            &self.hovered_path,
+            &self.active_path,
+            &self.focused_path,
+            self.keyboard_focus,
+            Some(&self.font_system),
+            &self.color_profiles,
+            self.layout_size
+                .map_or_else(ctml_css::ViewportSize::default, |(width, height)| {
+                    ctml_css::ViewportSize {
+                        width: width as f32,
+                        height: height as f32,
+                    }
+                }),
+        );
         self.runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
@@ -611,6 +617,7 @@ impl PageRasterizer {
             previous_root_opacity,
             &previous_opacity_groups,
             &root_style,
+            &transition_styles,
         );
         self.root_style = root_style;
         self.root_style.opacity = 1.0;

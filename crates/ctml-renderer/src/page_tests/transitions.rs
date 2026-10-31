@@ -84,3 +84,36 @@ fn text_element_opacity_transitions_on_hover() {
     );
     assert_eq!(page.opacity_groups.get(&1), Some(&0.0));
 }
+
+#[test]
+fn wrapper_opacity_transitions_when_only_descendants_render_text() {
+    let nodes = [crate::UiNode::Element {
+        tag: "section".to_owned(),
+        class: Some("wrapper".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Element {
+            tag: "button".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![crate::UiNode::Text("Nested".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        rule(".wrapper", &[("transition", "opacity 1000ms linear")]),
+        rule(".wrapper:hover", &[("opacity", "0")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.opacity_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(page.opacity_groups.get(&1), Some(&1.0));
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert!((page.opacity_groups[&1] - 0.5).abs() < 0.01);
+}
