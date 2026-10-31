@@ -54,6 +54,10 @@ pub(super) fn resize_styles(
         .iter()
         .map(|(node_id, style)| (*node_id, style.background_color_value))
         .collect();
+    page.element_visibility = transition_styles
+        .iter()
+        .map(|(node_id, style)| (*node_id, style.visibility_hidden))
+        .collect();
     page.mix_blend_modes = mix_blend_modes;
     page.isolation_groups = isolation_groups;
     page.decoration_opacity_scales.clear();

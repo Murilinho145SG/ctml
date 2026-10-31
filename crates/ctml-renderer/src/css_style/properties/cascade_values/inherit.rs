@@ -20,6 +20,7 @@ pub(in crate::css_style::properties) fn inherit_property(
             style.transition_durations_ms = inherited.transition_durations_ms.clone();
             style.transition_delays_ms = inherited.transition_delays_ms.clone();
             style.transition_easings = inherited.transition_easings.clone();
+            style.transition_behaviors = inherited.transition_behaviors.clone();
             super::super::transition::update_opacity_transition(style);
         }
         "transition-property" => {
@@ -38,7 +39,15 @@ pub(in crate::css_style::properties) fn inherit_property(
             style.transition_easings = inherited.transition_easings.clone();
             super::super::transition::update_opacity_transition(style);
         }
-        "visibility" => style.visibility_hidden = inherited.visibility_hidden,
+        "transition-behavior" => {
+            style.transition_behaviors = inherited.transition_behaviors.clone();
+            super::super::transition::update_opacity_transition(style);
+        }
+        "visibility" => {
+            style.visibility_hidden = inherited.visibility_hidden;
+            style.visibility_owner = inherited.visibility_owner;
+            style.visibility_is_explicit = false;
+        }
         "content-visibility" => {
             style.content_visibility_hidden = inherited.content_visibility_hidden;
             style.content_visibility_auto = inherited.content_visibility_auto;

@@ -6,6 +6,9 @@ use crate::style::{
 
 use super::PageRasterizer;
 
+mod visibility;
+pub(super) use visibility::VisibilityTransition;
+
 pub(super) struct OpacityTransition {
     pub(super) from: f32,
     pub(super) to: f32,
@@ -28,6 +31,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         && page.opacity_transitions.is_empty()
         && page.color_transitions.is_empty()
         && page.background_color_transitions.is_empty()
+        && page.visibility_transitions.is_empty()
     {
         return None;
     }
@@ -88,11 +92,13 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     for node_id in completed_backgrounds {
         page.background_color_transitions.remove(&node_id);
     }
+    let visibility_active = visibility::advance(page, now);
     Some(
         root_active
             || !page.opacity_transitions.is_empty()
             || !page.color_transitions.is_empty()
-            || !page.background_color_transitions.is_empty(),
+            || !page.background_color_transitions.is_empty()
+            || visibility_active,
     )
 }
 
@@ -104,6 +110,7 @@ pub(super) fn begin_transitions(
     transition_styles: &HashMap<usize, ElementTransitionStyle>,
     previous_element_colors: &HashMap<usize, [u8; 4]>,
     previous_element_background_colors: &HashMap<usize, [u8; 4]>,
+    previous_element_visibility: &HashMap<usize, bool>,
 ) {
     page.root_opacity = root_style.opacity;
     page.root_opacity_transition = start_transition(
@@ -121,6 +128,7 @@ pub(super) fn begin_transitions(
     page.opacity_transitions.clear();
     page.color_transitions.clear();
     page.background_color_transitions.clear();
+    page.visibility_transitions.clear();
     let now = Instant::now();
     for (node_id, settings) in transition_styles {
         let Some(target) = page.opacity_groups.get(&node_id).copied() else {
@@ -141,6 +149,16 @@ pub(super) fn begin_transitions(
                     settings,
                     timing,
                     previous_element_background_colors,
+                    now,
+                );
+            }
+            if let Some(timing) = settings.visibility {
+                visibility::begin_transition(
+                    page,
+                    *node_id,
+                    settings,
+                    timing,
+                    previous_element_visibility,
                     now,
                 );
             }
@@ -183,6 +201,16 @@ pub(super) fn begin_transitions(
                 settings,
                 timing,
                 previous_element_background_colors,
+                now,
+            );
+        }
+        if let Some(timing) = settings.visibility {
+            visibility::begin_transition(
+                page,
+                *node_id,
+                settings,
+                timing,
+                previous_element_visibility,
                 now,
             );
         }

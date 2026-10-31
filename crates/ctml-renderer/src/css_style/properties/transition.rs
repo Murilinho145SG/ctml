@@ -31,6 +31,12 @@ pub(super) fn apply_transition(style: &mut TextStyle, property: &str, value: &st
                 update_opacity_transition(style);
             }
         }
+        "transition-behavior" => {
+            if let Some(behaviors) = parse_transition_behaviors(value) {
+                style.transition_behaviors = behaviors;
+                update_opacity_transition(style);
+            }
+        }
         "transition" => apply_shorthand(style, value),
         _ => {}
     }
@@ -55,6 +61,7 @@ fn apply_shorthand(style: &mut TextStyle, value: &str) {
         style.transition_durations_ms = vec![0.0];
         style.transition_delays_ms = vec![0.0];
         style.transition_easings = vec![TransitionEasing::default()];
+        style.transition_behaviors = vec![false];
         update_opacity_transition(style);
         return;
     }
@@ -66,6 +73,7 @@ fn apply_shorthand(style: &mut TextStyle, value: &str) {
     style.transition_durations_ms = entries.iter().map(|entry| entry.1).collect();
     style.transition_delays_ms = entries.iter().map(|entry| entry.2).collect();
     style.transition_easings = entries.iter().map(|entry| entry.3).collect();
+    style.transition_behaviors = entries.iter().map(|entry| entry.4).collect();
     update_opacity_transition(style);
 }
 
@@ -76,6 +84,7 @@ pub(super) fn reset_transition(style: &mut TextStyle, property: &str) {
             style.transition_durations_ms = vec![0.0];
             style.transition_delays_ms = vec![0.0];
             style.transition_easings = vec![TransitionEasing::default()];
+            style.transition_behaviors = vec![false];
         }
         "transition-property" => style.transition_properties = vec!["all".to_owned()],
         "transition-duration" => style.transition_durations_ms = vec![0.0],
@@ -83,6 +92,7 @@ pub(super) fn reset_transition(style: &mut TextStyle, property: &str) {
         "transition-timing-function" => {
             style.transition_easings = vec![TransitionEasing::default()]
         }
+        "transition-behavior" => style.transition_behaviors = vec![false],
         _ => return,
     }
     update_opacity_transition(style);
@@ -126,6 +136,20 @@ pub(super) fn update_opacity_transition(style: &mut TextStyle) {
     } else {
         style.transition_background_color = false;
     }
+    if let Some(index) = style
+        .transition_properties
+        .iter()
+        .rposition(|property| matches!(property.as_str(), "visibility" | "all"))
+        && list_item(&style.transition_behaviors, index)
+    {
+        style.transition_visibility = Some(crate::style::TransitionTiming {
+            duration_ms: list_item(&style.transition_durations_ms, index),
+            delay_ms: list_item(&style.transition_delays_ms, index),
+            easing: list_item(&style.transition_easings, index),
+        });
+    } else {
+        style.transition_visibility = None;
+    }
 }
 
 fn list_item<T: Copy>(values: &[T], index: usize) -> T {
@@ -153,11 +177,23 @@ fn parse_time_list(value: &str, parse: fn(&str) -> Option<f32>) -> Option<Vec<f3
         .collect()
 }
 
-fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEasing)> {
+fn parse_transition_behaviors(value: &str) -> Option<Vec<bool>> {
+    split_transition_entries(value)
+        .into_iter()
+        .map(|behavior| match behavior.to_ascii_lowercase().as_str() {
+            "normal" => Some(false),
+            "allow-discrete" => Some(true),
+            _ => None,
+        })
+        .collect()
+}
+
+fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEasing, bool)> {
     let mut property = None::<String>;
     let mut duration = None;
     let mut delay = None;
     let mut easing = None;
+    let mut behavior = None;
     let tokens = split_function_tokens(value);
     if tokens.is_empty() {
         return None;
@@ -180,6 +216,10 @@ fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEa
             if easing.replace(value).is_some() {
                 return None;
             }
+        } else if matches!(keyword.as_str(), "normal" | "allow-discrete") {
+            if behavior.replace(keyword == "allow-discrete").is_some() {
+                return None;
+            }
         } else if is_transition_property(&keyword) {
             if property.replace(keyword).is_some() {
                 return None;
@@ -189,7 +229,7 @@ fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEa
         }
     }
     if property.as_deref() == Some("none")
-        && (duration.is_some() || delay.is_some() || easing.is_some())
+        && (duration.is_some() || delay.is_some() || easing.is_some() || behavior.is_some())
     {
         return None;
     }
@@ -201,6 +241,7 @@ fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEa
         duration.unwrap_or_default(),
         delay.unwrap_or_default(),
         easing.unwrap_or_default(),
+        behavior.unwrap_or_default(),
     ))
 }
 

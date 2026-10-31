@@ -139,6 +139,7 @@ pub(super) fn compile_runs_with_opacity_map(
     );
     root_style.color_owner = Some(0);
     root_style.color_transition_owner = root_style.transition_color.then_some(0);
+    root_style.visibility_owner = Some(0);
     let mut inherited_root_style = root_style.clone();
     inherited_root_style.opacity = 1.0;
     let mut runs = Vec::new();
@@ -178,6 +179,8 @@ pub(super) fn compile_runs_with_opacity_map(
                     easing: root_style.transition_background_color_easing,
                 }),
             background_color_value: root_style.background_color.unwrap_or([0, 0, 0, 0]),
+            visibility: root_style.transition_visibility,
+            visibility_hidden: root_style.visibility_hidden,
         },
     );
     if !root_style.display_none {

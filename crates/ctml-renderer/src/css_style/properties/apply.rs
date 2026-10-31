@@ -24,10 +24,17 @@ pub(super) fn apply_declaration(
         | "transition-property"
         | "transition-duration"
         | "transition-delay"
-        | "transition-timing-function" => transition::apply_transition(style, property, value),
+        | "transition-timing-function"
+        | "transition-behavior" => transition::apply_transition(style, property, value),
         "visibility" => match value.to_ascii_lowercase().as_str() {
-            "visible" => style.visibility_hidden = false,
-            "hidden" | "collapse" => style.visibility_hidden = true,
+            "visible" => {
+                style.visibility_hidden = false;
+                style.visibility_is_explicit = true;
+            }
+            "hidden" | "collapse" => {
+                style.visibility_hidden = true;
+                style.visibility_is_explicit = true;
+            }
             _ => {}
         },
         "content-visibility" => match value.to_ascii_lowercase().as_str() {

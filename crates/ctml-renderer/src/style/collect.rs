@@ -110,6 +110,11 @@ pub(super) fn collect_runs(
                 } else {
                     inherited.color_transition_owner
                 };
+                style.visibility_owner = if style.visibility_is_explicit {
+                    Some(sibling.node_id)
+                } else {
+                    inherited.visibility_owner
+                };
                 style.content_skipped_by_ancestor = inherited.content_skipped;
                 style.content_skipped =
                     inherited.content_skipped || style.content_visibility_hidden;
@@ -170,6 +175,8 @@ pub(super) fn collect_runs(
                             },
                         ),
                         background_color_value: style.background_color.unwrap_or([0, 0, 0, 0]),
+                        visibility: style.transition_visibility,
+                        visibility_hidden: style.visibility_hidden,
                     },
                 );
                 style.opacity *= inherited.opacity;

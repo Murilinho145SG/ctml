@@ -92,6 +92,8 @@ pub(crate) struct PageRasterizer {
     color_transitions: HashMap<usize, animations::ColorTransition>,
     element_background_colors: HashMap<usize, [u8; 4]>,
     background_color_transitions: HashMap<usize, animations::ColorTransition>,
+    element_visibility: HashMap<usize, bool>,
+    visibility_transitions: HashMap<usize, animations::VisibilityTransition>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
     isolation_groups: HashSet<usize>,
     decoration_opacity_scales: Vec<f32>,
@@ -214,6 +216,11 @@ impl PageRasterizer {
                 .map(|(node_id, style)| (*node_id, style.background_color_value))
                 .collect(),
             background_color_transitions: HashMap::new(),
+            element_visibility: transition_styles
+                .iter()
+                .map(|(node_id, style)| (*node_id, style.visibility_hidden))
+                .collect(),
+            visibility_transitions: HashMap::new(),
             mix_blend_modes,
             isolation_groups,
             decoration_opacity_scales: Vec::new(),
@@ -595,6 +602,7 @@ impl PageRasterizer {
         let previous_opacity_groups = self.opacity_groups.clone();
         let previous_element_colors = self.element_colors.clone();
         let previous_element_background_colors = self.element_background_colors.clone();
+        let previous_element_visibility = self.element_visibility.clone();
         let (
             compiled_runs,
             root_style,
@@ -639,6 +647,10 @@ impl PageRasterizer {
             .iter()
             .map(|(node_id, style)| (*node_id, style.background_color_value))
             .collect();
+        self.element_visibility = transition_styles
+            .iter()
+            .map(|(node_id, style)| (*node_id, style.visibility_hidden))
+            .collect();
         self.mix_blend_modes = mix_blend_modes;
         self.isolation_groups = isolation_groups;
         self.decoration_opacity_scales.clear();
@@ -650,6 +662,7 @@ impl PageRasterizer {
             &transition_styles,
             &previous_element_colors,
             &previous_element_background_colors,
+            &previous_element_visibility,
         );
         self.root_style = root_style;
         self.root_style.opacity = 1.0;

@@ -13,10 +13,12 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         | "transition-property"
         | "transition-duration"
         | "transition-delay"
-        | "transition-timing-function" => {
-            super::super::transition::reset_transition(style, property)
+        | "transition-timing-function"
+        | "transition-behavior" => super::super::transition::reset_transition(style, property),
+        "visibility" => {
+            style.visibility_hidden = false;
+            style.visibility_is_explicit = true;
         }
-        "visibility" => style.visibility_hidden = false,
         "content-visibility" => {
             style.content_visibility_hidden = false;
             style.content_visibility_auto = false;

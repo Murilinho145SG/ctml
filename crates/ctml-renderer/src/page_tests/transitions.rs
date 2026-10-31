@@ -287,3 +287,103 @@ fn transition_none_cancels_an_in_progress_background_color_transition() {
     assert_eq!(page.runs[0].style.background_color, Some([255, 0, 0, 255]));
     assert_eq!(page.advance_animations(std::time::Instant::now()), None);
 }
+
+#[test]
+fn allow_discrete_visibility_transitions_switch_at_the_midpoint() {
+    let nodes = [crate::UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Visibility".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "div",
+            &[("transition", "visibility 1000ms linear allow-discrete")],
+        ),
+        rule("div:hover", &[("visibility", "hidden")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.visibility_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert!(!page.runs[0].style.visibility_hidden);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(499)),
+        Some(true)
+    );
+    assert!(!page.runs[0].style.visibility_hidden);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert!(page.runs[0].style.visibility_hidden);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert!(page.runs[0].style.visibility_hidden);
+
+    let stylesheet = [
+        rule(
+            "div",
+            &[
+                ("visibility", "hidden"),
+                ("transition", "visibility 1000ms linear allow-discrete"),
+            ],
+        ),
+        rule("div:hover", &[("visibility", "visible")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+    let transition = page.visibility_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert!(page.runs[0].style.visibility_hidden);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(499)),
+        Some(true)
+    );
+    assert!(page.runs[0].style.visibility_hidden);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert!(!page.runs[0].style.visibility_hidden);
+}
+
+#[test]
+fn inherited_visibility_transition_preserves_an_explicitly_visible_child() {
+    let nodes = [crate::UiNode::Element {
+        tag: "section".to_owned(),
+        class: Some("wrapper".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Element {
+            tag: "p".to_owned(),
+            class: Some("visible".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![crate::UiNode::Text("Visible".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        rule(
+            ".wrapper",
+            &[("transition", "visibility 1000ms linear allow-discrete")],
+        ),
+        rule(".wrapper:hover", &[("visibility", "hidden")]),
+        rule(".visible", &[("visibility", "visible")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.visibility_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    page.advance_animations(starts_at + Duration::from_millis(500));
+    assert!(!page.runs[0].style.visibility_hidden);
+}

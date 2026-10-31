@@ -95,6 +95,39 @@ fn other_transition_properties_do_not_enable_opacity_animation() {
 }
 
 #[test]
+fn transition_behavior_enables_discrete_visibility_transitions() {
+    let mut style = TextStyle::default();
+    apply_transition(
+        &mut style,
+        "transition",
+        "visibility 250ms linear allow-discrete",
+    );
+    assert_eq!(
+        style.transition_visibility,
+        Some(crate::style::TransitionTiming {
+            duration_ms: 250.0,
+            delay_ms: 0.0,
+            easing: TransitionEasing::Linear,
+        })
+    );
+
+    apply_transition(&mut style, "transition-property", "opacity, visibility");
+    apply_transition(&mut style, "transition-duration", "100ms, 400ms");
+    apply_transition(&mut style, "transition-behavior", "normal, allow-discrete");
+    assert_eq!(
+        style.transition_visibility,
+        Some(crate::style::TransitionTiming {
+            duration_ms: 400.0,
+            delay_ms: 0.0,
+            easing: TransitionEasing::Linear,
+        })
+    );
+
+    apply_transition(&mut style, "transition-behavior", "normal");
+    assert_eq!(style.transition_visibility, None);
+}
+
+#[test]
 fn transition_keywords_are_ascii_case_insensitive() {
     let mut style = TextStyle::default();
     apply_transition(&mut style, "transition", "OPACITY 0.25S EASE-IN");
