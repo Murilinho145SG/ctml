@@ -63,6 +63,37 @@ fn flex_wrap_reverse_reverses_rows_inside_a_fixed_cross_size() {
     );
 }
 
+#[test]
+fn flex_wrap_reverse_reverses_wrapped_rows_under_a_vertical_page_root() {
+    let mut wrap = vertical_page_wrap("wrap", None);
+    let mut reverse = vertical_page_wrap("wrap-reverse", None);
+    wrap.prepare_layout(120, 60);
+    reverse.prepare_layout(120, 60);
+
+    assert!(item_y(&wrap, "Second") > item_y(&wrap, "First"));
+    assert!(
+        item_y(&reverse, "First") > item_y(&reverse, "Second"),
+        "wrap-reverse should reverse cross-axis rows in vertical page flow"
+    );
+}
+
+#[test]
+fn flex_wrap_reverse_reverses_rows_in_vertical_flow_with_a_fixed_cross_size() {
+    let mut wrap = vertical_page_wrap("wrap", Some("100px"));
+    let mut reverse = vertical_page_wrap("wrap-reverse", Some("100px"));
+    wrap.prepare_layout(120, 60);
+    reverse.prepare_layout(120, 60);
+
+    assert!(
+        (item_y(&reverse, "First") - item_y(&wrap, "Second")).abs() < 1.0,
+        "wrap-reverse should move the first source row to the second row's regular position"
+    );
+    assert!(
+        (item_y(&reverse, "Second") - item_y(&wrap, "First")).abs() < 1.0,
+        "wrap-reverse should move the second source row to the first row's regular position"
+    );
+}
+
 fn flex_wrap_page(wrap: Option<&str>, height: &str) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -107,6 +138,53 @@ fn flex_wrap_page(wrap: Option<&str>, height: &str) -> PageRasterizer {
         layer: None,
         declarations,
     }];
+    PageRasterizer::new(&nodes, &stylesheet)
+}
+
+fn vertical_page_wrap(wrap: &str, width: Option<&str>) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: {
+                let mut declarations = vec![("display", "flex"), ("flex-wrap", wrap)];
+                if let Some(width) = width {
+                    declarations.push(("width", width));
+                }
+                declarations
+                    .into_iter()
+                    .map(|(property, value)| StyleDeclaration {
+                        property: property.to_owned(),
+                        value: value.to_owned(),
+                    })
+                    .collect()
+            },
+        },
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "writing-mode".to_owned(),
+                value: "vertical-rl".to_owned(),
+            }],
+        },
+    ];
     PageRasterizer::new(&nodes, &stylesheet)
 }
 
