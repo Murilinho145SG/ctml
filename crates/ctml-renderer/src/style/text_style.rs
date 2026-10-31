@@ -238,6 +238,9 @@ pub(crate) enum TextDecorationSkipInk {
 
 impl TextStyle {
     pub(crate) fn wrap_mode(&self) -> Wrap {
+        if (self.flex_items_row && !self.flex_wrap) || self.flex_item_no_wrap {
+            return Wrap::None;
+        }
         if self.text_wrap_mode == TextWrapMode::NoWrap {
             return Wrap::None;
         }

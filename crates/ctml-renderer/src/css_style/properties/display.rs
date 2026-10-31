@@ -22,6 +22,14 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_wrap(style: &mut TextStyle, value: &str) {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "nowrap" => style.flex_wrap = false,
+        "wrap" => style.flex_wrap = true,
+        _ => {}
+    }
+}
+
 pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
     style.justify_content = match value.trim().to_ascii_lowercase().as_str() {
         "normal" | "flex-start" => crate::style::FlexAlignment::FlexStart,
@@ -76,6 +84,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
     match property {
         "display" => apply_display(style, value),
         "flex-direction" => apply_flex_direction(style, value),
+        "flex-wrap" => apply_flex_wrap(style, value),
         "justify-content" => apply_justify_content(style, value),
         "align-items" => apply_align_items(style, value),
         "align-self" => apply_align_self(style, value),
@@ -89,6 +98,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
         property,
         "display"
             | "flex-direction"
+            | "flex-wrap"
             | "justify-content"
             | "align-items"
             | "align-self"

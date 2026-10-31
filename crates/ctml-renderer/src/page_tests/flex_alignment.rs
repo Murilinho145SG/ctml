@@ -109,6 +109,24 @@ fn row_justify_content_space_evenly_distributes_equal_edge_and_item_gaps() {
 }
 
 #[test]
+fn flex_wrap_defaults_to_single_row_and_wrap_allows_items_on_another_line() {
+    let mut nowrap = flex_wrap_page(None);
+    let mut wrap = flex_wrap_page(Some("wrap"));
+    nowrap.prepare_layout(60, 120);
+    wrap.prepare_layout(60, 120);
+
+    assert_eq!(
+        item_y(&nowrap, "First"),
+        item_y(&nowrap, "Second"),
+        "the initial flex-wrap value should keep row items on one line"
+    );
+    assert!(
+        item_y(&wrap, "Second") > item_y(&wrap, "First"),
+        "wrap should move an overflowing flex item to a subsequent line"
+    );
+}
+
+#[test]
 fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
     page.prepare_layout(400, 120);
@@ -214,6 +232,49 @@ fn aligned_flex_page(direction: &str, property: &str, value: &str) -> PageRaster
     PageRasterizer::new(&nodes, &stylesheet)
 }
 
+fn flex_wrap_page(wrap: Option<&str>) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let mut declarations = vec![
+        StyleDeclaration {
+            property: "display".to_owned(),
+            value: "flex".to_owned(),
+        },
+        StyleDeclaration {
+            property: "width".to_owned(),
+            value: "44px".to_owned(),
+        },
+    ];
+    if let Some(wrap) = wrap {
+        declarations.push(StyleDeclaration {
+            property: "flex-wrap".to_owned(),
+            value: wrap.to_owned(),
+        });
+    }
+    PageRasterizer::new(
+        &nodes,
+        &[StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations,
+        }],
+    )
+}
+
 fn align_self_flex_page(value: &str) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -270,7 +331,12 @@ fn item_x(page: &PageRasterizer, item: &str) -> f32 {
 fn item_y(page: &PageRasterizer, item: &str) -> f32 {
     page.buffer
         .layout_runs()
-        .find(|line| line.text.contains(item))
+        .find(|line| {
+            let Some(start) = line.text.find(item) else {
+                return false;
+            };
+            line.glyphs.iter().any(|glyph| glyph.start == start)
+        })
         .expect("flex item should be on a formatted line")
         .line_top
 }

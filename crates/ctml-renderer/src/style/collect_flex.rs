@@ -192,7 +192,8 @@ pub(super) fn append_gap(
             style.justify_content,
             FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
         );
-    if gap.is_none() && !distribute {
+    let wrap_break = style.flex_items_row && style.flex_wrap;
+    if gap.is_none() && !distribute && !wrap_break {
         return;
     }
     let percentage_basis = flex_main_size(style);

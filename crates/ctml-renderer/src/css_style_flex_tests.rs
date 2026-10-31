@@ -111,6 +111,31 @@ fn flex_direction_supports_row_reverse_and_css_wide_resets() {
 }
 
 #[test]
+fn flex_wrap_defaults_to_nowrap_and_supports_wrap_and_css_wide_values() {
+    assert!(!style_with_declarations(&[]).flex_wrap);
+    assert!(style_with_declarations(&[("flex-wrap", "wrap")]).flex_wrap);
+    assert!(!style_with_declarations(&[("flex-wrap", "nowrap")]).flex_wrap);
+    assert!(!style_with_declarations(&[("flex-wrap", "wrap-reverse")]).flex_wrap);
+
+    let inherited = TextStyle {
+        flex_wrap: true,
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert!(resolve_style(&inherited, &element, &[], &[rule("flex-wrap", "inherit")]).flex_wrap);
+    for keyword in ["initial", "unset", "revert"] {
+        assert!(
+            !resolve_style(&inherited, &element, &[], &[rule("flex-wrap", keyword)]).flex_wrap,
+            "{keyword} should restore nowrap"
+        );
+    }
+}
+
+#[test]
 fn order_is_non_inherited_and_supports_css_wide_resets() {
     let inherited = TextStyle {
         flex_order: 7,

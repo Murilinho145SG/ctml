@@ -221,6 +221,8 @@ pub(super) fn collect_runs(
                 );
                 style.flex_items_row = style.display_flex && !style.flex_direction_column;
                 style.flex_items_column = style.display_flex && style.flex_direction_column;
+                style.flex_item_no_wrap = inherited.flex_item_no_wrap
+                    || (inherited.flex_items_row && !inherited.flex_wrap);
                 style.flex_item_alignment = collect_flex::item_alignment(&style, inherited, block);
                 style.inline_box = !block;
                 let empty_box = children.is_empty()

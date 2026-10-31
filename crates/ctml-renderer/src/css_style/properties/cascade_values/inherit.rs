@@ -117,6 +117,7 @@ pub(in crate::css_style::properties) fn inherit_property(
             style.flex_direction_column = inherited.flex_direction_column;
             style.flex_direction_reverse = inherited.flex_direction_reverse;
         }
+        "flex-wrap" => style.flex_wrap = inherited.flex_wrap,
         "justify-content" => style.justify_content = inherited.justify_content,
         "align-items" => style.align_items = inherited.align_items,
         "align-self" => style.align_self = inherited.align_self,
