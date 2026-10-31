@@ -136,6 +136,32 @@ fn flex_wrap_defaults_to_nowrap_and_supports_wrap_and_css_wide_values() {
 }
 
 #[test]
+fn flex_grow_parses_nonnegative_finite_numbers_and_resets_to_zero() {
+    assert_eq!(style_with_declarations(&[]).flex_grow, 0.0);
+    assert_eq!(
+        style_with_declarations(&[("flex-grow", "2.5")]).flex_grow,
+        2.5
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-grow", "-1")]).flex_grow,
+        0.0
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-grow", "NaN")]).flex_grow,
+        0.0
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-grow", "infinity")]).flex_grow,
+        0.0
+    );
+
+    let reset = style_with_declarations(&[("flex-grow", "3"), ("flex-grow", "initial")]);
+    assert_eq!(reset.flex_grow, 0.0);
+    let all_reset = style_with_declarations(&[("flex-grow", "3"), ("all", "initial")]);
+    assert_eq!(all_reset.flex_grow, 0.0);
+}
+
+#[test]
 fn flex_flow_shorthand_sets_direction_and_wrap_and_respects_source_order() {
     let row_wrap = style_with_declarations(&[("flex-flow", "row wrap")]);
     assert!(!row_wrap.flex_direction_column);

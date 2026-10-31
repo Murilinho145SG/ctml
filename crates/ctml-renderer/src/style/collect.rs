@@ -142,6 +142,7 @@ pub(super) fn collect_runs(
                 flex_gap_state.before_element(
                     inherited,
                     flex_item_id,
+                    style.flex_grow,
                     element_path,
                     output,
                     last_was_space,

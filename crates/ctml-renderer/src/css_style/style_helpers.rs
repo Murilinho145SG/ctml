@@ -26,6 +26,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "align-items",
     "align-self",
     "order",
+    "flex-grow",
     "gap",
     "row-gap",
     "column-gap",

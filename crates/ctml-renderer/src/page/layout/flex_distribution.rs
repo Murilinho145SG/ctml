@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::page::PageRasterizer;
 
 struct FlexGapLine {
-    positions: Vec<usize>,
+    positions: Vec<(usize, f32)>,
     available_width: f32,
     container_id: Option<usize>,
     mixed_containers: bool,
@@ -56,53 +56,81 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     if line.container_id != container_id {
                         line.mixed_containers = true;
                     }
-                    line.positions.push(byte_index);
+                    line.positions
+                        .push((byte_index, run.style.flex_grow_weight));
                 }
                 byte_index += character.len_utf8();
             }
         }
     }
 
-    let extras = page
-        .buffer
-        .layout_runs()
-        .filter_map(|line| {
-            let group = markers_by_line.get(&line.line_i)?;
-            if group.mixed_containers {
-                return None;
-            }
-            let marker_count = line
-                .glyphs
-                .iter()
-                .filter(|glyph| group.positions.contains(&glyph.start))
-                .count();
-            if marker_count == 0 || marker_count != group.positions.len() {
-                return None;
-            }
-            let left = line
-                .glyphs
-                .iter()
-                .map(|glyph| glyph.x)
-                .fold(f32::INFINITY, f32::min);
-            let right = line
-                .glyphs
-                .iter()
-                .map(|glyph| glyph.x + glyph.w)
-                .fold(f32::NEG_INFINITY, f32::max);
-            let used_width = right - left;
-            // Keep one pixel free so shaped advances cannot push the last item onto a new line.
-            let extra = (group.available_width - used_width - 1.0).max(0.0) / marker_count as f32;
-            Some((line.line_i, group.container_id?, extra))
-        })
-        .map(|(line, container, extra)| ((line, container), extra))
-        .collect::<HashMap<_, _>>();
+    let mut extras = HashMap::new();
+    for line in page.buffer.layout_runs() {
+        let Some(group) = markers_by_line.get(&line.line_i) else {
+            continue;
+        };
+        let Some(container_id) = group.container_id else {
+            continue;
+        };
+        if group.mixed_containers {
+            continue;
+        }
+        let marker_count = line
+            .glyphs
+            .iter()
+            .filter(|glyph| {
+                group
+                    .positions
+                    .iter()
+                    .any(|(position, _)| *position == glyph.start)
+            })
+            .count();
+        if marker_count == 0 || marker_count != group.positions.len() {
+            continue;
+        }
+        let left = line
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x)
+            .fold(f32::INFINITY, f32::min);
+        let right = line
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.x + glyph.w)
+            .fold(f32::NEG_INFINITY, f32::max);
+        let used_width = right - left;
+        // Keep one pixel free so shaped advances cannot push the last item onto a new line.
+        let free_space = (group.available_width - used_width - 1.0).max(0.0);
+        let total_grow = group
+            .positions
+            .iter()
+            .map(|(_, weight)| f64::from(*weight))
+            .sum::<f64>();
+        for (position, weight) in &group.positions {
+            let extra = if total_grow > 0.0 {
+                (f64::from(free_space) * f64::from(*weight) / total_grow) as f32
+            } else {
+                free_space / marker_count as f32
+            };
+            extras.insert((line.line_i, container_id, *position), extra);
+        }
+    }
 
     let mut changed = false;
     let mut line_index = 0;
+    let mut byte_index = 0;
     for run in &mut page.runs {
-        if run.style.flex_distributed_gap && !run.style.flex_distributed_gap_applied {
-            if let Some(container_id) = run.element_path.last().copied()
-                && let Some(extra) = extras.get(&(line_index, container_id)).copied()
+        for character in run.text.chars() {
+            if character == '\n' {
+                line_index += 1;
+                byte_index = 0;
+                continue;
+            }
+            if character == '\u{200b}'
+                && run.style.flex_distributed_gap
+                && !run.style.flex_distributed_gap_applied
+                && let Some(container_id) = run.element_path.last().copied()
+                && let Some(extra) = extras.get(&(line_index, container_id, byte_index)).copied()
             {
                 run.style.letter_spacing += if run.style.flex_distributed_gap_leading {
                     extra / 2.0
@@ -113,8 +141,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 run.style.flex_distributed_gap_applied = true;
                 changed |= extra > 0.0;
             }
+            byte_index += character.len_utf8();
         }
-        line_index += run.text.matches('\n').count();
     }
     changed
 }

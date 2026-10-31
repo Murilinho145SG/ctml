@@ -103,6 +103,17 @@ pub(super) fn apply_flex_order(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_grow(style: &mut TextStyle, value: &str) {
+    if let Some(grow) = value
+        .trim()
+        .parse::<f32>()
+        .ok()
+        .filter(|grow| grow.is_finite() && *grow >= 0.0)
+    {
+        style.flex_grow = grow;
+    }
+}
+
 pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "display" => apply_display(style, value),
@@ -113,6 +124,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "align-items" => apply_align_items(style, value),
         "align-self" => apply_align_self(style, value),
         "order" => apply_flex_order(style, value),
+        "flex-grow" => apply_flex_grow(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
 }
@@ -128,6 +140,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "align-items"
             | "align-self"
             | "order"
+            | "flex-grow"
             | "gap"
             | "row-gap"
             | "column-gap"

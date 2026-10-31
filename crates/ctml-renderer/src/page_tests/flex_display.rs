@@ -372,3 +372,6 @@ fn second_item_y(page: &PageRasterizer) -> f32 {
 
 #[path = "flex_order.rs"]
 mod flex_order;
+
+#[path = "flex_grow.rs"]
+mod flex_grow;

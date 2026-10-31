@@ -133,6 +133,7 @@ pub(in crate::css_style::properties) fn inherit_property(
         "align-items" => style.align_items = inherited.align_items,
         "align-self" => style.align_self = inherited.align_self,
         "order" => style.flex_order = inherited.flex_order,
+        "flex-grow" => style.flex_grow = inherited.flex_grow,
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::inherit_flex_gap(style, inherited, property);
         }

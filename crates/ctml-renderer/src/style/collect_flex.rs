@@ -6,6 +6,8 @@ use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 pub(super) struct FlexGapState {
     item_count: usize,
     last_item_id: Option<usize>,
+    last_item_grow: f32,
+    total_grow: f32,
 }
 
 pub(super) fn item_alignment(
@@ -71,6 +73,7 @@ impl FlexGapState {
             style,
             item_id,
             !text.chars().all(char::is_whitespace),
+            0.0,
             element_path,
             output,
             last_was_space,
@@ -90,6 +93,7 @@ impl FlexGapState {
         &mut self,
         style: &TextStyle,
         item_id: usize,
+        grow: f32,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -99,6 +103,7 @@ impl FlexGapState {
             style,
             item_id,
             true,
+            grow,
             element_path,
             output,
             last_was_space,
@@ -111,6 +116,7 @@ impl FlexGapState {
         style: &TextStyle,
         item_id: usize,
         is_item: bool,
+        grow: f32,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -132,6 +138,7 @@ impl FlexGapState {
             append_gap(
                 style,
                 true,
+                0.0,
                 element_path,
                 output,
                 last_was_space,
@@ -142,6 +149,7 @@ impl FlexGapState {
             append_gap(
                 style,
                 false,
+                self.last_item_grow,
                 element_path,
                 output,
                 last_was_space,
@@ -150,6 +158,8 @@ impl FlexGapState {
         }
         self.item_count += 1;
         self.last_item_id = Some(item_id);
+        self.last_item_grow = grow;
+        self.total_grow += grow;
     }
 
     pub(super) fn finish(
@@ -160,26 +170,39 @@ impl FlexGapState {
         last_was_space: &mut bool,
         capitalize_next: &mut bool,
     ) {
-        if self.item_count == 0
-            || !style.flex_items_row
-            || style.justify_content != FlexAlignment::SpaceEvenly
-        {
+        if self.item_count == 0 || !style.flex_items_row {
             return;
         }
-        append_gap(
-            style,
-            false,
-            element_path,
-            output,
-            last_was_space,
-            capitalize_next,
-        );
+        if self.total_grow > 0.0 {
+            if self.last_item_grow > 0.0 {
+                append_gap(
+                    style,
+                    false,
+                    self.last_item_grow,
+                    element_path,
+                    output,
+                    last_was_space,
+                    capitalize_next,
+                );
+            }
+        } else if style.justify_content == FlexAlignment::SpaceEvenly {
+            append_gap(
+                style,
+                false,
+                0.0,
+                element_path,
+                output,
+                last_was_space,
+                capitalize_next,
+            );
+        }
     }
 }
 
 pub(super) fn append_gap(
     style: &TextStyle,
     leading: bool,
+    grow_weight: f32,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
@@ -198,8 +221,10 @@ pub(super) fn append_gap(
             style.justify_content,
             FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
         );
+    let distribute_grow =
+        style.flex_items_row && grow_weight > 0.0 && flex_main_size(style).is_some();
     let wrap_break = style.flex_items_row && style.flex_wrap;
-    if gap.is_none() && !distribute && !wrap_break {
+    if gap.is_none() && !distribute && !distribute_grow && !wrap_break {
         return;
     }
     let percentage_basis = flex_main_size(style);
@@ -241,10 +266,11 @@ pub(super) fn append_gap(
     if style.flex_items_row {
         spacer_style.letter_spacing = gap_px;
         spacer_style.letter_spacing_px = true;
-        spacer_style.flex_distributed_gap = distribute;
+        spacer_style.flex_distributed_gap = distribute || distribute_grow;
         spacer_style.flex_distributed_gap_leading =
             leading && style.justify_content == FlexAlignment::SpaceAround;
         spacer_style.flex_distributed_gap_applied = false;
+        spacer_style.flex_grow_weight = grow_weight;
         spacer_style.flex_wrap_break = wrap_break;
         spacer_style.flex_wrap_gap_px = if wrap_break {
             resolve_wrap_row_gap(style)
