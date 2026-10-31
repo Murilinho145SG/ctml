@@ -157,10 +157,15 @@ fn automatic_hyphenation_uses_the_declared_language_dictionary() {
             .iter()
             .any(|run| run.text.contains('\u{00ad}'))
     );
-    assert_ne!(
-        automatic_page.snapshot_pixels(140, 100),
-        manual_page.snapshot_pixels(140, 100)
-    );
+    automatic_page.snapshot_pixels(140, 100);
+    manual_page.snapshot_pixels(140, 100);
+    let lines = |page: &PageRasterizer| {
+        page.buffer
+            .layout_runs()
+            .map(|line| line.text.to_owned())
+            .collect::<Vec<_>>()
+    };
+    assert_ne!(lines(&automatic_page), lines(&manual_page));
 }
 
 #[test]
