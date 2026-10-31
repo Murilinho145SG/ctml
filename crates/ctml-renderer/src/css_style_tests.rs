@@ -86,6 +86,42 @@ fn resolves_isolation_auto_and_isolate_values() {
 }
 
 #[test]
+fn display_resets_between_elements_and_parses_run_in() {
+    let inherited = TextStyle {
+        display_block: Some(true),
+        display_list_item: Some(true),
+        display_run_in: true,
+        ..TextStyle::default()
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let defaults = resolve_style(&inherited, &paragraph, &[], &[]);
+    assert_eq!(defaults.display_block, None);
+    assert_eq!(defaults.display_list_item, None);
+    assert!(!defaults.display_run_in);
+
+    let run_in = style_for_declarations(&[("display", "run-in")]);
+    assert!(run_in.display_run_in);
+    assert_eq!(run_in.display_block, None);
+
+    let inherited_rule = StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "inherit".to_owned(),
+        }],
+    };
+    let explicitly_inherited = resolve_style(&inherited, &paragraph, &[], &[inherited_rule]);
+    assert_eq!(explicitly_inherited.display_block, Some(true));
+    assert_eq!(explicitly_inherited.display_list_item, Some(true));
+    assert!(explicitly_inherited.display_run_in);
+}
+
+#[test]
 fn stacking_context_properties_reset_by_default_and_support_explicit_inherit() {
     let inherited = TextStyle {
         opacity: 0.5,

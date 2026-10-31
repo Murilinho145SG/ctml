@@ -73,6 +73,7 @@ pub(super) fn collect_runs(
     );
     let mut element_index = 0;
     let mut list_item_index = 0;
+    let mut run_in_before_block = false;
     for node in nodes {
         match node {
             UiNode::Text(text) => append_text(
@@ -242,7 +243,37 @@ pub(super) fn collect_runs(
                     counters,
                 )
                 .is_some();
-                let block = style.display_block.unwrap_or_else(|| is_block(tag));
+                let run_in_inline = style.display_run_in
+                    && siblings.get(element_index + 1).is_some_and(|next| {
+                        let next_inline_style = next
+                            .attributes
+                            .iter()
+                            .find(|(name, _)| name.eq_ignore_ascii_case("style"))
+                            .and_then(|(_, value)| value.as_deref());
+                        let next_style = css_style::resolve_style_with_selector_tree_context(
+                            inherited,
+                            &next.element,
+                            path,
+                            &next.attributes,
+                            path_attributes,
+                            &siblings[..=element_index],
+                            path_siblings,
+                            next.position,
+                            path_positions,
+                            selector_tree,
+                            next_inline_style,
+                            stylesheet,
+                        );
+                        !next_style.display_none
+                            && next_style
+                                .display_block
+                                .unwrap_or_else(|| is_block(&next.element.tag))
+                    });
+                let block = if style.display_run_in {
+                    !run_in_inline
+                } else {
+                    style.display_block.unwrap_or_else(|| is_block(tag))
+                };
                 style.inline_box = !block;
                 let empty_box = children.is_empty()
                     && before_content.is_none()
@@ -250,7 +281,7 @@ pub(super) fn collect_runs(
                     && !list_item;
                 let has_block_size =
                     collect_layout::register_layout_size(&mut style, sibling.node_id, block);
-                if block {
+                if block && !run_in_before_block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
                 }
@@ -486,6 +517,7 @@ pub(super) fn collect_runs(
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
                 }
+                run_in_before_block = run_in_inline;
             }
         }
     }

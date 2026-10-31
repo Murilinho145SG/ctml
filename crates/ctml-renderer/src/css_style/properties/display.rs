@@ -6,10 +6,18 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         .map(str::to_ascii_lowercase)
         .collect::<Vec<_>>();
     let value = value.iter().map(String::as_str).collect::<Vec<_>>();
+    if value == ["run-in"] {
+        style.display_none = false;
+        style.display_block = None;
+        style.display_list_item = Some(false);
+        style.display_run_in = true;
+        return;
+    }
     if let Some(is_block) = parse_list_item(&value) {
         style.display_none = false;
         style.display_block = Some(is_block);
         style.display_list_item = Some(true);
+        style.display_run_in = false;
         return;
     }
     match parse_flow_display(&value) {
@@ -17,6 +25,7 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
             style.display_none = none;
             style.display_block = block;
             style.display_list_item = Some(false);
+            style.display_run_in = false;
         }
         None => {}
     }
@@ -66,18 +75,21 @@ pub(super) fn inherit_display(style: &mut TextStyle, inherited: &TextStyle) {
     style.display_none = inherited.display_none;
     style.display_block = inherited.display_block;
     style.display_list_item = inherited.display_list_item;
+    style.display_run_in = inherited.display_run_in;
 }
 
 pub(super) fn reset_display(style: &mut TextStyle) {
     style.display_none = false;
     style.display_block = Some(false);
     style.display_list_item = Some(false);
+    style.display_run_in = false;
 }
 
 pub(super) fn revert_display(style: &mut TextStyle) {
     style.display_none = false;
     style.display_block = None;
     style.display_list_item = None;
+    style.display_run_in = false;
 }
 
 #[cfg(test)]

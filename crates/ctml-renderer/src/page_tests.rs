@@ -60,6 +60,8 @@ mod conic_gradients;
 mod containment;
 #[path = "page_tests/css_math.rs"]
 mod css_math;
+#[path = "page_tests/display.rs"]
+mod display;
 #[path = "page_tests/element_opacity.rs"]
 mod element_opacity;
 #[path = "page_tests/first_letter_border_image.rs"]

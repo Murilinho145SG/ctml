@@ -210,7 +210,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `display: flow-root` and `display: inline-block` use block and inline text flow, respectively.
 - [x] Supported multi-keyword `display` forms accept order-independent block/inline outer and flow/flow-root inner values, including `list-item`; `inline list-item` participates in inline text flow.
 - [x] `display: list-item` and inherited `list-style-type` values `disc`, `circle`, `square`, `none`, `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-greek`, `lower-roman`, and `upper-roman`; `<li>` defaults to bullets in unordered lists and decimal numbers in ordered lists.
-- [ ] Remaining `display` values and CSS formatting box generation.
+- [x] `display: run-in` joins the inline flow of an immediately following block-level sibling and falls back to block flow otherwise.
+- [ ] Table, flex, grid, ruby, and other remaining `display` values with their CSS formatting box generation.
 - [x] `body` and block element `width`, `min-width`, and `max-width` constrain text wrapping for non-negative lengths and percentages; `inline-size`, `min-inline-size`, and `max-inline-size` size the inline axis for horizontal and page-root vertical writing modes.
 - [x] Empty block `height`, `min-height`, and `max-height` reserve and cap vertical flow space; nested `height` and `block-size` percentages resolve against an explicitly sized containing block. `block-size` and its min/max forms size the block axis for horizontal and page-root vertical writing modes.
 - [x] Content-bearing fixed heights and `max-height`/`max-block-size` use the requested used block extent for following flow, keep overflowing text visible under the default `overflow: visible`, and size auto-height blocks from content before applying maximums.
