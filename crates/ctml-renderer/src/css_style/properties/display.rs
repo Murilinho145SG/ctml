@@ -68,8 +68,7 @@ pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
 
 pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
     style.align_items = match value.trim().to_ascii_lowercase().as_str() {
-        "normal" => None,
-        "stretch" => Some(crate::style::FlexAlignment::Stretch),
+        "normal" | "stretch" => Some(crate::style::FlexAlignment::Stretch),
         "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
         "start" => Some(crate::style::FlexAlignment::Start),
         "center" => Some(crate::style::FlexAlignment::Center),
@@ -82,10 +81,10 @@ pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
 pub(super) fn apply_align_self(style: &mut TextStyle, value: &str) {
     style.align_self = match value.trim().to_ascii_lowercase().as_str() {
         "auto" => None,
+        "normal" | "stretch" => Some(crate::style::FlexAlignment::Stretch),
         "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
         "start" => Some(crate::style::FlexAlignment::Start),
         "center" => Some(crate::style::FlexAlignment::Center),
-        "stretch" => Some(crate::style::FlexAlignment::Stretch),
         "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
         "end" => Some(crate::style::FlexAlignment::End),
         _ => return,

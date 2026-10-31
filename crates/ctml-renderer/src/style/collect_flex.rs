@@ -15,7 +15,7 @@ pub(super) fn item_alignment(
 ) -> Option<FlexAlignment> {
     if style.display_flex && block {
         if style.flex_direction_column {
-            style.align_items
+            Some(style.align_items.unwrap_or(FlexAlignment::Stretch))
         } else {
             Some(visual_justify(
                 style.justify_content,
@@ -28,7 +28,12 @@ pub(super) fn item_alignment(
             inherited.flex_direction_reverse,
         ))
     } else if inherited.flex_items_column {
-        style.align_self.or(inherited.align_items)
+        Some(
+            style
+                .align_self
+                .or(inherited.align_items)
+                .unwrap_or(FlexAlignment::Stretch),
+        )
     } else {
         inherited.flex_item_alignment
     }

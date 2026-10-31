@@ -161,18 +161,21 @@ fn row_reverse_places_the_first_flex_item_at_the_main_end() {
 #[test]
 fn column_align_items_aligns_flex_items_on_the_cross_axis() {
     let mut start = aligned_flex_page("column", "align-items", "flex-start");
+    let mut normal = aligned_flex_page("column", "align-items", "normal");
     let mut stretch = aligned_flex_page("column", "align-items", "stretch");
     let mut center = aligned_flex_page("column", "align-items", "center");
     let mut end = aligned_flex_page("column", "align-items", "flex-end");
-    for page in [&mut start, &mut stretch, &mut center, &mut end] {
+    for page in [&mut start, &mut normal, &mut stretch, &mut center, &mut end] {
         page.prepare_layout(400, 120);
     }
 
     let start_x = item_x(&start, "First");
+    let normal_x = item_x(&normal, "First");
     let stretch_x = item_x(&stretch, "First");
     let center_x = item_x(&center, "First");
     let end_x = item_x(&end, "First");
     assert!((stretch_x - start_x).abs() < 0.1);
+    assert!((normal_x - stretch_x).abs() < 0.1);
     assert!(center_x > start_x + 20.0, "center offset: {center_x}");
     assert!(end_x > center_x + 20.0, "end offset: {end_x}");
     for page in [&start, &center, &end] {
@@ -185,12 +188,15 @@ fn column_align_items_aligns_flex_items_on_the_cross_axis() {
 
 #[test]
 fn align_self_overrides_the_column_container_alignment_per_item() {
+    let mut normal = align_self_flex_page("normal");
     let mut center = align_self_flex_page("center");
     let mut end = align_self_flex_page("flex-end");
+    normal.prepare_layout(400, 120);
     center.prepare_layout(400, 120);
     end.prepare_layout(400, 120);
 
     let first_x = item_x(&center, "First");
+    assert!((item_x(&normal, "Second") - item_x(&normal, "First")).abs() < 0.1);
     let center_x = item_x(&center, "Second");
     let end_x = item_x(&end, "Second");
     assert!(center_x > first_x + 20.0, "center offset: {center_x}");

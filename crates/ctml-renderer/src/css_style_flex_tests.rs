@@ -315,6 +315,10 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
 
     assert_eq!(style_with_declarations(&[]).align_items, None);
     assert_eq!(
+        style_with_declarations(&[("align-items", "normal")]).align_items,
+        Some(Stretch)
+    );
+    assert_eq!(
         style_with_declarations(&[("align-items", "center")]).align_items,
         Some(Center)
     );
@@ -367,6 +371,10 @@ fn align_self_parses_supported_overrides_and_css_wide_values() {
     use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
 
     assert_eq!(style_with_declarations(&[]).align_self, None);
+    assert_eq!(
+        style_with_declarations(&[("align-self", "normal")]).align_self,
+        Some(Stretch)
+    );
     assert_eq!(
         style_with_declarations(&[("align-self", "auto")]).align_self,
         None
