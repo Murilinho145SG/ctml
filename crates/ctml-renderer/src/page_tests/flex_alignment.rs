@@ -128,8 +128,8 @@ fn flex_wrap_defaults_to_single_row_and_wrap_allows_items_on_another_line() {
 
 #[test]
 fn row_gap_applies_only_between_wrapped_flex_rows() {
-    let mut wrapped_without_gap = wrapped_row_gap_page("0px");
-    let mut wrapped_with_gap = wrapped_row_gap_page("12px");
+    let mut wrapped_without_gap = wrapped_row_gap_page("0px", None);
+    let mut wrapped_with_gap = wrapped_row_gap_page("12px", None);
     wrapped_without_gap.prepare_layout(60, 120);
     wrapped_with_gap.prepare_layout(60, 120);
 
@@ -149,8 +149,8 @@ fn row_gap_applies_only_between_wrapped_flex_rows() {
         item_y(&wrapped_with_gap, "Second") - item_y(&wrapped_with_gap, "First");
     assert!((resized_gap_distance - gap_distance).abs() < 0.5);
 
-    let mut single_row_without_gap = wrapped_row_gap_page("0px");
-    let mut single_row_with_gap = wrapped_row_gap_page("12px");
+    let mut single_row_without_gap = wrapped_row_gap_page("0px", None);
+    let mut single_row_with_gap = wrapped_row_gap_page("12px", None);
     single_row_without_gap.prepare_layout(400, 120);
     single_row_with_gap.prepare_layout(400, 120);
     assert_eq!(
@@ -158,6 +158,25 @@ fn row_gap_applies_only_between_wrapped_flex_rows() {
         item_y(&single_row_without_gap, "Second"),
         "row-gap must not enlarge a row when flex items do not wrap"
     );
+
+    let mut percentage_gap_without_basis = wrapped_row_gap_page("0px", None);
+    let mut percentage_gap_indefinite = wrapped_row_gap_page("10%", None);
+    percentage_gap_without_basis.prepare_layout(60, 120);
+    percentage_gap_indefinite.prepare_layout(60, 120);
+    assert_eq!(
+        item_y(&percentage_gap_indefinite, "Second"),
+        item_y(&percentage_gap_without_basis, "Second"),
+        "percentage row-gap should resolve to zero when the cross size is indefinite"
+    );
+
+    let mut percentage_gap_base = wrapped_row_gap_page("0px", Some("100px"));
+    let mut percentage_gap = wrapped_row_gap_page("10%", Some("100px"));
+    percentage_gap_base.prepare_layout(60, 120);
+    percentage_gap.prepare_layout(60, 120);
+    let base_distance =
+        item_y(&percentage_gap_base, "Second") - item_y(&percentage_gap_base, "First");
+    let percentage_distance = item_y(&percentage_gap, "Second") - item_y(&percentage_gap, "First");
+    assert!((percentage_distance - base_distance - 10.0).abs() < 0.5);
 }
 
 #[test]
@@ -400,7 +419,7 @@ fn item_glyph<'a>(page: &'a PageRasterizer, item: &str) -> &'a cosmic_text::Layo
         .expect("first flex item glyph should be laid out")
 }
 
-fn wrapped_row_gap_page(row_gap: &str) -> PageRasterizer {
+fn wrapped_row_gap_page(row_gap: &str, height: Option<&str>) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("container".to_owned()),
@@ -417,20 +436,24 @@ fn wrapped_row_gap_page(row_gap: &str) -> PageRasterizer {
             })
             .collect(),
     }];
+    let mut declarations = vec![
+        ("display", "flex"),
+        ("flex-wrap", "wrap"),
+        ("row-gap", row_gap),
+    ];
+    if let Some(height) = height {
+        declarations.push(("height", height));
+    }
     let stylesheet = [StyleRule {
         selectors: vec![".container".to_owned()],
         layer: None,
-        declarations: [
-            ("display", "flex"),
-            ("flex-wrap", "wrap"),
-            ("row-gap", row_gap),
-        ]
-        .into_iter()
-        .map(|(property, value)| StyleDeclaration {
-            property: property.to_owned(),
-            value: value.to_owned(),
-        })
-        .collect(),
+        declarations: declarations
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
     }];
     PageRasterizer::new(&nodes, &stylesheet)
 }

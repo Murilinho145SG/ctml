@@ -278,9 +278,10 @@ fn resolve_wrap_row_gap(style: &TextStyle) -> f32 {
     let Some(gap) = style.row_gap.as_deref() else {
         return 0.0;
     };
+    let percentage_basis = explicit_row_cross_size(style).unwrap_or_default();
     let resolve = |component: &str| {
         if let Some(percentage) = ctml_css::parse_css_percentage(component) {
-            return (percentage >= 0.0).then_some(0.0);
+            return (percentage >= 0.0).then_some(percentage_basis * percentage / 100.0);
         }
         ctml_css::parse_nonnegative_font_relative_length_with_viewport(
             component,
@@ -294,6 +295,36 @@ fn resolve_wrap_row_gap(style: &TextStyle) -> f32 {
         .or_else(|| resolve(gap))
         .filter(|gap| gap.is_finite() && *gap > 0.0)
         .unwrap_or_default()
+}
+
+fn explicit_row_cross_size(style: &TextStyle) -> Option<f32> {
+    if style.writing_mode != super::WritingMode::HorizontalTb {
+        return None;
+    }
+    let height_order = style.size_property_orders.get("height");
+    let block_size_order = style.size_property_orders.get("block-size");
+    let value = match (block_size_order, height_order) {
+        (Some(block_order), Some(height_order)) if block_order > height_order => {
+            style.block_size.as_deref()
+        }
+        (Some(_), Some(_)) => style.height.as_deref(),
+        (Some(_), None) => style.block_size.as_deref(),
+        (None, Some(_)) => style.height.as_deref(),
+        (None, None) => style.block_size.as_deref().or(style.height.as_deref()),
+    }?;
+    let resolve = |component: &str| {
+        if ctml_css::parse_css_percentage(component).is_some() {
+            return None;
+        }
+        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            component,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+    };
+    ctml_css::parse_math_expression(value, resolve).or_else(|| resolve(value))
 }
 
 fn flex_main_size(style: &TextStyle) -> Option<f32> {
