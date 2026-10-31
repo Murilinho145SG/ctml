@@ -11,6 +11,7 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
         GridTrack::Auto => FlexBasis::MaxContent,
         GridTrack::MinContent => FlexBasis::MinContent,
         GridTrack::MaxContent => FlexBasis::MaxContent,
+        GridTrack::FitContent(limit) => FlexBasis::GridFitContent(limit),
         GridTrack::Fraction(fraction) => {
             let total_fraction = tracks
                 .iter()
@@ -19,7 +20,8 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                     GridTrack::Length(_)
                     | GridTrack::Auto
                     | GridTrack::MinContent
-                    | GridTrack::MaxContent => None,
+                    | GridTrack::MaxContent
+                    | GridTrack::FitContent(_) => None,
                 })
                 .sum::<f32>();
             let fractional_share = fraction / total_fraction.max(fraction);
@@ -33,7 +35,8 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                     GridTrack::Fraction(_)
                     | GridTrack::Auto
                     | GridTrack::MinContent
-                    | GridTrack::MaxContent => None,
+                    | GridTrack::MaxContent
+                    | GridTrack::FitContent(_) => None,
                 })
                 .sum::<f32>();
             let gaps = resolve_column_gap(style) * tracks.len().saturating_sub(1) as f32;

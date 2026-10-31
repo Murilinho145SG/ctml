@@ -193,6 +193,23 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     );
                     fit_content_size(min_content, max_content, group.available_width)
                 }
+                Some(FlexBasis::GridFitContent(limit)) => {
+                    let max_content = item_intrinsic_size(
+                        marker.position,
+                        group,
+                        glyphs_by_paragraph.get(&line.line_i),
+                        text_by_paragraph.get(&line.line_i),
+                        false,
+                    );
+                    let min_content = item_intrinsic_size(
+                        marker.position,
+                        group,
+                        glyphs_by_paragraph.get(&line.line_i),
+                        text_by_paragraph.get(&line.line_i),
+                        true,
+                    );
+                    fit_content_size(min_content, max_content, *limit)
+                }
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),

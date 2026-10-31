@@ -45,6 +45,20 @@ fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
         "max-content" => return Some(GridTrack::MaxContent),
         _ => {}
     }
+    if let Some(limit) = value
+        .strip_prefix("fit-content(")
+        .and_then(|value| value.strip_suffix(')'))
+    {
+        let limit = ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            limit.trim(),
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+        .filter(|limit| limit.is_finite())?;
+        return Some(GridTrack::FitContent(limit));
+    }
     if let Some(fraction) = value
         .strip_suffix("fr")
         .and_then(|fraction| fraction.trim().parse::<f32>().ok())
@@ -89,13 +103,14 @@ mod tests {
             ]
         );
 
-        apply_grid_property(&mut style, "auto min-content max-content");
+        apply_grid_property(&mut style, "auto min-content max-content fit-content(55px)");
         assert_eq!(
             style.grid_template_columns,
             [
                 GridTrack::Auto,
                 GridTrack::MinContent,
-                GridTrack::MaxContent
+                GridTrack::MaxContent,
+                GridTrack::FitContent(55.0)
             ]
         );
     }

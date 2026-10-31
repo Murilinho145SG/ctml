@@ -67,7 +67,7 @@ fn mixed_fixed_and_fraction_tracks_use_the_remaining_block_grid_width() {
 }
 
 #[test]
-fn min_content_and_max_content_tracks_size_from_item_text() {
+fn intrinsic_tracks_measure_and_cap_item_text() {
     let mut min_content = grid_page(
         None,
         "min-content 1fr",
@@ -82,14 +82,27 @@ fn min_content_and_max_content_tracks_size_from_item_text() {
         "0px",
         &["Alpha Beta", "Gamma"],
     );
+    let mut fit_content = grid_page(
+        None,
+        "fit-content(55px) 1fr",
+        "0px",
+        "0px",
+        &["Alpha Beta", "Gamma"],
+    );
     min_content.prepare_layout(500, 160);
     max_content.prepare_layout(500, 160);
+    fit_content.prepare_layout(500, 160);
 
     let min_content_start = item_position(&min_content, "Gamma").0;
     let max_content_start = item_position(&max_content, "Gamma").0;
+    let fit_content_start = item_position(&fit_content, "Gamma").0;
     assert!(
         max_content_start > min_content_start + 10.0,
         "max-content track should include the inter-word advance: min={min_content_start}, max={max_content_start}"
+    );
+    assert!(
+        fit_content_start > min_content_start && fit_content_start < max_content_start,
+        "fit-content track should clamp between min-content and max-content: min={min_content_start}, fit={fit_content_start}, max={max_content_start}"
     );
 }
 
