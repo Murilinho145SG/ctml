@@ -232,12 +232,15 @@ pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
             };
             value.and_then(|value| parse_item_basis(value, style))
         }
-        FlexBasis::Content => None,
+        FlexBasis::Content => Some(FlexBasis::Content),
         basis => Some(basis),
     }
 }
 
 fn parse_item_basis(value: &str, style: &TextStyle) -> Option<FlexBasis> {
+    if value.eq_ignore_ascii_case("max-content") {
+        return Some(FlexBasis::MaxContent);
+    }
     if let Some(percentage) = ctml_css::parse_css_percentage(value) {
         return (percentage >= 0.0).then_some(FlexBasis::Percentage(percentage / 100.0));
     }

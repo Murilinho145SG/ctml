@@ -25,6 +25,14 @@ struct FlexGapMarker {
 
 pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_width: f32) -> bool {
     let mut markers_by_line = HashMap::<usize, FlexGapLine>::new();
+    let mut glyphs_by_paragraph = HashMap::<usize, Vec<(usize, usize, f32)>>::new();
+    for line in page.buffer.layout_runs() {
+        glyphs_by_paragraph.entry(line.line_i).or_default().extend(
+            line.glyphs
+                .iter()
+                .map(|glyph| (glyph.start, glyph.end, glyph.w)),
+        );
+    }
     let mut line_index = 0;
     let mut byte_index = 0;
     for run in &page.runs {
@@ -138,6 +146,27 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 .sum::<f32>();
             let base_size = match marker.basis.as_ref() {
                 Some(FlexBasis::Length(length)) => *length,
+                Some(FlexBasis::Content | FlexBasis::MaxContent) => {
+                    let item_start = group
+                        .markers
+                        .iter()
+                        .filter(|previous| previous.position < marker.position)
+                        .max_by_key(|previous| previous.position)
+                        .map(|previous| previous.position + '\u{200b}'.len_utf8())
+                        .unwrap_or_else(|| {
+                            glyphs_by_paragraph
+                                .get(&line.line_i)
+                                .and_then(|glyphs| glyphs.iter().map(|glyph| glyph.0).min())
+                                .unwrap_or_default()
+                        });
+                    glyphs_by_paragraph
+                        .get(&line.line_i)
+                        .into_iter()
+                        .flatten()
+                        .filter(|(start, end, _)| *start >= item_start && *end <= marker.position)
+                        .map(|(_, _, width)| *width)
+                        .sum::<f32>()
+                }
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
@@ -147,7 +176,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                         resolve_flex_basis_calculation(expression, basis_size, marker)
                     })
                     .map_or(content_size, |size| size),
-                Some(FlexBasis::Auto | FlexBasis::Content) | None => content_size,
+                Some(FlexBasis::Auto) | None => content_size,
             };
             item_sizes.push((content_size, base_size));
             item_start = marker.position + '\u{200b}'.len_utf8();

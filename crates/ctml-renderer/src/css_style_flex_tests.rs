@@ -202,6 +202,10 @@ fn flex_basis_accepts_auto_content_lengths_percentages_and_calculations() {
         Some(FlexBasis::Content)
     );
     assert_eq!(
+        style_with_declarations(&[("flex-basis", "max-content")]).flex_basis,
+        Some(FlexBasis::MaxContent)
+    );
+    assert_eq!(
         style_with_declarations(&[("flex-basis", "24px")]).flex_basis,
         Some(FlexBasis::Length(24.0))
     );

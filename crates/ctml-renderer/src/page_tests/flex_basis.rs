@@ -40,6 +40,78 @@ fn percentage_flex_basis_uses_content_size_in_auto_sized_inline_flex() {
     assert!((item_x(&percentage, "Second") - item_x(&natural, "Second")).abs() < 1.0);
 }
 
+#[test]
+fn content_and_max_content_flex_basis_share_max_content_sizing() {
+    let mut content = wrapped_flex_basis_page("content");
+    let mut max_content = wrapped_flex_basis_page("max-content");
+    content.prepare_layout(120, 180);
+    max_content.prepare_layout(120, 180);
+
+    let content_y = item_y(&content, "Second");
+    let max_content_y = item_y(&max_content, "Second");
+    assert!((max_content_y - content_y).abs() < 0.5);
+}
+
+fn wrapped_flex_basis_page(basis: &str) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: [
+            ("first", "First First First First First First"),
+            ("second", "Second"),
+        ]
+        .into_iter()
+        .map(|(class, text)| UiNode::Element {
+            tag: "p".to_owned(),
+            class: Some(class.to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text(text.to_owned())],
+        })
+        .collect(),
+    }];
+    let rule = |selector: &str, declarations: &[(&str, &str)]| StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: declarations
+            .iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: (*property).to_owned(),
+                value: (*value).to_owned(),
+            })
+            .collect(),
+    };
+    PageRasterizer::new(
+        &nodes,
+        &[
+            rule(
+                ".container",
+                &[
+                    ("display", "flex"),
+                    ("flex-wrap", "wrap"),
+                    ("width", "60px"),
+                ],
+            ),
+            rule(".first", &[("flex-basis", basis)]),
+        ],
+    )
+}
+
+fn item_y(page: &PageRasterizer, text: &str) -> f32 {
+    page.buffer
+        .layout_runs()
+        .find(|line| {
+            let Some(start) = line.text.find(text) else {
+                return false;
+            };
+            line.glyphs.iter().any(|glyph| glyph.start == start)
+        })
+        .expect("flex item should have a formatted line")
+        .line_top
+}
+
 fn flex_basis_page(basis: Option<&str>, width: Option<&str>, inline_flex: bool) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
