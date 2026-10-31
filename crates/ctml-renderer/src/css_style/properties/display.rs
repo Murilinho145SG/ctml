@@ -30,6 +30,28 @@ pub(super) fn apply_flex_wrap(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_flow(style: &mut TextStyle, value: &str) {
+    let mut direction = None;
+    let mut wrap = None;
+    for token in value.split_ascii_whitespace() {
+        match token.to_ascii_lowercase().as_str() {
+            "row" | "row-reverse" | "column" | "column-reverse" if direction.is_none() => {
+                direction = Some(token.to_ascii_lowercase());
+            }
+            "wrap" | "nowrap" if wrap.is_none() => {
+                wrap = Some(token.to_ascii_lowercase());
+            }
+            _ => return,
+        }
+    }
+    if direction.is_none() && wrap.is_none() {
+        return;
+    }
+
+    apply_flex_direction(style, direction.as_deref().unwrap_or("row"));
+    apply_flex_wrap(style, wrap.as_deref().unwrap_or("nowrap"));
+}
+
 pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
     style.justify_content = match value.trim().to_ascii_lowercase().as_str() {
         "normal" | "flex-start" => crate::style::FlexAlignment::FlexStart,
@@ -85,6 +107,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "display" => apply_display(style, value),
         "flex-direction" => apply_flex_direction(style, value),
         "flex-wrap" => apply_flex_wrap(style, value),
+        "flex-flow" => apply_flex_flow(style, value),
         "justify-content" => apply_justify_content(style, value),
         "align-items" => apply_align_items(style, value),
         "align-self" => apply_align_self(style, value),
@@ -99,6 +122,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
         "display"
             | "flex-direction"
             | "flex-wrap"
+            | "flex-flow"
             | "justify-content"
             | "align-items"
             | "align-self"

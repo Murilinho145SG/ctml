@@ -136,6 +136,71 @@ fn flex_wrap_defaults_to_nowrap_and_supports_wrap_and_css_wide_values() {
 }
 
 #[test]
+fn flex_flow_shorthand_sets_direction_and_wrap_and_respects_source_order() {
+    let row_wrap = style_with_declarations(&[("flex-flow", "row wrap")]);
+    assert!(!row_wrap.flex_direction_column);
+    assert!(!row_wrap.flex_direction_reverse);
+    assert!(row_wrap.flex_wrap);
+
+    let reversed_column = style_with_declarations(&[("flex-flow", "wrap column-reverse")]);
+    assert!(reversed_column.flex_direction_column);
+    assert!(reversed_column.flex_direction_reverse);
+    assert!(reversed_column.flex_wrap);
+
+    let direction_only = style_with_declarations(&[("flex-flow", "column")]);
+    assert!(direction_only.flex_direction_column);
+    assert!(!direction_only.flex_wrap, "omitted wrap uses nowrap");
+
+    let wrap_only = style_with_declarations(&[("flex-flow", "wrap")]);
+    assert!(
+        !wrap_only.flex_direction_column,
+        "omitted direction uses row"
+    );
+    assert!(wrap_only.flex_wrap);
+
+    let invalid = style_with_declarations(&[("flex-flow", "column wrap wrap")]);
+    assert!(!invalid.flex_direction_column);
+    assert!(!invalid.flex_wrap);
+
+    let longhand_after = style_with_declarations(&[
+        ("flex-flow", "column-reverse wrap"),
+        ("flex-direction", "row"),
+    ]);
+    assert!(!longhand_after.flex_direction_column);
+    assert!(!longhand_after.flex_direction_reverse);
+    assert!(longhand_after.flex_wrap);
+}
+
+#[test]
+fn flex_flow_shorthand_supports_css_wide_inherit_and_reset_keywords() {
+    let inherited = TextStyle {
+        flex_direction_column: true,
+        flex_direction_reverse: true,
+        flex_wrap: true,
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let inherited_style = resolve_style(&inherited, &element, &[], &[rule("flex-flow", "inherit")]);
+    assert!(inherited_style.flex_direction_column);
+    assert!(inherited_style.flex_direction_reverse);
+    assert!(inherited_style.flex_wrap);
+
+    for keyword in ["initial", "unset", "revert"] {
+        let style = resolve_style(&inherited, &element, &[], &[rule("flex-flow", keyword)]);
+        assert!(!style.flex_direction_column, "{keyword} should restore row");
+        assert!(
+            !style.flex_direction_reverse,
+            "{keyword} should restore row"
+        );
+        assert!(!style.flex_wrap, "{keyword} should restore nowrap");
+    }
+}
+
+#[test]
 fn order_is_non_inherited_and_supports_css_wide_resets() {
     let inherited = TextStyle {
         flex_order: 7,
