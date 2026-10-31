@@ -165,6 +165,23 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     text_by_paragraph.get(&line.line_i),
                     true,
                 ),
+                Some(FlexBasis::FitContent) => {
+                    let max_content = item_intrinsic_size(
+                        marker.position,
+                        group,
+                        glyphs_by_paragraph.get(&line.line_i),
+                        text_by_paragraph.get(&line.line_i),
+                        false,
+                    );
+                    let min_content = item_intrinsic_size(
+                        marker.position,
+                        group,
+                        glyphs_by_paragraph.get(&line.line_i),
+                        text_by_paragraph.get(&line.line_i),
+                        true,
+                    );
+                    fit_content_size(min_content, max_content, group.available_width)
+                }
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
@@ -319,6 +336,10 @@ fn item_intrinsic_size(
     min_content_size.max(current_word)
 }
 
+fn fit_content_size(min_content: f32, max_content: f32, available_size: f32) -> f32 {
+    max_content.min(available_size.max(min_content))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -344,5 +365,12 @@ mod tests {
             item_intrinsic_size(7, &group, Some(&glyphs), Some(&"one two".to_owned()), true),
             3.0
         );
+    }
+
+    #[test]
+    fn fit_content_clamps_max_content_to_available_space_with_min_content_floor() {
+        assert_eq!(fit_content_size(20.0, 100.0, 60.0), 60.0);
+        assert_eq!(fit_content_size(20.0, 100.0, 120.0), 100.0);
+        assert_eq!(fit_content_size(20.0, 100.0, 10.0), 20.0);
     }
 }

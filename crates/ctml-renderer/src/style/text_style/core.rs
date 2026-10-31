@@ -59,6 +59,7 @@ pub(crate) enum FlexBasis {
     Content,
     MinContent,
     MaxContent,
+    FitContent,
     Length(f32),
     Percentage(f32),
     Calculation(String),
