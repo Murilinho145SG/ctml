@@ -212,7 +212,7 @@ impl FlexGapState {
             || self.last_item_min_main_size.is_some()
             || self.last_item_max_main_size.is_some()
             || (style.flex_wrap
-                && style.align_content == Some(FlexAlignment::Stretch)
+                && style.align_content.unwrap_or(FlexAlignment::Stretch) == FlexAlignment::Stretch
                 && explicit_row_cross_size(style).is_some())
         {
             append_gap(

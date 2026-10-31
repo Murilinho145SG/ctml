@@ -43,8 +43,10 @@ fn percentage_wrapped_row_gap_needs_a_definite_cross_size() {
         item_y(&without_basis, "Second")
     );
 
-    let mut base = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
-    let mut percentage = wrapped_row_gap_page("10%", Some(("height", "100px")), false, None);
+    let mut base =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-start"));
+    let mut percentage =
+        wrapped_row_gap_page("10%", Some(("height", "100px")), false, Some("flex-start"));
     base.prepare_layout(60, 120);
     percentage.prepare_layout(60, 120);
     let base_distance = item_y(&base, "Second") - item_y(&base, "First");
@@ -62,8 +64,9 @@ fn wrapped_row_gap_follows_the_cross_axis_in_vertical_writing() {
     let gap_distance = item_y(&with_gap, "Second") - item_y(&with_gap, "First");
     assert!((gap_distance - base_distance - 12.0).abs() < 0.5);
 
-    let mut base = wrapped_row_gap_page("0px", Some(("width", "100px")), true, None);
-    let mut percentage = wrapped_row_gap_page("10%", Some(("width", "100px")), true, None);
+    let mut base = wrapped_row_gap_page("0px", Some(("width", "100px")), true, Some("flex-start"));
+    let mut percentage =
+        wrapped_row_gap_page("10%", Some(("width", "100px")), true, Some("flex-start"));
     base.prepare_layout(120, 60);
     percentage.prepare_layout(120, 60);
     let base_distance = item_y(&base, "Second") - item_y(&base, "First");
@@ -73,7 +76,8 @@ fn wrapped_row_gap_follows_the_cross_axis_in_vertical_writing() {
 
 #[test]
 fn align_content_space_between_distributes_remaining_cross_axis_space() {
-    let mut start = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut start =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-start"));
     let mut space_between = wrapped_row_gap_page(
         "0px",
         Some(("height", "100px")),
@@ -93,7 +97,8 @@ fn align_content_space_between_distributes_remaining_cross_axis_space() {
 
 #[test]
 fn align_content_stretch_expands_wrapped_rows_to_fill_cross_size() {
-    let mut start = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut start =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-start"));
     let mut stretch =
         wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("stretch"));
     start.prepare_layout(60, 120);
@@ -109,7 +114,8 @@ fn align_content_stretch_expands_wrapped_rows_to_fill_cross_size() {
 
 #[test]
 fn align_content_stretch_expands_a_single_line_to_cross_size() {
-    let mut start = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut start =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-start"));
     let mut stretch =
         wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("stretch"));
     start.prepare_layout(400, 120);
@@ -121,6 +127,19 @@ fn align_content_stretch_expands_a_single_line_to_cross_size() {
         stretch_height > start_height + 10.0 && (stretch_height - 100.0).abs() < 1.0,
         "align-content: stretch should expand the sole flex line: base={start_height}, stretched={stretch_height}"
     );
+}
+
+#[test]
+fn default_align_content_stretches_wrapped_rows_with_a_definite_cross_size() {
+    let mut default = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut stretch =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("stretch"));
+    default.prepare_layout(60, 120);
+    stretch.prepare_layout(60, 120);
+
+    let default_distance = item_y(&default, "Second") - item_y(&default, "First");
+    let stretch_distance = item_y(&stretch, "Second") - item_y(&stretch, "First");
+    assert!((default_distance - stretch_distance).abs() < 0.5);
 }
 
 fn wrapped_row_gap_page(

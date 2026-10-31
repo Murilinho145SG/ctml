@@ -46,6 +46,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     let mut paragraph = 0;
     let mut byte_offset = 0;
     for (run_index, run) in page.runs.iter().enumerate() {
+        let alignment = run.style.align_content.unwrap_or(FlexAlignment::Stretch);
         for character in run.text.chars() {
             if character == '\n' {
                 paragraph += 1;
@@ -58,8 +59,8 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                 && (run.style.flex_wrap_gap_px > 0.0
                     || (run.style.flex_wrap_cross_size_px.is_some()
                         && matches!(
-                            run.style.align_content,
-                            Some(FlexAlignment::SpaceBetween | FlexAlignment::Stretch)
+                            alignment,
+                            FlexAlignment::SpaceBetween | FlexAlignment::Stretch
                         )))
             {
                 markers.push(WrapMarker {
@@ -70,7 +71,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                     container_id: run.element_path.last().copied(),
                     gap: run.style.flex_wrap_gap_px,
                     cross_size: run.style.flex_wrap_cross_size_px,
-                    alignment: run.style.align_content,
+                    alignment: Some(alignment),
                 });
             }
             byte_offset += character.len_utf8();
