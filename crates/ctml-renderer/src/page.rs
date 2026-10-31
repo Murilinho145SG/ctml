@@ -228,6 +228,12 @@ impl PageRasterizer {
 
     fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
+        for run in &mut self.runs {
+            if run.style.flex_wrap_break {
+                run.style.line_height = 1.0;
+                run.style.flex_wrap_gap_applied = false;
+            }
+        }
         self.runs.retain(|run| !run.style.flow_spacer);
         let selection = self.selection.map(|(start, end)| {
             (

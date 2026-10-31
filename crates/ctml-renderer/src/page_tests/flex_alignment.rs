@@ -127,6 +127,40 @@ fn flex_wrap_defaults_to_single_row_and_wrap_allows_items_on_another_line() {
 }
 
 #[test]
+fn row_gap_applies_only_between_wrapped_flex_rows() {
+    let mut wrapped_without_gap = wrapped_row_gap_page("0px");
+    let mut wrapped_with_gap = wrapped_row_gap_page("12px");
+    wrapped_without_gap.prepare_layout(60, 120);
+    wrapped_with_gap.prepare_layout(60, 120);
+
+    let base_distance =
+        item_y(&wrapped_without_gap, "Second") - item_y(&wrapped_without_gap, "First");
+    let gap_distance = item_y(&wrapped_with_gap, "Second") - item_y(&wrapped_with_gap, "First");
+    assert!((gap_distance - base_distance - 12.0).abs() < 0.5);
+
+    wrapped_with_gap.prepare_layout(400, 120);
+    assert_eq!(
+        item_y(&wrapped_with_gap, "Second"),
+        item_y(&wrapped_with_gap, "First"),
+        "resizing to a single row should remove the wrapped-row gap"
+    );
+    wrapped_with_gap.prepare_layout(60, 120);
+    let resized_gap_distance =
+        item_y(&wrapped_with_gap, "Second") - item_y(&wrapped_with_gap, "First");
+    assert!((resized_gap_distance - gap_distance).abs() < 0.5);
+
+    let mut single_row_without_gap = wrapped_row_gap_page("0px");
+    let mut single_row_with_gap = wrapped_row_gap_page("12px");
+    single_row_without_gap.prepare_layout(400, 120);
+    single_row_with_gap.prepare_layout(400, 120);
+    assert_eq!(
+        item_y(&single_row_with_gap, "Second"),
+        item_y(&single_row_without_gap, "Second"),
+        "row-gap must not enlarge a row when flex items do not wrap"
+    );
+}
+
+#[test]
 fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
     page.prepare_layout(400, 120);
@@ -364,4 +398,39 @@ fn item_glyph<'a>(page: &'a PageRasterizer, item: &str) -> &'a cosmic_text::Layo
         .iter()
         .find(|glyph| glyph.start == start)
         .expect("first flex item glyph should be laid out")
+}
+
+fn wrapped_row_gap_page(row_gap: &str) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".container".to_owned()],
+        layer: None,
+        declarations: [
+            ("display", "flex"),
+            ("flex-wrap", "wrap"),
+            ("row-gap", row_gap),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    PageRasterizer::new(&nodes, &stylesheet)
 }

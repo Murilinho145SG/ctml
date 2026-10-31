@@ -245,6 +245,13 @@ pub(super) fn append_gap(
         spacer_style.flex_distributed_gap_leading =
             leading && style.justify_content == FlexAlignment::SpaceAround;
         spacer_style.flex_distributed_gap_applied = false;
+        spacer_style.flex_wrap_break = wrap_break;
+        spacer_style.flex_wrap_gap_px = if wrap_break {
+            resolve_wrap_row_gap(style)
+        } else {
+            0.0
+        };
+        spacer_style.flex_wrap_gap_applied = false;
     } else {
         spacer_style.line_height = gap_px;
         spacer_style.flow_spacer = true;
@@ -265,6 +272,28 @@ pub(super) fn append_gap(
     }
     *last_was_space = previous_space;
     *capitalize_next = previous_capitalize;
+}
+
+fn resolve_wrap_row_gap(style: &TextStyle) -> f32 {
+    let Some(gap) = style.row_gap.as_deref() else {
+        return 0.0;
+    };
+    let resolve = |component: &str| {
+        if let Some(percentage) = ctml_css::parse_css_percentage(component) {
+            return (percentage >= 0.0).then_some(0.0);
+        }
+        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            component,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+    };
+    ctml_css::parse_math_expression(gap, resolve)
+        .or_else(|| resolve(gap))
+        .filter(|gap| gap.is_finite() && *gap > 0.0)
+        .unwrap_or_default()
 }
 
 fn flex_main_size(style: &TextStyle) -> Option<f32> {

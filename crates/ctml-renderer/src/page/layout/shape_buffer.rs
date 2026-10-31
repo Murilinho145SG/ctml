@@ -326,5 +326,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
 
     if super::flex_distribution::apply_distributed_flex_gaps(page, content_width) {
         shape_buffer(page, content_width, content_height);
+    } else if super::flex_wrap::apply_wrapped_row_gaps(page) {
+        shape_buffer(page, content_width, content_height);
     }
 }
