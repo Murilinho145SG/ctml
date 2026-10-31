@@ -83,6 +83,7 @@ use text_emphasis::{apply_text_emphasis_property, inherit_text_emphasis, reset_t
 use text_indent::apply_text_indent;
 use text_shadow::apply_text_shadow;
 
+mod animation;
 mod apply;
 mod aspect_ratio;
 mod background;

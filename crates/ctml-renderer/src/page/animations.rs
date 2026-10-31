@@ -7,6 +7,7 @@ use crate::style::{
 use super::PageRasterizer;
 
 mod border_color;
+pub(super) mod keyframes;
 mod outline_color;
 mod timing;
 mod visibility;
@@ -38,6 +39,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         && page.outline_color_transitions.is_empty()
         && page.border_color_transitions.is_empty()
         && page.visibility_transitions.is_empty()
+        && page.keyframe_animations.is_empty()
     {
         return None;
     }
@@ -101,6 +103,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     let outline_active = outline_color::advance(page, now);
     let border_active = border_color::advance(page, now);
     let visibility_active = visibility::advance(page, now);
+    let keyframe_active = keyframes::advance(page, now);
     Some(
         root_active
             || !page.opacity_transitions.is_empty()
@@ -108,7 +111,8 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
             || !page.background_color_transitions.is_empty()
             || outline_active
             || border_active
-            || visibility_active,
+            || visibility_active
+            || keyframe_active,
     )
 }
 

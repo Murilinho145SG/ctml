@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
 use super::window::WindowError;
-use crate::{CssColorProfile, FontFace, StyleRule, UiNode, page::PageRasterizer};
+use crate::{CssColorProfile, CssKeyframes, FontFace, StyleRule, UiNode, page::PageRasterizer};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton},
@@ -29,6 +29,7 @@ impl Renderer {
         height: u32,
         body: &[UiNode],
         stylesheet: &[StyleRule],
+        keyframes: &[CssKeyframes],
         fonts: &[FontFace],
         color_profiles: &[CssColorProfile],
     ) -> Result<Self, WindowError> {
@@ -57,9 +58,10 @@ impl Renderer {
             .ok_or(WindowError::UnsupportedSurface)?;
         surface.configure(&device, &config);
 
-        let mut page = PageRasterizer::new_with_fonts_and_color_profiles(
+        let mut page = PageRasterizer::new_with_fonts_color_profiles_and_keyframes(
             body,
             stylesheet,
+            keyframes,
             fonts,
             color_profiles,
         );

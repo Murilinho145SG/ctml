@@ -286,7 +286,7 @@ fn is_valid_property_name(value: &str) -> bool {
             .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
 }
 
-fn split_transition_entries(value: &str) -> Vec<&str> {
+pub(super) fn split_transition_entries(value: &str) -> Vec<&str> {
     let mut entries = Vec::new();
     let mut depth = 0usize;
     let mut start = 0usize;
@@ -305,7 +305,7 @@ fn split_transition_entries(value: &str) -> Vec<&str> {
     entries
 }
 
-fn parse_time(value: &str) -> Option<f32> {
+pub(super) fn parse_time(value: &str) -> Option<f32> {
     let value = value.trim().to_ascii_lowercase();
     let milliseconds = value
         .strip_suffix("ms")
@@ -323,7 +323,7 @@ fn parse_nonnegative_time(value: &str) -> Option<f32> {
     parse_time(value).filter(|duration| *duration >= 0.0)
 }
 
-fn parse_easing(value: &str) -> Option<TransitionEasing> {
+pub(super) fn parse_easing(value: &str) -> Option<TransitionEasing> {
     let value = value.trim().to_ascii_lowercase();
     Some(match value.as_str() {
         "linear" => TransitionEasing::Linear,
@@ -384,7 +384,7 @@ fn parse_easing(value: &str) -> Option<TransitionEasing> {
     })
 }
 
-fn split_function_tokens(value: &str) -> Vec<&str> {
+pub(super) fn split_function_tokens(value: &str) -> Vec<&str> {
     let mut tokens = Vec::new();
     let mut depth = 0usize;
     let mut start = None;

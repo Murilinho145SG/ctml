@@ -395,9 +395,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 ## Animation and transitions
 
 - [ ] Transitions: property, duration, delay, timing function, and behavior. Opacity interpolates for the root body style, text-bearing elements, and wrapper subtrees; text `color` interpolates on text-bearing elements and inherited wrapper text while preserving explicit descendant colors; `background-color` interpolates on text elements and layout boxes; `outline-color` and all four sides of `border-color` interpolate on layout boxes; `visibility` changes discretely at the transition midpoint when `allow-discrete` is specified. The shorthand and longhands accept comma-separated entries, match values by list index, and select the last matching property or `all` entry. Standard easing keywords, `cubic-bezier()`, and `steps()` are supported. Other animated properties and discrete properties without `allow-discrete` remain.
-- [ ] Keyframe animation playback. The CSS parser preserves named `@keyframes` rules and keyframe offsets, but the renderer does not apply them yet.
-- [ ] Animation composition, direction, fill mode, iteration, and play state.
-- [ ] Animatable property definitions and interpolation.
+- [ ] Keyframe animations. The parser preserves named `@keyframes` blocks and normalized offsets; the renderer interpolates `opacity` for one named animation per element.
+- [ ] Animation composition and simultaneous animation lists. One animation supports direction, fill mode, iteration count, play state, and easing.
+- [ ] Animatable property definitions and interpolation beyond `opacity`.
 - [ ] Scroll-driven and view-driven animations if appropriate for CTML.
 - [ ] View transitions between UI states if appropriate for CTML.
 - [ ] Respect reduced-motion preferences and allow animations to be disabled.

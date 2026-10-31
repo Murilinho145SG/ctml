@@ -26,6 +26,9 @@ pub(super) fn apply_declaration(
         | "transition-delay"
         | "transition-timing-function"
         | "transition-behavior" => transition::apply_transition(style, property, value),
+        property if animation::is_animation_property(property) => {
+            animation::apply_animation(style, property, value)
+        }
         "visibility" => match value.to_ascii_lowercase().as_str() {
             "visible" => {
                 style.visibility_hidden = false;

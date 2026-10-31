@@ -23,16 +23,17 @@ mod text_style;
 mod text_transform;
 pub(super) use text::{append_text, push_character, push_line_break};
 pub(super) use text_style::{
-    BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
-    BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset,
-    BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
-    BoxShadow, ConicGradient, Direction, ElementTransitionStyle, FlexAlignment, FlexBasis,
-    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
-    LinearGradient, Overflow, OverflowWrap, RadialGradient, RadialGradientExtent,
-    RadialGradientShape, StepPosition, TextDecorationSkipInk, TextDecorationStyle,
-    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
-    TextRendering, TextShadow, TextStyle, TextTransform, TextWrapMode, TransitionEasing,
-    TransitionTiming, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec, BackgroundAttachment,
+    BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage, BackgroundPosition,
+    BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset, BorderImageRepeat,
+    BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak, BoxShadow,
+    ConicGradient, Direction, ElementTransitionStyle, FlexAlignment, FlexBasis, FontVariantCaps,
+    FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow,
+    OverflowWrap, RadialGradient, RadialGradientExtent, RadialGradientShape, StepPosition,
+    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
+    TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle,
+    TextTransform, TextWrapMode, TransitionEasing, TransitionTiming, UnicodeBidi, UserSelect,
+    WhiteSpace, WordBreak, WritingMode,
 };
 pub(crate) use text_transform::transform_character;
 
@@ -199,6 +200,16 @@ pub(super) fn compile_runs_with_opacity_map(
             }),
             visibility: root_style.transition_visibility,
             visibility_hidden: root_style.visibility_hidden,
+            animation: root_style.animation_name.clone().map(|name| AnimationSpec {
+                name,
+                duration_ms: root_style.animation_duration_ms,
+                delay_ms: root_style.animation_delay_ms,
+                iterations: root_style.animation_iterations,
+                direction: root_style.animation_direction,
+                fill_mode: root_style.animation_fill_mode,
+                play_state: root_style.animation_play_state,
+                easing: root_style.animation_easing,
+            }),
         },
     );
     if !root_style.display_none {

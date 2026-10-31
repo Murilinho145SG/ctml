@@ -43,6 +43,9 @@ pub(in crate::css_style::properties) fn inherit_property(
             style.transition_behaviors = inherited.transition_behaviors.clone();
             super::super::transition::update_opacity_transition(style);
         }
+        property if super::super::animation::is_animation_property(property) => {
+            super::super::animation::inherit_animation(style, inherited, property)
+        }
         "visibility" => {
             style.visibility_hidden = inherited.visibility_hidden;
             style.visibility_owner = inherited.visibility_owner;

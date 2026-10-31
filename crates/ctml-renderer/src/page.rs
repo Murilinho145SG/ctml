@@ -73,6 +73,7 @@ pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
     stylesheet: Vec<StyleRule>,
     color_profiles: Vec<ctml_css::CssColorProfile>,
+    keyframes: Vec<ctml_css::CssKeyframes>,
     runs: Vec<TextRun>,
     cursor_spans: Vec<CursorSpan>,
     overflow_clips: HashMap<usize, overflow_clip::ClipRect>,
@@ -98,6 +99,7 @@ pub(crate) struct PageRasterizer {
     border_color_transitions: HashMap<usize, [animations::ColorTransition; 4]>,
     element_visibility: HashMap<usize, bool>,
     visibility_transitions: HashMap<usize, animations::VisibilityTransition>,
+    keyframe_animations: HashMap<usize, animations::keyframes::KeyframeAnimationState>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
     isolation_groups: HashSet<usize>,
     decoration_opacity_scales: Vec<f32>,
@@ -124,12 +126,22 @@ impl PageRasterizer {
         stylesheet: &[StyleRule],
         fonts: &[crate::FontFace],
     ) -> Self {
-        Self::new_with_fonts_and_color_profiles(nodes, stylesheet, fonts, &[])
+        Self::new_with_fonts_color_profiles_and_keyframes(nodes, stylesheet, &[], fonts, &[])
     }
 
-    pub(crate) fn new_with_fonts_and_color_profiles(
+    #[cfg(test)]
+    pub(crate) fn new_with_keyframes(
         nodes: &[UiNode],
         stylesheet: &[StyleRule],
+        keyframes: &[ctml_css::CssKeyframes],
+    ) -> Self {
+        Self::new_with_fonts_color_profiles_and_keyframes(nodes, stylesheet, keyframes, &[], &[])
+    }
+
+    pub(crate) fn new_with_fonts_color_profiles_and_keyframes(
+        nodes: &[UiNode],
+        stylesheet: &[StyleRule],
+        keyframes: &[ctml_css::CssKeyframes],
         fonts: &[crate::FontFace],
         color_profiles: &[ctml_css::CssColorProfile],
     ) -> Self {
@@ -181,6 +193,14 @@ impl PageRasterizer {
             .collect::<Vec<_>>();
         hyphenation::apply_auto_hyphenation(&mut runs);
         let cursor_spans = cursor_spans(&runs);
+        let keyframes = keyframes.to_vec();
+        let keyframe_animations = animations::keyframes::build_states(
+            &transition_styles,
+            &keyframes,
+            &opacity_groups,
+            root_style.opacity,
+            Instant::now(),
+        );
         let root_opacity = root_style.opacity;
         let mut root_style = root_style;
         root_style.opacity = 1.0;
@@ -195,6 +215,7 @@ impl PageRasterizer {
             nodes: nodes.to_vec(),
             stylesheet: stylesheet.to_vec(),
             color_profiles: color_profiles.to_vec(),
+            keyframes,
             runs,
             cursor_spans,
             overflow_clips: HashMap::new(),
@@ -235,6 +256,7 @@ impl PageRasterizer {
                 .map(|(node_id, style)| (*node_id, style.visibility_hidden))
                 .collect(),
             visibility_transitions: HashMap::new(),
+            keyframe_animations,
             mix_blend_modes,
             isolation_groups,
             decoration_opacity_scales: Vec::new(),
@@ -611,6 +633,13 @@ impl PageRasterizer {
         animations::advance(self, now)
     }
 
+    #[cfg(test)]
+    pub(crate) fn keyframe_animation_start(&self, node_id: usize) -> Option<Instant> {
+        self.keyframe_animations
+            .get(&node_id)
+            .map(|state| state.starts_at)
+    }
+
     fn rebuild_interaction_styles(&mut self) {
         let previous_root_opacity = self.root_opacity;
         let previous_opacity_groups = self.opacity_groups.clone();
@@ -655,6 +684,13 @@ impl PageRasterizer {
             })
             .collect();
         self.opacity_groups = opacity_groups;
+        self.keyframe_animations = animations::keyframes::build_states(
+            &transition_styles,
+            &self.keyframes,
+            &self.opacity_groups,
+            root_style.opacity,
+            Instant::now(),
+        );
         self.element_colors = transition_styles
             .iter()
             .map(|(node_id, style)| (*node_id, style.color_value))

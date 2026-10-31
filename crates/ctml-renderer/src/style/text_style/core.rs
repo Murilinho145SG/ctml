@@ -53,6 +53,43 @@ pub(crate) enum StepPosition {
     JumpBoth,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum AnimationDirection {
+    #[default]
+    Normal,
+    Reverse,
+    Alternate,
+    AlternateReverse,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum AnimationFillMode {
+    #[default]
+    None,
+    Forwards,
+    Backwards,
+    Both,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum AnimationPlayState {
+    #[default]
+    Running,
+    Paused,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct AnimationSpec {
+    pub(crate) name: String,
+    pub(crate) duration_ms: f32,
+    pub(crate) delay_ms: f32,
+    pub(crate) iterations: f32,
+    pub(crate) direction: AnimationDirection,
+    pub(crate) fill_mode: AnimationFillMode,
+    pub(crate) play_state: AnimationPlayState,
+    pub(crate) easing: TransitionEasing,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum FlexBasis {
     Auto,
@@ -72,7 +109,7 @@ pub(crate) struct TransitionTiming {
     pub(crate) easing: TransitionEasing,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ElementTransitionStyle {
     pub(crate) opacity: Option<TransitionTiming>,
     pub(crate) color: Option<TransitionTiming>,
@@ -85,6 +122,7 @@ pub(crate) struct ElementTransitionStyle {
     pub(crate) border_color_value: [[u8; 4]; 4],
     pub(crate) visibility: Option<TransitionTiming>,
     pub(crate) visibility_hidden: bool,
+    pub(crate) animation: Option<AnimationSpec>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -128,6 +166,14 @@ pub(crate) struct TextStyle {
     pub(crate) transition_border_color_delay_ms: f32,
     pub(crate) transition_border_color_easing: TransitionEasing,
     pub(crate) transition_visibility: Option<TransitionTiming>,
+    pub(crate) animation_name: Option<String>,
+    pub(crate) animation_duration_ms: f32,
+    pub(crate) animation_delay_ms: f32,
+    pub(crate) animation_iterations: f32,
+    pub(crate) animation_direction: AnimationDirection,
+    pub(crate) animation_fill_mode: AnimationFillMode,
+    pub(crate) animation_play_state: AnimationPlayState,
+    pub(crate) animation_easing: TransitionEasing,
     pub(crate) transition_behaviors: Vec<bool>,
     pub(crate) transition_properties: Vec<String>,
     pub(crate) transition_durations_ms: Vec<f32>,

@@ -93,6 +93,8 @@ mod hyphens;
 mod inline_boxes;
 #[path = "page_tests/interactions.rs"]
 mod interactions;
+#[path = "page_tests/keyframe_animations.rs"]
+mod keyframe_animations;
 #[path = "page_tests/linear_gradients.rs"]
 mod linear_gradients;
 #[path = "page_tests/opacity_text_order.rs"]

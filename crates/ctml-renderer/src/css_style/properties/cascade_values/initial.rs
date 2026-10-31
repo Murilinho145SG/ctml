@@ -15,6 +15,9 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         | "transition-delay"
         | "transition-timing-function"
         | "transition-behavior" => super::super::transition::reset_transition(style, property),
+        property if super::super::animation::is_animation_property(property) => {
+            super::super::animation::reset_animation(style, property)
+        }
         "visibility" => {
             style.visibility_hidden = false;
             style.visibility_is_explicit = true;

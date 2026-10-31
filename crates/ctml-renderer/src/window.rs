@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration, time::Instant};
 
 use super::renderer::Renderer;
-use crate::{CssColorProfile, FontFace, StyleRule, UiNode};
+use crate::{CssColorProfile, CssKeyframes, FontFace, StyleRule, UiNode};
 
 use thiserror::Error;
 use winit::{
@@ -26,6 +26,8 @@ pub struct WindowConfig {
     pub body: Vec<UiNode>,
     /// CSS rules compiled from the linked `.css` stylesheet.
     pub stylesheet: Vec<StyleRule>,
+    /// CSS `@keyframes` definitions parsed from the linked stylesheets.
+    pub keyframes: Vec<CssKeyframes>,
     /// Local fonts loaded from CSS `@font-face` rules.
     pub fonts: Vec<FontFace>,
     /// Local ICC profiles loaded from CSS `@color-profile` rules.
@@ -40,6 +42,7 @@ impl Default for WindowConfig {
             height: 600,
             body: Vec::new(),
             stylesheet: Vec::new(),
+            keyframes: Vec::new(),
             fonts: Vec::new(),
             color_profiles: Vec::new(),
         }
@@ -150,6 +153,7 @@ impl ApplicationHandler for WindowApplication {
             self.config.height,
             &self.config.body,
             &self.config.stylesheet,
+            &self.config.keyframes,
             &self.config.fonts,
             &self.config.color_profiles,
         )) {
