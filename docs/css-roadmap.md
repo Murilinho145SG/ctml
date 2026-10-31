@@ -279,7 +279,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Local `@font-face` loading with a CSS family alias and static weight, style, and stretch descriptors.
 - [x] Variable font weight ranges and oblique style angle ranges in `@font-face`, including range-aware matching and weight clamping.
 - [x] `@font-face` tries `local()` and local URL candidates in source order, aliases the first available font to the declared family, and matches static weight/style/stretch descriptors through the native font database.
-- [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features.
+- [x] `font-variant`/`font-variant-caps`: `normal`, `small-caps`, `all-small-caps`, `petite-caps`, `all-petite-caps`, `unicase`, and `titling-caps` through OpenType features when available, with scaled-uppercase synthesis for small-caps variants when the selected font lacks the corresponding feature.
 - [x] Text alignment: left, right, center, justify, start, and end.
 - [x] `text-align-last` for automatic, logical and physical edge, centered, and justified final lines.
 - [x] `text-indent` lengths and percentages, with hanging and each-line behavior.
