@@ -65,6 +65,10 @@ fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
     {
         return (fraction.is_finite() && fraction > 0.0).then_some(GridTrack::Fraction(fraction));
     }
+    if let Some(percentage) = ctml_css::parse_css_percentage(value) {
+        return (percentage.is_finite() && percentage >= 0.0)
+            .then_some(GridTrack::Percentage(percentage / 100.0));
+    }
     ctml_css::parse_nonnegative_font_relative_length_with_viewport(
         value,
         style.font_size,
@@ -99,6 +103,16 @@ mod tests {
             [
                 GridTrack::Length(100.0),
                 GridTrack::Fraction(2.0),
+                GridTrack::Fraction(1.0)
+            ]
+        );
+
+        apply_grid_property(&mut style, "25% 100px 1fr");
+        assert_eq!(
+            style.grid_template_columns,
+            [
+                GridTrack::Percentage(0.25),
+                GridTrack::Length(100.0),
                 GridTrack::Fraction(1.0)
             ]
         );

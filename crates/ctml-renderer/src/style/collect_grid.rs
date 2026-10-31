@@ -8,6 +8,7 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
     };
     match tracks[item_index % tracks.len()] {
         GridTrack::Length(length) => FlexBasis::Length(length),
+        GridTrack::Percentage(percentage) => FlexBasis::Percentage(percentage),
         GridTrack::Auto => FlexBasis::MaxContent,
         GridTrack::MinContent => FlexBasis::MinContent,
         GridTrack::MaxContent => FlexBasis::MaxContent,
@@ -18,6 +19,7 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                 .filter_map(|track| match track {
                     GridTrack::Fraction(fraction) => Some(*fraction),
                     GridTrack::Length(_)
+                    | GridTrack::Percentage(_)
                     | GridTrack::Auto
                     | GridTrack::MinContent
                     | GridTrack::MaxContent
@@ -33,6 +35,7 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                 .filter_map(|track| match track {
                     GridTrack::Length(length) => Some(*length),
                     GridTrack::Fraction(_)
+                    | GridTrack::Percentage(_)
                     | GridTrack::Auto
                     | GridTrack::MinContent
                     | GridTrack::MaxContent
@@ -40,9 +43,17 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                 })
                 .sum::<f32>();
             let gaps = resolve_column_gap(style) * tracks.len().saturating_sub(1) as f32;
+            let percentage_space = tracks
+                .iter()
+                .filter_map(|track| match track {
+                    GridTrack::Percentage(percentage) => Some(*percentage),
+                    _ => None,
+                })
+                .sum::<f32>();
             FlexBasis::GridFraction {
                 fraction: fractional_share,
                 fixed_space: fixed_tracks + gaps + 1.0,
+                percentage_space,
             }
         }
     }
@@ -140,8 +151,11 @@ mod tests {
             item_basis(&style, 1),
             FlexBasis::GridFraction {
                 fraction,
-                fixed_space
-            } if (fraction - 1.0).abs() < 0.001 && (fixed_space - 121.0).abs() < 0.001
+                fixed_space,
+                percentage_space
+            } if (fraction - 1.0).abs() < 0.001
+                && (fixed_space - 121.0).abs() < 0.001
+                && percentage_space == 0.0
         ));
 
         style.grid_template_columns = [GridTrack::Auto].into();

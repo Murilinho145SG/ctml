@@ -67,6 +67,19 @@ fn mixed_fixed_and_fraction_tracks_use_the_remaining_block_grid_width() {
 }
 
 #[test]
+fn percentage_and_fraction_tracks_resolve_against_the_grid_inline_size() {
+    let mut page = grid_page(None, "25% 1fr", "20px", "0px", &["Alpha", "Beta"]);
+    page.prepare_layout(500, 160);
+
+    let alpha = item_position(&page, "Alpha");
+    let beta = item_position(&page, "Beta");
+    assert!(
+        (beta.0 - alpha.0 - 141.0).abs() < 1.0,
+        "percentage track and column gap should set the second column start: {alpha:?}, {beta:?}"
+    );
+}
+
+#[test]
 fn intrinsic_tracks_measure_and_cap_item_text() {
     let mut min_content = grid_page(
         None,

@@ -251,7 +251,12 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             .iter()
             .zip(&item_sizes)
             .filter_map(|(marker, (_, base_size))| match marker.basis.as_ref() {
-                Some(FlexBasis::Length(_) | FlexBasis::GridFraction { .. }) | None => None,
+                Some(
+                    FlexBasis::Length(_)
+                    | FlexBasis::Percentage(_)
+                    | FlexBasis::GridFraction { .. },
+                )
+                | None => None,
                 Some(_) => Some(*base_size),
             })
             .sum::<f32>();
@@ -259,10 +264,12 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             if let Some(FlexBasis::GridFraction {
                 fraction,
                 fixed_space,
+                percentage_space,
             }) = marker.basis.as_ref()
             {
                 item_sizes[index].1 = group.basis_size.map_or(item_sizes[index].0, |size| {
-                    (size - fixed_space - intrinsic_track_size).max(0.0) * fraction
+                    (size - fixed_space - size * percentage_space - intrinsic_track_size).max(0.0)
+                        * fraction
                 });
             }
         }
