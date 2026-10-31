@@ -30,40 +30,118 @@ pub(super) fn apply_transition(style: &mut TextStyle, property: &str, value: &st
 }
 
 fn apply_shorthand(style: &mut TextStyle, value: &str) {
+    let entries = split_transition_entries(value)
+        .into_iter()
+        .map(parse_transition_entry)
+        .collect::<Option<Vec<_>>>();
+    let Some(entries) = entries else {
+        return;
+    };
+    if entries.is_empty() {
+        return;
+    }
+    if entries.iter().any(|entry| entry.0 == "none") {
+        if entries.len() != 1 {
+            return;
+        }
+        style.transition_opacity = false;
+        return;
+    }
+    let selected = entries
+        .iter()
+        .rev()
+        .find(|entry| matches!(entry.0.as_str(), "opacity" | "all"));
+    style.transition_opacity = selected.is_some();
+    if let Some((_, duration, delay, easing)) = selected {
+        style.transition_duration_ms = *duration;
+        style.transition_delay_ms = *delay;
+        style.transition_easing = *easing;
+    }
+}
+
+fn parse_transition_entry(value: &str) -> Option<(String, f32, f32, TransitionEasing)> {
     let mut property = None::<String>;
     let mut duration = None;
     let mut delay = None;
     let mut easing = None;
-    for token in split_function_tokens(value) {
+    let tokens = split_function_tokens(value);
+    if tokens.is_empty() {
+        return None;
+    }
+    for token in &tokens {
         let keyword = token.to_ascii_lowercase();
         if let Some(time) = parse_time(token) {
             if time < 0.0 {
                 if delay.replace(time).is_some() {
-                    return;
+                    return None;
                 }
             } else if duration.is_none() {
                 duration = Some(time);
             } else if delay.is_none() {
                 delay = Some(time);
             } else {
-                return;
+                return None;
             }
         } else if let Some(value) = parse_easing(&keyword) {
             if easing.replace(value).is_some() {
-                return;
+                return None;
             }
-        } else if matches!(keyword.as_str(), "opacity" | "all" | "none") {
+        } else if is_transition_property(&keyword) {
             if property.replace(keyword).is_some() {
-                return;
+                return None;
             }
         } else {
-            return;
+            return None;
         }
     }
-    style.transition_opacity = matches!(property.as_deref().unwrap_or("all"), "opacity" | "all");
-    style.transition_duration_ms = duration.unwrap_or_default();
-    style.transition_delay_ms = delay.unwrap_or_default();
-    style.transition_easing = easing.unwrap_or_default();
+    if property.as_deref() == Some("none")
+        && (duration.is_some() || delay.is_some() || easing.is_some())
+    {
+        return None;
+    }
+    if property.as_deref() == Some("none") && tokens.len() != 1 {
+        return None;
+    }
+    Some((
+        property.unwrap_or_else(|| "all".to_owned()),
+        duration.unwrap_or_default(),
+        delay.unwrap_or_default(),
+        easing.unwrap_or_default(),
+    ))
+}
+
+fn is_transition_property(value: &str) -> bool {
+    matches!(value, "opacity" | "all" | "none")
+        || value.strip_prefix("--").is_some_and(is_valid_property_name)
+        || is_valid_property_name(value)
+}
+
+fn is_valid_property_name(value: &str) -> bool {
+    let mut characters = value.chars();
+    characters
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic() || first == '_')
+        && characters
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
+}
+
+fn split_transition_entries(value: &str) -> Vec<&str> {
+    let mut entries = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (index, character) in value.char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                entries.push(value[start..index].trim());
+                start = index + character.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    entries.push(value[start..].trim());
+    entries
 }
 
 fn parse_time(value: &str) -> Option<f32> {
@@ -201,6 +279,38 @@ mod tests {
         assert!(style.transition_opacity);
         assert_eq!(style.transition_duration_ms, 250.0);
         assert_eq!(style.transition_delay_ms, 50.0);
+        assert_eq!(style.transition_easing, TransitionEasing::EaseIn);
+    }
+
+    #[test]
+    fn parses_transition_lists_and_uses_the_last_matching_opacity_entry() {
+        let mut style = TextStyle::default();
+        apply_transition(
+            &mut style,
+            "transition",
+            "opacity 100ms linear, color 300ms ease-in, all 500ms ease-out 25ms",
+        );
+        assert!(style.transition_opacity);
+        assert_eq!(style.transition_duration_ms, 500.0);
+        assert_eq!(style.transition_delay_ms, 25.0);
+        assert_eq!(style.transition_easing, TransitionEasing::EaseOut);
+
+        apply_transition(
+            &mut style,
+            "transition",
+            "opacity 100ms linear, color 300ms ease-in",
+        );
+        assert_eq!(style.transition_duration_ms, 100.0);
+        assert_eq!(style.transition_easing, TransitionEasing::Linear);
+    }
+
+    #[test]
+    fn invalid_transition_list_does_not_replace_the_previous_value() {
+        let mut style = TextStyle::default();
+        apply_transition(&mut style, "transition", "opacity 200ms ease-in");
+        apply_transition(&mut style, "transition", "opacity 100ms, color invalid");
+        assert!(style.transition_opacity);
+        assert_eq!(style.transition_duration_ms, 200.0);
         assert_eq!(style.transition_easing, TransitionEasing::EaseIn);
     }
 

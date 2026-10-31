@@ -394,7 +394,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 ## Animation and transitions
 
-- [ ] Transitions: property, duration, delay, timing function, and behavior. Opacity now interpolates for the root body style and text-bearing elements on interaction changes; `opacity`/`all`, duration, delay, standard easing keywords, `cubic-bezier()`, and `steps()` are supported for a single transition entry. Other properties, multiple transition entries, and wrapper elements without their own text remain.
+- [ ] Transitions: property, duration, delay, timing function, and behavior. Opacity now interpolates for the root body style and text-bearing elements on interaction changes; the `transition` shorthand accepts comma-separated entries and selects the last `opacity` or `all` entry, with duration, delay, standard easing keywords, `cubic-bezier()`, and `steps()`. Longhand transition lists, other animated properties, discrete-transition behavior, and wrapper elements without their own text remain.
 - [ ] Keyframe animations and `@keyframes`.
 - [ ] Animation composition, direction, fill mode, iteration, and play state.
 - [ ] Animatable property definitions and interpolation.
