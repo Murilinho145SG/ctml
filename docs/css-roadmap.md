@@ -192,7 +192,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] Compose nested opacity groups recursively when an opacity element contains another opacity element.
   - [x] Compose overlapping sibling opacity groups in document paint order.
   - [x] Preserve paint order when opacity groups overlap non-opacity element siblings, including nested element subtrees.
-  - [ ] Preserve paint order when opacity groups overlap text or generated-content nodes interleaved with element siblings.
+  - [x] Preserve paint order when opacity groups overlap text or generated-content nodes interleaved with element siblings.
 - [ ] `accent-color`, `color-scheme`, and color adjustment properties.
 - [ ] Blend modes and isolation.
   - [x] `background-blend-mode` for normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, and luminosity modes.

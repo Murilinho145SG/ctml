@@ -84,6 +84,8 @@ mod inline_boxes;
 mod interactions;
 #[path = "page_tests/linear_gradients.rs"]
 mod linear_gradients;
+#[path = "page_tests/opacity_text_order.rs"]
+mod opacity_text_order;
 #[path = "page_tests/outline.rs"]
 mod outline;
 #[path = "page_tests/parity.rs"]
