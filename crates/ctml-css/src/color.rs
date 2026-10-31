@@ -54,7 +54,16 @@ pub fn parse_color_with_opacity_and_profiles(
     value: &str,
     profiles: &[super::CssColorProfile],
 ) -> Option<([u8; 3], f32)> {
-    parse_color_with_opacity_depth_and_profiles(value, 0, profiles)
+    parse_color_with_opacity_and_profiles_for_scheme(value, profiles, false)
+}
+
+/// Parses a color using the palette selected by its used color scheme.
+pub fn parse_color_with_opacity_and_profiles_for_scheme(
+    value: &str,
+    profiles: &[super::CssColorProfile],
+    dark_scheme: bool,
+) -> Option<([u8; 3], f32)> {
+    parse_color_with_opacity_depth_and_profiles_for_scheme(value, 0, profiles, dark_scheme)
 }
 
 pub(super) fn parse_color_with_opacity_depth(value: &str, depth: usize) -> Option<([u8; 3], f32)> {
@@ -65,6 +74,15 @@ pub(super) fn parse_color_with_opacity_depth_and_profiles(
     value: &str,
     depth: usize,
     profiles: &[super::CssColorProfile],
+) -> Option<([u8; 3], f32)> {
+    parse_color_with_opacity_depth_and_profiles_for_scheme(value, depth, profiles, false)
+}
+
+pub(super) fn parse_color_with_opacity_depth_and_profiles_for_scheme(
+    value: &str,
+    depth: usize,
+    profiles: &[super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<([u8; 3], f32)> {
     if depth > 32 {
         return None;
@@ -78,7 +96,7 @@ pub(super) fn parse_color_with_opacity_depth_and_profiles(
         return Some(([red, green, blue], alpha));
     }
 
-    if let Some(color) = system::parse_system_color(value) {
+    if let Some(color) = system::parse_system_color(value, dark_scheme) {
         return Some((color, 1.0));
     }
 
@@ -87,18 +105,19 @@ pub(super) fn parse_color_with_opacity_depth_and_profiles(
         return Some(([red, green, blue], 1.0));
     }
 
-    parse_function_color(value, depth, profiles)
+    parse_function_color(value, depth, profiles, dark_scheme)
 }
 
 fn parse_function_color(
     value: &str,
     depth: usize,
     profiles: &[super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<([u8; 3], f32)> {
-    if let Some(color) = mix::parse_color_mix(value, depth, profiles) {
+    if let Some(color) = mix::parse_color_mix(value, depth, profiles, dark_scheme) {
         return Some(color);
     }
-    if let Some(color) = relative::parse_relative_color(value, depth, profiles) {
+    if let Some(color) = relative::parse_relative_color(value, depth, profiles, dark_scheme) {
         return Some(color);
     }
     if let Some(color) = color4::parse_color_function(value, profiles) {

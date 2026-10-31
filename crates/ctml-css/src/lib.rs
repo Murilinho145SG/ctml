@@ -14,7 +14,7 @@ mod selector;
 
 pub use color::{
     parse_color, parse_color_with_opacity, parse_color_with_opacity_and_profiles,
-    parse_color_with_profiles,
+    parse_color_with_opacity_and_profiles_for_scheme, parse_color_with_profiles,
 };
 pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;

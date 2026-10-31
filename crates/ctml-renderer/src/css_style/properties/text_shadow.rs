@@ -1,6 +1,7 @@
 use crate::style::{TextShadow, TextStyle};
 use ctml_css::{
-    parse_color_with_opacity_and_profiles, parse_nonnegative_font_relative_length_with_viewport,
+    parse_color_with_opacity_and_profiles_for_scheme,
+    parse_nonnegative_font_relative_length_with_viewport,
     parse_signed_font_relative_length_with_viewport,
 };
 
@@ -17,6 +18,7 @@ pub(super) fn apply_text_shadow(style: &mut TextStyle, value: &str) {
         style.viewport_size,
         style.color,
         &style.color_profiles,
+        style.dark_color_scheme,
     ) else {
         return;
     };
@@ -31,6 +33,7 @@ fn parse_text_shadows(
     viewport: ctml_css::ViewportSize,
     current_color: [u8; 4],
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<Vec<TextShadow>> {
     let mut shadows = Vec::new();
     for shadow in split_top_level_commas(value) {
@@ -47,7 +50,11 @@ fn parse_text_shadows(
                     return None;
                 }
             } else if let Some((channels, opacity)) =
-                parse_color_with_opacity_and_profiles(component, color_profiles)
+                parse_color_with_opacity_and_profiles_for_scheme(
+                    component,
+                    color_profiles,
+                    dark_scheme,
+                )
             {
                 if color
                     .replace([
@@ -170,6 +177,7 @@ mod tests {
                 ctml_css::ViewportSize::default(),
                 [0; 4],
                 &[],
+                false,
             ),
             Some(vec![
                 crate::style::TextShadow {
@@ -199,6 +207,7 @@ mod tests {
                 ctml_css::ViewportSize::default(),
                 [0; 4],
                 &[],
+                false,
             ),
             Some(vec![crate::style::TextShadow {
                 offset_x: 24.0,
@@ -227,6 +236,7 @@ mod tests {
                     ctml_css::ViewportSize::default(),
                     [0; 4],
                     &[],
+                    false,
                 ),
                 None,
                 "{value}"

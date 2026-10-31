@@ -21,6 +21,7 @@ pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
     pub(crate) viewport_size: ViewportSize,
     pub(crate) color_profiles: Arc<[ctml_css::CssColorProfile]>,
+    pub(crate) dark_color_scheme: bool,
     pub(crate) font_size: f32,
     pub(crate) font_scale: f32,
     pub(crate) line_height: f32,
@@ -193,6 +194,24 @@ pub(crate) struct TextStyle {
 }
 
 impl TextStyle {
+    pub(crate) fn parse_color(&self, value: &str) -> Option<([u8; 3], f32)> {
+        ctml_css::parse_color_with_opacity_and_profiles_for_scheme(
+            value,
+            &self.color_profiles,
+            self.dark_color_scheme,
+        )
+    }
+
+    pub(crate) fn parse_color_rgba(&self, value: &str) -> Option<[u8; 4]> {
+        let (channels, alpha) = self.parse_color(value)?;
+        Some([
+            channels[0],
+            channels[1],
+            channels[2],
+            (alpha * 255.0).round() as u8,
+        ])
+    }
+
     pub(crate) fn record_size_property_order(&mut self, property: &str) {
         self.size_property_orders
             .insert(property.to_owned(), self.current_declaration_order);
@@ -205,6 +224,7 @@ impl Default for TextStyle {
             font_relative_units: FontRelativeUnits::default(),
             viewport_size: ViewportSize::default(),
             color_profiles: Arc::from([]),
+            dark_color_scheme: false,
             font_size: DEFAULT_FONT_SIZE,
             font_scale: 1.0,
             line_height: DEFAULT_LINE_HEIGHT,

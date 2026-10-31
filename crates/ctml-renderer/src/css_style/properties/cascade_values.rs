@@ -2,6 +2,7 @@ use super::*;
 
 pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, property: &str) {
     match property {
+        "color-scheme" => style.dark_color_scheme = inherited.dark_color_scheme,
         "opacity" => style.opacity = inherited.opacity,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
         "content-visibility" => {
@@ -304,6 +305,7 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
 
 pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
+        "color-scheme" => style.dark_color_scheme = false,
         "opacity" => style.opacity = 1.0,
         "visibility" => style.visibility_hidden = false,
         "content-visibility" => {

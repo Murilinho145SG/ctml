@@ -12,11 +12,19 @@ pub(super) fn substitute_attr_functions(
     value: &str,
     attributes: &[(String, Option<String>)],
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<String> {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let mut output = String::with_capacity(value.len());
-    serialize_tokens(&mut parser, attributes, color_profiles, &mut output).ok()?;
+    serialize_tokens(
+        &mut parser,
+        attributes,
+        color_profiles,
+        dark_scheme,
+        &mut output,
+    )
+    .ok()?;
     Some(output)
 }
 
@@ -24,6 +32,7 @@ fn serialize_tokens<'i, 't>(
     parser: &mut Parser<'i, 't>,
     attributes: &[(String, Option<String>)],
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
     output: &mut String,
 ) -> Result<(), cssparser::ParseError<'i, ()>> {
     while !parser.is_exhausted() {
@@ -31,7 +40,7 @@ fn serialize_tokens<'i, 't>(
         match token {
             Token::Function(name) if name.eq_ignore_ascii_case("env") => {
                 let (name, fallback) = parser.parse_nested_block(|nested| {
-                    parse_env_arguments(nested, attributes, color_profiles)
+                    parse_env_arguments(nested, attributes, color_profiles, dark_scheme)
                 })?;
                 if is_zero_safe_area_environment_variable(&name) {
                     output.push_str("0px");
@@ -42,14 +51,16 @@ fn serialize_tokens<'i, 't>(
                 }
             }
             Token::Function(name) if name.eq_ignore_ascii_case("attr") => {
-                let (name, attr_type, fallback) = parser
-                    .parse_nested_block(|nested| parse_attr_arguments(nested, color_profiles))?;
+                let (name, attr_type, fallback) = parser.parse_nested_block(|nested| {
+                    parse_attr_arguments(nested, color_profiles, dark_scheme)
+                })?;
                 let raw_value = attributes
                     .iter()
                     .find(|(attribute, _)| attribute.eq_ignore_ascii_case(&name))
                     .and_then(|(_, value)| value.as_deref());
-                let converted =
-                    raw_value.and_then(|value| convert_attribute(value, attr_type, color_profiles));
+                let converted = raw_value.and_then(|value| {
+                    convert_attribute(value, attr_type, color_profiles, dark_scheme)
+                });
                 if let Some(converted) = converted {
                     output.push_str(&converted);
                 } else if let Some(fallback) = fallback {
@@ -71,7 +82,7 @@ fn serialize_tokens<'i, 't>(
                     .to_css(output)
                     .expect("writing CSS tokens into a String cannot fail");
                 parser.parse_nested_block(|nested| {
-                    serialize_tokens(nested, attributes, color_profiles, output)
+                    serialize_tokens(nested, attributes, color_profiles, dark_scheme, output)
                 })?;
                 output.push(end);
             }
@@ -87,6 +98,7 @@ fn parse_env_arguments<'i, 't>(
     parser: &mut Parser<'i, 't>,
     attributes: &[(String, Option<String>)],
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
 ) -> Result<(String, Option<String>), cssparser::ParseError<'i, ()>> {
     let name = parser.expect_ident_cloned()?.to_string();
     parser.skip_whitespace();
@@ -95,7 +107,13 @@ fn parse_env_arguments<'i, 't>(
     }
     parser.expect_comma()?;
     let mut fallback = String::new();
-    serialize_tokens(parser, attributes, color_profiles, &mut fallback)?;
+    serialize_tokens(
+        parser,
+        attributes,
+        color_profiles,
+        dark_scheme,
+        &mut fallback,
+    )?;
     Ok((name, Some(fallback)))
 }
 
@@ -111,6 +129,7 @@ fn is_zero_safe_area_environment_variable(name: &str) -> bool {
 fn parse_attr_arguments<'i, 't>(
     parser: &mut Parser<'i, 't>,
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
 ) -> Result<(String, Option<AttrType>, Option<String>), cssparser::ParseError<'i, ()>> {
     let name = parser.expect_ident_cloned()?.to_string();
     parser.skip_whitespace();
@@ -139,7 +158,7 @@ fn parse_attr_arguments<'i, 't>(
         None
     } else {
         let mut output = String::new();
-        serialize_tokens(parser, &[], color_profiles, &mut output)?;
+        serialize_tokens(parser, &[], color_profiles, dark_scheme, &mut output)?;
         Some(output)
     };
     Ok((name, attr_type, fallback))
@@ -179,6 +198,7 @@ fn convert_attribute(
     value: &str,
     attr_type: Option<AttrType>,
     color_profiles: &[ctml_css::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<String> {
     match attr_type {
         None | Some(AttrType::String) => {
@@ -209,14 +229,20 @@ fn convert_attribute(
             .or_else(|| parse_length_calculation(value, true)),
         Some(AttrType::Angle) => parse_dimension(value, ANGLE_UNITS)
             .or_else(|| ctml_css::parse_math_angle(value).map(|radians| format!("{radians}rad"))),
-        Some(AttrType::Color) => {
-            ctml_css::parse_color_with_profiles(value, color_profiles).map(|color| {
-                format!(
-                    "#{:02x}{:02x}{:02x}{:02x}",
-                    color[0], color[1], color[2], color[3]
-                )
-            })
-        }
+        Some(AttrType::Color) => ctml_css::parse_color_with_opacity_and_profiles_for_scheme(
+            value,
+            color_profiles,
+            dark_scheme,
+        )
+        .map(|(rgb, alpha)| {
+            format!(
+                "#{:02x}{:02x}{:02x}{:02x}",
+                rgb[0],
+                rgb[1],
+                rgb[2],
+                (alpha * 255.0).round() as u8
+            )
+        }),
         Some(AttrType::CustomIdent) => parse_custom_ident(value),
     }
 }

@@ -52,6 +52,8 @@ mod borders;
 mod box_model;
 #[path = "page_tests/box_shadows.rs"]
 mod box_shadows;
+#[path = "page_tests/color_scheme.rs"]
+mod color_scheme;
 #[path = "page_tests/conic_gradients.rs"]
 mod conic_gradients;
 #[path = "page_tests/containment.rs"]

@@ -2,7 +2,7 @@ use cssparser::{Parser, ParserInput, Token};
 
 use super::{
     missing::{MissingComponents, component_space, parse_missing_components},
-    parse_color_with_opacity_depth_and_profiles,
+    parse_color_with_opacity_depth_and_profiles_for_scheme,
 };
 mod hue;
 use hue::{HueInterpolation, interpolate_hue};
@@ -11,6 +11,7 @@ pub(super) fn parse_color_mix(
     value: &str,
     depth: usize,
     profiles: &[super::super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
@@ -91,10 +92,10 @@ pub(super) fn parse_color_mix(
             input.expect_comma()?;
 
             let (first, first_percentage, first_missing) =
-                parse_mix_component(input, depth, profiles)?;
+                parse_mix_component(input, depth, profiles, dark_scheme)?;
             input.expect_comma()?;
             let (second, second_percentage, second_missing) =
-                parse_mix_component(input, depth, profiles)?;
+                parse_mix_component(input, depth, profiles, dark_scheme)?;
             if !input.is_exhausted() {
                 return Err(input.new_custom_error(()));
             }
@@ -461,6 +462,7 @@ fn parse_mix_component<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
     profiles: &[super::super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Result<(([u8; 3], f32), Option<f32>, MissingComponents), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
@@ -472,8 +474,13 @@ fn parse_mix_component<'i, 't>(
     }
     let color_end = input.position();
     let color_value = input.slice(start..color_end).trim();
-    let color = parse_color_with_opacity_depth_and_profiles(color_value, depth + 1, profiles)
-        .ok_or_else(|| input.new_custom_error(()))?;
+    let color = parse_color_with_opacity_depth_and_profiles_for_scheme(
+        color_value,
+        depth + 1,
+        profiles,
+        dark_scheme,
+    )
+    .ok_or_else(|| input.new_custom_error(()))?;
     let missing = parse_missing_components(color_value);
     let percentage = input
         .try_parse(|input| input.expect_percentage())

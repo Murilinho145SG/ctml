@@ -4,7 +4,6 @@ use crate::style::{
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use cssparser::{Parser, ParserInput, Token};
-use ctml_css::parse_color_with_opacity_and_profiles;
 
 pub(super) fn apply_background_image(style: &mut TextStyle, value: &str) {
     let Some(images) = parse_background_images(style, value) else {
@@ -359,7 +358,7 @@ pub(super) fn parse_background_color(style: &TextStyle, value: &str) -> Option<(
             style.color_opacity,
         ))
     } else {
-        parse_color_with_opacity_and_profiles(value, &style.color_profiles)
+        style.parse_color(value)
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::style::{TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextStyle};
-use ctml_css::{parse_color_with_opacity_and_profiles, parse_css_string};
+use ctml_css::parse_css_string;
 use unicode_segmentation::UnicodeSegmentation;
 
 pub(super) fn apply_text_emphasis_shorthand(style: &mut TextStyle, value: &str) {
@@ -20,9 +20,7 @@ pub(super) fn apply_text_emphasis_shorthand(style: &mut TextStyle, value: &str) 
             if color.replace(None).is_some() {
                 return;
             }
-        } else if let Some((channels, opacity)) =
-            parse_color_with_opacity_and_profiles(component, &style.color_profiles)
-        {
+        } else if let Some((channels, opacity)) = style.parse_color(component) {
             if color
                 .replace(Some([
                     channels[0],
@@ -58,9 +56,7 @@ pub(super) fn apply_text_emphasis_style(style: &mut TextStyle, value: &str) {
 pub(super) fn apply_text_emphasis_color(style: &mut TextStyle, value: &str) {
     if value.eq_ignore_ascii_case("currentcolor") {
         style.text_emphasis_color = None;
-    } else if let Some((channels, opacity)) =
-        parse_color_with_opacity_and_profiles(value, &style.color_profiles)
-    {
+    } else if let Some((channels, opacity)) = style.parse_color(value) {
         style.text_emphasis_color = Some([
             channels[0],
             channels[1],

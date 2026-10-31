@@ -1,6 +1,6 @@
 use cssparser::{Parser, ParserInput, Token};
 
-use super::parse_color_with_opacity_depth_and_profiles;
+use super::parse_color_with_opacity_depth_and_profiles_for_scheme;
 
 #[derive(Clone, Copy)]
 enum ColorSpace {
@@ -23,6 +23,7 @@ pub(super) fn parse_relative_color(
     value: &str,
     depth: usize,
     profiles: &[super::super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Option<([u8; 3], f32)> {
     let mut source = ParserInput::new(value);
     let mut parser = Parser::new(&mut source);
@@ -49,7 +50,7 @@ pub(super) fn parse_relative_color(
     let color = parser
         .parse_nested_block(|input| {
             input.expect_ident_matching("from")?;
-            let source_color = parse_source_color(input, depth, profiles)?;
+            let source_color = parse_source_color(input, depth, profiles, dark_scheme)?;
             let color_space = if is_color {
                 Some(parse_color_space(input, profiles)?)
             } else {
@@ -461,6 +462,7 @@ fn parse_source_color<'i, 't>(
     input: &mut Parser<'i, 't>,
     depth: usize,
     profiles: &[super::super::CssColorProfile],
+    dark_scheme: bool,
 ) -> Result<([u8; 3], f32), cssparser::ParseError<'i, ()>> {
     let start = input.position();
     match input.next()? {
@@ -470,8 +472,13 @@ fn parse_source_color<'i, 't>(
         _ => {}
     }
     let end = input.position();
-    parse_color_with_opacity_depth_and_profiles(input.slice(start..end).trim(), depth + 1, profiles)
-        .ok_or_else(|| input.new_custom_error(()))
+    parse_color_with_opacity_depth_and_profiles_for_scheme(
+        input.slice(start..end).trim(),
+        depth + 1,
+        profiles,
+        dark_scheme,
+    )
+    .ok_or_else(|| input.new_custom_error(()))
 }
 
 fn parse_channel<'i, 't>(

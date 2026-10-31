@@ -98,6 +98,7 @@ mod box_decoration;
 mod box_shadow;
 mod cascade_values;
 mod color;
+mod color_scheme;
 mod contain;
 mod contain_intrinsic_size;
 mod counters;
@@ -290,6 +291,7 @@ fn is_inherited_property(property: &str) -> bool {
             | "text-decoration-skip-ink"
             | "text-underline-offset"
             | "cursor"
+            | "color-scheme"
     )
 }
 

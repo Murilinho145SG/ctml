@@ -356,6 +356,32 @@ fn apply_matching_styles_inner(
     }
     style.custom_properties = custom_properties;
 
+    style.dark_color_scheme = inherited_style.dark_color_scheme;
+    for (important, _, layer, _, _, _, declaration) in matches
+        .iter()
+        .filter(|entry| canonical_property_name(&entry.6.property) == "color-scheme")
+    {
+        if rollback_layers
+            .get("color-scheme")
+            .is_some_and(|layers| layers.contains(&(*important, *layer)))
+        {
+            continue;
+        }
+        let (value, _) = declaration_value(&declaration.value);
+        let value = substitute_vars(value, &style.custom_properties)
+            .and_then(|value| {
+                substitute_attr_functions(
+                    &value,
+                    attributes,
+                    &style.color_profiles,
+                    style.dark_color_scheme,
+                )
+            })
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "unset".to_owned());
+        apply_declaration_with_inherited(style, "color-scheme", &value, &inherited_style);
+    }
+
     let inherited_color = (style.color, style.color_opacity);
     for (important, _, layer, _, _, _, declaration) in matches
         .iter()
@@ -369,7 +395,14 @@ fn apply_matching_styles_inner(
         }
         let (value, _) = declaration_value(&declaration.value);
         let Some(value) = substitute_vars(value, &style.custom_properties)
-            .and_then(|value| substitute_attr_functions(&value, attributes, &style.color_profiles))
+            .and_then(|value| {
+                substitute_attr_functions(
+                    &value,
+                    attributes,
+                    &style.color_profiles,
+                    style.dark_color_scheme,
+                )
+            })
             .filter(|value| !value.trim().is_empty())
         else {
             apply_color_declaration(style, "unset", inherited_color);
@@ -397,7 +430,14 @@ fn apply_matching_styles_inner(
         }
         let (value, _) = declaration_value(&declaration.value);
         let value = substitute_vars(value, &style.custom_properties)
-            .and_then(|value| substitute_attr_functions(&value, attributes, &style.color_profiles))
+            .and_then(|value| {
+                substitute_attr_functions(
+                    &value,
+                    attributes,
+                    &style.color_profiles,
+                    style.dark_color_scheme,
+                )
+            })
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "unset".to_owned());
         apply_declaration_with_inherited(style, &declaration.property, &value, &inherited_style);
@@ -423,6 +463,10 @@ pub(super) use selection::{resolve_selection_style, selection_background_color};
 #[cfg(test)]
 #[path = "css_style_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "css_style_color_scheme_tests.rs"]
+mod color_scheme_tests;
 
 #[cfg(test)]
 #[path = "css_style_font_variant_tests.rs"]

@@ -227,7 +227,7 @@ pub(super) fn parse_border_color(style: &TextStyle, value: &str) -> Option<Optio
     if value.eq_ignore_ascii_case("currentcolor") {
         Some(None)
     } else {
-        ctml_css::parse_color_with_profiles(value, &style.color_profiles).map(Some)
+        style.parse_color_rgba(value).map(Some)
     }
 }
 

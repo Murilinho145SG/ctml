@@ -28,9 +28,7 @@ fn parse_shadow(style: &TextStyle, value: &str) -> Option<BoxShadow> {
                 return None;
             }
             inset = true;
-        } else if let Some(parsed) =
-            ctml_css::parse_color_with_profiles(component, &style.color_profiles)
-        {
+        } else if let Some(parsed) = style.parse_color_rgba(component) {
             if has_color {
                 return None;
             }

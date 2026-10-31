@@ -193,7 +193,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] Compose overlapping sibling opacity groups in document paint order.
   - [x] Preserve paint order when opacity groups overlap non-opacity element siblings, including nested element subtrees.
   - [x] Preserve paint order when opacity groups overlap text or generated-content nodes interleaved with element siblings.
-- [ ] `accent-color`, `color-scheme`, and color adjustment properties.
+- [ ] `accent-color` and color adjustment properties. CTML has no native form controls or OS forced-color preference source.
+- [x] `color-scheme: normal | light | dark` with ordered supported schemes and optional `only`; system color keywords resolve using the selected inherited light or dark palette. OS preference negotiation remains unsupported because CTML exposes no preferred-scheme input.
 - [ ] Blend modes and isolation.
   - [x] `background-blend-mode` for normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, and luminosity modes.
   - [x] `mix-blend-mode` for all standard blend modes on element subtrees.

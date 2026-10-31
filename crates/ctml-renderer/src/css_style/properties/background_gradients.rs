@@ -2,7 +2,6 @@ use crate::style::{
     ConicGradient, LinearGradient, RadialGradient, RadialGradientExtent, RadialGradientShape,
     TextStyle,
 };
-use ctml_css::parse_color_with_opacity_and_profiles;
 
 use super::background::split_top_level_commas;
 
@@ -367,7 +366,7 @@ fn parse_gradient_stop(style: &TextStyle, value: &str) -> Option<([u8; 4], Optio
             style.color_opacity,
         )
     } else {
-        parse_color_with_opacity_and_profiles(color_text, &style.color_profiles)?
+        style.parse_color(color_text)?
     };
     Some((
         [rgb[0], rgb[1], rgb[2], (alpha * 255.0).round() as u8],

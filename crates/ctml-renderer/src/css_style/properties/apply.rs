@@ -10,6 +10,7 @@ pub(super) fn apply_declaration(
 ) {
     let value = value.trim();
     match property {
+        "color-scheme" => color_scheme::apply_color_scheme(style, value),
         "opacity" => {
             let opacity = ctml_css::parse_math_number(value)
                 .or_else(|| ctml_css::parse_css_number(value))
