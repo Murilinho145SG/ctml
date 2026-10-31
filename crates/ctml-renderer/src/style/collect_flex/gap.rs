@@ -1,5 +1,5 @@
 use super::super::{FlexAlignment, FlexBasis, TextRun, TextStyle, append_text};
-use super::append_gap;
+use super::{append_gap, explicit_row_cross_size};
 
 #[derive(Default)]
 pub(in crate::style) struct FlexGapState {
@@ -211,6 +211,9 @@ impl FlexGapState {
             || self.last_item_basis.is_some()
             || self.last_item_min_main_size.is_some()
             || self.last_item_max_main_size.is_some()
+            || (style.flex_wrap
+                && style.align_content == Some(FlexAlignment::Stretch)
+                && explicit_row_cross_size(style).is_some())
         {
             append_gap(
                 style,

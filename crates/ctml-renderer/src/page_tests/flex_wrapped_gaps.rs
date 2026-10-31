@@ -91,6 +91,38 @@ fn align_content_space_between_distributes_remaining_cross_axis_space() {
     );
 }
 
+#[test]
+fn align_content_stretch_expands_wrapped_rows_to_fill_cross_size() {
+    let mut start = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut stretch =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("stretch"));
+    start.prepare_layout(60, 120);
+    stretch.prepare_layout(60, 120);
+
+    let start_distance = item_y(&start, "Second") - item_y(&start, "First");
+    let stretch_distance = item_y(&stretch, "Second") - item_y(&stretch, "First");
+    assert!(
+        stretch_distance > start_distance + 20.0,
+        "align-content: stretch should grow wrapped row tracks: base={start_distance}, stretched={stretch_distance}"
+    );
+}
+
+#[test]
+fn align_content_stretch_expands_a_single_line_to_cross_size() {
+    let mut start = wrapped_row_gap_page("0px", Some(("height", "100px")), false, None);
+    let mut stretch =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("stretch"));
+    start.prepare_layout(400, 120);
+    stretch.prepare_layout(400, 120);
+
+    let start_height = start.buffer.layout_runs().next().unwrap().line_height;
+    let stretch_height = stretch.buffer.layout_runs().next().unwrap().line_height;
+    assert!(
+        stretch_height > start_height + 10.0 && (stretch_height - 100.0).abs() < 1.0,
+        "align-content: stretch should expand the sole flex line: base={start_height}, stretched={stretch_height}"
+    );
+}
+
 fn wrapped_row_gap_page(
     row_gap: &str,
     cross_size: Option<(&str, &str)>,

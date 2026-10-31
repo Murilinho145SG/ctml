@@ -57,7 +57,10 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                 && character == '\u{200b}'
                 && (run.style.flex_wrap_gap_px > 0.0
                     || (run.style.flex_wrap_cross_size_px.is_some()
-                        && run.style.align_content == Some(FlexAlignment::SpaceBetween)))
+                        && matches!(
+                            run.style.align_content,
+                            Some(FlexAlignment::SpaceBetween | FlexAlignment::Stretch)
+                        )))
             {
                 markers.push(WrapMarker {
                     run_index,
@@ -75,6 +78,8 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     }
 
     let mut breaks_by_container = HashMap::<(usize, Option<usize>), Vec<WrappedBreak>>::new();
+    let mut row_markers_by_container =
+        HashMap::<(usize, Option<usize>), BTreeMap<usize, (usize, f32)>>::new();
     for marker in &markers {
         let Some(glyphs) = glyphs_by_paragraph.get(&marker.paragraph) else {
             continue;
@@ -83,6 +88,19 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             .iter()
             .find(|(start, end, _, _)| *start <= marker.byte_offset && marker.byte_offset < *end)
             .map(|(_, _, line, _)| *line);
+        if marker.alignment == Some(FlexAlignment::Stretch)
+            && marker.cross_size.is_some()
+            && let Some(line) = marker_line
+            && let Some((_, _, _, line_height)) = glyphs.iter().find(|(start, end, _, _)| {
+                *start <= marker.byte_offset && marker.byte_offset < *end
+            })
+        {
+            row_markers_by_container
+                .entry((marker.paragraph, marker.container_id))
+                .or_default()
+                .entry(line)
+                .or_insert((marker.run_index, *line_height));
+        }
         let previous = glyphs
             .iter()
             .filter(|(_, end, _, _)| *end <= marker.byte_offset)
@@ -107,6 +125,31 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                 previous_line_height: previous.3,
                 gap: marker.gap,
             });
+    }
+
+    let mut stretch_extra_by_container = HashMap::new();
+    for (key @ (paragraph, _), rows) in &row_markers_by_container {
+        let Some(marker) = markers
+            .iter()
+            .find(|marker| (marker.paragraph, marker.container_id) == *key)
+        else {
+            continue;
+        };
+        let Some(cross_size) = marker.cross_size else {
+            continue;
+        };
+        let Some(line_heights) = line_heights_by_paragraph.get(paragraph) else {
+            continue;
+        };
+        let used_size = line_heights.values().sum::<f32>();
+        let base_gaps = breaks_by_container
+            .get(key)
+            .into_iter()
+            .flatten()
+            .map(|wrapped| wrapped.gap)
+            .sum::<f32>();
+        let free_space = (cross_size - used_size - base_gaps).max(0.0);
+        stretch_extra_by_container.insert(*key, free_space / rows.len().max(1) as f32);
     }
 
     let mut extra_by_container = HashMap::new();
@@ -141,6 +184,10 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     let mut applied_lines = HashSet::new();
     let mut changed = false;
     for ((paragraph, container_id), wrapped_breaks) in breaks_by_container {
+        let stretch_extra = stretch_extra_by_container
+            .get(&(paragraph, container_id))
+            .copied()
+            .unwrap_or_default();
         let extra = extra_by_container
             .get(&(paragraph, container_id))
             .copied()
@@ -150,7 +197,25 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                 continue;
             }
             if let Some(run) = page.runs.get_mut(wrapped.run_index) {
-                run.style.line_height = wrapped.previous_line_height + wrapped.gap + extra;
+                run.style.line_height =
+                    wrapped.previous_line_height + wrapped.gap + extra + stretch_extra;
+                run.style.line_height_normal = false;
+                run.style.flex_wrap_gap_applied = true;
+                changed = true;
+            }
+        }
+    }
+    for (key @ (paragraph, _), rows) in row_markers_by_container {
+        let stretch_extra = stretch_extra_by_container
+            .get(&key)
+            .copied()
+            .unwrap_or_default();
+        for (line, (run_index, line_height)) in rows {
+            if !applied_lines.insert((paragraph, line)) {
+                continue;
+            }
+            if let Some(run) = page.runs.get_mut(run_index) {
+                run.style.line_height = line_height + stretch_extra;
                 run.style.line_height_normal = false;
                 run.style.flex_wrap_gap_applied = true;
                 changed = true;
