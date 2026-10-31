@@ -95,6 +95,7 @@ mod border;
 mod border_cascade;
 mod border_image;
 mod border_radius;
+mod box_alignment;
 mod box_decoration;
 mod box_shadow;
 mod cascade_values;

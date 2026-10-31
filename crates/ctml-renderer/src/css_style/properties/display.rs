@@ -208,6 +208,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "align-content" => apply_align_content(style, value),
         "align-items" => apply_align_items(style, value),
         "align-self" => apply_align_self(style, value),
+        "place-content" => super::box_alignment::apply_place_content(style, value),
         "order" => apply_flex_order(style, value),
         "flex-grow" => apply_flex_grow(style, value),
         "flex-shrink" => apply_flex_shrink(style, value),
@@ -228,6 +229,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "align-content"
             | "align-items"
             | "align-self"
+            | "place-content"
             | "order"
             | "flex-grow"
             | "flex-shrink"
