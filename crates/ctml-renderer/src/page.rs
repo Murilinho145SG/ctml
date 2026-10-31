@@ -94,6 +94,8 @@ pub(crate) struct PageRasterizer {
     background_color_transitions: HashMap<usize, animations::ColorTransition>,
     element_outline_colors: HashMap<usize, [u8; 4]>,
     outline_color_transitions: HashMap<usize, animations::ColorTransition>,
+    element_border_colors: HashMap<usize, [[u8; 4]; 4]>,
+    border_color_transitions: HashMap<usize, [animations::ColorTransition; 4]>,
     element_visibility: HashMap<usize, bool>,
     visibility_transitions: HashMap<usize, animations::VisibilityTransition>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
@@ -223,6 +225,11 @@ impl PageRasterizer {
                 .map(|(node_id, style)| (*node_id, style.outline_color_value))
                 .collect(),
             outline_color_transitions: HashMap::new(),
+            element_border_colors: transition_styles
+                .iter()
+                .map(|(node_id, style)| (*node_id, style.border_color_value))
+                .collect(),
+            border_color_transitions: HashMap::new(),
             element_visibility: transition_styles
                 .iter()
                 .map(|(node_id, style)| (*node_id, style.visibility_hidden))
@@ -610,6 +617,7 @@ impl PageRasterizer {
         let previous_element_colors = self.element_colors.clone();
         let previous_element_background_colors = self.element_background_colors.clone();
         let previous_element_outline_colors = self.element_outline_colors.clone();
+        let previous_element_border_colors = self.element_border_colors.clone();
         let previous_element_visibility = self.element_visibility.clone();
         let (
             compiled_runs,
@@ -659,6 +667,10 @@ impl PageRasterizer {
             .iter()
             .map(|(node_id, style)| (*node_id, style.outline_color_value))
             .collect();
+        self.element_border_colors = transition_styles
+            .iter()
+            .map(|(node_id, style)| (*node_id, style.border_color_value))
+            .collect();
         self.element_visibility = transition_styles
             .iter()
             .map(|(node_id, style)| (*node_id, style.visibility_hidden))
@@ -675,6 +687,7 @@ impl PageRasterizer {
             &previous_element_colors,
             &previous_element_background_colors,
             &previous_element_outline_colors,
+            &previous_element_border_colors,
             &previous_element_visibility,
         );
         self.root_style = root_style;

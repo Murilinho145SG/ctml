@@ -187,6 +187,16 @@ pub(super) fn compile_runs_with_opacity_map(
                     easing: root_style.transition_outline_color_easing,
                 }),
             outline_color_value: root_style.outline_color.unwrap_or(root_style.color),
+            border_color: root_style
+                .transition_border_color
+                .then_some(TransitionTiming {
+                    duration_ms: root_style.transition_border_color_duration_ms,
+                    delay_ms: root_style.transition_border_color_delay_ms,
+                    easing: root_style.transition_border_color_easing,
+                }),
+            border_color_value: std::array::from_fn(|side| {
+                root_style.border_color[side].unwrap_or(root_style.color)
+            }),
             visibility: root_style.transition_visibility,
             visibility_hidden: root_style.visibility_hidden,
         },

@@ -307,6 +307,49 @@ fn outline_color_transitions_interpolate_for_layout_boxes() {
 }
 
 #[test]
+fn border_color_transitions_interpolate_for_layout_boxes() {
+    let nodes = [crate::UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Border".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "div",
+            &[
+                ("display", "block"),
+                ("width", "80px"),
+                ("border", "4px solid blue"),
+                ("transition", "border-color 1000ms linear"),
+            ],
+        ),
+        rule("div:hover", &[("border-color", "red")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.border_color_transitions.get(&1).unwrap();
+    let starts_at = transition[0].starts_at;
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    let colors = page.runs[0].style.layout_sizes[0].border_color;
+    assert_eq!(colors, [Some([128, 0, 128, 255]); 4]);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(
+        page.runs[0].style.layout_sizes[0].border_color,
+        [Some([255, 0, 0, 255]); 4]
+    );
+}
+
+#[test]
 fn transition_none_cancels_an_in_progress_background_color_transition() {
     let nodes = [crate::UiNode::Element {
         tag: "div".to_owned(),

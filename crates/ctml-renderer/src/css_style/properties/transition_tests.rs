@@ -50,6 +50,23 @@ fn transition_allows_outline_color_with_its_own_list_timing() {
 }
 
 #[test]
+fn transition_allows_border_color_with_its_own_list_timing() {
+    let mut style = TextStyle::default();
+    apply_transition(
+        &mut style,
+        "transition",
+        "color 100ms linear, border-color 300ms ease-in",
+    );
+
+    assert!(style.transition_border_color);
+    assert_eq!(style.transition_border_color_duration_ms, 300.0);
+    assert_eq!(
+        style.transition_border_color_easing,
+        TransitionEasing::EaseIn
+    );
+}
+
+#[test]
 fn invalid_transition_list_does_not_replace_the_previous_value() {
     let mut style = TextStyle::default();
     apply_transition(&mut style, "transition", "opacity 200ms ease-in");

@@ -6,6 +6,7 @@ use crate::style::{
 
 use super::PageRasterizer;
 
+mod border_color;
 mod outline_color;
 mod timing;
 mod visibility;
@@ -35,6 +36,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         && page.color_transitions.is_empty()
         && page.background_color_transitions.is_empty()
         && page.outline_color_transitions.is_empty()
+        && page.border_color_transitions.is_empty()
         && page.visibility_transitions.is_empty()
     {
         return None;
@@ -97,6 +99,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         page.background_color_transitions.remove(&node_id);
     }
     let outline_active = outline_color::advance(page, now);
+    let border_active = border_color::advance(page, now);
     let visibility_active = visibility::advance(page, now);
     Some(
         root_active
@@ -104,6 +107,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
             || !page.color_transitions.is_empty()
             || !page.background_color_transitions.is_empty()
             || outline_active
+            || border_active
             || visibility_active,
     )
 }
@@ -117,6 +121,7 @@ pub(super) fn begin_transitions(
     previous_element_colors: &HashMap<usize, [u8; 4]>,
     previous_element_background_colors: &HashMap<usize, [u8; 4]>,
     previous_element_outline_colors: &HashMap<usize, [u8; 4]>,
+    previous_element_border_colors: &HashMap<usize, [[u8; 4]; 4]>,
     previous_element_visibility: &HashMap<usize, bool>,
 ) {
     page.root_opacity = root_style.opacity;
@@ -136,6 +141,7 @@ pub(super) fn begin_transitions(
     page.color_transitions.clear();
     page.background_color_transitions.clear();
     page.outline_color_transitions.clear();
+    page.border_color_transitions.clear();
     page.visibility_transitions.clear();
     let now = Instant::now();
     for (node_id, settings) in transition_styles {
@@ -167,6 +173,16 @@ pub(super) fn begin_transitions(
                     settings,
                     timing,
                     previous_element_outline_colors,
+                    now,
+                );
+            }
+            if let Some(timing) = settings.border_color {
+                border_color::begin_transition(
+                    page,
+                    *node_id,
+                    settings,
+                    timing,
+                    previous_element_border_colors,
                     now,
                 );
             }
@@ -229,6 +245,16 @@ pub(super) fn begin_transitions(
                 settings,
                 timing,
                 previous_element_outline_colors,
+                now,
+            );
+        }
+        if let Some(timing) = settings.border_color {
+            border_color::begin_transition(
+                page,
+                *node_id,
+                settings,
+                timing,
+                previous_element_border_colors,
                 now,
             );
         }

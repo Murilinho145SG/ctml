@@ -183,6 +183,16 @@ pub(super) fn collect_runs(
                             },
                         ),
                         outline_color_value: style.outline_color.unwrap_or(style.color),
+                        border_color: style.transition_border_color.then_some(
+                            super::TransitionTiming {
+                                duration_ms: style.transition_border_color_duration_ms,
+                                delay_ms: style.transition_border_color_delay_ms,
+                                easing: style.transition_border_color_easing,
+                            },
+                        ),
+                        border_color_value: std::array::from_fn(|side| {
+                            style.border_color[side].unwrap_or(style.color)
+                        }),
                         visibility: style.transition_visibility,
                         visibility_hidden: style.visibility_hidden,
                     },
