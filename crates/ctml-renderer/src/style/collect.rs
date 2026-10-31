@@ -7,8 +7,8 @@ use std::collections::{HashMap, HashSet};
 
 use super::{
     LayoutHeight, TextRun, TextStyle, UserSelect, append_text, collect_counters, collect_display,
-    collect_layout, collect_spacers, list_marker::format_marker, pseudo, push_line_break,
-    selector_sibling_contexts,
+    collect_flex, collect_layout, collect_spacers, list_marker::format_marker, pseudo,
+    push_line_break, selector_sibling_contexts,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -46,10 +46,24 @@ pub(super) fn collect_runs(
         focused_path,
         keyboard_focus,
     );
-    let mut element_index = 0;
-    let mut list_item_index = 0;
+    let ordered_nodes = collect_flex::order_nodes(
+        nodes,
+        &siblings,
+        inherited,
+        stylesheet,
+        path,
+        path_attributes,
+        path_siblings,
+        path_positions,
+        selector_tree,
+    );
+    let (mut element_index, mut list_item_index) = (0, 0);
     let mut run_in_before_block = false;
-    for node in nodes {
+    for (node_index, source_element_index) in ordered_nodes {
+        let node = &nodes[node_index];
+        if let Some(source_element_index) = source_element_index {
+            element_index = source_element_index;
+        }
         match node {
             UiNode::Text(text) => append_text(
                 text,
@@ -156,7 +170,6 @@ pub(super) fn collect_runs(
                 }
                 style.opacity *= inherited.opacity;
                 if style.display_none {
-                    element_index += 1;
                     continue;
                 }
                 let scoped_counters = style.style_contained.then(|| counters.clone());
@@ -476,7 +489,6 @@ pub(super) fn collect_runs(
                 if let Some(scoped_quote_depth) = scoped_quote_depth {
                     *quote_depth = scoped_quote_depth;
                 }
-                element_index += 1;
                 if block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;

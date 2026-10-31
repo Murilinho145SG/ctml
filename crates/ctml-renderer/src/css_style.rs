@@ -465,6 +465,10 @@ pub(super) use selection::{resolve_selection_style, selection_background_color};
 mod tests;
 
 #[cfg(test)]
+#[path = "css_style_flex_tests.rs"]
+mod flex_tests;
+
+#[cfg(test)]
 #[path = "css_style_color_scheme_tests.rs"]
 mod color_scheme_tests;
 

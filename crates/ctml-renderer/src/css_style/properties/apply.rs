@@ -40,7 +40,7 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "contain" => apply_contain(style, value),
-        "flex-direction" => apply_flex_direction(style, value),
+        "flex-direction" | "order" => display::apply_flex_property(style, property, value),
         "contain-intrinsic-size" => apply_contain_intrinsic_size(style, value),
         "contain-intrinsic-width" => apply_contain_intrinsic_width(style, value),
         "contain-intrinsic-height" => apply_contain_intrinsic_height(style, value),

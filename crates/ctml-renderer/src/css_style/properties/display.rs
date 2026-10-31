@@ -8,6 +8,26 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_order(style: &mut TextStyle, value: &str) {
+    if let Some(order) = ctml_css::parse_css_integer(value) {
+        style.flex_order = order.parse().unwrap_or_else(|_| {
+            if order.starts_with('-') {
+                i32::MIN
+            } else {
+                i32::MAX
+            }
+        });
+    }
+}
+
+pub(super) fn apply_flex_property(style: &mut TextStyle, property: &str, value: &str) {
+    match property {
+        "flex-direction" => apply_flex_direction(style, value),
+        "order" => apply_flex_order(style, value),
+        _ => {}
+    }
+}
+
 pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
     let value = value
         .split_ascii_whitespace()
