@@ -119,6 +119,8 @@ pub(super) fn begin_transitions(
     }
 
     page.opacity_transitions.clear();
+    page.color_transitions.clear();
+    page.background_color_transitions.clear();
     let now = Instant::now();
     for (node_id, settings) in transition_styles {
         let Some(target) = page.opacity_groups.get(&node_id).copied() else {

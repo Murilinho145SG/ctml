@@ -256,3 +256,34 @@ fn background_color_transitions_interpolate_for_text_elements() {
     );
     assert_eq!(page.runs[0].style.background_color, Some([255, 0, 0, 255]));
 }
+
+#[test]
+fn transition_none_cancels_an_in_progress_background_color_transition() {
+    let nodes = [crate::UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Background".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "div",
+            &[
+                ("background-color", "blue"),
+                ("transition", "background-color 1000ms linear"),
+            ],
+        ),
+        rule(
+            "div:hover",
+            &[("background-color", "red"), ("transition", "none")],
+        ),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    assert!(page.background_color_transitions.is_empty());
+    assert_eq!(page.runs[0].style.background_color, Some([255, 0, 0, 255]));
+    assert_eq!(page.advance_animations(std::time::Instant::now()), None);
+}
