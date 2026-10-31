@@ -28,6 +28,7 @@ struct FlexGapMarker {
     line_height: f32,
     font_relative_units: ctml_css::FontRelativeUnits,
     viewport_size: ctml_css::ViewportSize,
+    grid_item: bool,
     justify: bool,
 }
 
@@ -103,6 +104,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                         line_height: run.style.line_height,
                         font_relative_units: run.style.font_relative_units,
                         viewport_size: run.style.viewport_size,
+                        grid_item: run.style.display_grid,
                         justify: run.style.flex_justify_distributed,
                     });
                 }
@@ -210,6 +212,16 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     );
                     fit_content_size(min_content, max_content, *limit)
                 }
+                Some(FlexBasis::GridMinMax { min, max }) => {
+                    let max_content = item_intrinsic_size(
+                        marker.position,
+                        group,
+                        glyphs_by_paragraph.get(&line.line_i),
+                        text_by_paragraph.get(&line.line_i),
+                        false,
+                    );
+                    max_content.max(*min).min(*max)
+                }
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
@@ -228,10 +240,11 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 group.basis_size,
                 marker,
             );
-            if marker
-                .min_main_size
-                .as_deref()
-                .is_none_or(|value| value.eq_ignore_ascii_case("auto"))
+            if !marker.grid_item
+                && marker
+                    .min_main_size
+                    .as_deref()
+                    .is_none_or(|value| value.eq_ignore_ascii_case("auto"))
             {
                 let min_content = item_intrinsic_size(
                     marker.position,

@@ -115,6 +115,10 @@ pub(crate) enum FlexBasis {
         percentage_space: f32,
     },
     GridFitContent(f32),
+    GridMinMax {
+        min: f32,
+        max: f32,
+    },
     Calculation(String),
 }
 
@@ -127,6 +131,7 @@ pub(crate) enum GridTrack {
     MinContent,
     MaxContent,
     FitContent(f32),
+    MinMax { min: f32, max: f32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

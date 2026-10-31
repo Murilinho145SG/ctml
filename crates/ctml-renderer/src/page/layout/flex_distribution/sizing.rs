@@ -278,6 +278,7 @@ mod tests {
             line_height: 20.0,
             font_relative_units: ctml_css::FontRelativeUnits::default(),
             viewport_size: ctml_css::ViewportSize::default(),
+            grid_item: false,
             justify: false,
         }
     }

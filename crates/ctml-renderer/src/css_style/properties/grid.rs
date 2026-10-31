@@ -19,23 +19,57 @@ pub(super) fn inherit_grid_property(style: &mut TextStyle, inherited: &TextStyle
 fn parse_grid_template_columns(value: &str, style: &TextStyle) -> Option<Vec<GridTrack>> {
     let lowercase = value.trim().to_ascii_lowercase();
     let value = lowercase.as_str();
-    let tracks = if let Some(repeat) = value
-        .strip_prefix("repeat(")
-        .and_then(|value| value.strip_suffix(')'))
-    {
-        let (count, track) = repeat.split_once(',')?;
-        let count = count.trim().parse::<usize>().ok()?;
-        let track = parse_track(track.trim(), style)?;
-        (count > 0 && count <= 64).then(|| vec![track; count])?
-    } else if value.is_empty() || value == "none" {
+    if value.is_empty() || value == "none" {
         return Some(Vec::new());
-    } else {
-        value
-            .split_ascii_whitespace()
-            .map(|track| parse_track(track, style))
-            .collect::<Option<Vec<_>>>()?
-    };
+    }
+    let mut tracks = Vec::new();
+    for token in split_grid_tracks(value)? {
+        if let Some(repeat) = token
+            .strip_prefix("repeat(")
+            .and_then(|value| value.strip_suffix(')'))
+        {
+            let (count, track) = repeat.split_once(',')?;
+            let count = count.trim().parse::<usize>().ok()?;
+            let track = parse_track(track.trim(), style)?;
+            if count == 0 || tracks.len().saturating_add(count) > 64 {
+                return None;
+            }
+            tracks.extend(std::iter::repeat_n(track, count));
+        } else {
+            tracks.push(parse_track(token, style)?);
+        }
+        if tracks.len() > 64 {
+            return None;
+        }
+    }
     Some(tracks)
+}
+
+fn split_grid_tracks(value: &str) -> Option<Vec<&str>> {
+    let mut tracks = Vec::new();
+    let mut depth = 0usize;
+    let mut start = None;
+    for (index, character) in value.char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => depth = depth.checked_sub(1)?,
+            whitespace if whitespace.is_ascii_whitespace() && depth == 0 => {
+                if let Some(start) = start.take() {
+                    tracks.push(&value[start..index]);
+                }
+                continue;
+            }
+            _ => {}
+        }
+        start.get_or_insert(index);
+    }
+    if depth != 0 {
+        return None;
+    }
+    if let Some(start) = start {
+        tracks.push(&value[start..]);
+    }
+    (!tracks.is_empty()).then_some(tracks)
 }
 
 fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
@@ -44,6 +78,22 @@ fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
         "min-content" => return Some(GridTrack::MinContent),
         "max-content" => return Some(GridTrack::MaxContent),
         _ => {}
+    }
+    if let Some(bounds) = value
+        .strip_prefix("minmax(")
+        .and_then(|value| value.strip_suffix(')'))
+    {
+        let (min, max) = bounds.split_once(',')?;
+        let GridTrack::Length(min) = parse_track(min.trim(), style)? else {
+            return None;
+        };
+        let GridTrack::Length(max) = parse_track(max.trim(), style)? else {
+            return None;
+        };
+        return Some(GridTrack::MinMax {
+            min,
+            max: max.max(min),
+        });
     }
     if let Some(limit) = value
         .strip_prefix("fit-content(")
@@ -117,14 +167,21 @@ mod tests {
             ]
         );
 
-        apply_grid_property(&mut style, "auto min-content max-content fit-content(55px)");
+        apply_grid_property(
+            &mut style,
+            "auto min-content max-content fit-content(55px) minmax(60px, 120px)",
+        );
         assert_eq!(
             style.grid_template_columns,
             [
                 GridTrack::Auto,
                 GridTrack::MinContent,
                 GridTrack::MaxContent,
-                GridTrack::FitContent(55.0)
+                GridTrack::FitContent(55.0),
+                GridTrack::MinMax {
+                    min: 60.0,
+                    max: 120.0
+                }
             ]
         );
     }

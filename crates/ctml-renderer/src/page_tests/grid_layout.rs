@@ -132,6 +132,34 @@ fn auto_tracks_stretch_to_fill_the_definite_block_grid_width() {
     );
 }
 
+#[test]
+fn fixed_minmax_tracks_respect_the_declared_floor_and_cap() {
+    let mut floor = grid_page(
+        None,
+        "minmax(60px, 120px) 1fr",
+        "0px",
+        "0px",
+        &["Alpha", "Gamma"],
+    );
+    let mut cap = grid_page(
+        None,
+        "minmax(0px, 20px) 1fr",
+        "0px",
+        "0px",
+        &["Alpha", "Gamma"],
+    );
+    floor.prepare_layout(500, 160);
+    cap.prepare_layout(500, 160);
+
+    let floor_start = item_position(&floor, "Gamma").0;
+    let cap_start = item_position(&cap, "Gamma").0;
+    assert!(
+        floor_start >= 60.0,
+        "minmax floor was not applied: {floor_start}"
+    );
+    assert!(cap_start <= 21.0, "minmax cap was not applied: {cap_start}");
+}
+
 fn grid_page(
     width: Option<&str>,
     columns: &str,
