@@ -298,19 +298,20 @@ fn resolve_wrap_row_gap(style: &TextStyle) -> f32 {
 }
 
 fn explicit_row_cross_size(style: &TextStyle) -> Option<f32> {
-    if style.writing_mode != super::WritingMode::HorizontalTb {
-        return None;
-    }
-    let height_order = style.size_property_orders.get("height");
+    let (physical_size, physical_property) = match style.writing_mode {
+        super::WritingMode::HorizontalTb => (&style.height, "height"),
+        super::WritingMode::VerticalRl | super::WritingMode::VerticalLr => (&style.width, "width"),
+    };
+    let physical_order = style.size_property_orders.get(physical_property);
     let block_size_order = style.size_property_orders.get("block-size");
-    let value = match (block_size_order, height_order) {
-        (Some(block_order), Some(height_order)) if block_order > height_order => {
+    let value = match (block_size_order, physical_order) {
+        (Some(block_order), Some(physical_order)) if block_order > physical_order => {
             style.block_size.as_deref()
         }
-        (Some(_), Some(_)) => style.height.as_deref(),
+        (Some(_), Some(_)) => physical_size.as_deref(),
         (Some(_), None) => style.block_size.as_deref(),
-        (None, Some(_)) => style.height.as_deref(),
-        (None, None) => style.block_size.as_deref().or(style.height.as_deref()),
+        (None, Some(_)) => physical_size.as_deref(),
+        (None, None) => style.block_size.as_deref().or(physical_size.as_deref()),
     }?;
     let resolve = |component: &str| {
         if ctml_css::parse_css_percentage(component).is_some() {

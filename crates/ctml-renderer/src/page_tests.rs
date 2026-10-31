@@ -83,6 +83,8 @@ mod first_line_transform;
 mod flex_alignment;
 #[path = "page_tests/flex_display.rs"]
 mod flex_display;
+#[path = "page_tests/flex_wrapped_gaps.rs"]
+mod flex_wrapped_gaps;
 #[path = "page_tests/font_relative_units.rs"]
 mod font_relative_units;
 #[path = "page_tests/hyphens.rs"]

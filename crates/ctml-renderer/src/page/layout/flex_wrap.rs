@@ -30,7 +30,6 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             if run.style.flex_wrap_break
                 && !run.style.flex_wrap_gap_applied
                 && run.style.flex_wrap_gap_px > 0.0
-                && run.style.writing_mode == crate::style::WritingMode::HorizontalTb
                 && character == '\u{200b}'
             {
                 markers.push((run_index, paragraph, byte_offset, character.len_utf8()));
