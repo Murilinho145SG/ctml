@@ -12,6 +12,7 @@ mod collect_counters;
 mod collect_display;
 mod collect_flex;
 mod collect_flex_order;
+mod collect_grid;
 mod collect_helpers;
 mod collect_layout;
 mod collect_spacers;
@@ -28,7 +29,7 @@ pub(super) use text_style::{
     BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset,
     BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
     BoxShadow, ConicGradient, Direction, ElementTransitionStyle, FlexAlignment, FlexBasis,
-    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
+    FontVariantCaps, FontVariantPosition, GridTrack, Hyphens, LayoutHeight, LayoutSize, LineBreak,
     LinearGradient, Overflow, OverflowWrap, RadialGradient, RadialGradientExtent,
     RadialGradientShape, StepPosition, TextDecorationSkipInk, TextDecorationStyle,
     TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,

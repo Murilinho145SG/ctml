@@ -212,6 +212,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "flex-grow" => apply_flex_grow(style, value),
         "flex-shrink" => apply_flex_shrink(style, value),
         "flex-basis" => apply_flex_basis(style, value),
+        "grid-template-columns" => super::grid::apply_grid_property(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
 }
@@ -231,6 +232,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "flex-grow"
             | "flex-shrink"
             | "flex-basis"
+            | "grid-template-columns"
             | "gap"
             | "row-gap"
             | "column-gap"
@@ -249,6 +251,16 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         style.display_list_item = Some(false);
         style.display_run_in = true;
         style.display_flex = false;
+        style.display_grid = false;
+        return;
+    }
+    if let Some(is_block) = parse_grid_display(&value) {
+        style.display_none = false;
+        style.display_block = Some(is_block);
+        style.display_list_item = Some(false);
+        style.display_run_in = false;
+        style.display_flex = false;
+        style.display_grid = true;
         return;
     }
     if let Some(is_block) = parse_flex_display(&value) {
@@ -257,6 +269,7 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         style.display_list_item = Some(false);
         style.display_run_in = false;
         style.display_flex = true;
+        style.display_grid = false;
         return;
     }
     if let Some(is_block) = parse_list_item(&value) {
@@ -265,6 +278,7 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         style.display_list_item = Some(true);
         style.display_run_in = false;
         style.display_flex = false;
+        style.display_grid = false;
         return;
     }
     match parse_flow_display(&value) {
@@ -274,8 +288,17 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
             style.display_list_item = Some(false);
             style.display_run_in = false;
             style.display_flex = false;
+            style.display_grid = false;
         }
         None => {}
+    }
+}
+
+fn parse_grid_display(tokens: &[&str]) -> Option<bool> {
+    match tokens {
+        ["grid"] | ["block", "grid"] | ["grid", "block"] => Some(true),
+        ["inline-grid"] | ["inline", "grid"] | ["grid", "inline"] => Some(false),
+        _ => None,
     }
 }
 
@@ -333,6 +356,7 @@ pub(super) fn inherit_display(style: &mut TextStyle, inherited: &TextStyle) {
     style.display_list_item = inherited.display_list_item;
     style.display_run_in = inherited.display_run_in;
     style.display_flex = inherited.display_flex;
+    style.display_grid = inherited.display_grid;
 }
 
 pub(super) fn reset_display(style: &mut TextStyle) {
@@ -341,6 +365,7 @@ pub(super) fn reset_display(style: &mut TextStyle) {
     style.display_list_item = Some(false);
     style.display_run_in = false;
     style.display_flex = false;
+    style.display_grid = false;
 }
 
 pub(super) fn revert_display(style: &mut TextStyle) {
@@ -349,11 +374,12 @@ pub(super) fn revert_display(style: &mut TextStyle) {
     style.display_list_item = None;
     style.display_run_in = false;
     style.display_flex = false;
+    style.display_grid = false;
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_flex_display, parse_flow_display, parse_list_item};
+    use super::{parse_flex_display, parse_flow_display, parse_grid_display, parse_list_item};
 
     #[test]
     fn parses_flex_display_outer_forms_in_any_order() {
@@ -373,6 +399,15 @@ mod tests {
         }
         assert_eq!(parse_flex_display(&["grid"]), None);
         assert_eq!(parse_flex_display(&["inline", "block", "flex"]), None);
+    }
+
+    #[test]
+    fn parses_grid_display_outer_forms_in_any_order() {
+        assert_eq!(parse_grid_display(&["grid"]), Some(true));
+        assert_eq!(parse_grid_display(&["block", "grid"]), Some(true));
+        assert_eq!(parse_grid_display(&["grid", "inline"]), Some(false));
+        assert_eq!(parse_grid_display(&["inline-grid"]), Some(false));
+        assert_eq!(parse_grid_display(&["grid", "flex"]), None);
     }
 
     #[test]

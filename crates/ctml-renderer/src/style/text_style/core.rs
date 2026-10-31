@@ -113,6 +113,12 @@ pub(crate) enum FlexBasis {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum GridTrack {
+    Length(f32),
+    Fraction(f32),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct TransitionTiming {
     pub(crate) duration_ms: f32,
     pub(crate) delay_ms: f32,
@@ -222,6 +228,7 @@ pub(crate) struct TextStyle {
     pub(crate) display_list_item: Option<bool>,
     pub(crate) display_run_in: bool,
     pub(crate) display_flex: bool,
+    pub(crate) display_grid: bool,
     pub(crate) flex_direction_column: bool,
     pub(crate) flex_direction_reverse: bool,
     pub(crate) flex_wrap: bool,
@@ -247,6 +254,7 @@ pub(crate) struct TextStyle {
     pub(crate) flex_shrink_weight: f32,
     pub(crate) flex_justify_distributed: bool,
     pub(crate) flex_wrap_break: bool,
+    pub(crate) grid_row_break: bool,
     pub(crate) flex_wrap_leading_spacer: bool,
     pub(crate) flex_wrap_gap_px: f32,
     pub(crate) flex_wrap_gap_applied: bool,
@@ -257,6 +265,7 @@ pub(crate) struct TextStyle {
     pub(crate) column_gap_order: usize,
     pub(crate) flex_items_row: bool,
     pub(crate) flex_items_column: bool,
+    pub(crate) grid_template_columns: Vec<GridTrack>,
     pub(crate) list_style_type: Option<String>,
     pub(crate) width: Option<String>,
     pub(crate) min_width: Option<String>,

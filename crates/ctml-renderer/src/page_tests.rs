@@ -89,6 +89,8 @@ mod flex_wrap_reverse;
 mod flex_wrapped_gaps;
 #[path = "page_tests/font_relative_units.rs"]
 mod font_relative_units;
+#[path = "page_tests/grid_layout.rs"]
+mod grid_layout;
 #[path = "page_tests/hyphens.rs"]
 mod hyphens;
 #[path = "page_tests/inline_boxes.rs"]

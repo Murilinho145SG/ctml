@@ -95,10 +95,13 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.display_list_item = None;
     style.display_run_in = false;
     style.display_flex = false;
+    style.display_grid = false;
+    style.grid_template_columns.clear();
     style.flex_direction_column = false;
     style.flex_direction_reverse = false;
     style.flex_wrap = false;
     style.flex_wrap_reverse = false;
+    style.grid_row_break = false;
     style.flex_item_no_wrap = false;
     style.flex_order = 0;
     style.flex_grow = 0.0;

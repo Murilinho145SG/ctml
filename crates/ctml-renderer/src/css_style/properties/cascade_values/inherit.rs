@@ -177,6 +177,9 @@ pub(in crate::css_style::properties) fn inherit_property(
         "flex-grow" => style.flex_grow = inherited.flex_grow,
         "flex-shrink" => style.flex_shrink = inherited.flex_shrink,
         "flex-basis" => style.flex_basis = inherited.flex_basis.clone(),
+        "grid-template-columns" => {
+            super::super::grid::inherit_grid_property(style, inherited);
+        }
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::inherit_flex_gap(style, inherited, property);
         }

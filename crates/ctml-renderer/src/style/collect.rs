@@ -54,24 +54,83 @@ pub(super) fn collect_runs(
         path_positions,
         selector_tree,
     );
+    let mut grid_item_positions = HashMap::new();
+    if inherited.display_grid {
+        for (_, _, item_id) in &ordered_nodes {
+            let next_position = grid_item_positions.len();
+            grid_item_positions.entry(*item_id).or_insert(next_position);
+        }
+    }
     let (mut element_index, mut list_item_index) = (0, 0);
     let mut flex_gap_state = collect_flex::FlexGapState::default();
+    let mut previous_grid_item = None;
     let mut run_in_before_block = false;
     for (node_index, source_element_index, flex_item_id) in ordered_nodes {
+        let grid_item_position = grid_item_positions.get(&flex_item_id).copied();
+        if inherited.display_grid
+            && let Some(position) = grid_item_position
+            && previous_grid_item != Some(flex_item_id)
+        {
+            if position > 0 && position % super::collect_grid::column_count(inherited) == 0 {
+                flex_gap_state.finish(
+                    inherited,
+                    element_path,
+                    output,
+                    last_was_space,
+                    capitalize_next,
+                );
+                let row_gap = super::collect_grid::row_gap(inherited);
+                if row_gap > 0.0
+                    && let Some(spacer) = output.last_mut()
+                    && spacer.text.ends_with('\u{200b}')
+                {
+                    spacer.style.grid_row_break = true;
+                }
+                push_line_break(output, inherited, element_path, last_was_space);
+                flex_gap_state = collect_flex::FlexGapState::default();
+            }
+            previous_grid_item = Some(flex_item_id);
+        }
         let node = &nodes[node_index];
         if let Some(source_element_index) = source_element_index {
             element_index = source_element_index;
         }
         match node {
-            UiNode::Text(text) => flex_gap_state.append_text(
-                inherited,
-                flex_item_id,
-                text,
-                element_path,
-                output,
-                last_was_space,
-                capitalize_next,
-            ),
+            UiNode::Text(text) => {
+                if let Some(position) = grid_item_position {
+                    flex_gap_state.before_element(
+                        inherited,
+                        flex_item_id,
+                        0.0,
+                        0.0,
+                        Some(super::collect_grid::item_basis(inherited, position)),
+                        None,
+                        None,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                    append_text(
+                        text,
+                        inherited,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                } else {
+                    flex_gap_state.append_text(
+                        inherited,
+                        flex_item_id,
+                        text,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                }
+            }
             UiNode::Element {
                 tag,
                 class,
@@ -204,12 +263,23 @@ pub(super) fn collect_runs(
                 }
                 let (flex_min_main_size, flex_max_main_size) =
                     collect_flex::effective_flex_main_constraints(&style, inherited.writing_mode);
+                let grid_basis = grid_item_position
+                    .filter(|_| inherited.display_grid)
+                    .map(|position| super::collect_grid::item_basis(inherited, position));
                 flex_gap_state.before_element(
                     inherited,
                     flex_item_id,
-                    style.flex_grow,
-                    style.flex_shrink,
-                    collect_flex::effective_flex_basis(&style),
+                    if inherited.display_grid {
+                        0.0
+                    } else {
+                        style.flex_grow
+                    },
+                    if inherited.display_grid {
+                        0.0
+                    } else {
+                        style.flex_shrink
+                    },
+                    grid_basis.or_else(|| collect_flex::effective_flex_basis(&style)),
                     flex_min_main_size,
                     flex_max_main_size,
                     element_path,
@@ -289,8 +359,10 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                 );
-                style.flex_items_row = style.display_flex && !style.flex_direction_column;
+                style.flex_items_row =
+                    (style.display_flex || style.display_grid) && !style.flex_direction_column;
                 style.flex_items_column = style.display_flex && style.flex_direction_column;
+                style.flex_wrap |= style.display_grid;
                 style.flex_item_no_wrap = inherited.flex_item_no_wrap
                     || (inherited.flex_items_row && !inherited.flex_wrap);
                 style.flex_item_alignment = collect_flex::item_alignment(&style, inherited, block);

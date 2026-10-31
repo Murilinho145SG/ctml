@@ -16,6 +16,7 @@ struct WrapMarker {
     cross_size: Option<f32>,
     alignment: Option<FlexAlignment>,
     reverse: bool,
+    grid_row_break: bool,
     applied: bool,
     adjust_line_height: bool,
 }
@@ -119,6 +120,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                     cross_size: run.style.flex_wrap_cross_size_px,
                     alignment: Some(alignment),
                     reverse: run.style.flex_wrap_reverse,
+                    grid_row_break: run.style.grid_row_break,
                     applied: run.style.flex_wrap_gap_applied,
                     adjust_line_height: run.style.flex_wrap_gap_px > 0.0
                         || (run.style.flex_wrap_cross_size_px.is_some()
@@ -169,7 +171,14 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
         let next = glyphs
             .iter()
             .filter(|(start, _, _, _)| *start >= next_offset)
-            .min_by_key(|(start, _, _, _)| *start);
+            .min_by_key(|(start, _, _, _)| *start)
+            .or_else(|| {
+                marker
+                    .grid_row_break
+                    .then(|| glyphs_by_paragraph.get(&(marker.paragraph + 1)))
+                    .flatten()
+                    .and_then(|next_glyphs| next_glyphs.first())
+            });
         let (Some(marker_line), Some(previous), Some(next)) = (marker_line, previous, next) else {
             continue;
         };

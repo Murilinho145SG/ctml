@@ -110,6 +110,7 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         "flex-grow" => style.flex_grow = 0.0,
         "flex-shrink" => style.flex_shrink = 1.0,
         "flex-basis" => style.flex_basis = None,
+        "grid-template-columns" => super::super::grid::reset_grid_property(style),
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::initial_flex_gap(style, property);
         }

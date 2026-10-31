@@ -109,6 +109,7 @@ mod flex_gap;
 mod font;
 mod font_feature_settings;
 mod font_variation_settings;
+mod grid;
 mod list_style;
 mod outline;
 mod overflow;

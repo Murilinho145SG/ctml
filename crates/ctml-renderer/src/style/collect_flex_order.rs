@@ -14,7 +14,8 @@ pub(super) fn order_nodes(
     ancestor_positions: &[SelectorPosition],
     selector_tree: &[SelectorTreeElement],
 ) -> Vec<(usize, Option<usize>, usize)> {
-    let is_flex_container = inherited.flex_items_row || inherited.flex_items_column;
+    let is_flex_container =
+        inherited.flex_items_row || inherited.flex_items_column || inherited.display_grid;
     let mut element_index = 0;
     let mut item_id = 0;
     let mut previous_was_text = false;
@@ -66,7 +67,7 @@ pub(super) fn order_nodes(
 
     if is_flex_container {
         ordered_nodes.sort_by_key(|(_, _, _, order)| *order);
-        if inherited.flex_direction_reverse {
+        if !inherited.display_grid && inherited.flex_direction_reverse {
             reverse_item_groups(&mut ordered_nodes);
         }
     }

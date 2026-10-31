@@ -40,6 +40,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "flex-grow",
     "flex-shrink",
     "flex-basis",
+    "grid-template-columns",
     "gap",
     "row-gap",
     "column-gap",

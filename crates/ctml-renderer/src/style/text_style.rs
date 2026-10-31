@@ -26,8 +26,8 @@ pub(crate) use border_image::{
 };
 pub(crate) use core::{
     AnimationComposition, AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec,
-    ElementTransitionStyle, FlexAlignment, FlexBasis, StepPosition, TextStyle, TransitionEasing,
-    TransitionTiming,
+    ElementTransitionStyle, FlexAlignment, FlexBasis, GridTrack, StepPosition, TextStyle,
+    TransitionEasing, TransitionTiming,
 };
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};
 
