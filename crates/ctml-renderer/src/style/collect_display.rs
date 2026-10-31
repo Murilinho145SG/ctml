@@ -46,7 +46,9 @@ pub(super) fn resolve_block(
     stylesheet: &[StyleRule],
 ) -> (bool, bool) {
     let flex_row_item = inherited.flex_items_row;
+    let flex_column_item = inherited.flex_items_column;
     let run_in_inline = !flex_row_item
+        && !flex_column_item
         && style.display_run_in
         && siblings.get(element_index + 1).is_some_and(|next| {
             let inline_style = next
@@ -75,6 +77,8 @@ pub(super) fn resolve_block(
         });
     let block = if flex_row_item {
         false
+    } else if flex_column_item {
+        true
     } else if style.display_run_in {
         !run_in_inline
     } else {

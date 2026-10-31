@@ -48,7 +48,9 @@ use contain_intrinsic_size::{
 };
 use counters::{CounterProperty, apply_counter_property};
 use cursor::apply_cursor;
-use display::{apply_display, inherit_display, reset_display, revert_display};
+use display::{
+    apply_display, apply_flex_direction, inherit_display, reset_display, revert_display,
+};
 #[cfg(test)]
 pub(super) use font::parse_font_size;
 use font::{

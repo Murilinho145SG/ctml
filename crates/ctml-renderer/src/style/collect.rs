@@ -231,7 +231,8 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                 );
-                style.flex_items_row = style.display_flex;
+                style.flex_items_row = style.display_flex && !style.flex_direction_column;
+                style.flex_items_column = style.display_flex && style.flex_direction_column;
                 style.inline_box = !block;
                 let empty_box = children.is_empty()
                     && before_content.is_none()

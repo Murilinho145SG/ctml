@@ -1,5 +1,13 @@
 use crate::style::TextStyle;
 
+pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "row" => style.flex_direction_column = false,
+        "column" => style.flex_direction_column = true,
+        _ => {}
+    }
+}
+
 pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
     let value = value
         .split_ascii_whitespace()

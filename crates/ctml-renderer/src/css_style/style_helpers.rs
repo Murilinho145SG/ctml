@@ -14,6 +14,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "overflow-x",
     "overflow-y",
     "display",
+    "flex-direction",
     "list-style-type",
     "width",
     "inline-size",

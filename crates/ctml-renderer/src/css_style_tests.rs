@@ -214,6 +214,34 @@ fn resolves_supported_multi_keyword_display_values() {
 }
 
 #[test]
+fn flex_direction_defaults_to_row_and_supports_explicit_inherit() {
+    assert!(!style_for_declarations(&[("flex-direction", "row")]).flex_direction_column);
+    assert!(style_for_declarations(&[("flex-direction", "column")]).flex_direction_column);
+    assert!(!style_for_declarations(&[("flex-direction", "invalid")]).flex_direction_column);
+
+    let inherited = TextStyle {
+        flex_direction_column: true,
+        ..TextStyle::default()
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    let rule = |value: &str| StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "flex-direction".to_owned(),
+            value: value.to_owned(),
+        }],
+    };
+    assert!(!resolve_style(&inherited, &paragraph, &[], &[]).flex_direction_column);
+    assert!(resolve_style(&inherited, &paragraph, &[], &[rule("inherit")]).flex_direction_column);
+    assert!(!resolve_style(&inherited, &paragraph, &[], &[rule("initial")]).flex_direction_column);
+}
+
+#[test]
 fn resolves_typed_attr_values_in_supported_style_properties() {
     let rule = StyleRule {
         selectors: vec![".sample".to_owned()],

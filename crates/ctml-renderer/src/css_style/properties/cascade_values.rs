@@ -109,6 +109,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
                 .clone_from(&inherited.background_clips);
         }
         "display" => inherit_display(style, inherited),
+        "flex-direction" => {
+            style.flex_direction_column = inherited.flex_direction_column;
+        }
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
         "box-sizing" => style.border_box = inherited.border_box,
@@ -372,6 +375,7 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "background-origin" => style.background_origins.clear(),
         "background-clip" => style.background_clips.clear(),
         "display" => reset_display(style),
+        "flex-direction" => style.flex_direction_column = false,
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
         "box-sizing" => style.border_box = false,
