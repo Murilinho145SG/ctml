@@ -270,7 +270,7 @@ fn nested_overflow_scrolls_under_a_vertical_page_root() {
         class: None,
         id: None,
         attributes: Vec::new(),
-        children: vec![UiNode::Text("vertical nested overflow ".repeat(80))],
+        children: vec![UiNode::Text("vertical nested overflow ".repeat(16))],
     }];
     for (writing_mode, pointer) in [
         ("vertical-rl", (280.0, 20.0)),
