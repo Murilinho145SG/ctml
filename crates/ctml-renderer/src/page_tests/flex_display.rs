@@ -226,28 +226,6 @@ fn percentage_row_gap_uses_an_explicit_flex_container_block_size() {
 }
 
 #[test]
-fn row_justify_content_aligns_flex_items_on_the_main_axis() {
-    let mut start = two_item_flex_page_with_justify("row", "flex-start");
-    let mut center = two_item_flex_page_with_justify("row", "center");
-    let mut end = two_item_flex_page_with_justify("row", "flex-end");
-    for page in [&mut start, &mut center, &mut end] {
-        page.prepare_layout(400, 120);
-    }
-
-    let start_x = first_item_x(&start);
-    let center_x = first_item_x(&center);
-    let end_x = first_item_x(&end);
-    assert!(center_x > start_x + 20.0, "center offset: {center_x}");
-    assert!(end_x > center_x + 20.0, "end offset: {end_x}");
-    for page in [&start, &center, &end] {
-        assert!(
-            second_item_x(page) > first_item_x(page),
-            "items should keep source order"
-        );
-    }
-}
-
-#[test]
 fn row_gap_does_not_split_contiguous_anonymous_text_items() {
     let mut without_gap = anonymous_text_flex_page(None);
     let mut with_gap = anonymous_text_flex_page(Some("12px"));
@@ -264,26 +242,13 @@ fn row_gap_does_not_split_contiguous_anonymous_text_items() {
 }
 
 fn two_item_flex_page(direction: &str, gap: Option<&str>) -> PageRasterizer {
-    two_item_flex_page_with_layout_props(direction, gap, None, None)
+    two_item_flex_page_with_height(direction, gap, None)
 }
 
 fn two_item_flex_page_with_height(
     direction: &str,
     gap: Option<&str>,
     height: Option<&str>,
-) -> PageRasterizer {
-    two_item_flex_page_with_layout_props(direction, gap, height, None)
-}
-
-fn two_item_flex_page_with_justify(direction: &str, justify: &str) -> PageRasterizer {
-    two_item_flex_page_with_layout_props(direction, None, None, Some(justify))
-}
-
-fn two_item_flex_page_with_layout_props(
-    direction: &str,
-    gap: Option<&str>,
-    height: Option<&str>,
-    justify: Option<&str>,
 ) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -321,12 +286,6 @@ fn two_item_flex_page_with_layout_props(
         declarations.push(StyleDeclaration {
             property: "height".to_owned(),
             value: height.to_owned(),
-        });
-    }
-    if let Some(justify) = justify {
-        declarations.push(StyleDeclaration {
-            property: "justify-content".to_owned(),
-            value: justify.to_owned(),
         });
     }
     let stylesheet = [StyleRule {

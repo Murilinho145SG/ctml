@@ -117,6 +117,7 @@ pub(in crate::css_style::properties) fn inherit_property(
             style.flex_direction_column = inherited.flex_direction_column;
         }
         "justify-content" => style.justify_content = inherited.justify_content,
+        "align-items" => style.align_items = inherited.align_items,
         "order" => style.flex_order = inherited.flex_order,
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::inherit_flex_gap(style, inherited, property);

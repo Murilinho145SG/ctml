@@ -25,7 +25,7 @@ pub(super) use text_style::{
     BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
     BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset,
     BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
-    BoxShadow, ConicGradient, Direction, FlexJustifyContent, FontVariantCaps, FontVariantPosition,
+    BoxShadow, ConicGradient, Direction, FlexAlignment, FontVariantCaps, FontVariantPosition,
     Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow, OverflowWrap,
     RadialGradient, RadialGradientExtent, RadialGradientShape, TextDecorationSkipInk,
     TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,

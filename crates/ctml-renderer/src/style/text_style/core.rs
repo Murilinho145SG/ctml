@@ -17,7 +17,7 @@ const DEFAULT_FONT_SIZE: f32 = 16.0;
 const DEFAULT_LINE_HEIGHT: f32 = 20.0;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) enum FlexJustifyContent {
+pub(crate) enum FlexAlignment {
     #[default]
     FlexStart,
     Center,
@@ -73,8 +73,9 @@ pub(crate) struct TextStyle {
     pub(crate) display_flex: bool,
     pub(crate) flex_direction_column: bool,
     pub(crate) flex_order: i32,
-    pub(crate) justify_content: FlexJustifyContent,
-    pub(crate) flex_item_justify_content: Option<FlexJustifyContent>,
+    pub(crate) justify_content: FlexAlignment,
+    pub(crate) align_items: Option<FlexAlignment>,
+    pub(crate) flex_item_alignment: Option<FlexAlignment>,
     pub(crate) row_gap: Option<String>,
     pub(crate) column_gap: Option<String>,
     pub(crate) row_gap_order: usize,
@@ -288,8 +289,9 @@ impl Default for TextStyle {
             display_flex: false,
             flex_direction_column: false,
             flex_order: 0,
-            justify_content: FlexJustifyContent::default(),
-            flex_item_justify_content: None,
+            justify_content: FlexAlignment::default(),
+            align_items: None,
+            flex_item_alignment: None,
             row_gap: None,
             column_gap: None,
             row_gap_order: 0,

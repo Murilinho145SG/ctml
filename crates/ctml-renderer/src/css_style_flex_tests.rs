@@ -97,7 +97,7 @@ fn order_is_non_inherited_and_supports_css_wide_resets() {
 
 #[test]
 fn justify_content_parses_supported_alignment_and_css_wide_values() {
-    use crate::style::FlexJustifyContent::{Center, FlexEnd, FlexStart};
+    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart};
 
     assert_eq!(style_with_declarations(&[]).justify_content, FlexStart);
     assert_eq!(
@@ -150,6 +150,59 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
         style_with_declarations(&[("justify-content", "center"), ("all", "initial")])
             .justify_content,
         FlexStart
+    );
+}
+
+#[test]
+fn align_items_parses_supported_alignment_and_css_wide_values() {
+    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart};
+
+    assert_eq!(style_with_declarations(&[]).align_items, None);
+    assert_eq!(
+        style_with_declarations(&[("align-items", "center")]).align_items,
+        Some(Center)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-items", "flex-end")]).align_items,
+        Some(FlexEnd)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-items", "stretch")]).align_items,
+        None
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-items", "flex-start")]).align_items,
+        Some(FlexStart)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-items", "baseline")]).align_items,
+        None
+    );
+
+    let inherited = TextStyle {
+        align_items: Some(Center),
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[]).align_items,
+        None
+    );
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[rule("align-items", "inherit")]).align_items,
+        Some(Center)
+    );
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[rule("align-items", "initial")]).align_items,
+        None
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-items", "center"), ("all", "initial")]).align_items,
+        None
     );
 }
 

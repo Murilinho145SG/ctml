@@ -221,14 +221,7 @@ pub(super) fn collect_runs(
                 );
                 style.flex_items_row = style.display_flex && !style.flex_direction_column;
                 style.flex_items_column = style.display_flex && style.flex_direction_column;
-                style.flex_item_justify_content =
-                    if style.display_flex && block && !style.flex_direction_column {
-                        Some(style.justify_content)
-                    } else if inherited.flex_items_row {
-                        Some(inherited.justify_content)
-                    } else {
-                        inherited.flex_item_justify_content
-                    };
+                style.flex_item_alignment = collect_flex::item_alignment(&style, inherited, block);
                 style.inline_box = !block;
                 let empty_box = children.is_empty()
                     && before_content.is_none()

@@ -1,4 +1,4 @@
-use super::{TextRun, TextStyle, UserSelect, append_text, push_line_break};
+use super::{FlexAlignment, TextRun, TextStyle, UserSelect, append_text, push_line_break};
 use crate::{StyleRule, UiNode, css_style};
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
@@ -6,6 +6,26 @@ use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 pub(super) struct FlexGapState {
     item_count: usize,
     last_item_id: Option<usize>,
+}
+
+pub(super) fn item_alignment(
+    style: &TextStyle,
+    inherited: &TextStyle,
+    block: bool,
+) -> Option<FlexAlignment> {
+    if style.display_flex && block {
+        if style.flex_direction_column {
+            style.align_items
+        } else {
+            Some(style.justify_content)
+        }
+    } else if inherited.flex_items_row {
+        Some(inherited.justify_content)
+    } else if inherited.flex_items_column {
+        inherited.align_items
+    } else {
+        inherited.flex_item_alignment
+    }
 }
 
 impl FlexGapState {

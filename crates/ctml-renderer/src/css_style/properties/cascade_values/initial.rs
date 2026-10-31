@@ -71,8 +71,9 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         "display" => reset_display(style),
         "flex-direction" => style.flex_direction_column = false,
         "justify-content" => {
-            style.justify_content = crate::style::FlexJustifyContent::default();
+            style.justify_content = crate::style::FlexAlignment::default();
         }
+        "align-items" => style.align_items = None,
         "order" => style.flex_order = 0,
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::initial_flex_gap(style, property);

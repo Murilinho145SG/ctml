@@ -10,9 +10,19 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
 
 pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
     style.justify_content = match value.trim().to_ascii_lowercase().as_str() {
-        "normal" | "start" | "flex-start" => crate::style::FlexJustifyContent::FlexStart,
-        "center" => crate::style::FlexJustifyContent::Center,
-        "end" | "flex-end" => crate::style::FlexJustifyContent::FlexEnd,
+        "normal" | "start" | "flex-start" => crate::style::FlexAlignment::FlexStart,
+        "center" => crate::style::FlexAlignment::Center,
+        "end" | "flex-end" => crate::style::FlexAlignment::FlexEnd,
+        _ => return,
+    };
+}
+
+pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
+    style.align_items = match value.trim().to_ascii_lowercase().as_str() {
+        "normal" | "stretch" => None,
+        "start" | "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "center" => Some(crate::style::FlexAlignment::Center),
+        "end" | "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
         _ => return,
     };
 }
@@ -34,6 +44,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "display" => apply_display(style, value),
         "flex-direction" => apply_flex_direction(style, value),
         "justify-content" => apply_justify_content(style, value),
+        "align-items" => apply_align_items(style, value),
         "order" => apply_flex_order(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
