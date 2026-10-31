@@ -14,6 +14,7 @@ pub(super) struct OpacityTransition {
     pub(super) easing: TransitionEasing,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct ColorTransition {
     pub(super) from: [u8; 4],
     pub(super) to: [u8; 4],
@@ -26,6 +27,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     if page.root_opacity_transition.is_none()
         && page.opacity_transitions.is_empty()
         && page.color_transitions.is_empty()
+        && page.background_color_transitions.is_empty()
     {
         return None;
     }
@@ -69,7 +71,29 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     for node_id in completed_colors {
         page.color_transitions.remove(&node_id);
     }
-    Some(root_active || !page.opacity_transitions.is_empty() || !page.color_transitions.is_empty())
+    let mut completed_backgrounds = Vec::new();
+    for (node_id, transition) in page
+        .background_color_transitions
+        .iter()
+        .map(|(node_id, transition)| (*node_id, *transition))
+        .collect::<Vec<_>>()
+    {
+        let color = interpolate_color(&transition, now);
+        apply_background_color(page, node_id, color);
+        page.element_background_colors.insert(node_id, color);
+        if now >= transition.starts_at + transition.duration {
+            completed_backgrounds.push(node_id);
+        }
+    }
+    for node_id in completed_backgrounds {
+        page.background_color_transitions.remove(&node_id);
+    }
+    Some(
+        root_active
+            || !page.opacity_transitions.is_empty()
+            || !page.color_transitions.is_empty()
+            || !page.background_color_transitions.is_empty(),
+    )
 }
 
 pub(super) fn begin_transitions(
@@ -79,6 +103,7 @@ pub(super) fn begin_transitions(
     root_style: &TextStyle,
     transition_styles: &HashMap<usize, ElementTransitionStyle>,
     previous_element_colors: &HashMap<usize, [u8; 4]>,
+    previous_element_background_colors: &HashMap<usize, [u8; 4]>,
 ) {
     page.root_opacity = root_style.opacity;
     page.root_opacity_transition = start_transition(
@@ -104,6 +129,16 @@ pub(super) fn begin_transitions(
                     settings,
                     timing,
                     previous_element_colors,
+                    now,
+                );
+            }
+            if let Some(timing) = settings.background_color {
+                begin_background_color_transition(
+                    page,
+                    *node_id,
+                    settings,
+                    timing,
+                    previous_element_background_colors,
                     now,
                 );
             }
@@ -138,6 +173,76 @@ pub(super) fn begin_transitions(
                 previous_element_colors,
                 now,
             );
+        }
+        if let Some(timing) = settings.background_color {
+            begin_background_color_transition(
+                page,
+                *node_id,
+                settings,
+                timing,
+                previous_element_background_colors,
+                now,
+            );
+        }
+    }
+}
+
+fn begin_background_color_transition(
+    page: &mut PageRasterizer,
+    node_id: usize,
+    settings: &ElementTransitionStyle,
+    timing: TransitionTiming,
+    previous_element_background_colors: &HashMap<usize, [u8; 4]>,
+    now: Instant,
+) {
+    let from = previous_element_background_colors
+        .get(&node_id)
+        .copied()
+        .unwrap_or(settings.background_color_value);
+    let to = settings.background_color_value;
+    let Some(timing) = start_transition(
+        0.0,
+        1.0,
+        from != to,
+        timing.duration_ms,
+        timing.delay_ms,
+        timing.easing,
+    ) else {
+        return;
+    };
+    let transition = ColorTransition {
+        from,
+        to,
+        starts_at: timing.starts_at,
+        duration: timing.duration,
+        easing: timing.easing,
+    };
+    let color = interpolate_color(&transition, now);
+    apply_background_color(page, node_id, color);
+    page.element_background_colors.insert(node_id, color);
+    if now < transition.starts_at + transition.duration {
+        page.background_color_transitions
+            .insert(node_id, transition);
+    }
+}
+
+fn apply_background_color(page: &mut PageRasterizer, node_id: usize, color: [u8; 4]) {
+    for run in &mut page.runs {
+        if run.element_path.last() == Some(&node_id) {
+            run.style.background_color = Some(color);
+            if let Some(background) = run.style.background_layers.last_mut() {
+                *background = color;
+            }
+        }
+        for size in run
+            .style
+            .layout_sizes
+            .iter_mut()
+            .filter(|size| size.node_id == node_id)
+        {
+            if let Some(background) = size.background_layers.last_mut() {
+                *background = color;
+            }
         }
     }
 }

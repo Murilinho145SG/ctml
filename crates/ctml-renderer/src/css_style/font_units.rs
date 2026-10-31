@@ -62,6 +62,10 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.transition_color_duration_ms = 0.0;
     style.transition_color_delay_ms = 0.0;
     style.transition_color_easing = crate::style::TransitionEasing::default();
+    style.transition_background_color = false;
+    style.transition_background_color_duration_ms = 0.0;
+    style.transition_background_color_delay_ms = 0.0;
+    style.transition_background_color_easing = crate::style::TransitionEasing::default();
     style.transition_properties = vec!["all".to_owned()];
     style.transition_durations_ms = vec![0.0];
     style.transition_delays_ms = vec![0.0];

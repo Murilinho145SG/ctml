@@ -162,6 +162,14 @@ pub(super) fn collect_runs(
                             easing: style.transition_color_easing,
                         }),
                         color_value: style.color,
+                        background_color: style.transition_background_color.then_some(
+                            super::TransitionTiming {
+                                duration_ms: style.transition_background_color_duration_ms,
+                                delay_ms: style.transition_background_color_delay_ms,
+                                easing: style.transition_background_color_easing,
+                            },
+                        ),
+                        background_color_value: style.background_color.unwrap_or([0, 0, 0, 0]),
                     },
                 );
                 style.opacity *= inherited.opacity;

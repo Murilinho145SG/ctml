@@ -203,3 +203,56 @@ fn wrapper_color_transitions_inherited_text_without_overriding_explicit_descenda
     assert_eq!(inherited.style.color, [128, 0, 128, 255]);
     assert_eq!(explicit.style.color, [0, 128, 0, 255]);
 }
+
+#[test]
+fn background_color_transitions_interpolate_for_text_elements() {
+    let nodes = [crate::UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Background".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "div",
+            &[
+                ("display", "block"),
+                ("width", "80px"),
+                ("background-color", "blue"),
+                ("transition", "background-color 1000ms linear"),
+            ],
+        ),
+        rule("div:hover", &[("background-color", "red")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.background_color_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert_eq!(
+        page.runs[0].style.background_color,
+        Some([128, 0, 128, 255])
+    );
+    assert_eq!(
+        page.runs[0].style.background_layers,
+        vec![[128, 0, 128, 255]]
+    );
+    let block_background = page.runs[0]
+        .style
+        .layout_sizes
+        .iter()
+        .find(|size| size.node_id == 1)
+        .expect("block background should have layout geometry");
+    assert_eq!(block_background.background_layers, vec![[128, 0, 128, 255]]);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(page.runs[0].style.background_color, Some([255, 0, 0, 255]));
+}

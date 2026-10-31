@@ -77,6 +77,8 @@ pub(crate) struct ElementTransitionStyle {
     pub(crate) opacity: Option<TransitionTiming>,
     pub(crate) color: Option<TransitionTiming>,
     pub(crate) color_value: [u8; 4],
+    pub(crate) background_color: Option<TransitionTiming>,
+    pub(crate) background_color_value: [u8; 4],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -105,6 +107,10 @@ pub(crate) struct TextStyle {
     pub(crate) transition_color_duration_ms: f32,
     pub(crate) transition_color_delay_ms: f32,
     pub(crate) transition_color_easing: TransitionEasing,
+    pub(crate) transition_background_color: bool,
+    pub(crate) transition_background_color_duration_ms: f32,
+    pub(crate) transition_background_color_delay_ms: f32,
+    pub(crate) transition_background_color_easing: TransitionEasing,
     pub(crate) transition_properties: Vec<String>,
     pub(crate) transition_durations_ms: Vec<f32>,
     pub(crate) transition_delays_ms: Vec<f32>,
@@ -354,6 +360,10 @@ impl Default for TextStyle {
             transition_color_duration_ms: 0.0,
             transition_color_delay_ms: 0.0,
             transition_color_easing: TransitionEasing::default(),
+            transition_background_color: false,
+            transition_background_color_duration_ms: 0.0,
+            transition_background_color_delay_ms: 0.0,
+            transition_background_color_easing: TransitionEasing::default(),
             transition_properties: vec!["all".to_owned()],
             transition_durations_ms: vec![0.0],
             transition_delays_ms: vec![0.0],

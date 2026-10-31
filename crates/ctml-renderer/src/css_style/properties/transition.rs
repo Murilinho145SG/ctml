@@ -113,6 +113,19 @@ pub(super) fn update_opacity_transition(style: &mut TextStyle) {
     } else {
         style.transition_color = false;
     }
+    if let Some(index) = style
+        .transition_properties
+        .iter()
+        .rposition(|property| matches!(property.as_str(), "background-color" | "all"))
+    {
+        style.transition_background_color = true;
+        style.transition_background_color_duration_ms =
+            list_item(&style.transition_durations_ms, index);
+        style.transition_background_color_delay_ms = list_item(&style.transition_delays_ms, index);
+        style.transition_background_color_easing = list_item(&style.transition_easings, index);
+    } else {
+        style.transition_background_color = false;
+    }
 }
 
 fn list_item<T: Copy>(values: &[T], index: usize) -> T {
