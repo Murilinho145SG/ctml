@@ -15,6 +15,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "overflow-y",
     "display",
     "flex-direction",
+    "justify-content",
     "order",
     "gap",
     "row-gap",

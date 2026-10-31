@@ -8,6 +8,15 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
+    style.justify_content = match value.trim().to_ascii_lowercase().as_str() {
+        "normal" | "start" | "flex-start" => crate::style::FlexJustifyContent::FlexStart,
+        "center" => crate::style::FlexJustifyContent::Center,
+        "end" | "flex-end" => crate::style::FlexJustifyContent::FlexEnd,
+        _ => return,
+    };
+}
+
 pub(super) fn apply_flex_order(style: &mut TextStyle, value: &str) {
     if let Some(order) = ctml_css::parse_css_integer(value) {
         style.flex_order = order.parse().unwrap_or_else(|_| {
@@ -24,6 +33,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
     match property {
         "display" => apply_display(style, value),
         "flex-direction" => apply_flex_direction(style, value),
+        "justify-content" => apply_justify_content(style, value),
         "order" => apply_flex_order(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }

@@ -33,7 +33,14 @@ pub(super) fn line_alignments(
 )> {
     let line_style = |style: &TextStyle| {
         (
-            style.text_align,
+            style
+                .flex_item_justify_content
+                .map(|justify| match justify {
+                    crate::style::FlexJustifyContent::FlexStart => cosmic_text::Align::Start,
+                    crate::style::FlexJustifyContent::Center => cosmic_text::Align::Center,
+                    crate::style::FlexJustifyContent::FlexEnd => cosmic_text::Align::End,
+                })
+                .unwrap_or(style.text_align),
             style.text_align_last,
             style.text_justify,
             style.wrap_mode(),

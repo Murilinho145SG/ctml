@@ -96,6 +96,64 @@ fn order_is_non_inherited_and_supports_css_wide_resets() {
 }
 
 #[test]
+fn justify_content_parses_supported_alignment_and_css_wide_values() {
+    use crate::style::FlexJustifyContent::{Center, FlexEnd, FlexStart};
+
+    assert_eq!(style_with_declarations(&[]).justify_content, FlexStart);
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "center")]).justify_content,
+        Center
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "flex-end")]).justify_content,
+        FlexEnd
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "space-between")]).justify_content,
+        FlexStart
+    );
+
+    let inherited = TextStyle {
+        justify_content: Center,
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[]).justify_content,
+        FlexStart
+    );
+    assert_eq!(
+        resolve_style(
+            &inherited,
+            &element,
+            &[],
+            &[rule("justify-content", "inherit")]
+        )
+        .justify_content,
+        Center
+    );
+    assert_eq!(
+        resolve_style(
+            &inherited,
+            &element,
+            &[],
+            &[rule("justify-content", "initial")]
+        )
+        .justify_content,
+        FlexStart
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "center"), ("all", "initial")])
+            .justify_content,
+        FlexStart
+    );
+}
+
+#[test]
 fn flex_gaps_parse_shorthand_longhands_and_source_order() {
     let single = style_with_declarations(&[("gap", "4px")]);
     assert_eq!(single.row_gap.as_deref(), Some("4px"));

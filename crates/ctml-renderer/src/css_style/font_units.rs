@@ -60,6 +60,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.display_flex = false;
     style.flex_direction_column = false;
     style.flex_order = 0;
+    style.justify_content = crate::style::FlexJustifyContent::default();
     style.row_gap = None;
     style.column_gap = None;
     style.row_gap_order = 0;

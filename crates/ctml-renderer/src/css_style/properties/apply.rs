@@ -41,9 +41,8 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "contain" => apply_contain(style, value),
-        "display" | "flex-direction" | "order" | "gap" | "row-gap" | "column-gap" => {
-            display::apply_layout_property(style, property, value)
-        }
+        "display" | "flex-direction" | "justify-content" | "order" | "gap" | "row-gap"
+        | "column-gap" => display::apply_layout_property(style, property, value),
         "contain-intrinsic-size" => apply_contain_intrinsic_size(style, value),
         "contain-intrinsic-width" => apply_contain_intrinsic_width(style, value),
         "contain-intrinsic-height" => apply_contain_intrinsic_height(style, value),
