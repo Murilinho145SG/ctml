@@ -79,6 +79,14 @@ pub(crate) enum AnimationPlayState {
     Paused,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum AnimationComposition {
+    #[default]
+    Replace,
+    Add,
+    Accumulate,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AnimationSpec {
     pub(crate) name: String,
@@ -88,6 +96,7 @@ pub(crate) struct AnimationSpec {
     pub(crate) direction: AnimationDirection,
     pub(crate) fill_mode: AnimationFillMode,
     pub(crate) play_state: AnimationPlayState,
+    pub(crate) composition: AnimationComposition,
     pub(crate) easing: TransitionEasing,
 }
 
@@ -174,6 +183,7 @@ pub(crate) struct TextStyle {
     pub(crate) animation_direction: Vec<AnimationDirection>,
     pub(crate) animation_fill_mode: Vec<AnimationFillMode>,
     pub(crate) animation_play_state: Vec<AnimationPlayState>,
+    pub(crate) animation_composition: Vec<AnimationComposition>,
     pub(crate) animation_easing: Vec<TransitionEasing>,
     pub(crate) transition_behaviors: Vec<bool>,
     pub(crate) transition_properties: Vec<String>,
@@ -405,6 +415,11 @@ impl TextStyle {
                             &self.animation_play_state,
                             index,
                             AnimationPlayState::Running,
+                        ),
+                        composition: cycle_value(
+                            &self.animation_composition,
+                            index,
+                            AnimationComposition::Replace,
                         ),
                         easing: cycle_value(&self.animation_easing, index, TransitionEasing::Ease),
                     })

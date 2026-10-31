@@ -83,6 +83,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.animation_direction = vec![crate::style::AnimationDirection::default()];
     style.animation_fill_mode = vec![crate::style::AnimationFillMode::default()];
     style.animation_play_state = vec![crate::style::AnimationPlayState::default()];
+    style.animation_composition = vec![crate::style::AnimationComposition::default()];
     style.animation_easing = vec![crate::style::TransitionEasing::default()];
     style.transition_behaviors = vec![false];
     style.transition_properties = vec!["all".to_owned()];

@@ -396,8 +396,9 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 
 - [x] Transitions for `opacity`, `color`, `background-color`, `outline-color`, `border-color`, and discrete `visibility` with `allow-discrete`; shorthand and longhand lists match by index, the last matching property or `all` entry wins, and standard easing keywords, `cubic-bezier()`, and `steps()` are supported.
 - [x] Named keyframes with normalized offsets and animations for `opacity`, `color`, `background-color`, `outline-color`, physical border side colors, and discrete `visibility`; color interpolation uses premultiplied sRGB and resolves `currentColor` from computed text color. Timing, fill, direction, play-state pause/resume, multiple animation lists, and `WindowConfig.animations_enabled` are supported.
+- [x] `animation-composition: replace | add | accumulate` with indexed lists for opacity keyframes; additive results are clamped to the opacity range.
 - [ ] Extend transitions and keyframes to additional animated properties and discrete transitions without `allow-discrete`.
-- [ ] Animation composition beyond replace ordering, including additive and accumulative effects. Multiple animation lists and their timing properties are supported.
+- [ ] Animation composition for animated properties other than opacity, plus iteration accumulation. Multiple animation lists and their timing properties are supported.
 - [ ] Scroll-driven and view-driven animations if appropriate for CTML.
 - [ ] View transitions between UI states if appropriate for CTML.
 - [ ] Read the host's reduced-motion preference automatically; applications can explicitly disable animations with `WindowConfig.animations_enabled`.

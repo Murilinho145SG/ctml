@@ -54,6 +54,7 @@ impl Default for TextStyle {
             animation_direction: vec![AnimationDirection::default()],
             animation_fill_mode: vec![AnimationFillMode::default()],
             animation_play_state: vec![AnimationPlayState::default()],
+            animation_composition: vec![AnimationComposition::default()],
             animation_easing: vec![TransitionEasing::default()],
             transition_behaviors: vec![false],
             transition_properties: vec!["all".to_owned()],

@@ -1,8 +1,9 @@
 use crate::style::{
-    AnimationDirection, AnimationFillMode, AnimationPlayState, TextStyle, TransitionEasing,
+    AnimationComposition, AnimationDirection, AnimationFillMode, AnimationPlayState, TextStyle,
+    TransitionEasing,
 };
 
-const ANIMATION_PROPERTIES: [&str; 8] = [
+const ANIMATION_PROPERTIES: [&str; 9] = [
     "animation",
     "animation-name",
     "animation-duration",
@@ -11,6 +12,7 @@ const ANIMATION_PROPERTIES: [&str; 8] = [
     "animation-direction",
     "animation-fill-mode",
     "animation-play-state",
+    "animation-composition",
 ];
 
 #[derive(Clone, Copy)]
@@ -77,6 +79,9 @@ pub(super) fn apply_animation(style: &mut TextStyle, property: &str, value: &str
         "animation-play-state" => apply_list(style, value, parse_play_state, |style, values| {
             style.animation_play_state = values;
         }),
+        "animation-composition" => apply_list(style, value, parse_composition, |style, values| {
+            style.animation_composition = values;
+        }),
         "animation-timing-function" => apply_list(
             style,
             value,
@@ -97,6 +102,7 @@ pub(super) fn reset_animation(style: &mut TextStyle, property: &str) {
             style.animation_direction = vec![AnimationDirection::Normal];
             style.animation_fill_mode = vec![AnimationFillMode::None];
             style.animation_play_state = vec![AnimationPlayState::Running];
+            style.animation_composition = vec![AnimationComposition::Replace];
             style.animation_easing = vec![TransitionEasing::Ease];
         }
         "animation-name" => style.animation_name = vec![None],
@@ -106,6 +112,9 @@ pub(super) fn reset_animation(style: &mut TextStyle, property: &str) {
         "animation-direction" => style.animation_direction = vec![AnimationDirection::Normal],
         "animation-fill-mode" => style.animation_fill_mode = vec![AnimationFillMode::None],
         "animation-play-state" => style.animation_play_state = vec![AnimationPlayState::Running],
+        "animation-composition" => {
+            style.animation_composition = vec![AnimationComposition::Replace]
+        }
         "animation-timing-function" => style.animation_easing = vec![TransitionEasing::Ease],
         _ => {}
     }
@@ -134,6 +143,9 @@ pub(super) fn inherit_animation(style: &mut TextStyle, inherited: &TextStyle, pr
                 .animation_play_state
                 .clone_from(&inherited.animation_play_state);
             style
+                .animation_composition
+                .clone_from(&inherited.animation_composition);
+            style
                 .animation_easing
                 .clone_from(&inherited.animation_easing);
         }
@@ -156,6 +168,9 @@ pub(super) fn inherit_animation(style: &mut TextStyle, inherited: &TextStyle, pr
         "animation-play-state" => style
             .animation_play_state
             .clone_from(&inherited.animation_play_state),
+        "animation-composition" => style
+            .animation_composition
+            .clone_from(&inherited.animation_composition),
         "animation-timing-function" => style
             .animation_easing
             .clone_from(&inherited.animation_easing),
@@ -201,6 +216,7 @@ fn apply_shorthand(style: &mut TextStyle, value: &str) {
     style.animation_direction = entries.iter().map(|entry| entry.direction).collect();
     style.animation_fill_mode = entries.iter().map(|entry| entry.fill_mode).collect();
     style.animation_play_state = entries.iter().map(|entry| entry.play_state).collect();
+    style.animation_composition = vec![AnimationComposition::Replace; entries.len()];
     style.animation_easing = entries.iter().map(|entry| entry.easing).collect();
 }
 
@@ -336,6 +352,15 @@ fn parse_play_state(value: &str) -> Option<AnimationPlayState> {
     match value.to_ascii_lowercase().as_str() {
         "running" => Some(AnimationPlayState::Running),
         "paused" => Some(AnimationPlayState::Paused),
+        _ => None,
+    }
+}
+
+fn parse_composition(value: &str) -> Option<AnimationComposition> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "replace" => Some(AnimationComposition::Replace),
+        "add" => Some(AnimationComposition::Add),
+        "accumulate" => Some(AnimationComposition::Accumulate),
         _ => None,
     }
 }

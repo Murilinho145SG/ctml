@@ -59,6 +59,38 @@ fn animation_longhands_parse_values_and_ignore_invalid_replacements() {
 }
 
 #[test]
+fn animation_composition_parses_comma_separated_values_and_defaults_to_replace() {
+    let mut style = TextStyle::default();
+    apply_animation(&mut style, "animation-name", "fade, pulse");
+    apply_animation(&mut style, "animation-composition", "add, accumulate");
+
+    let specs = style.animation_specs();
+    assert_eq!(
+        specs[0].as_ref().unwrap().composition,
+        AnimationComposition::Add
+    );
+    assert_eq!(
+        specs[1].as_ref().unwrap().composition,
+        AnimationComposition::Accumulate
+    );
+
+    apply_animation(&mut style, "animation-composition", "invalid");
+    assert_eq!(style.animation_composition[0], AnimationComposition::Add);
+
+    reset_animation(&mut style, "animation-composition");
+    assert_eq!(style.animation_composition, [AnimationComposition::Replace]);
+
+    apply_animation(&mut style, "animation-composition", "accumulate");
+    let inherited = style.clone();
+    let mut child = TextStyle::default();
+    inherit_animation(&mut child, &inherited, "animation-composition");
+    assert_eq!(
+        child.animation_composition,
+        [AnimationComposition::Accumulate]
+    );
+}
+
+#[test]
 fn invalid_animation_shorthand_does_not_reset_previous_values() {
     let mut style = TextStyle::default();
     apply_animation(&mut style, "animation", "fade 2s");

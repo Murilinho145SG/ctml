@@ -25,7 +25,7 @@ pub(crate) use border_image::{
     BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
 };
 pub(crate) use core::{
-    AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec,
+    AnimationComposition, AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec,
     ElementTransitionStyle, FlexAlignment, FlexBasis, StepPosition, TextStyle, TransitionEasing,
     TransitionTiming,
 };

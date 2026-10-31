@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::style::{
-    AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec,
+    AnimationComposition, AnimationDirection, AnimationFillMode, AnimationPlayState, AnimationSpec,
     ElementTransitionStyle, TransitionEasing,
 };
 
@@ -259,11 +259,14 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
             };
             if effect_applies {
                 if let Some(frames) = &state.opacity_frames {
-                    apply_opacity(
-                        page,
-                        node_id,
-                        sample_opacity(frames, directed_progress, state.easing),
-                    );
+                    let effect = sample_opacity(frames, directed_progress, state.easing);
+                    let opacity = match state.animation.composition {
+                        AnimationComposition::Replace => effect,
+                        AnimationComposition::Add | AnimationComposition::Accumulate => {
+                            current_opacity(page, node_id) + effect
+                        }
+                    };
+                    apply_opacity(page, node_id, opacity.clamp(0.0, 1.0));
                 }
                 if let Some(frames) = &state.visibility_frames {
                     let hidden = sample_visibility(frames, directed_progress, state.easing);
@@ -468,6 +471,14 @@ fn apply_opacity(page: &mut PageRasterizer, node_id: usize, opacity: f32) {
         page.root_opacity = opacity;
     } else if let Some(group) = page.opacity_groups.get_mut(&node_id) {
         *group = opacity;
+    }
+}
+
+fn current_opacity(page: &PageRasterizer, node_id: usize) -> f32 {
+    if node_id == 0 {
+        page.root_opacity
+    } else {
+        page.opacity_groups.get(&node_id).copied().unwrap_or(1.0)
     }
 }
 
