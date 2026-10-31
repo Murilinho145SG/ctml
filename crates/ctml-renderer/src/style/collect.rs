@@ -175,6 +175,14 @@ pub(super) fn collect_runs(
                             },
                         ),
                         background_color_value: style.background_color.unwrap_or([0, 0, 0, 0]),
+                        outline_color: style.transition_outline_color.then_some(
+                            super::TransitionTiming {
+                                duration_ms: style.transition_outline_color_duration_ms,
+                                delay_ms: style.transition_outline_color_delay_ms,
+                                easing: style.transition_outline_color_easing,
+                            },
+                        ),
+                        outline_color_value: style.outline_color.unwrap_or(style.color),
                         visibility: style.transition_visibility,
                         visibility_hidden: style.visibility_hidden,
                     },

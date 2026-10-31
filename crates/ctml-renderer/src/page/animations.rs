@@ -6,7 +6,10 @@ use crate::style::{
 
 use super::PageRasterizer;
 
+mod outline_color;
+mod timing;
 mod visibility;
+use timing::start_transition;
 pub(super) use visibility::VisibilityTransition;
 
 pub(super) struct OpacityTransition {
@@ -31,6 +34,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         && page.opacity_transitions.is_empty()
         && page.color_transitions.is_empty()
         && page.background_color_transitions.is_empty()
+        && page.outline_color_transitions.is_empty()
         && page.visibility_transitions.is_empty()
     {
         return None;
@@ -92,12 +96,14 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     for node_id in completed_backgrounds {
         page.background_color_transitions.remove(&node_id);
     }
+    let outline_active = outline_color::advance(page, now);
     let visibility_active = visibility::advance(page, now);
     Some(
         root_active
             || !page.opacity_transitions.is_empty()
             || !page.color_transitions.is_empty()
             || !page.background_color_transitions.is_empty()
+            || outline_active
             || visibility_active,
     )
 }
@@ -110,6 +116,7 @@ pub(super) fn begin_transitions(
     transition_styles: &HashMap<usize, ElementTransitionStyle>,
     previous_element_colors: &HashMap<usize, [u8; 4]>,
     previous_element_background_colors: &HashMap<usize, [u8; 4]>,
+    previous_element_outline_colors: &HashMap<usize, [u8; 4]>,
     previous_element_visibility: &HashMap<usize, bool>,
 ) {
     page.root_opacity = root_style.opacity;
@@ -128,6 +135,7 @@ pub(super) fn begin_transitions(
     page.opacity_transitions.clear();
     page.color_transitions.clear();
     page.background_color_transitions.clear();
+    page.outline_color_transitions.clear();
     page.visibility_transitions.clear();
     let now = Instant::now();
     for (node_id, settings) in transition_styles {
@@ -149,6 +157,16 @@ pub(super) fn begin_transitions(
                     settings,
                     timing,
                     previous_element_background_colors,
+                    now,
+                );
+            }
+            if let Some(timing) = settings.outline_color {
+                outline_color::begin_transition(
+                    page,
+                    *node_id,
+                    settings,
+                    timing,
+                    previous_element_outline_colors,
                     now,
                 );
             }
@@ -201,6 +219,16 @@ pub(super) fn begin_transitions(
                 settings,
                 timing,
                 previous_element_background_colors,
+                now,
+            );
+        }
+        if let Some(timing) = settings.outline_color {
+            outline_color::begin_transition(
+                page,
+                *node_id,
+                settings,
+                timing,
+                previous_element_outline_colors,
                 now,
             );
         }
@@ -344,45 +372,6 @@ fn interpolate_color(transition: &ColorTransition, now: Instant) -> [u8; 4] {
         };
     }
     color
-}
-
-fn start_transition(
-    from: f32,
-    to: f32,
-    enabled: bool,
-    duration_ms: f32,
-    delay_ms: f32,
-    easing: TransitionEasing,
-) -> Option<OpacityTransition> {
-    if !enabled || duration_ms <= 0.0 || (from - to).abs() <= f32::EPSILON {
-        return None;
-    }
-    let duration = duration_from_millis(duration_ms);
-    let delay = duration_from_millis(delay_ms.abs());
-    let now = Instant::now();
-    let starts_at = if delay_ms < 0.0 {
-        now.checked_sub(delay).unwrap_or(now)
-    } else {
-        now.checked_add(delay).unwrap_or(now)
-    };
-    let transition = OpacityTransition {
-        from,
-        to,
-        starts_at,
-        duration,
-        easing,
-    };
-    (now < starts_at + duration).then_some(transition)
-}
-
-fn duration_from_millis(milliseconds: f32) -> std::time::Duration {
-    let seconds = f64::from(milliseconds.max(0.0)) / 1000.0;
-    let duration = std::time::Duration::from_secs_f64(seconds.min(315_360_000.0));
-    if milliseconds > 0.0 && duration.is_zero() {
-        std::time::Duration::from_nanos(1)
-    } else {
-        duration
-    }
 }
 
 fn interpolate_opacity(transition: &OpacityTransition, now: Instant) -> f32 {

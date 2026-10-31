@@ -179,6 +179,14 @@ pub(super) fn compile_runs_with_opacity_map(
                     easing: root_style.transition_background_color_easing,
                 }),
             background_color_value: root_style.background_color.unwrap_or([0, 0, 0, 0]),
+            outline_color: root_style
+                .transition_outline_color
+                .then_some(TransitionTiming {
+                    duration_ms: root_style.transition_outline_color_duration_ms,
+                    delay_ms: root_style.transition_outline_color_delay_ms,
+                    easing: root_style.transition_outline_color_easing,
+                }),
+            outline_color_value: root_style.outline_color.unwrap_or(root_style.color),
             visibility: root_style.transition_visibility,
             visibility_hidden: root_style.visibility_hidden,
         },

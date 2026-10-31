@@ -258,6 +258,55 @@ fn background_color_transitions_interpolate_for_text_elements() {
 }
 
 #[test]
+fn outline_color_transitions_interpolate_for_layout_boxes() {
+    let nodes = [crate::UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Outline".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "div",
+            &[
+                ("display", "block"),
+                ("width", "80px"),
+                ("outline", "4px solid blue"),
+                ("transition", "outline-color 1000ms linear"),
+            ],
+        ),
+        rule("div:hover", &[("outline-color", "red")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.outline_color_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    let outline_color = page.runs[0]
+        .style
+        .layout_sizes
+        .iter()
+        .find(|size| size.node_id == 1)
+        .expect("block outline should have layout geometry")
+        .outline_color;
+    assert_eq!(outline_color, Some([128, 0, 128, 255]));
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(
+        page.runs[0].style.layout_sizes[0].outline_color,
+        Some([255, 0, 0, 255])
+    );
+}
+
+#[test]
 fn transition_none_cancels_an_in_progress_background_color_transition() {
     let nodes = [crate::UiNode::Element {
         tag: "div".to_owned(),

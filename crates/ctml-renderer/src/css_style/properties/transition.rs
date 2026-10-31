@@ -139,6 +139,19 @@ pub(super) fn update_opacity_transition(style: &mut TextStyle) {
     if let Some(index) = style
         .transition_properties
         .iter()
+        .rposition(|property| matches!(property.as_str(), "outline-color" | "all"))
+    {
+        style.transition_outline_color = true;
+        style.transition_outline_color_duration_ms =
+            list_item(&style.transition_durations_ms, index);
+        style.transition_outline_color_delay_ms = list_item(&style.transition_delays_ms, index);
+        style.transition_outline_color_easing = list_item(&style.transition_easings, index);
+    } else {
+        style.transition_outline_color = false;
+    }
+    if let Some(index) = style
+        .transition_properties
+        .iter()
         .rposition(|property| matches!(property.as_str(), "visibility" | "all"))
         && list_item(&style.transition_behaviors, index)
     {
