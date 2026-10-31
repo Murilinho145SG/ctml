@@ -6,7 +6,7 @@ pub(super) fn collect_color_frames(
     base_color: [u8; 4],
     current_color: [u8; 4],
 ) -> Option<Vec<(f32, [u8; 4])>> {
-    let mut frames = rule
+    let frames = rule
         .frames
         .iter()
         .filter_map(|frame| {
@@ -15,15 +15,106 @@ pub(super) fn collect_color_frames(
                 .iter()
                 .rev()
                 .find(|declaration| properties.contains(&declaration.property.as_str()))?;
-            let color = if declaration.value.eq_ignore_ascii_case("currentcolor") {
-                current_color
-            } else {
-                ctml_css::parse_color(&declaration.value)?
-            };
+            let color = parse_color_value(&declaration.value, current_color)?;
             Some(frame.offsets.iter().map(move |offset| (*offset, color)))
         })
         .flatten()
         .collect::<Vec<_>>();
+    normalize_frames(frames, base_color)
+}
+
+pub(super) fn collect_border_side_frames(
+    rule: &ctml_css::CssKeyframes,
+    side: usize,
+    base_color: [u8; 4],
+    current_color: [u8; 4],
+) -> Option<Vec<(f32, [u8; 4])>> {
+    let side_property = [
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+    ][side];
+    let mut frames = Vec::new();
+    for frame in &rule.frames {
+        let color = frame.declarations.iter().rev().find_map(|declaration| {
+            let value = if declaration.property == side_property {
+                Some(declaration.value.as_str())
+            } else if declaration.property == "border-color" {
+                border_color_component(&declaration.value, side)
+            } else {
+                None
+            }?;
+            parse_color_value(value, current_color)
+        });
+        if let Some(color) = color {
+            frames.extend(frame.offsets.iter().map(|offset| (*offset, color)));
+        }
+    }
+    normalize_frames(frames, base_color)
+}
+
+fn border_color_component(value: &str, side: usize) -> Option<&str> {
+    let components = split_css_components(value)?;
+    let colors = components
+        .iter()
+        .map(|component| parse_color_value(component, [0; 4]))
+        .collect::<Option<Vec<_>>>()?;
+    let mapped_side = match colors.len() {
+        1 => 0,
+        2 => side % 2,
+        3 => match side {
+            0 => 0,
+            1 | 3 => 1,
+            _ => 2,
+        },
+        4 => side,
+        _ => return None,
+    };
+    Some(components[mapped_side])
+}
+
+fn split_css_components(value: &str) -> Option<Vec<&str>> {
+    let mut components = Vec::new();
+    let mut depth = 0usize;
+    let mut start = None;
+    for (index, character) in value.char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.checked_sub(1)?;
+            }
+            whitespace if whitespace.is_whitespace() && depth == 0 => {
+                if let Some(component_start) = start.take() {
+                    components.push(&value[component_start..index]);
+                }
+                continue;
+            }
+            _ => {}
+        }
+        start.get_or_insert(index);
+    }
+    if depth != 0 {
+        return None;
+    }
+    if let Some(component_start) = start {
+        components.push(&value[component_start..]);
+    }
+    (!components.is_empty()).then_some(components)
+}
+
+fn parse_color_value(value: &str, current_color: [u8; 4]) -> Option<[u8; 4]> {
+    if value.eq_ignore_ascii_case("currentcolor") {
+        Some(current_color)
+    } else {
+        ctml_css::parse_color(value)
+    }
+}
+
+fn normalize_frames(
+    mut frames: Vec<(f32, [u8; 4])>,
+    base_color: [u8; 4],
+) -> Option<Vec<(f32, [u8; 4])>> {
     if frames.is_empty() {
         return None;
     }

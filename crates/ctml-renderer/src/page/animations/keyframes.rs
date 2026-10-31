@@ -83,16 +83,10 @@ pub(in crate::page) fn build_states(
                         base_outline_color,
                         base_color,
                     );
-                    let border_color_properties = [
-                        ["border-color", "border-top-color"],
-                        ["border-color", "border-right-color"],
-                        ["border-color", "border-bottom-color"],
-                        ["border-color", "border-left-color"],
-                    ];
                     let border_color_frames = std::array::from_fn(|side| {
-                        color::collect_color_frames(
+                        color::collect_border_side_frames(
                             rule,
-                            &border_color_properties[side],
+                            side,
                             base_border_colors[side],
                             base_color,
                         )
