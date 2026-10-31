@@ -161,15 +161,18 @@ fn row_reverse_places_the_first_flex_item_at_the_main_end() {
 #[test]
 fn column_align_items_aligns_flex_items_on_the_cross_axis() {
     let mut start = aligned_flex_page("column", "align-items", "flex-start");
+    let mut stretch = aligned_flex_page("column", "align-items", "stretch");
     let mut center = aligned_flex_page("column", "align-items", "center");
     let mut end = aligned_flex_page("column", "align-items", "flex-end");
-    for page in [&mut start, &mut center, &mut end] {
+    for page in [&mut start, &mut stretch, &mut center, &mut end] {
         page.prepare_layout(400, 120);
     }
 
     let start_x = item_x(&start, "First");
+    let stretch_x = item_x(&stretch, "First");
     let center_x = item_x(&center, "First");
     let end_x = item_x(&end, "First");
+    assert!((stretch_x - start_x).abs() < 0.1);
     assert!(center_x > start_x + 20.0, "center offset: {center_x}");
     assert!(end_x > center_x + 20.0, "end offset: {end_x}");
     for page in [&start, &center, &end] {

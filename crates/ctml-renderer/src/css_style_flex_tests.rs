@@ -311,7 +311,7 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
 
 #[test]
 fn align_items_parses_supported_alignment_and_css_wide_values() {
-    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart};
+    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
 
     assert_eq!(style_with_declarations(&[]).align_items, None);
     assert_eq!(
@@ -324,7 +324,7 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
     );
     assert_eq!(
         style_with_declarations(&[("align-items", "stretch")]).align_items,
-        None
+        Some(Stretch)
     );
     assert_eq!(
         style_with_declarations(&[("align-items", "flex-start")]).align_items,
@@ -364,7 +364,7 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
 
 #[test]
 fn align_self_parses_supported_overrides_and_css_wide_values() {
-    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart};
+    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
 
     assert_eq!(style_with_declarations(&[]).align_self, None);
     assert_eq!(
@@ -378,6 +378,10 @@ fn align_self_parses_supported_overrides_and_css_wide_values() {
     assert_eq!(
         style_with_declarations(&[("align-self", "center")]).align_self,
         Some(Center)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "stretch")]).align_self,
+        Some(Stretch)
     );
     assert_eq!(
         style_with_declarations(&[("align-self", "flex-end")]).align_self,
