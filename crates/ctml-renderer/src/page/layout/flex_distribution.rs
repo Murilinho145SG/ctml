@@ -204,12 +204,26 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     .map_or(content_size, |size| size),
                 Some(FlexBasis::Auto) | None => content_size,
             };
-            let limits = resolve_flex_size_limits(
+            let mut limits = resolve_flex_size_limits(
                 marker.min_main_size.as_deref(),
                 marker.max_main_size.as_deref(),
                 group.basis_size,
                 marker,
             );
+            if marker
+                .min_main_size
+                .as_deref()
+                .is_none_or(|value| value.eq_ignore_ascii_case("auto"))
+            {
+                let min_content = item_intrinsic_size(
+                    marker.position,
+                    group,
+                    glyphs_by_paragraph.get(&line.line_i),
+                    text_by_paragraph.get(&line.line_i),
+                    true,
+                );
+                limits.0 = Some(min_content);
+            }
             let base_size = clamp_flex_size(base_size, limits);
             item_sizes.push((content_size, base_size));
             size_limits.push(limits);
