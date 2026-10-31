@@ -1,4 +1,5 @@
 use cssparser::{Delimiter, Parser, ParserInput, ToCss, Token, serialize_identifier};
+use keyframes::{parse_keyframes_block, parse_keyframes_name};
 
 mod color;
 mod comments;
@@ -6,6 +7,7 @@ mod css_string;
 mod font_features;
 mod font_variations;
 mod imports;
+mod keyframes;
 mod length;
 mod math;
 mod numeric;
@@ -20,6 +22,7 @@ pub use css_string::parse_css_string;
 pub use font_features::parse_font_feature_settings;
 pub use font_variations::parse_font_variation_settings;
 pub use imports::parse_stylesheet_file;
+pub use keyframes::{CssKeyframe, CssKeyframes};
 pub use length::{
     FontRelativeUnits, ViewportSize, parse_font_relative_length,
     parse_font_relative_length_with_viewport, parse_length, parse_length_with_font_metrics,
@@ -57,6 +60,7 @@ pub struct Stylesheet {
     pub rules: Vec<CssRule>,
     pub font_faces: Vec<CssFontFace>,
     pub color_profiles: Vec<CssColorProfile>,
+    pub keyframes: Vec<CssKeyframes>,
     /// Layer names in normal cascade order, from lowest to highest priority.
     pub layers: Vec<String>,
 }
@@ -261,6 +265,7 @@ pub(crate) fn parse_stylesheet_with_line_offset(
         rules,
         font_faces: state.font_faces,
         color_profiles: state.color_profiles,
+        keyframes: state.keyframes,
         layers,
     })
 }
@@ -272,6 +277,7 @@ struct LayerParseState {
     anonymous_layer_count: usize,
     font_faces: Vec<CssFontFace>,
     color_profiles: Vec<CssColorProfile>,
+    keyframes: Vec<CssKeyframes>,
 }
 
 #[derive(Default)]
@@ -437,6 +443,14 @@ fn parse_rule_list<'i, 't>(
                     .retain(|existing| existing.name != profile.name);
                 state.color_profiles.push(profile);
             }
+            continue;
+        }
+        if let Some(name) = parse_keyframes_name(&prelude)
+            && !statement
+        {
+            input.expect_curly_bracket_block()?;
+            let frames = input.parse_nested_block(parse_keyframes_block)?;
+            state.keyframes.push(CssKeyframes { name, frames });
             continue;
         }
         if prelude.starts_with('@') {

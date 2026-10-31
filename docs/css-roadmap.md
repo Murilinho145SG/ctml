@@ -395,7 +395,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 ## Animation and transitions
 
 - [ ] Transitions: property, duration, delay, timing function, and behavior. Opacity interpolates for the root body style, text-bearing elements, and wrapper subtrees; text `color` interpolates on text-bearing elements and inherited wrapper text while preserving explicit descendant colors; `background-color` interpolates on text elements and layout boxes; `outline-color` and all four sides of `border-color` interpolate on layout boxes; `visibility` changes discretely at the transition midpoint when `allow-discrete` is specified. The shorthand and longhands accept comma-separated entries, match values by list index, and select the last matching property or `all` entry. Standard easing keywords, `cubic-bezier()`, and `steps()` are supported. Other animated properties and discrete properties without `allow-discrete` remain.
-- [ ] Keyframe animations and `@keyframes`.
+- [ ] Keyframe animation playback. The CSS parser preserves named `@keyframes` rules and keyframe offsets, but the renderer does not apply them yet.
 - [ ] Animation composition, direction, fill mode, iteration, and play state.
 - [ ] Animatable property definitions and interpolation.
 - [ ] Scroll-driven and view-driven animations if appropriate for CTML.
@@ -410,7 +410,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `@media`, `@supports`, `@container`, and other conditional at-rules.
 - [x] `@font-face` local URLs and static font weight/style/stretch descriptors.
 - [ ] Font feature/value rules and variable descriptors.
-- [ ] `@keyframes`.
+- [x] Parse and preserve named `@keyframes` rules and normalized `from`, `to`, and percentage offsets; animation playback remains in the animation roadmap.
 - [ ] `@page` and margin at-rules for print output.
 - [ ] `@property` registration for custom properties.
 - [ ] Counter style and font palette at-rules where relevant.

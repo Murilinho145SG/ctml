@@ -80,6 +80,7 @@ fn expand_file(
         rules: Vec::new(),
         font_faces: Vec::new(),
         color_profiles: Vec::new(),
+        keyframes: Vec::new(),
         layers: Vec::new(),
     };
     let mut copied_until = 0;
@@ -178,6 +179,7 @@ fn merge_stylesheet(target: &mut Stylesheet, mut source: Stylesheet) {
     }
     target.rules.extend(source.rules);
     target.font_faces.extend(source.font_faces);
+    target.keyframes.extend(source.keyframes);
     for profile in source.color_profiles {
         target
             .color_profiles

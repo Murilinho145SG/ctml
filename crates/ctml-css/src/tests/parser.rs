@@ -37,6 +37,38 @@ fn parses_color_profile_descriptors() {
 }
 
 #[test]
+fn parses_keyframes_and_normalizes_selector_offsets() {
+    let stylesheet = parse_stylesheet(
+        "@keyframes fade { from, 10% { opacity: 0; } 50% { opacity: .5; color: blue; } to { opacity: 1; } } p { animation-name: fade; }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.keyframes.len(), 1);
+    assert_eq!(stylesheet.keyframes[0].name, "fade");
+    assert_eq!(stylesheet.keyframes[0].frames.len(), 3);
+    assert_eq!(stylesheet.keyframes[0].frames[0].offsets, [0.0, 0.1]);
+    assert_eq!(
+        stylesheet.keyframes[0].frames[0].declarations[0].property,
+        "opacity"
+    );
+    assert_eq!(stylesheet.keyframes[0].frames[1].offsets, [0.5]);
+    assert_eq!(stylesheet.keyframes[0].frames[1].declarations.len(), 2);
+    assert_eq!(stylesheet.keyframes[0].frames[2].offsets, [1.0]);
+    assert_eq!(stylesheet.rules.len(), 1);
+}
+
+#[test]
+fn skips_invalid_keyframe_offsets_and_keeps_valid_blocks() {
+    let stylesheet = parse_stylesheet(
+        "@keyframes pulse { -10% { opacity: 0; } 25% { opacity: .5; } 120% { opacity: 1; } }",
+    )
+    .unwrap();
+
+    assert_eq!(stylesheet.keyframes[0].frames.len(), 1);
+    assert_eq!(stylesheet.keyframes[0].frames[0].offsets, [0.25]);
+}
+
+#[test]
 fn keeps_the_last_color_profile_with_a_repeated_name() {
     let stylesheet = parse_stylesheet(
         "@color-profile --brand { src: url(old.icc); } @color-profile --brand { src: url(new.icc); rendering-intent: saturation; }",

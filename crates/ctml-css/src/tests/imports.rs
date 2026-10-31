@@ -33,6 +33,34 @@ fn expands_relative_imports_in_place_and_tracks_build_dependencies() {
 }
 
 #[test]
+fn merges_keyframe_definitions_from_imported_stylesheets_in_order() {
+    let root = temporary_directory("imported-keyframes");
+    std::fs::create_dir_all(&root).expect("temporary stylesheet root should be created");
+    std::fs::write(
+        root.join("motion.css"),
+        "@keyframes imported { from { opacity: 0; } to { opacity: 1; } }",
+    )
+    .expect("motion stylesheet should be written");
+    std::fs::write(
+        root.join("main.css"),
+        "@import \"motion.css\"; @keyframes after { to { opacity: 1; } }",
+    )
+    .expect("main stylesheet should be written");
+
+    let (stylesheet, _) = super::parse_stylesheet_file(root.join("main.css"), &root).unwrap();
+
+    assert_eq!(
+        stylesheet
+            .keyframes
+            .iter()
+            .map(|rule| rule.name.as_str())
+            .collect::<Vec<_>>(),
+        ["imported", "after"]
+    );
+    std::fs::remove_dir_all(root).expect("temporary stylesheet root should be removed");
+}
+
+#[test]
 fn loads_relative_local_resources_and_decodes_url_paths() {
     let root = temporary_directory("local-resources");
     std::fs::create_dir_all(root.join("styles")).expect("stylesheet directory should exist");
