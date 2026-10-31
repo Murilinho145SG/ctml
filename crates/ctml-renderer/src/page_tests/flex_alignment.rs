@@ -23,6 +23,32 @@ fn row_justify_content_aligns_flex_items_on_the_main_axis() {
 }
 
 #[test]
+fn row_justify_content_space_between_distributes_free_space_between_items() {
+    let mut start = aligned_flex_page("row", "justify-content", "flex-start");
+    let mut space_between = aligned_flex_page("row", "justify-content", "space-between");
+    start.prepare_layout(400, 120);
+    space_between.prepare_layout(400, 120);
+
+    let start_gap = item_x(&start, "Second") - item_x(&start, "First");
+    let distributed_gap = item_x(&space_between, "Second") - item_x(&space_between, "First");
+    assert!(
+        distributed_gap > start_gap + 150.0,
+        "space-between should distribute the unused row width, observed {distributed_gap} vs {start_gap}"
+    );
+}
+
+#[test]
+fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
+    let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
+    page.prepare_layout(400, 120);
+
+    assert!(
+        item_x(&page, "First") > item_x(&page, "Second") + 150.0,
+        "space-between should span the row while row-reverse places the first source item at the right"
+    );
+}
+
+#[test]
 fn row_reverse_places_the_first_flex_item_at_the_main_end() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "flex-start");
     let mut flex_end = aligned_flex_page("row-reverse", "justify-content", "flex-end");

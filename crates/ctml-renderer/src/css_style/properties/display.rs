@@ -29,6 +29,7 @@ pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
         "center" => crate::style::FlexAlignment::Center,
         "flex-end" => crate::style::FlexAlignment::FlexEnd,
         "end" => crate::style::FlexAlignment::End,
+        "space-between" => crate::style::FlexAlignment::SpaceBetween,
         _ => return,
     };
 }

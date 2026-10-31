@@ -6,6 +6,7 @@ use crate::{
 };
 
 mod first_letter_box;
+mod flex_distribution;
 mod shape_buffer;
 pub(super) use first_letter_box::insert_first_letter_spacing;
 pub(super) use first_letter_box::insert_first_line_spacing;
@@ -41,6 +42,7 @@ pub(super) fn line_alignments(
                     crate::style::FlexAlignment::Center => cosmic_text::Align::Center,
                     crate::style::FlexAlignment::FlexEnd => cosmic_text::Align::End,
                     crate::style::FlexAlignment::End => cosmic_text::Align::End,
+                    crate::style::FlexAlignment::SpaceBetween => cosmic_text::Align::Start,
                 })
                 .unwrap_or(style.text_align),
             style.text_align_last,

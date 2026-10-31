@@ -323,4 +323,8 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
             hinting,
         );
     }
+
+    if super::flex_distribution::apply_distributed_flex_gaps(page, content_width) {
+        shape_buffer(page, content_width, content_height);
+    }
 }

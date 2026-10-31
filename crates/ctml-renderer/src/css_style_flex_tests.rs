@@ -168,6 +168,10 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
     );
     assert_eq!(
         style_with_declarations(&[("justify-content", "space-between")]).justify_content,
+        crate::style::FlexAlignment::SpaceBetween
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "space-around")]).justify_content,
         FlexStart
     );
 

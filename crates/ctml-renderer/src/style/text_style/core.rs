@@ -24,6 +24,7 @@ pub(crate) enum FlexAlignment {
     Center,
     FlexEnd,
     End,
+    SpaceBetween,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -80,6 +81,8 @@ pub(crate) struct TextStyle {
     pub(crate) align_items: Option<FlexAlignment>,
     pub(crate) align_self: Option<FlexAlignment>,
     pub(crate) flex_item_alignment: Option<FlexAlignment>,
+    pub(crate) flex_distributed_gap: bool,
+    pub(crate) flex_distributed_gap_applied: bool,
     pub(crate) row_gap: Option<String>,
     pub(crate) column_gap: Option<String>,
     pub(crate) row_gap_order: usize,
@@ -298,6 +301,8 @@ impl Default for TextStyle {
             align_items: None,
             align_self: None,
             flex_item_alignment: None,
+            flex_distributed_gap: false,
+            flex_distributed_gap_applied: false,
             row_gap: None,
             column_gap: None,
             row_gap_order: 0,

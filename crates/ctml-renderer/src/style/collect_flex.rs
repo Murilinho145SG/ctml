@@ -41,7 +41,10 @@ fn visual_justify(alignment: FlexAlignment, reverse: bool) -> FlexAlignment {
     match alignment {
         FlexAlignment::FlexStart => FlexAlignment::FlexEnd,
         FlexAlignment::FlexEnd => FlexAlignment::FlexStart,
-        FlexAlignment::Start | FlexAlignment::End | FlexAlignment::Center => alignment,
+        FlexAlignment::Start
+        | FlexAlignment::End
+        | FlexAlignment::Center
+        | FlexAlignment::SpaceBetween => alignment,
     }
 }
 
@@ -133,9 +136,12 @@ pub(super) fn append_gap(
     } else {
         None
     };
-    let Some(gap) = gap else {
+    let distribute = style.flex_items_row
+        && style.display_block != Some(false)
+        && style.justify_content == FlexAlignment::SpaceBetween;
+    if gap.is_none() && !distribute {
         return;
-    };
+    }
     let percentage_basis = flex_main_size(style);
     let resolve_length = |component: &str| {
         let percentage = || {
@@ -152,12 +158,12 @@ pub(super) fn append_gap(
             )
         })
     };
-    let Some(gap_px) = ctml_css::parse_math_expression(gap, resolve_length)
-        .or_else(|| resolve_length(gap))
+    let gap_px = gap
+        .and_then(|gap| {
+            ctml_css::parse_math_expression(gap, resolve_length).or_else(|| resolve_length(gap))
+        })
         .filter(|gap| *gap > 0.0)
-    else {
-        return;
-    };
+        .unwrap_or_default();
 
     let mut spacer_style = style.clone();
     spacer_style.font_size = 1.0;
@@ -175,6 +181,8 @@ pub(super) fn append_gap(
     if style.flex_items_row {
         spacer_style.letter_spacing = gap_px;
         spacer_style.letter_spacing_px = true;
+        spacer_style.flex_distributed_gap = distribute;
+        spacer_style.flex_distributed_gap_applied = false;
     } else {
         spacer_style.line_height = gap_px;
         spacer_style.flow_spacer = true;
