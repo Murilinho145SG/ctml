@@ -183,10 +183,10 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Carry missing components through matching Lab, LCH, Oklab, and Oklch interpolation spaces, including nested mixes.
 - [x] Ignore powerless hues during interpolation in HSL, HWB, LCH, and Oklch spaces.
 - [x] Standard and deprecated system color keywords using CTML's fixed light fallback palette.
-- [ ] Respond to OS forced-color palettes and element color schemes when the host exposes them.
+- [ ] Integrate OS forced-color palettes and preferred-color-scheme when the host exposes those inputs; the CSS `color-scheme` property and explicit light/dark palettes are supported, but CTML does not read host preferences.
 - [x] Alpha colors for text and page background, including page-background compositing over white.
 - [x] Element `opacity` scales text glyphs, decorations, shadows and emphasis marks, fragment backgrounds, selection highlights, pseudo-element paints, and nested descendant paints; ancestor opacity multiplies with descendant opacity.
-- [ ] Isolate overlapping element paints through group compositing.
+- [x] Isolate overlapping element paints through group compositing for the page root, nested opacity groups, and interleaved element, text, and generated-content paints.
   - [x] Composite all page-root `body` paints as one opacity group over the white page canvas.
   - [x] Composite a nested element's backgrounds, borders, shadows, and text together when it has no opacity-group ancestor or descendant and its paint does not overlap another opacity group.
   - [x] Compose nested opacity groups recursively when an opacity element contains another opacity element.
@@ -195,7 +195,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] Preserve paint order when opacity groups overlap text or generated-content nodes interleaved with element siblings.
 - [ ] `accent-color` and color adjustment properties. CTML has no native form controls or OS forced-color preference source.
 - [x] `color-scheme: normal | light | dark` with ordered supported schemes and optional `only`; system color keywords resolve using the selected inherited light or dark palette. OS preference negotiation remains unsupported because CTML exposes no preferred-scheme input.
-- [ ] Blend modes and isolation.
+- [x] Blend modes and isolation for supported background layers and element subtrees.
   - [x] `background-blend-mode` for normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, and luminosity modes.
   - [x] `mix-blend-mode` for all standard blend modes on element subtrees.
   - [x] `isolation: isolate` contains descendant blending within an element subtree.
@@ -226,7 +226,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Nested scroll-chain composition under a horizontal page root, passing unconsumed wheel deltas from inner scrollers to their ancestors and then to the page root.
 - [x] Overflow clipping for nested orthogonal blocks under a vertical page root, including descendant paints and pointer/selection hits.
 - [x] Nested content-bearing block `height`, `block-size`, `min-height`, `min-block-size`, `max-height`, and `max-block-size` percentages resolve against an explicitly sized containing block's used block extent.
-- [ ] Additional sizing behavior beyond text flow for content-bearing blocks.
+- [ ] Complete CSS box sizing beyond the supported text-bearing block model, including inline/replaced-element dimensions and general positioned boxes.
 - [x] `box-sizing: content-box | border-box`; `content-box` is the initial value, and `border-box` includes supported physical padding in width and block-size calculations.
 - [x] Physical `padding` shorthand and `padding-top/right/bottom/left` accept non-negative font-relative lengths and percentages of the containing block's inline size, inset text, and add to block flow.
 - [x] `min-content`, `max-content`, and `fit-content()` sizing for text-bearing widths, including logical inline-size and min/max constraints.
@@ -243,13 +243,13 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `border-image` source, slice, repeat, width, outset, shorthand expansion, and nine-slice painting for embedded PNG/JPEG `data:` images. Rounded corners and other image formats are not implemented.
 - [x] `box-decoration-break: slice | clone` repeats inline text fragment side borders for `clone`; `slice` draws only the outer inline start/end edges.
 - [x] `visibility: visible|hidden|collapse`; `collapse` is treated as hidden because CTML has no table formatting context.
-- [ ] `content-visibility` and containment behavior. `hidden` skips descendant painting and hit testing, and applies size, style, layout, and paint containment; auto-sized content reserves zero block flow height unless `contain-intrinsic-size` provides a fallback. `auto` applies style, layout, and paint containment, skips content outside a viewport margin of 50%, and applies size containment with intrinsic-size fallback while skipped. Focused and selected content remains available. Style containment scopes counter and quote changes to the element subtree. `contain: paint`, `content`, and `strict` clip descendant painting. `contain: size` and `strict` remove intrinsic block flow height and horizontal intrinsic width contributions while allowing visible overflow. Vertical page writing maps physical intrinsic width and height fallbacks to block and inline axes. Orthogonal nested inline-size containment maps its contained inline contribution to the page block axis and uses the matching physical intrinsic fallback. Layout containment state is parsed, but its containing-block, formatting-context, and stacking effects await positioned and float layout.
+- [ ] Complete containment behavior. `content-visibility: hidden|auto`, size/style/paint containment, intrinsic-size fallbacks, and skipped-content focus/selection behavior are implemented. Layout containment is parsed, but its containing-block, formatting-context, and stacking effects remain incomplete. `hidden` skips descendant painting and hit testing and reserves zero block flow height for auto-sized content unless `contain-intrinsic-size` supplies a fallback. `auto` skips content outside a viewport margin of 50%, applies size containment with intrinsic-size fallback while skipped, and keeps focused and selected content available. Style containment scopes counter and quote changes to the element subtree. Paint containment clips descendant painting; size containment removes intrinsic block flow height and horizontal intrinsic width contributions while allowing visible overflow. Vertical writing maps physical intrinsic-size fallbacks to logical axes, including orthogonal nested inline-size containment.
 - [x] Parse and preserve layout-containment state for `contain: layout`, `content`, and `strict`, including layout containment implied by `content-visibility: hidden|auto`. Its containing-block, formatting-context, and stacking behavior awaits positioned and float layout.
 
 ## Layout
 
-- [ ] Normal flow and inline formatting behavior.
-- [ ] Block, inline, inline-block, and anonymous box behavior.
+- [ ] Complete normal-flow and inline-formatting behavior; common text flow, whitespace handling, and line wrapping are implemented, but CTML does not yet build the full CSS inline/block formatting model.
+- [ ] Complete block, inline, inline-block, and anonymous-box behavior beyond the documented text-flow and paint support.
 - [ ] Flexbox: direct-item `order`, reverse directions, and column cross-axis `align-self: auto | flex-start | start | center | flex-end | end`, block-row main-axis `justify-content: flex-start | start | center | flex-end | end | space-between`, column cross-axis `align-items: flex-start | start | center | flex-end | end`, fixed-length main-axis gaps, and percentage main-axis gaps with a viewport-derived or explicit fixed main-axis size are supported; sizing, wrapping, row cross-axis alignment, other distributed spacing, and wrapped cross-axis gaps remain.
 - [ ] Grid: explicit/implicit tracks, placement, auto sizing, named areas, and subgrid.
 - [ ] Box alignment: alignment, justification, gaps, and baseline alignment.
@@ -258,7 +258,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Floats, clear, and shape-based text wrapping.
 - [ ] Multi-column layout.
 - [ ] Tables and table layout, if CTML supports table elements.
-- [ ] Overflow, clipping, scrolling, scrollbars, and scroll snapping.
+- [ ] Complete overflow and scrolling behavior; clipping, page and nested scrolling, and basic scrollbars are supported, while scroll snapping and remaining browser scroll behavior are not.
 - [ ] Fragmentation, page breaks, and paged media where relevant.
 - [ ] Logical properties beyond `inline-size`/`block-size` and writing-mode-aware layout on nested blocks.
 - [ ] Anchor positioning and advanced layout modules if they become stable and useful.
@@ -346,7 +346,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `repeating-radial-gradient()` repeats percentage stop patterns that start at `0%`.
   - [x] `conic-gradient()` supports a starting angle, center position, angular color stops, and clockwise rendering.
   - [x] `repeating-conic-gradient()` repeats the color-stop pattern around the full sweep.
-- [ ] Border images and nine-slice behavior.
+- [x] Border images and nine-slice painting for embedded PNG/JPEG `data:` images on block boxes, inline text fragments, and the page root; rounded image corners and other source formats remain unsupported.
   - [x] Decode embedded PNG/JPEG `data:` sources and paint the nine stretched source regions using numeric or percentage `border-image-slice` values, including optional center fill.
   - [x] `border-image-repeat` accepts one or two `stretch`, `repeat`, `round`, or `space` modes for edge and filled center tiles.
   - [x] `border-image-width` accepts one-to-four `auto`, number multipliers, lengths, or percentages.
@@ -357,7 +357,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Masks, clipping paths, and mask compositing.
 - [ ] Transform properties, transform origin, and transform box.
 - [ ] 2D and 3D transforms and perspective.
-- [ ] Blend modes, compositing, and isolation.
+- [x] Blend modes and isolation for the documented background-layer and element-subtree behavior; broader stacking and positioning integration remains incomplete.
   - [x] Blend background image layers with `background-blend-mode`.
   - [x] `mix-blend-mode` on element subtrees.
   - [x] `isolation: isolate` on element subtrees.
@@ -375,7 +375,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] `pointer-events: auto|none` for rendered text targets, including descendant overrides.
 - [x] `user-select: auto|text|none|all` for rendered text, including descendant overrides and atomic element selection.
 - [ ] `caret-color` and `accent-color`.
-- [ ] Focus indicators, outlines, and keyboard navigation states.
+- [ ] Native default focus indication and additional keyboard UI states; `:focus-visible`, keyboard navigation, and CSS outline properties are supported.
 - [ ] Form control appearance, sizing, and styling if CTML provides native form controls.
 - [ ] Resize behavior and `resize` property.
 - [ ] Touch and pointer action properties where relevant.
@@ -419,11 +419,11 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 ## Accessibility, platform integration, and native CTML scope
 
 - [ ] Ensure visual styling never becomes the only source of essential state or meaning.
-- [ ] Support keyboard-visible focus and system text scaling where applicable.
+- [ ] Integrate system text scaling where the native host provides it; keyboard navigation and `:focus-visible` matching are supported.
 - [ ] Respect OS high-contrast, reduced-motion, and color-scheme preferences.
 - [ ] Define how CSS styling interacts with CTML semantics and accessibility metadata.
-- [ ] Define native resource loading, font discovery, and image decoding behavior.
-- [ ] Keep CSS parsing and compilation out of release runtime builds.
+- [x] Document native resource loading, local font discovery, and supported image decoding limits.
+- [x] Keep stylesheet parsing and CSS rule compilation in build-time crates, outside release runtime builds.
 - [ ] Keep development-only refresh and diagnostics out of the minimal release runtime.
 - [ ] Establish memory and performance budgets for stylesheet compilation and native rendering.
 - [x] Keep web-only and browser API-dependent features out of scope; CTML applications render natively.
