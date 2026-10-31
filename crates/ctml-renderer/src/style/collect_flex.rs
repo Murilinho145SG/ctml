@@ -1,13 +1,12 @@
+pub(super) use super::collect_flex_order::order_nodes;
 use super::{FlexAlignment, TextRun, TextStyle, UserSelect, append_text, push_line_break};
-use crate::{StyleRule, UiNode, css_style};
-use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
 
 #[derive(Default)]
 pub(super) struct FlexGapState {
     item_count: usize,
     last_item_id: Option<usize>,
     last_item_grow: f32,
-    total_grow: f32,
+    last_item_shrink: f32,
 }
 
 pub(super) fn item_alignment(
@@ -74,6 +73,7 @@ impl FlexGapState {
             item_id,
             !text.chars().all(char::is_whitespace),
             0.0,
+            1.0,
             element_path,
             output,
             last_was_space,
@@ -94,6 +94,7 @@ impl FlexGapState {
         style: &TextStyle,
         item_id: usize,
         grow: f32,
+        shrink: f32,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -104,6 +105,7 @@ impl FlexGapState {
             item_id,
             true,
             grow,
+            shrink,
             element_path,
             output,
             last_was_space,
@@ -117,6 +119,7 @@ impl FlexGapState {
         item_id: usize,
         is_item: bool,
         grow: f32,
+        shrink: f32,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -139,6 +142,8 @@ impl FlexGapState {
                 style,
                 true,
                 0.0,
+                0.0,
+                true,
                 element_path,
                 output,
                 last_was_space,
@@ -150,6 +155,8 @@ impl FlexGapState {
                 style,
                 false,
                 self.last_item_grow,
+                self.last_item_shrink,
+                is_justify_distribution(style),
                 element_path,
                 output,
                 last_was_space,
@@ -159,7 +166,7 @@ impl FlexGapState {
         self.item_count += 1;
         self.last_item_id = Some(item_id);
         self.last_item_grow = grow;
-        self.total_grow += grow;
+        self.last_item_shrink = shrink;
     }
 
     pub(super) fn finish(
@@ -173,23 +180,14 @@ impl FlexGapState {
         if self.item_count == 0 || !style.flex_items_row {
             return;
         }
-        if self.total_grow > 0.0 {
-            if self.last_item_grow > 0.0 {
-                append_gap(
-                    style,
-                    false,
-                    self.last_item_grow,
-                    element_path,
-                    output,
-                    last_was_space,
-                    capitalize_next,
-                );
-            }
-        } else if style.justify_content == FlexAlignment::SpaceEvenly {
+        let trailing_justify = style.justify_content == FlexAlignment::SpaceEvenly;
+        if trailing_justify || self.last_item_grow > 0.0 || self.last_item_shrink > 0.0 {
             append_gap(
                 style,
                 false,
-                0.0,
+                self.last_item_grow,
+                self.last_item_shrink,
+                trailing_justify,
                 element_path,
                 output,
                 last_was_space,
@@ -199,10 +197,19 @@ impl FlexGapState {
     }
 }
 
+fn is_justify_distribution(style: &TextStyle) -> bool {
+    matches!(
+        style.justify_content,
+        FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
+    )
+}
+
 pub(super) fn append_gap(
     style: &TextStyle,
     leading: bool,
     grow_weight: f32,
+    shrink_weight: f32,
+    justify_distribution: bool,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
@@ -215,7 +222,8 @@ pub(super) fn append_gap(
     } else {
         None
     };
-    let distribute = style.flex_items_row
+    let distribute = justify_distribution
+        && style.flex_items_row
         && style.display_block != Some(false)
         && matches!(
             style.justify_content,
@@ -223,8 +231,10 @@ pub(super) fn append_gap(
         );
     let distribute_grow =
         style.flex_items_row && grow_weight > 0.0 && flex_main_size(style).is_some();
+    let distribute_shrink =
+        style.flex_items_row && shrink_weight > 0.0 && flex_main_size(style).is_some();
     let wrap_break = style.flex_items_row && style.flex_wrap;
-    if gap.is_none() && !distribute && !distribute_grow && !wrap_break {
+    if gap.is_none() && !distribute && !distribute_grow && !distribute_shrink && !wrap_break {
         return;
     }
     let percentage_basis = flex_main_size(style);
@@ -266,11 +276,13 @@ pub(super) fn append_gap(
     if style.flex_items_row {
         spacer_style.letter_spacing = gap_px;
         spacer_style.letter_spacing_px = true;
-        spacer_style.flex_distributed_gap = distribute || distribute_grow;
+        spacer_style.flex_distributed_gap = distribute || distribute_grow || distribute_shrink;
         spacer_style.flex_distributed_gap_leading =
             leading && style.justify_content == FlexAlignment::SpaceAround;
         spacer_style.flex_distributed_gap_applied = false;
         spacer_style.flex_grow_weight = grow_weight;
+        spacer_style.flex_shrink_weight = shrink_weight;
+        spacer_style.flex_justify_distributed = distribute;
         spacer_style.flex_wrap_break = wrap_break;
         spacer_style.flex_wrap_gap_px = if wrap_break {
             resolve_wrap_row_gap(style)
@@ -387,93 +399,4 @@ fn flex_main_size(style: &TextStyle) -> Option<f32> {
         })
     };
     resolve(declared_size).or_else(|| ctml_css::parse_math_expression(declared_size, resolve))
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn order_nodes(
-    nodes: &[UiNode],
-    siblings: &[SelectorSibling],
-    inherited: &super::TextStyle,
-    stylesheet: &[StyleRule],
-    ancestors: &[css_style::ElementIdentity],
-    ancestor_attributes: &[Vec<(String, Option<String>)>],
-    siblings_before_ancestors: &[Vec<SelectorSibling>],
-    ancestor_positions: &[SelectorPosition],
-    selector_tree: &[SelectorTreeElement],
-) -> Vec<(usize, Option<usize>, usize)> {
-    let is_flex_container = inherited.flex_items_row || inherited.flex_items_column;
-    let mut element_index = 0;
-    let mut item_id = 0;
-    let mut previous_was_text = false;
-    let mut ordered_nodes = nodes
-        .iter()
-        .enumerate()
-        .map(|(node_index, node)| {
-            let (source_element_index, order) = if matches!(node, UiNode::Element { .. }) {
-                item_id += 1;
-                previous_was_text = false;
-                let sibling = &siblings[element_index];
-                let inline_style = sibling
-                    .attributes
-                    .iter()
-                    .find(|(name, _)| name.eq_ignore_ascii_case("style"))
-                    .and_then(|(_, value)| value.as_deref());
-                let order = if is_flex_container {
-                    css_style::resolve_style_with_selector_tree_context(
-                        inherited,
-                        &sibling.element,
-                        ancestors,
-                        &sibling.attributes,
-                        ancestor_attributes,
-                        &siblings[..element_index],
-                        siblings_before_ancestors,
-                        sibling.position,
-                        ancestor_positions,
-                        selector_tree,
-                        inline_style,
-                        stylesheet,
-                    )
-                    .flex_order
-                } else {
-                    0
-                };
-                let source_element_index = Some(element_index);
-                element_index += 1;
-                (source_element_index, order)
-            } else {
-                if !previous_was_text {
-                    item_id += 1;
-                }
-                previous_was_text = true;
-                (None, 0)
-            };
-            (node_index, source_element_index, item_id, order)
-        })
-        .collect::<Vec<_>>();
-
-    if is_flex_container {
-        ordered_nodes.sort_by_key(|(_, _, _, order)| *order);
-        if inherited.flex_direction_reverse {
-            reverse_item_groups(&mut ordered_nodes);
-        }
-    }
-
-    ordered_nodes
-        .into_iter()
-        .map(|(node_index, source_element_index, item_id, _)| {
-            (node_index, source_element_index, item_id)
-        })
-        .collect()
-}
-
-fn reverse_item_groups(nodes: &mut Vec<(usize, Option<usize>, usize, i32)>) {
-    let mut groups = Vec::<Vec<(usize, Option<usize>, usize, i32)>>::new();
-    for node in nodes.drain(..) {
-        if groups.last().is_some_and(|group| group[0].2 == node.2) {
-            groups.last_mut().expect("group was just found").push(node);
-        } else {
-            groups.push(vec![node]);
-        }
-    }
-    nodes.extend(groups.into_iter().rev().flatten());
 }

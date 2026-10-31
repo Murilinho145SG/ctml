@@ -143,6 +143,7 @@ pub(super) fn collect_runs(
                     inherited,
                     flex_item_id,
                     style.flex_grow,
+                    style.flex_shrink,
                     element_path,
                     output,
                     last_was_space,

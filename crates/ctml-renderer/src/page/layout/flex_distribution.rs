@@ -3,10 +3,18 @@ use std::collections::HashMap;
 use crate::page::PageRasterizer;
 
 struct FlexGapLine {
-    positions: Vec<(usize, f32)>,
+    markers: Vec<FlexGapMarker>,
     available_width: f32,
     container_id: Option<usize>,
     mixed_containers: bool,
+}
+
+#[derive(Clone, Copy)]
+struct FlexGapMarker {
+    position: usize,
+    grow: f32,
+    shrink: f32,
+    justify: bool,
 }
 
 pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_width: f32) -> bool {
@@ -44,7 +52,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                             writing_mode,
                         );
                         FlexGapLine {
-                            positions: Vec::new(),
+                            markers: Vec::new(),
                             available_width: inline_size
                                 + padding_start
                                 + border_start
@@ -56,8 +64,12 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     if line.container_id != container_id {
                         line.mixed_containers = true;
                     }
-                    line.positions
-                        .push((byte_index, run.style.flex_grow_weight));
+                    line.markers.push(FlexGapMarker {
+                        position: byte_index,
+                        grow: run.style.flex_grow_weight,
+                        shrink: run.style.flex_shrink_weight,
+                        justify: run.style.flex_justify_distributed,
+                    });
                 }
                 byte_index += character.len_utf8();
             }
@@ -75,17 +87,16 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
         if group.mixed_containers {
             continue;
         }
-        let marker_count = line
-            .glyphs
+        let line_markers = group
+            .markers
             .iter()
-            .filter(|glyph| {
-                group
-                    .positions
+            .filter(|marker| {
+                line.glyphs
                     .iter()
-                    .any(|(position, _)| *position == glyph.start)
+                    .any(|glyph| marker.position == glyph.start)
             })
-            .count();
-        if marker_count == 0 || marker_count != group.positions.len() {
+            .collect::<Vec<_>>();
+        if line_markers.is_empty() {
             continue;
         }
         let left = line
@@ -99,20 +110,50 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             .map(|glyph| glyph.x + glyph.w)
             .fold(f32::NEG_INFINITY, f32::max);
         let used_width = right - left;
+        let free_space = group.available_width - used_width;
         // Keep one pixel free so shaped advances cannot push the last item onto a new line.
-        let free_space = (group.available_width - used_width - 1.0).max(0.0);
-        let total_grow = group
-            .positions
+        let grow_space = (free_space - 1.0).max(0.0);
+        let total_grow = line_markers
             .iter()
-            .map(|(_, weight)| f64::from(*weight))
+            .map(|marker| f64::from(marker.grow))
             .sum::<f64>();
-        for (position, weight) in &group.positions {
-            let extra = if total_grow > 0.0 {
-                (f64::from(free_space) * f64::from(*weight) / total_grow) as f32
+        let justify_count = line_markers.iter().filter(|marker| marker.justify).count();
+        let mut shrink_weights = Vec::new();
+        if free_space < 0.0 {
+            let mut item_start = line
+                .glyphs
+                .iter()
+                .map(|glyph| glyph.start)
+                .min()
+                .unwrap_or_default();
+            for marker in &line_markers {
+                let base_size = line
+                    .glyphs
+                    .iter()
+                    .filter(|glyph| glyph.start >= item_start && glyph.end <= marker.position)
+                    .map(|glyph| glyph.w)
+                    .sum::<f32>();
+                shrink_weights.push((marker.shrink, base_size));
+                item_start = marker.position + '\u{200b}'.len_utf8();
+            }
+        }
+        let total_shrink = shrink_weights
+            .iter()
+            .map(|(factor, base_size)| f64::from(*factor) * f64::from(*base_size))
+            .sum::<f64>();
+        for (index, marker) in line_markers.iter().enumerate() {
+            let extra = if grow_space > 0.0 && total_grow > 0.0 {
+                (f64::from(grow_space) * f64::from(marker.grow) / total_grow) as f32
+            } else if grow_space > 0.0 && total_grow == 0.0 && marker.justify {
+                grow_space / justify_count.max(1) as f32
+            } else if free_space < 0.0 && total_shrink > 0.0 {
+                let (factor, base_size) = shrink_weights[index];
+                let weighted_size = f64::from(factor) * f64::from(base_size);
+                -((f64::from(-free_space) * weighted_size / total_shrink) as f32).min(base_size)
             } else {
-                free_space / marker_count as f32
+                0.0
             };
-            extras.insert((line.line_i, container_id, *position), extra);
+            extras.insert((line.line_i, container_id, marker.position), extra);
         }
     }
 
@@ -139,7 +180,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 };
                 run.style.letter_spacing_px = true;
                 run.style.flex_distributed_gap_applied = true;
-                changed |= extra > 0.0;
+                changed |= extra.abs() > 0.0;
             }
             byte_index += character.len_utf8();
         }

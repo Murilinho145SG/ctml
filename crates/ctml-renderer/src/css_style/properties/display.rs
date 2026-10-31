@@ -114,6 +114,17 @@ pub(super) fn apply_flex_grow(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_shrink(style: &mut TextStyle, value: &str) {
+    if let Some(shrink) = value
+        .trim()
+        .parse::<f32>()
+        .ok()
+        .filter(|shrink| shrink.is_finite() && *shrink >= 0.0)
+    {
+        style.flex_shrink = shrink;
+    }
+}
+
 pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "display" => apply_display(style, value),
@@ -125,6 +136,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "align-self" => apply_align_self(style, value),
         "order" => apply_flex_order(style, value),
         "flex-grow" => apply_flex_grow(style, value),
+        "flex-shrink" => apply_flex_shrink(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
 }
@@ -141,6 +153,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "align-self"
             | "order"
             | "flex-grow"
+            | "flex-shrink"
             | "gap"
             | "row-gap"
             | "column-gap"

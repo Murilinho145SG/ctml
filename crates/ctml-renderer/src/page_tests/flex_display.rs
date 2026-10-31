@@ -375,3 +375,6 @@ mod flex_order;
 
 #[path = "flex_grow.rs"]
 mod flex_grow;
+
+#[path = "flex_shrink.rs"]
+mod flex_shrink;

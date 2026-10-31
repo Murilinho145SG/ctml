@@ -92,6 +92,7 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         "align-self" => style.align_self = None,
         "order" => style.flex_order = 0,
         "flex-grow" => style.flex_grow = 0.0,
+        "flex-shrink" => style.flex_shrink = 1.0,
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::initial_flex_gap(style, property);
         }
