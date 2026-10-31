@@ -13,7 +13,9 @@ use super::{PageRasterizer, ease_transition};
 #[derive(Clone)]
 pub(in crate::page) struct KeyframeAnimationState {
     base_opacity: f32,
-    opacity_frames: Vec<(f32, f32)>,
+    base_visibility_hidden: bool,
+    opacity_frames: Option<Vec<(f32, f32)>>,
+    visibility_frames: Option<Vec<(f32, bool)>>,
     pub(in crate::page) starts_at: Instant,
     animation: AnimationSpec,
     duration: Duration,
@@ -45,10 +47,17 @@ pub(in crate::page) fn build_states(
             } else {
                 *opacity_groups.get(node_id)?
             };
-            let opacity_frames = collect_opacity_frames(rule, base_opacity)?;
+            let base_visibility_hidden = style.visibility_hidden;
+            let opacity_frames = collect_opacity_frames(rule, base_opacity);
+            let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
+            if opacity_frames.is_none() && visibility_frames.is_none() {
+                return None;
+            }
             let mut state = KeyframeAnimationState {
                 base_opacity,
+                base_visibility_hidden,
                 opacity_frames,
+                visibility_frames,
                 starts_at: animation_start(animation, now),
                 animation: animation.clone(),
                 duration: duration_from_millis(animation.duration_ms),
@@ -121,15 +130,28 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
         } else {
             true
         };
-        let opacity = if effect_applies {
-            sample_opacity(&state.opacity_frames, directed_progress, state.easing)
-        } else {
-            state.base_opacity
-        };
-        apply_opacity(page, node_id, opacity);
+        if let Some(frames) = &state.opacity_frames {
+            let opacity = if effect_applies {
+                sample_opacity(frames, directed_progress, state.easing)
+            } else {
+                state.base_opacity
+            };
+            apply_opacity(page, node_id, opacity);
+        }
+        if let Some(frames) = &state.visibility_frames {
+            let hidden = if effect_applies {
+                sample_visibility(frames, directed_progress, state.easing)
+            } else {
+                state.base_visibility_hidden
+            };
+            super::visibility::apply_visibility(page, node_id, hidden);
+            page.element_visibility.insert(node_id, hidden);
+        }
 
         if is_finished {
-            finished.push(node_id);
+            if !has_forwards_fill {
+                finished.push(node_id);
+            }
         } else if state.play_state == AnimationPlayState::Running {
             active = true;
         }
@@ -185,6 +207,51 @@ fn collect_opacity_frames(
     Some(unique)
 }
 
+fn collect_visibility_frames(
+    rule: &ctml_css::CssKeyframes,
+    base_hidden: bool,
+) -> Option<Vec<(f32, bool)>> {
+    let mut frames = rule
+        .frames
+        .iter()
+        .filter_map(|frame| {
+            let hidden = frame
+                .declarations
+                .iter()
+                .rev()
+                .find(|declaration| declaration.property == "visibility")
+                .and_then(|declaration| {
+                    match declaration.value.trim().to_ascii_lowercase().as_str() {
+                        "visible" => Some(false),
+                        "hidden" | "collapse" => Some(true),
+                        _ => None,
+                    }
+                })?;
+            Some(frame.offsets.iter().map(move |offset| (*offset, hidden)))
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+    if frames.is_empty() {
+        return None;
+    }
+    frames.sort_by(|left, right| left.0.total_cmp(&right.0));
+    let mut unique = Vec::<(f32, bool)>::new();
+    for frame in frames {
+        if unique.last().is_some_and(|last| last.0 == frame.0) {
+            *unique.last_mut().expect("last frame exists") = frame;
+        } else {
+            unique.push(frame);
+        }
+    }
+    if unique[0].0 > 0.0 {
+        unique.insert(0, (0.0, base_hidden));
+    }
+    if unique.last().is_some_and(|last| last.0 < 1.0) {
+        unique.push((1.0, base_hidden));
+    }
+    Some(unique)
+}
+
 fn sample_opacity(frames: &[(f32, f32)], progress: f32, easing: TransitionEasing) -> f32 {
     if progress <= frames[0].0 {
         return frames[0].1;
@@ -200,6 +267,26 @@ fn sample_opacity(frames: &[(f32, f32)], progress: f32, easing: TransitionEasing
         }
     }
     frames.last().expect("animation has keyframe values").1
+}
+
+fn sample_visibility(frames: &[(f32, bool)], progress: f32, easing: TransitionEasing) -> bool {
+    if progress <= frames[0].0 {
+        return frames[0].1;
+    }
+    for pair in frames.windows(2) {
+        let [(start_offset, start_hidden), (end_offset, end_hidden)] = pair else {
+            continue;
+        };
+        if progress <= *end_offset {
+            let segment = (progress - start_offset) / (end_offset - start_offset).max(f32::EPSILON);
+            return if ease_transition(segment, easing) < 0.5 {
+                *start_hidden
+            } else {
+                *end_hidden
+            };
+        }
+    }
+    frames.last().expect("animation has visibility values").1
 }
 
 fn direct_progress(progress: f32, iteration: u64, direction: AnimationDirection) -> f32 {

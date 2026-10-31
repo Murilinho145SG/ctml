@@ -77,6 +77,107 @@ fn disabling_animations_cancels_keyframes_and_stops_animation_ticks() {
     assert!(page.advance_animations(std::time::Instant::now()).is_none());
 }
 
+#[test]
+fn visibility_keyframes_switch_discretely_and_respect_fill_mode() {
+    let mut page = visibility_animated_page("fade 1s linear forwards");
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(250)),
+        Some(true)
+    );
+    assert_eq!(page.element_visibility[&1], false);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(750)),
+        Some(true)
+    );
+    assert_eq!(page.element_visibility[&1], true);
+    assert!(page.runs.iter().any(|run| run.style.visibility_hidden));
+    assert!(
+        page.cursor_spans
+            .iter()
+            .filter(|span| span.element_path.contains(&1))
+            .all(|span| span.visibility_hidden)
+    );
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(page.element_visibility[&1], true);
+
+    let mut no_fill = visibility_animated_page("fade 1s linear");
+    let starts_at = no_fill.keyframe_animation_start(1).unwrap();
+    no_fill.advance_animations(starts_at + Duration::from_millis(750));
+    assert_eq!(no_fill.element_visibility[&1], true);
+    no_fill.advance_animations(starts_at + Duration::from_secs(1));
+    assert_eq!(no_fill.element_visibility[&1], false);
+}
+
+#[test]
+fn animated_parent_visibility_preserves_an_explicitly_visible_child() {
+    let nodes = [UiNode::Element {
+        tag: "section".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Visible".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["section".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "animation".to_owned(),
+                value: "fade 1s linear forwards".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["span".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "visibility".to_owned(),
+                value: "visible".to_owned(),
+            }],
+        },
+    ];
+    let keyframes = [ctml_css::CssKeyframes {
+        name: "fade".to_owned(),
+        frames: vec![
+            ctml_css::CssKeyframe {
+                offsets: vec![0.0],
+                declarations: vec![StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: "visible".to_owned(),
+                }],
+            },
+            ctml_css::CssKeyframe {
+                offsets: vec![1.0],
+                declarations: vec![StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: "hidden".to_owned(),
+                }],
+            },
+        ],
+    }];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    page.advance_animations(starts_at + Duration::from_millis(750));
+
+    assert_eq!(page.element_visibility[&1], true);
+    assert!(
+        page.runs
+            .iter()
+            .any(|run| { run.element_path.contains(&2) && !run.style.visibility_hidden })
+    );
+}
+
 fn animated_page(animation: &str, base_opacity: f32) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -119,4 +220,42 @@ fn animated_page(animation: &str, base_opacity: f32) -> PageRasterizer {
         ],
     }];
     PageRasterizer::new_with_keyframes(&nodes, &[rule], &keyframes)
+}
+
+fn visibility_animated_page(animation: &str) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Animated".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "animation".to_owned(),
+            value: animation.to_owned(),
+        }],
+    }];
+    let keyframes = [ctml_css::CssKeyframes {
+        name: "fade".to_owned(),
+        frames: vec![
+            ctml_css::CssKeyframe {
+                offsets: vec![0.0],
+                declarations: vec![StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: "visible".to_owned(),
+                }],
+            },
+            ctml_css::CssKeyframe {
+                offsets: vec![1.0],
+                declarations: vec![StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: "hidden".to_owned(),
+                }],
+            },
+        ],
+    }];
+    PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes)
 }

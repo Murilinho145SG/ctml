@@ -91,9 +91,20 @@ fn visibility_value(transition: &VisibilityTransition, now: Instant) -> bool {
     }
 }
 
-fn apply_visibility(page: &mut PageRasterizer, node_id: usize, hidden: bool) {
+pub(super) fn apply_visibility(page: &mut PageRasterizer, node_id: usize, hidden: bool) {
+    let mut changed = false;
     for run in &mut page.runs {
-        if run.style.visibility_owner == Some(node_id) {
+        let target_depth = run
+            .element_path
+            .iter()
+            .position(|element_id| *element_id == node_id);
+        let owner_depth = run.style.visibility_owner.and_then(|owner| {
+            run.element_path
+                .iter()
+                .position(|element_id| *element_id == owner)
+        });
+        if target_depth.is_some_and(|depth| owner_depth.is_none_or(|owner| owner <= depth)) {
+            changed |= run.style.visibility_hidden != hidden;
             run.style.visibility_hidden = hidden;
         }
         for size in run
@@ -104,5 +115,8 @@ fn apply_visibility(page: &mut PageRasterizer, node_id: usize, hidden: bool) {
         {
             size.visibility_hidden = hidden;
         }
+    }
+    if changed {
+        page.cursor_spans = super::super::cursor_spans::cursor_spans(&page.runs);
     }
 }
