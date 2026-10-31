@@ -172,7 +172,7 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
     );
     assert_eq!(
         style_with_declarations(&[("justify-content", "space-around")]).justify_content,
-        FlexStart
+        crate::style::FlexAlignment::SpaceAround
     );
 
     let inherited = TextStyle {

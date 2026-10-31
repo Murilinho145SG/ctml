@@ -38,6 +38,45 @@ fn row_justify_content_space_between_distributes_free_space_between_items() {
 }
 
 #[test]
+fn row_justify_content_space_around_includes_leading_space() {
+    let mut start = aligned_flex_page("row", "justify-content", "flex-start");
+    let mut around = aligned_flex_page("row", "justify-content", "space-around");
+    start.prepare_layout(400, 120);
+    around.prepare_layout(400, 120);
+
+    let start_x = item_x(&start, "First");
+    let around_x = item_x(&around, "First");
+    assert!(
+        around_x > start_x + 20.0,
+        "leading space: {around_x} vs {start_x}"
+    );
+    let around_gap = item_x(&around, "Second") - around_x;
+    let start_gap = item_x(&start, "Second") - item_x(&start, "First");
+    assert!(
+        around_gap > start_gap + 40.0,
+        "distributed gap: {around_gap} vs {start_gap}"
+    );
+}
+
+#[test]
+fn row_reverse_space_around_distributes_space_on_both_ends() {
+    let mut page = aligned_flex_page("row-reverse", "justify-content", "space-around");
+    page.prepare_layout(400, 120);
+
+    let first = item_x(&page, "First");
+    let second = item_x(&page, "Second");
+    assert!(first > second, "row-reverse should reverse item order");
+    assert!(
+        second > 20.0,
+        "space-around should leave leading space: {second}"
+    );
+    assert!(
+        first < 360.0,
+        "space-around should leave trailing space: {first}"
+    );
+}
+
+#[test]
 fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
     page.prepare_layout(400, 120);

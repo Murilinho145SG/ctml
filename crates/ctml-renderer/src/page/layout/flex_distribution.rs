@@ -103,7 +103,11 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             if let Some(container_id) = run.element_path.last().copied()
                 && let Some(extra) = extras.get(&(line_index, container_id)).copied()
             {
-                run.style.letter_spacing += extra;
+                run.style.letter_spacing += if run.style.flex_distributed_gap_leading {
+                    extra / 2.0
+                } else {
+                    extra
+                };
                 run.style.letter_spacing_px = true;
                 run.style.flex_distributed_gap_applied = true;
                 changed |= extra > 0.0;
