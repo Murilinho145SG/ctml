@@ -73,9 +73,10 @@ fn flex_direction_supports_row_reverse_and_css_wide_resets() {
     let column = style_with_declarations(&[("flex-direction", "column")]);
     assert!(column.flex_direction_column);
     assert!(!column.flex_direction_reverse);
-    assert!(
-        !style_with_declarations(&[("flex-direction", "column-reverse")]).flex_direction_column
-    );
+
+    let reversed_column = style_with_declarations(&[("flex-direction", "column-reverse")]);
+    assert!(reversed_column.flex_direction_column);
+    assert!(reversed_column.flex_direction_reverse);
 
     let inherited = TextStyle {
         flex_direction_reverse: true,

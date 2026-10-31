@@ -14,6 +14,10 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
             style.flex_direction_column = true;
             style.flex_direction_reverse = false;
         }
+        "column-reverse" => {
+            style.flex_direction_column = true;
+            style.flex_direction_reverse = true;
+        }
         _ => {}
     }
 }

@@ -149,6 +149,26 @@ fn row_gap_adds_vertical_flow_between_column_items() {
 }
 
 #[test]
+fn flex_direction_column_reverse_reverses_item_order_and_keeps_row_gap() {
+    let mut without_gap = two_item_flex_page("column-reverse", None);
+    let mut with_gap = two_item_flex_page("column-reverse", Some("12px"));
+    without_gap.prepare_layout(200, 200);
+    with_gap.prepare_layout(200, 200);
+
+    assert!(
+        first_item_y(&without_gap) > second_item_y(&without_gap),
+        "column-reverse should place the first source item after the second"
+    );
+    let baseline = first_item_y(&without_gap) - second_item_y(&without_gap);
+    let spaced = first_item_y(&with_gap) - second_item_y(&with_gap);
+    assert!(
+        (spaced - baseline - 12.0).abs() < 1.0,
+        "row-gap should keep its size in column-reverse, observed {}",
+        spaced - baseline
+    );
+}
+
+#[test]
 fn percentage_row_gap_uses_an_explicit_flex_container_block_size() {
     let mut without_gap = two_item_flex_page_with_height("column", None, None);
     let mut with_gap = two_item_flex_page_with_height("column", Some("10%"), Some("200px"));
