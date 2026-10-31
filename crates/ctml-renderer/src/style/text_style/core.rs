@@ -25,6 +25,7 @@ pub(crate) enum FlexAlignment {
     Stretch,
     FlexEnd,
     End,
+    Baseline,
     SpaceBetween,
     SpaceAround,
     SpaceEvenly,

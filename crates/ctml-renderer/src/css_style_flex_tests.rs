@@ -440,7 +440,7 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
 
 #[test]
 fn align_items_parses_supported_alignment_and_css_wide_values() {
-    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
+    use crate::style::FlexAlignment::{Baseline, Center, FlexEnd, FlexStart, Stretch};
 
     assert_eq!(style_with_declarations(&[]).align_items, None);
     assert_eq!(
@@ -465,7 +465,7 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
     );
     assert_eq!(
         style_with_declarations(&[("align-items", "baseline")]).align_items,
-        None
+        Some(Baseline)
     );
 
     let inherited = TextStyle {
@@ -520,7 +520,7 @@ fn align_content_parses_space_distribution_and_resets() {
 
 #[test]
 fn align_self_parses_supported_overrides_and_css_wide_values() {
-    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
+    use crate::style::FlexAlignment::{Baseline, Center, FlexEnd, FlexStart, Stretch};
 
     assert_eq!(style_with_declarations(&[]).align_self, None);
     assert_eq!(
@@ -549,7 +549,7 @@ fn align_self_parses_supported_overrides_and_css_wide_values() {
     );
     assert_eq!(
         style_with_declarations(&[("align-self", "center"), ("align-self", "baseline")]).align_self,
-        Some(Center)
+        Some(Baseline)
     );
     assert_eq!(
         style_with_declarations(&[("align-self", "center"), ("all", "initial")]).align_self,

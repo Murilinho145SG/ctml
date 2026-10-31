@@ -92,6 +92,7 @@ pub(super) fn apply_flex_row_alignment(page: &mut PageRasterizer) {
             let offset = match item.alignment {
                 FlexAlignment::Center => free_space / 2.0 + baseline_offset,
                 FlexAlignment::FlexEnd | FlexAlignment::End => free_space + baseline_offset,
+                FlexAlignment::Baseline => 0.0,
                 FlexAlignment::FlexStart
                 | FlexAlignment::Start
                 | FlexAlignment::Stretch

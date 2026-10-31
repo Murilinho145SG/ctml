@@ -380,6 +380,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                     free_space / 2.0
                 }
                 FlexAlignment::FlexEnd | FlexAlignment::End => 0.0,
+                FlexAlignment::Baseline => 0.0,
                 FlexAlignment::SpaceBetween | FlexAlignment::Stretch => 0.0,
             }
         } else {

@@ -84,6 +84,7 @@ pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
         "center" => Some(crate::style::FlexAlignment::Center),
         "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
         "end" => Some(crate::style::FlexAlignment::End),
+        "baseline" => Some(crate::style::FlexAlignment::Baseline),
         _ => return,
     };
 }
@@ -112,6 +113,7 @@ pub(super) fn apply_align_self(style: &mut TextStyle, value: &str) {
         "center" => Some(crate::style::FlexAlignment::Center),
         "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
         "end" => Some(crate::style::FlexAlignment::End),
+        "baseline" => Some(crate::style::FlexAlignment::Baseline),
         _ => return,
     };
 }

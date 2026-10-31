@@ -55,6 +55,7 @@ fn visual_justify(alignment: FlexAlignment, reverse: bool) -> FlexAlignment {
         FlexAlignment::Start
         | FlexAlignment::End
         | FlexAlignment::Center
+        | FlexAlignment::Baseline
         | FlexAlignment::Stretch
         | FlexAlignment::SpaceBetween
         | FlexAlignment::SpaceAround

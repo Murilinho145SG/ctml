@@ -231,7 +231,7 @@ fn row_align_items_positions_different_line_heights_on_the_cross_axis() {
     );
     assert!(end_y > center_y + 4.0, "end offset: {center_y} -> {end_y}");
 
-    let text_x = item_x(&start, "Short") + crate::page::PAGE_PADDING;
+    let text_x = item_x(&start, "Short") + crate::page::PAGE_PADDING + 12.0;
     let start_painted_y = item_painted_y_bounds(&mut start, text_x).0;
     let center_painted_y = item_painted_y_bounds(&mut center, text_x).0;
     let end_painted_y = item_painted_y_bounds(&mut end, text_x).0;
@@ -262,6 +262,22 @@ fn row_align_self_overrides_the_container_cross_alignment() {
     assert!(
         item_glyph_y(&end, "Short") > item_glyph_y(&centered, "Short") + 4.0,
         "align-self should override the row container's align-items value"
+    );
+}
+
+#[test]
+fn row_baseline_alignment_positions_small_text_against_the_large_item_baseline() {
+    let mut start = row_align_items_page("flex-start");
+    let mut baseline = row_align_items_page("baseline");
+    start.prepare_layout(400, 120);
+    baseline.prepare_layout(400, 120);
+
+    let text_x = item_x(&start, "Short") + crate::page::PAGE_PADDING + 12.0;
+    let start_top = item_painted_y_bounds(&mut start, text_x).0;
+    let baseline_top = item_painted_y_bounds(&mut baseline, text_x).0;
+    assert!(
+        baseline_top > start_top + 4,
+        "baseline alignment should lower the smaller glyph run: {start_top} -> {baseline_top}"
     );
 }
 
