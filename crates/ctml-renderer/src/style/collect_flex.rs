@@ -17,14 +17,31 @@ pub(super) fn item_alignment(
         if style.flex_direction_column {
             style.align_items
         } else {
-            Some(style.justify_content)
+            Some(visual_justify(
+                style.justify_content,
+                style.flex_direction_reverse,
+            ))
         }
     } else if inherited.flex_items_row {
-        Some(inherited.justify_content)
+        Some(visual_justify(
+            inherited.justify_content,
+            inherited.flex_direction_reverse,
+        ))
     } else if inherited.flex_items_column {
         style.align_self.or(inherited.align_items)
     } else {
         inherited.flex_item_alignment
+    }
+}
+
+fn visual_justify(alignment: FlexAlignment, reverse: bool) -> FlexAlignment {
+    if !reverse {
+        return alignment;
+    }
+    match alignment {
+        FlexAlignment::FlexStart => FlexAlignment::FlexEnd,
+        FlexAlignment::FlexEnd => FlexAlignment::FlexStart,
+        FlexAlignment::Start | FlexAlignment::End | FlexAlignment::Center => alignment,
     }
 }
 
@@ -279,6 +296,9 @@ pub(super) fn order_nodes(
 
     if is_flex_container {
         ordered_nodes.sort_by_key(|(_, _, _, order)| *order);
+        if inherited.flex_direction_reverse {
+            reverse_item_groups(&mut ordered_nodes);
+        }
     }
 
     ordered_nodes
@@ -287,4 +307,16 @@ pub(super) fn order_nodes(
             (node_index, source_element_index, item_id)
         })
         .collect()
+}
+
+fn reverse_item_groups(nodes: &mut Vec<(usize, Option<usize>, usize, i32)>) {
+    let mut groups = Vec::<Vec<(usize, Option<usize>, usize, i32)>>::new();
+    for node in nodes.drain(..) {
+        if groups.last().is_some_and(|group| group[0].2 == node.2) {
+            groups.last_mut().expect("group was just found").push(node);
+        } else {
+            groups.push(vec![node]);
+        }
+    }
+    nodes.extend(groups.into_iter().rev().flatten());
 }

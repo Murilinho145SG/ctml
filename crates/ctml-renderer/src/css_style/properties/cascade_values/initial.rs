@@ -69,7 +69,10 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
         "background-origin" => style.background_origins.clear(),
         "background-clip" => style.background_clips.clear(),
         "display" => reset_display(style),
-        "flex-direction" => style.flex_direction_column = false,
+        "flex-direction" => {
+            style.flex_direction_column = false;
+            style.flex_direction_reverse = false;
+        }
         "justify-content" => {
             style.justify_content = crate::style::FlexAlignment::default();
         }

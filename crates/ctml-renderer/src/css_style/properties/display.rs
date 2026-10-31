@@ -2,17 +2,29 @@ use crate::style::TextStyle;
 
 pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
     match value.trim().to_ascii_lowercase().as_str() {
-        "row" => style.flex_direction_column = false,
-        "column" => style.flex_direction_column = true,
+        "row" => {
+            style.flex_direction_column = false;
+            style.flex_direction_reverse = false;
+        }
+        "row-reverse" => {
+            style.flex_direction_column = false;
+            style.flex_direction_reverse = true;
+        }
+        "column" => {
+            style.flex_direction_column = true;
+            style.flex_direction_reverse = false;
+        }
         _ => {}
     }
 }
 
 pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
     style.justify_content = match value.trim().to_ascii_lowercase().as_str() {
-        "normal" | "start" | "flex-start" => crate::style::FlexAlignment::FlexStart,
+        "normal" | "flex-start" => crate::style::FlexAlignment::FlexStart,
+        "start" => crate::style::FlexAlignment::Start,
         "center" => crate::style::FlexAlignment::Center,
-        "end" | "flex-end" => crate::style::FlexAlignment::FlexEnd,
+        "flex-end" => crate::style::FlexAlignment::FlexEnd,
+        "end" => crate::style::FlexAlignment::End,
         _ => return,
     };
 }
@@ -20,9 +32,11 @@ pub(super) fn apply_justify_content(style: &mut TextStyle, value: &str) {
 pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
     style.align_items = match value.trim().to_ascii_lowercase().as_str() {
         "normal" | "stretch" => None,
-        "start" | "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "start" => Some(crate::style::FlexAlignment::Start),
         "center" => Some(crate::style::FlexAlignment::Center),
-        "end" | "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        "end" => Some(crate::style::FlexAlignment::End),
         _ => return,
     };
 }
@@ -30,9 +44,11 @@ pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
 pub(super) fn apply_align_self(style: &mut TextStyle, value: &str) {
     style.align_self = match value.trim().to_ascii_lowercase().as_str() {
         "auto" => None,
-        "start" | "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "start" => Some(crate::style::FlexAlignment::Start),
         "center" => Some(crate::style::FlexAlignment::Center),
-        "end" | "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        "end" => Some(crate::style::FlexAlignment::End),
         _ => return,
     };
 }

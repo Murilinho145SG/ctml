@@ -61,6 +61,55 @@ fn order_parses_integers_and_clamps_values_outside_the_style_range() {
 }
 
 #[test]
+fn flex_direction_supports_row_reverse_and_css_wide_resets() {
+    let row = style_with_declarations(&[("flex-direction", "row")]);
+    assert!(!row.flex_direction_column);
+    assert!(!row.flex_direction_reverse);
+
+    let reversed = style_with_declarations(&[("flex-direction", "row-reverse")]);
+    assert!(!reversed.flex_direction_column);
+    assert!(reversed.flex_direction_reverse);
+
+    let column = style_with_declarations(&[("flex-direction", "column")]);
+    assert!(column.flex_direction_column);
+    assert!(!column.flex_direction_reverse);
+    assert!(
+        !style_with_declarations(&[("flex-direction", "column-reverse")]).flex_direction_column
+    );
+
+    let inherited = TextStyle {
+        flex_direction_reverse: true,
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert!(
+        resolve_style(
+            &inherited,
+            &element,
+            &[],
+            &[rule("flex-direction", "inherit")]
+        )
+        .flex_direction_reverse
+    );
+    for keyword in ["initial", "unset", "revert"] {
+        assert!(
+            !resolve_style(
+                &inherited,
+                &element,
+                &[],
+                &[rule("flex-direction", keyword)]
+            )
+            .flex_direction_reverse,
+            "{keyword} should restore row direction"
+        );
+    }
+}
+
+#[test]
 fn order_is_non_inherited_and_supports_css_wide_resets() {
     let inherited = TextStyle {
         flex_order: 7,
@@ -107,6 +156,14 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
     assert_eq!(
         style_with_declarations(&[("justify-content", "flex-end")]).justify_content,
         FlexEnd
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "start")]).justify_content,
+        crate::style::FlexAlignment::Start
+    );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "end")]).justify_content,
+        crate::style::FlexAlignment::End
     );
     assert_eq!(
         style_with_declarations(&[("justify-content", "space-between")]).justify_content,

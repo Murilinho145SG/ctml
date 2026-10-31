@@ -59,6 +59,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.display_run_in = false;
     style.display_flex = false;
     style.flex_direction_column = false;
+    style.flex_direction_reverse = false;
     style.flex_order = 0;
     style.justify_content = crate::style::FlexAlignment::default();
     style.align_items = None;

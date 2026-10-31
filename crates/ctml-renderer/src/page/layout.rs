@@ -37,8 +37,10 @@ pub(super) fn line_alignments(
                 .flex_item_alignment
                 .map(|justify| match justify {
                     crate::style::FlexAlignment::FlexStart => cosmic_text::Align::Start,
+                    crate::style::FlexAlignment::Start => cosmic_text::Align::Start,
                     crate::style::FlexAlignment::Center => cosmic_text::Align::Center,
                     crate::style::FlexAlignment::FlexEnd => cosmic_text::Align::End,
+                    crate::style::FlexAlignment::End => cosmic_text::Align::End,
                 })
                 .unwrap_or(style.text_align),
             style.text_align_last,

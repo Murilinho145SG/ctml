@@ -20,8 +20,10 @@ const DEFAULT_LINE_HEIGHT: f32 = 20.0;
 pub(crate) enum FlexAlignment {
     #[default]
     FlexStart,
+    Start,
     Center,
     FlexEnd,
+    End,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -72,6 +74,7 @@ pub(crate) struct TextStyle {
     pub(crate) display_run_in: bool,
     pub(crate) display_flex: bool,
     pub(crate) flex_direction_column: bool,
+    pub(crate) flex_direction_reverse: bool,
     pub(crate) flex_order: i32,
     pub(crate) justify_content: FlexAlignment,
     pub(crate) align_items: Option<FlexAlignment>,
@@ -289,6 +292,7 @@ impl Default for TextStyle {
             display_run_in: false,
             display_flex: false,
             flex_direction_column: false,
+            flex_direction_reverse: false,
             flex_order: 0,
             justify_content: FlexAlignment::default(),
             align_items: None,

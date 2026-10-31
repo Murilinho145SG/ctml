@@ -23,6 +23,27 @@ fn row_justify_content_aligns_flex_items_on_the_main_axis() {
 }
 
 #[test]
+fn row_reverse_places_the_first_flex_item_at_the_main_end() {
+    let mut page = aligned_flex_page("row-reverse", "justify-content", "flex-start");
+    let mut flex_end = aligned_flex_page("row-reverse", "justify-content", "flex-end");
+    page.prepare_layout(400, 120);
+    flex_end.prepare_layout(400, 120);
+
+    assert!(
+        item_x(&page, "First") > item_x(&page, "Second"),
+        "row-reverse should place the first item at the right side"
+    );
+    assert!(
+        item_x(&flex_end, "First") > item_x(&flex_end, "Second"),
+        "flex-end should retain the reversed item sequence"
+    );
+    assert!(
+        item_x(&page, "First") > item_x(&flex_end, "First") + 100.0,
+        "flex-end should move the row-reverse group to the left side"
+    );
+}
+
+#[test]
 fn column_align_items_aligns_flex_items_on_the_cross_axis() {
     let mut start = aligned_flex_page("column", "align-items", "flex-start");
     let mut center = aligned_flex_page("column", "align-items", "center");
