@@ -82,4 +82,4 @@ CTML brings the simplicity of describing interfaces with markup together with th
 
 ## License
 
-CTML is licensed under the GNU General Public License v2.0 only. Copyright (C) 2026 Murillo Deolino. See [LICENSE](LICENSE) for the full license text.
+CTML is licensed under the MIT License. Copyright (c) 2026 Murillo Deolino. See [LICENSE](LICENSE) for the full license text. The vendored `cosmic-text` crate retains its upstream MIT OR Apache-2.0 notices in its own directory.
