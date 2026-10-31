@@ -29,8 +29,43 @@ fn manual_soft_hyphen_draws_a_hyphen_only_when_the_line_breaks_there() {
 
     let soft_pixels = soft_page.snapshot_pixels(140, 100);
     let explicit_pixels = explicit_page.snapshot_pixels(140, 100);
+    let ink_pixels = |pixels: &[u8]| {
+        pixels
+            .chunks_exact(4)
+            .filter(|pixel| pixel[..3] != [255, 255, 255])
+            .count()
+    };
+    assert!(
+        soft_pixels != explicit_pixels,
+        "soft-hyphen and explicit-break renders should differ; ink pixels: soft={}, explicit={}",
+        ink_pixels(&soft_pixels),
+        ink_pixels(&explicit_pixels)
+    );
+}
 
-    assert_ne!(soft_pixels, explicit_pixels);
+#[test]
+fn br_starts_a_new_line() {
+    let nodes = [paragraph(vec![
+        UiNode::Text("before".to_owned()),
+        UiNode::Element {
+            tag: "br".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: Vec::new(),
+        },
+        UiNode::Text("after".to_owned()),
+    ])];
+    let mut page = PageRasterizer::new(&nodes, &[]);
+
+    page.snapshot_pixels(200, 80);
+
+    let lines = page
+        .buffer
+        .layout_runs()
+        .map(|line| line.text.to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(lines, ["before", "after"]);
 }
 
 #[test]

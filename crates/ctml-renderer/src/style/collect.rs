@@ -371,32 +371,37 @@ pub(super) fn collect_runs(
                     *last_was_space = last_was_space_before;
                     *capitalize_next = capitalize_next_before;
                 }
-                collect_runs(
-                    children,
-                    stylesheet,
-                    path,
-                    path_attributes,
-                    path_siblings,
-                    path_positions,
-                    element_path,
-                    next_node_id,
-                    hovered_path,
-                    active_path,
-                    focused_path,
-                    keyboard_focus,
-                    selector_tree,
-                    &style,
-                    opacity_groups,
-                    mix_blend_modes,
-                    isolation_groups,
-                    page_writing_mode,
-                    font_metrics,
-                    output,
-                    last_was_space,
-                    capitalize_next,
-                    quote_depth,
-                    counters,
-                );
+                if tag == "br" {
+                    push_line_break(output, &style, element_path, last_was_space);
+                    *capitalize_next = true;
+                } else {
+                    collect_runs(
+                        children,
+                        stylesheet,
+                        path,
+                        path_attributes,
+                        path_siblings,
+                        path_positions,
+                        element_path,
+                        next_node_id,
+                        hovered_path,
+                        active_path,
+                        focused_path,
+                        keyboard_focus,
+                        selector_tree,
+                        &style,
+                        opacity_groups,
+                        mix_blend_modes,
+                        isolation_groups,
+                        page_writing_mode,
+                        font_metrics,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                        quote_depth,
+                        counters,
+                    );
+                }
                 let after_content = pseudo::resolve_generated_content(
                     "after",
                     &style,
