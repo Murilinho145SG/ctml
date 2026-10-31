@@ -78,6 +78,8 @@ mod first_line_box_model;
 mod first_line_spacing;
 #[path = "page_tests/first_line_transform.rs"]
 mod first_line_transform;
+#[path = "page_tests/flex_display.rs"]
+mod flex_display;
 #[path = "page_tests/font_relative_units.rs"]
 mod font_relative_units;
 #[path = "page_tests/hyphens.rs"]

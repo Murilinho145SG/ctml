@@ -8,6 +8,8 @@ use ctml_css::{
 use std::collections::{HashMap, HashSet};
 
 mod collect;
+mod collect_counters;
+mod collect_display;
 mod collect_layout;
 mod collect_spacers;
 mod font_units;
@@ -206,7 +208,7 @@ pub(super) fn compile_runs_with_opacity_map(
                     .iter()
                     .find(|element| element.node_id == *node_id)
             })
-            .find(|element| collect::is_block(&element.element.tag));
+            .find(|element| collect_display::is_block(&element.element.tag));
         if let Some(block) = block {
             run.first_line_block = Some(block.node_id);
             let first_line = css_style::first_line_style(

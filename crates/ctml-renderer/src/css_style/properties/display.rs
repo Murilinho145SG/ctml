@@ -11,6 +11,15 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         style.display_block = None;
         style.display_list_item = Some(false);
         style.display_run_in = true;
+        style.display_flex = false;
+        return;
+    }
+    if let Some(is_block) = parse_flex_display(&value) {
+        style.display_none = false;
+        style.display_block = Some(is_block);
+        style.display_list_item = Some(false);
+        style.display_run_in = false;
+        style.display_flex = true;
         return;
     }
     if let Some(is_block) = parse_list_item(&value) {
@@ -18,6 +27,7 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
         style.display_block = Some(is_block);
         style.display_list_item = Some(true);
         style.display_run_in = false;
+        style.display_flex = false;
         return;
     }
     match parse_flow_display(&value) {
@@ -26,8 +36,17 @@ pub(super) fn apply_display(style: &mut TextStyle, value: &str) {
             style.display_block = block;
             style.display_list_item = Some(false);
             style.display_run_in = false;
+            style.display_flex = false;
         }
         None => {}
+    }
+}
+
+fn parse_flex_display(tokens: &[&str]) -> Option<bool> {
+    match tokens {
+        ["flex"] | ["block", "flex"] | ["flex", "block"] => Some(true),
+        ["inline-flex"] | ["inline", "flex"] | ["flex", "inline"] => Some(false),
+        _ => None,
     }
 }
 
@@ -76,6 +95,7 @@ pub(super) fn inherit_display(style: &mut TextStyle, inherited: &TextStyle) {
     style.display_block = inherited.display_block;
     style.display_list_item = inherited.display_list_item;
     style.display_run_in = inherited.display_run_in;
+    style.display_flex = inherited.display_flex;
 }
 
 pub(super) fn reset_display(style: &mut TextStyle) {
@@ -83,6 +103,7 @@ pub(super) fn reset_display(style: &mut TextStyle) {
     style.display_block = Some(false);
     style.display_list_item = Some(false);
     style.display_run_in = false;
+    style.display_flex = false;
 }
 
 pub(super) fn revert_display(style: &mut TextStyle) {
@@ -90,11 +111,32 @@ pub(super) fn revert_display(style: &mut TextStyle) {
     style.display_block = None;
     style.display_list_item = None;
     style.display_run_in = false;
+    style.display_flex = false;
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_flow_display, parse_list_item};
+    use super::{parse_flex_display, parse_flow_display, parse_list_item};
+
+    #[test]
+    fn parses_flex_display_outer_forms_in_any_order() {
+        for tokens in [
+            &(["flex"][..]),
+            &(["block", "flex"][..]),
+            &(["flex", "block"][..]),
+        ] {
+            assert_eq!(parse_flex_display(tokens), Some(true));
+        }
+        for tokens in [
+            &(["inline-flex"][..]),
+            &(["inline", "flex"][..]),
+            &(["flex", "inline"][..]),
+        ] {
+            assert_eq!(parse_flex_display(tokens), Some(false));
+        }
+        assert_eq!(parse_flex_display(&["grid"]), None);
+        assert_eq!(parse_flex_display(&["inline", "block", "flex"]), None);
+    }
 
     #[test]
     fn parses_list_item_outer_and_inner_values_in_any_order() {

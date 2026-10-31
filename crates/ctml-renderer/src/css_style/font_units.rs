@@ -57,6 +57,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.display_block = None;
     style.display_list_item = None;
     style.display_run_in = false;
+    style.display_flex = false;
     style.background_blend_modes.clear();
     style.mix_blend_mode = crate::style::BackgroundBlendMode::Normal;
     style.isolation = false;

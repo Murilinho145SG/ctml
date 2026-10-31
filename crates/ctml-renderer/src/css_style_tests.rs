@@ -91,6 +91,7 @@ fn display_resets_between_elements_and_parses_run_in() {
         display_block: Some(true),
         display_list_item: Some(true),
         display_run_in: true,
+        display_flex: true,
         ..TextStyle::default()
     };
     let paragraph = ElementIdentity {
@@ -102,6 +103,7 @@ fn display_resets_between_elements_and_parses_run_in() {
     assert_eq!(defaults.display_block, None);
     assert_eq!(defaults.display_list_item, None);
     assert!(!defaults.display_run_in);
+    assert!(!defaults.display_flex);
 
     let run_in = style_for_declarations(&[("display", "run-in")]);
     assert!(run_in.display_run_in);
@@ -119,6 +121,7 @@ fn display_resets_between_elements_and_parses_run_in() {
     assert_eq!(explicitly_inherited.display_block, Some(true));
     assert_eq!(explicitly_inherited.display_list_item, Some(true));
     assert!(explicitly_inherited.display_run_in);
+    assert!(explicitly_inherited.display_flex);
 }
 
 #[test]
@@ -196,6 +199,17 @@ fn resolves_supported_multi_keyword_display_values() {
         let style = style_for_declarations(&[("display", value)]);
         assert_eq!(style.display_block, Some(false), "{value}");
         assert!(!style.display_none, "{value}");
+    }
+
+    for value in ["flex", "block flex", "flex block"] {
+        let style = style_for_declarations(&[("display", value)]);
+        assert_eq!(style.display_block, Some(true), "{value}");
+        assert!(style.display_flex, "{value}");
+    }
+    for value in ["inline-flex", "inline flex", "flex inline"] {
+        let style = style_for_declarations(&[("display", value)]);
+        assert_eq!(style.display_block, Some(false), "{value}");
+        assert!(style.display_flex, "{value}");
     }
 }
 
