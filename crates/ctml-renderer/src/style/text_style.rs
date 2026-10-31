@@ -23,7 +23,10 @@ pub(crate) use background::{
 pub(crate) use border_image::{
     BorderImageOutset, BorderImageRepeat, BorderImageSlice, BorderImageWidth,
 };
-pub(crate) use core::{FlexAlignment, FlexBasis, StepPosition, TextStyle, TransitionEasing};
+pub(crate) use core::{
+    ElementTransitionStyle, FlexAlignment, FlexBasis, StepPosition, TextStyle, TransitionEasing,
+    TransitionTiming,
+};
 pub(crate) use layout::{BoxShadow, LayoutHeight, LayoutSize, TextShadow};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

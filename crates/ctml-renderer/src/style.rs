@@ -26,13 +26,13 @@ pub(super) use text_style::{
     BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
     BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset,
     BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
-    BoxShadow, ConicGradient, Direction, FlexAlignment, FlexBasis, FontVariantCaps,
-    FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow,
-    OverflowWrap, RadialGradient, RadialGradientExtent, RadialGradientShape, StepPosition,
-    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
-    TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle,
-    TextTransform, TextWrapMode, TransitionEasing, UnicodeBidi, UserSelect, WhiteSpace, WordBreak,
-    WritingMode,
+    BoxShadow, ConicGradient, Direction, ElementTransitionStyle, FlexAlignment, FlexBasis,
+    FontVariantCaps, FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak,
+    LinearGradient, Overflow, OverflowWrap, RadialGradient, RadialGradientExtent,
+    RadialGradientShape, StepPosition, TextDecorationSkipInk, TextDecorationStyle,
+    TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextOrientation, TextOverflow,
+    TextRendering, TextShadow, TextStyle, TextTransform, TextWrapMode, TransitionEasing,
+    TransitionTiming, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 pub(crate) use text_transform::transform_character;
 
@@ -78,7 +78,7 @@ pub(super) fn compile_runs_with_opacity_map(
     HashMap<usize, f32>,
     HashMap<usize, BackgroundBlendMode>,
     HashSet<usize>,
-    HashMap<usize, (bool, f32, f32, TransitionEasing)>,
+    HashMap<usize, ElementTransitionStyle>,
 ) {
     let font_metrics = font_system.map(crate::font_metrics::FontRelativeUnitsContext::new);
     let root_position = SelectorPosition {

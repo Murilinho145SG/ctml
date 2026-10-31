@@ -26,7 +26,7 @@ pub(super) fn collect_runs(
     opacity_groups: &mut HashMap<usize, f32>,
     mix_blend_modes: &mut HashMap<usize, super::BackgroundBlendMode>,
     isolation_groups: &mut HashSet<usize>,
-    transition_styles: &mut HashMap<usize, (bool, f32, f32, super::TransitionEasing)>,
+    transition_styles: &mut HashMap<usize, super::ElementTransitionStyle>,
     page_writing_mode: super::WritingMode,
     font_metrics: Option<&crate::font_metrics::FontRelativeUnitsContext<'_>>,
     output: &mut Vec<TextRun>,
@@ -138,12 +138,19 @@ pub(super) fn collect_runs(
                 }
                 transition_styles.insert(
                     sibling.node_id,
-                    (
-                        style.transition_opacity,
-                        style.transition_duration_ms,
-                        style.transition_delay_ms,
-                        style.transition_easing,
-                    ),
+                    super::ElementTransitionStyle {
+                        opacity: style.transition_opacity.then_some(super::TransitionTiming {
+                            duration_ms: style.transition_duration_ms,
+                            delay_ms: style.transition_delay_ms,
+                            easing: style.transition_easing,
+                        }),
+                        color: style.transition_color.then_some(super::TransitionTiming {
+                            duration_ms: style.transition_color_duration_ms,
+                            delay_ms: style.transition_color_delay_ms,
+                            easing: style.transition_color_easing,
+                        }),
+                        color_value: style.color,
+                    },
                 );
                 style.opacity *= inherited.opacity;
                 if style.display_none {

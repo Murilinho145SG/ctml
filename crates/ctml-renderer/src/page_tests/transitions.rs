@@ -117,3 +117,39 @@ fn wrapper_opacity_transitions_when_only_descendants_render_text() {
     );
     assert!((page.opacity_groups[&1] - 0.5).abs() < 0.01);
 }
+
+#[test]
+fn text_color_transitions_interpolate_between_rgba_values() {
+    let nodes = [crate::UiNode::Element {
+        tag: "button".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Color".to_owned())],
+    }];
+    let stylesheet = [
+        rule(
+            "button",
+            &[("color", "blue"), ("transition", "color 1000ms linear")],
+        ),
+        rule("button:hover", &[("color", "red")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    assert_eq!(page.runs[0].style.color, [0, 0, 255, 255]);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.color_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(page.runs[0].style.color, [0, 0, 255, 255]);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert_eq!(page.runs[0].style.color, [128, 0, 128, 255]);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(page.runs[0].style.color, [255, 0, 0, 255]);
+}

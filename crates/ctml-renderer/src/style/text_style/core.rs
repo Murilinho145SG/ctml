@@ -62,6 +62,20 @@ pub(crate) enum FlexBasis {
     Calculation(String),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct TransitionTiming {
+    pub(crate) duration_ms: f32,
+    pub(crate) delay_ms: f32,
+    pub(crate) easing: TransitionEasing,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct ElementTransitionStyle {
+    pub(crate) opacity: Option<TransitionTiming>,
+    pub(crate) color: Option<TransitionTiming>,
+    pub(crate) color_value: [u8; 4],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -81,6 +95,10 @@ pub(crate) struct TextStyle {
     pub(crate) transition_duration_ms: f32,
     pub(crate) transition_delay_ms: f32,
     pub(crate) transition_easing: TransitionEasing,
+    pub(crate) transition_color: bool,
+    pub(crate) transition_color_duration_ms: f32,
+    pub(crate) transition_color_delay_ms: f32,
+    pub(crate) transition_color_easing: TransitionEasing,
     pub(crate) transition_properties: Vec<String>,
     pub(crate) transition_durations_ms: Vec<f32>,
     pub(crate) transition_delays_ms: Vec<f32>,
@@ -321,6 +339,10 @@ impl Default for TextStyle {
             transition_duration_ms: 0.0,
             transition_delay_ms: 0.0,
             transition_easing: TransitionEasing::default(),
+            transition_color: false,
+            transition_color_duration_ms: 0.0,
+            transition_color_delay_ms: 0.0,
+            transition_color_easing: TransitionEasing::default(),
             transition_properties: vec!["all".to_owned()],
             transition_durations_ms: vec![0.0],
             transition_delays_ms: vec![0.0],

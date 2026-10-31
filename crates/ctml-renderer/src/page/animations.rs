@@ -1,6 +1,8 @@
 use std::{collections::HashMap, time::Instant};
 
-use crate::style::{StepPosition, TextStyle, TransitionEasing};
+use crate::style::{
+    ElementTransitionStyle, StepPosition, TextStyle, TransitionEasing, TransitionTiming,
+};
 
 use super::PageRasterizer;
 
@@ -12,8 +14,19 @@ pub(super) struct OpacityTransition {
     pub(super) easing: TransitionEasing,
 }
 
+pub(super) struct ColorTransition {
+    pub(super) from: [u8; 4],
+    pub(super) to: [u8; 4],
+    pub(super) starts_at: Instant,
+    pub(super) duration: std::time::Duration,
+    pub(super) easing: TransitionEasing,
+}
+
 pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
-    if page.root_opacity_transition.is_none() && page.opacity_transitions.is_empty() {
+    if page.root_opacity_transition.is_none()
+        && page.opacity_transitions.is_empty()
+        && page.color_transitions.is_empty()
+    {
         return None;
     }
 
@@ -40,7 +53,23 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
     for node_id in completed {
         page.opacity_transitions.remove(&node_id);
     }
-    Some(root_active || !page.opacity_transitions.is_empty())
+    let mut completed_colors = Vec::new();
+    for (node_id, transition) in &page.color_transitions {
+        let color = interpolate_color(transition, now);
+        page.element_colors.insert(*node_id, color);
+        for run in &mut page.runs {
+            if run.element_path.last() == Some(node_id) {
+                run.style.color = color;
+            }
+        }
+        if now >= transition.starts_at + transition.duration {
+            completed_colors.push(*node_id);
+        }
+    }
+    for node_id in completed_colors {
+        page.color_transitions.remove(&node_id);
+    }
+    Some(root_active || !page.opacity_transitions.is_empty() || !page.color_transitions.is_empty())
 }
 
 pub(super) fn begin_transitions(
@@ -48,7 +77,8 @@ pub(super) fn begin_transitions(
     previous_root_opacity: f32,
     previous_opacity_groups: &HashMap<usize, f32>,
     root_style: &TextStyle,
-    transition_styles: &HashMap<usize, (bool, f32, f32, TransitionEasing)>,
+    transition_styles: &HashMap<usize, ElementTransitionStyle>,
+    previous_element_colors: &HashMap<usize, [u8; 4]>,
 ) {
     page.root_opacity = root_style.opacity;
     page.root_opacity_transition = start_transition(
@@ -65,25 +95,120 @@ pub(super) fn begin_transitions(
 
     page.opacity_transitions.clear();
     let now = Instant::now();
-    for (node_id, (enabled, duration_ms, delay_ms, easing)) in transition_styles {
+    for (node_id, settings) in transition_styles {
         let Some(target) = page.opacity_groups.get(&node_id).copied() else {
+            if let Some(timing) = settings.color {
+                begin_color_transition(
+                    page,
+                    *node_id,
+                    settings,
+                    timing,
+                    previous_element_colors,
+                    now,
+                );
+            }
             continue;
         };
         let from = previous_opacity_groups
             .get(&node_id)
             .copied()
             .unwrap_or(1.0);
-        let Some(transition) =
-            start_transition(from, target, *enabled, *duration_ms, *delay_ms, *easing)
-        else {
-            continue;
-        };
-        page.opacity_groups
-            .insert(*node_id, interpolate_opacity(&transition, now));
-        if now < transition.starts_at + transition.duration {
-            page.opacity_transitions.insert(*node_id, transition);
+        if let Some(timing) = settings.opacity
+            && let Some(transition) = start_transition(
+                from,
+                target,
+                true,
+                timing.duration_ms,
+                timing.delay_ms,
+                timing.easing,
+            )
+        {
+            page.opacity_groups
+                .insert(*node_id, interpolate_opacity(&transition, now));
+            if now < transition.starts_at + transition.duration {
+                page.opacity_transitions.insert(*node_id, transition);
+            }
+        }
+        if let Some(timing) = settings.color {
+            begin_color_transition(
+                page,
+                *node_id,
+                settings,
+                timing,
+                previous_element_colors,
+                now,
+            );
         }
     }
+}
+
+fn begin_color_transition(
+    page: &mut PageRasterizer,
+    node_id: usize,
+    settings: &ElementTransitionStyle,
+    timing: TransitionTiming,
+    previous_element_colors: &HashMap<usize, [u8; 4]>,
+    now: Instant,
+) {
+    let from = previous_element_colors
+        .get(&node_id)
+        .copied()
+        .unwrap_or(settings.color_value);
+    let to = settings.color_value;
+    let Some(timing) = start_transition(
+        0.0,
+        1.0,
+        from != to,
+        timing.duration_ms,
+        timing.delay_ms,
+        timing.easing,
+    ) else {
+        return;
+    };
+    let transition = ColorTransition {
+        from,
+        to,
+        starts_at: timing.starts_at,
+        duration: timing.duration,
+        easing: timing.easing,
+    };
+    let color = interpolate_color(&transition, now);
+    page.element_colors.insert(node_id, color);
+    for run in &mut page.runs {
+        if run.element_path.last() == Some(&node_id) {
+            run.style.color = color;
+        }
+    }
+    if now < transition.starts_at + transition.duration {
+        page.color_transitions.insert(node_id, transition);
+    }
+}
+
+fn interpolate_color(transition: &ColorTransition, now: Instant) -> [u8; 4] {
+    let progress = if now < transition.starts_at {
+        0.0
+    } else {
+        (now.duration_since(transition.starts_at).as_secs_f32() / transition.duration.as_secs_f32())
+            .clamp(0.0, 1.0)
+    };
+    let progress = ease_transition(progress, transition.easing);
+    let from_alpha = f32::from(transition.from[3]) / 255.0;
+    let to_alpha = f32::from(transition.to[3]) / 255.0;
+    let alpha = from_alpha + (to_alpha - from_alpha) * progress;
+    let mut color = [0; 4];
+    color[3] = (alpha * 255.0).round().clamp(0.0, 255.0) as u8;
+    for (index, channel) in color.iter_mut().take(3).enumerate() {
+        let from = f32::from(transition.from[index]) / 255.0 * from_alpha;
+        let to = f32::from(transition.to[index]) / 255.0 * to_alpha;
+        *channel = if alpha <= f32::EPSILON {
+            0
+        } else {
+            ((from + (to - from) * progress) / alpha * 255.0)
+                .round()
+                .clamp(0.0, 255.0) as u8
+        };
+    }
+    color
 }
 
 fn start_transition(
