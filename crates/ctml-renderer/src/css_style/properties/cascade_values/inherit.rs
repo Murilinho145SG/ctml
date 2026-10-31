@@ -148,6 +148,7 @@ pub(in crate::css_style::properties) fn inherit_property(
         }
         "justify-content" => style.justify_content = inherited.justify_content,
         "align-items" => style.align_items = inherited.align_items,
+        "align-content" => style.align_content = inherited.align_content,
         "align-self" => style.align_self = inherited.align_self,
         "order" => style.flex_order = inherited.flex_order,
         "flex-grow" => style.flex_grow = inherited.flex_grow,

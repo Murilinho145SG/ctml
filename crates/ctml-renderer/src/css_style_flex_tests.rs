@@ -462,6 +462,29 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
 }
 
 #[test]
+fn align_content_parses_space_distribution_and_resets() {
+    use crate::style::FlexAlignment;
+
+    assert_eq!(style_with_declarations(&[]).align_content, None);
+    assert_eq!(
+        style_with_declarations(&[("align-content", "space-between")]).align_content,
+        Some(FlexAlignment::SpaceBetween)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-content", "center")]).align_content,
+        Some(FlexAlignment::Center)
+    );
+    assert_eq!(
+        style_with_declarations(&[
+            ("align-content", "space-between"),
+            ("align-content", "initial")
+        ])
+        .align_content,
+        None
+    );
+}
+
+#[test]
 fn align_self_parses_supported_overrides_and_css_wide_values() {
     use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart, Stretch};
 

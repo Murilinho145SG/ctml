@@ -90,6 +90,7 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
             style.justify_content = crate::style::FlexAlignment::default();
         }
         "align-items" => style.align_items = None,
+        "align-content" => style.align_content = None,
         "align-self" => style.align_self = None,
         "order" => style.flex_order = 0,
         "flex-grow" => style.flex_grow = 0.0,

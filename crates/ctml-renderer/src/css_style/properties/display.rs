@@ -78,6 +78,21 @@ pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
     };
 }
 
+pub(super) fn apply_align_content(style: &mut TextStyle, value: &str) {
+    style.align_content = match value.trim().to_ascii_lowercase().as_str() {
+        "normal" | "stretch" => Some(crate::style::FlexAlignment::Stretch),
+        "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "start" => Some(crate::style::FlexAlignment::Start),
+        "center" => Some(crate::style::FlexAlignment::Center),
+        "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        "end" => Some(crate::style::FlexAlignment::End),
+        "space-between" => Some(crate::style::FlexAlignment::SpaceBetween),
+        "space-around" => Some(crate::style::FlexAlignment::SpaceAround),
+        "space-evenly" => Some(crate::style::FlexAlignment::SpaceEvenly),
+        _ => return,
+    };
+}
+
 pub(super) fn apply_align_self(style: &mut TextStyle, value: &str) {
     style.align_self = match value.trim().to_ascii_lowercase().as_str() {
         "auto" => None,
@@ -172,6 +187,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "flex-wrap" => apply_flex_wrap(style, value),
         "flex-flow" => apply_flex_flow(style, value),
         "justify-content" => apply_justify_content(style, value),
+        "align-content" => apply_align_content(style, value),
         "align-items" => apply_align_items(style, value),
         "align-self" => apply_align_self(style, value),
         "order" => apply_flex_order(style, value),
@@ -190,6 +206,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "flex-wrap"
             | "flex-flow"
             | "justify-content"
+            | "align-content"
             | "align-items"
             | "align-self"
             | "order"

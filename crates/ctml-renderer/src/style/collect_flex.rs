@@ -348,6 +348,11 @@ pub(super) fn append_gap(
             0.0
         };
         spacer_style.flex_wrap_gap_applied = false;
+        spacer_style.flex_wrap_cross_size_px = if wrap_break {
+            explicit_row_cross_size(style)
+        } else {
+            None
+        };
     } else {
         spacer_style.line_height = gap_px;
         spacer_style.flow_spacer = true;
