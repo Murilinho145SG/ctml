@@ -53,6 +53,14 @@ pub(crate) enum StepPosition {
     JumpBoth,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum FlexBasis {
+    Auto,
+    Content,
+    Length(f32),
+    Percentage(f32),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -111,6 +119,7 @@ pub(crate) struct TextStyle {
     pub(crate) flex_order: i32,
     pub(crate) flex_grow: f32,
     pub(crate) flex_shrink: f32,
+    pub(crate) flex_basis: Option<FlexBasis>,
     pub(crate) justify_content: FlexAlignment,
     pub(crate) align_items: Option<FlexAlignment>,
     pub(crate) align_self: Option<FlexAlignment>,
@@ -346,6 +355,7 @@ impl Default for TextStyle {
             flex_order: 0,
             flex_grow: 0.0,
             flex_shrink: 1.0,
+            flex_basis: None,
             justify_content: FlexAlignment::default(),
             align_items: None,
             align_self: None,

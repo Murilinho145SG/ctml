@@ -26,12 +26,13 @@ pub(super) use text_style::{
     BackgroundAttachment, BackgroundBlendMode, BackgroundBox, BackgroundFit, BackgroundImage,
     BackgroundPosition, BackgroundRepeat, BackgroundSize, BackgroundSizeAxis, BorderImageOutset,
     BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
-    BoxShadow, ConicGradient, Direction, FlexAlignment, FontVariantCaps, FontVariantPosition,
-    Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow, OverflowWrap,
-    RadialGradient, RadialGradientExtent, RadialGradientShape, StepPosition, TextDecorationSkipInk,
-    TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
-    TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle, TextTransform,
-    TextWrapMode, TransitionEasing, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    BoxShadow, ConicGradient, Direction, FlexAlignment, FlexBasis, FontVariantCaps,
+    FontVariantPosition, Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow,
+    OverflowWrap, RadialGradient, RadialGradientExtent, RadialGradientShape, StepPosition,
+    TextDecorationSkipInk, TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide,
+    TextEmphasisStyle, TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle,
+    TextTransform, TextWrapMode, TransitionEasing, UnicodeBidi, UserSelect, WhiteSpace, WordBreak,
+    WritingMode,
 };
 pub(crate) use text_transform::transform_character;
 

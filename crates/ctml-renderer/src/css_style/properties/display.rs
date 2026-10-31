@@ -1,4 +1,4 @@
-use crate::style::TextStyle;
+use crate::style::{FlexBasis, TextStyle};
 
 pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
     match value.trim().to_ascii_lowercase().as_str() {
@@ -125,6 +125,30 @@ pub(super) fn apply_flex_shrink(style: &mut TextStyle, value: &str) {
     }
 }
 
+pub(super) fn apply_flex_basis(style: &mut TextStyle, value: &str) {
+    let value = value.trim();
+    let basis = if value.eq_ignore_ascii_case("auto") {
+        Some(FlexBasis::Auto)
+    } else if value.eq_ignore_ascii_case("content") {
+        Some(FlexBasis::Content)
+    } else if let Some(percentage) = ctml_css::parse_css_percentage(value) {
+        (percentage >= 0.0).then_some(FlexBasis::Percentage(percentage / 100.0))
+    } else {
+        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            value,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+        .filter(|length| length.is_finite())
+        .map(FlexBasis::Length)
+    };
+    if let Some(basis) = basis {
+        style.flex_basis = Some(basis);
+    }
+}
+
 pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value: &str) {
     match property {
         "display" => apply_display(style, value),
@@ -137,6 +161,7 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "order" => apply_flex_order(style, value),
         "flex-grow" => apply_flex_grow(style, value),
         "flex-shrink" => apply_flex_shrink(style, value),
+        "flex-basis" => apply_flex_basis(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
 }
@@ -154,6 +179,7 @@ pub(super) fn is_layout_property(property: &str) -> bool {
             | "order"
             | "flex-grow"
             | "flex-shrink"
+            | "flex-basis"
             | "gap"
             | "row-gap"
             | "column-gap"

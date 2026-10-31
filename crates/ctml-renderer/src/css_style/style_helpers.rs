@@ -28,6 +28,7 @@ pub(super) const SUPPORTED_ALL_PROPERTIES: &[&str] = &[
     "order",
     "flex-grow",
     "flex-shrink",
+    "flex-basis",
     "gap",
     "row-gap",
     "column-gap",

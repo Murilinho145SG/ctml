@@ -144,6 +144,7 @@ pub(super) fn collect_runs(
                     flex_item_id,
                     style.flex_grow,
                     style.flex_shrink,
+                    collect_flex::effective_flex_basis(&style),
                     element_path,
                     output,
                     last_was_space,

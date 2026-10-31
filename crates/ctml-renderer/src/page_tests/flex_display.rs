@@ -378,3 +378,6 @@ mod flex_grow;
 
 #[path = "flex_shrink.rs"]
 mod flex_shrink;
+
+#[path = "flex_basis.rs"]
+mod flex_basis;

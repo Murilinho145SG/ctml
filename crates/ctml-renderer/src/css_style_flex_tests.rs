@@ -189,6 +189,44 @@ fn flex_shrink_defaults_to_one_and_parses_nonnegative_finite_numbers() {
 }
 
 #[test]
+fn flex_basis_accepts_auto_content_lengths_and_percentages() {
+    use crate::style::FlexBasis;
+
+    assert_eq!(style_with_declarations(&[]).flex_basis, None);
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "auto")]).flex_basis,
+        Some(FlexBasis::Auto)
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "content")]).flex_basis,
+        Some(FlexBasis::Content)
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "24px")]).flex_basis,
+        Some(FlexBasis::Length(24.0))
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "50%")]).flex_basis,
+        Some(FlexBasis::Percentage(0.5))
+    );
+
+    let invalid_after_valid =
+        style_with_declarations(&[("flex-basis", "30px"), ("flex-basis", "-2px")]);
+    assert_eq!(
+        invalid_after_valid.flex_basis,
+        Some(FlexBasis::Length(30.0))
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "30px"), ("flex-basis", "initial")]).flex_basis,
+        None
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "30px"), ("all", "initial")]).flex_basis,
+        None
+    );
+}
+
+#[test]
 fn flex_flow_shorthand_sets_direction_and_wrap_and_respects_source_order() {
     let row_wrap = style_with_declarations(&[("flex-flow", "row wrap")]);
     assert!(!row_wrap.flex_direction_column);

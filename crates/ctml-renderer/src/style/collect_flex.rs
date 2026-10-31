@@ -1,5 +1,7 @@
 pub(super) use super::collect_flex_order::order_nodes;
-use super::{FlexAlignment, TextRun, TextStyle, UserSelect, append_text, push_line_break};
+use super::{
+    FlexAlignment, FlexBasis, TextRun, TextStyle, UserSelect, append_text, push_line_break,
+};
 
 #[derive(Default)]
 pub(super) struct FlexGapState {
@@ -7,6 +9,7 @@ pub(super) struct FlexGapState {
     last_item_id: Option<usize>,
     last_item_grow: f32,
     last_item_shrink: f32,
+    last_item_basis: Option<FlexBasis>,
 }
 
 pub(super) fn item_alignment(
@@ -74,6 +77,7 @@ impl FlexGapState {
             !text.chars().all(char::is_whitespace),
             0.0,
             1.0,
+            None,
             element_path,
             output,
             last_was_space,
@@ -95,6 +99,7 @@ impl FlexGapState {
         item_id: usize,
         grow: f32,
         shrink: f32,
+        basis: Option<FlexBasis>,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -106,6 +111,7 @@ impl FlexGapState {
             true,
             grow,
             shrink,
+            basis,
             element_path,
             output,
             last_was_space,
@@ -120,6 +126,7 @@ impl FlexGapState {
         is_item: bool,
         grow: f32,
         shrink: f32,
+        basis: Option<FlexBasis>,
         element_path: &[usize],
         output: &mut Vec<TextRun>,
         last_was_space: &mut bool,
@@ -143,6 +150,7 @@ impl FlexGapState {
                 true,
                 0.0,
                 0.0,
+                None,
                 true,
                 element_path,
                 output,
@@ -156,6 +164,7 @@ impl FlexGapState {
                 false,
                 self.last_item_grow,
                 self.last_item_shrink,
+                self.last_item_basis,
                 is_justify_distribution(style),
                 element_path,
                 output,
@@ -167,6 +176,7 @@ impl FlexGapState {
         self.last_item_id = Some(item_id);
         self.last_item_grow = grow;
         self.last_item_shrink = shrink;
+        self.last_item_basis = basis;
     }
 
     pub(super) fn finish(
@@ -187,6 +197,7 @@ impl FlexGapState {
                 false,
                 self.last_item_grow,
                 self.last_item_shrink,
+                self.last_item_basis,
                 trailing_justify,
                 element_path,
                 output,
@@ -204,11 +215,49 @@ fn is_justify_distribution(style: &TextStyle) -> bool {
     )
 }
 
+pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
+    let basis = style.flex_basis.unwrap_or(FlexBasis::Auto);
+    match basis {
+        FlexBasis::Auto => {
+            let logical_order = style.size_property_orders.get("inline-size");
+            let physical_order = style.size_property_orders.get("width");
+            let value = match (logical_order, physical_order) {
+                (Some(logical), Some(physical)) if logical > physical => {
+                    style.inline_size.as_deref()
+                }
+                (Some(_), Some(_)) => style.width.as_deref(),
+                (Some(_), None) => style.inline_size.as_deref(),
+                (None, Some(_)) => style.width.as_deref(),
+                (None, None) => style.inline_size.as_deref().or(style.width.as_deref()),
+            };
+            value.and_then(|value| parse_item_basis(value, style))
+        }
+        FlexBasis::Content => None,
+        basis => Some(basis),
+    }
+}
+
+fn parse_item_basis(value: &str, style: &TextStyle) -> Option<FlexBasis> {
+    if let Some(percentage) = ctml_css::parse_css_percentage(value) {
+        return (percentage >= 0.0).then_some(FlexBasis::Percentage(percentage / 100.0));
+    }
+    ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+    .filter(|length| length.is_finite())
+    .map(FlexBasis::Length)
+}
+
 pub(super) fn append_gap(
     style: &TextStyle,
     leading: bool,
     grow_weight: f32,
     shrink_weight: f32,
+    basis: Option<FlexBasis>,
     justify_distribution: bool,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
@@ -233,8 +282,15 @@ pub(super) fn append_gap(
         style.flex_items_row && grow_weight > 0.0 && flex_main_size(style).is_some();
     let distribute_shrink =
         style.flex_items_row && shrink_weight > 0.0 && flex_main_size(style).is_some();
+    let distribute_basis = style.flex_items_row && basis.is_some();
     let wrap_break = style.flex_items_row && style.flex_wrap;
-    if gap.is_none() && !distribute && !distribute_grow && !distribute_shrink && !wrap_break {
+    if gap.is_none()
+        && !distribute
+        && !distribute_grow
+        && !distribute_shrink
+        && !distribute_basis
+        && !wrap_break
+    {
         return;
     }
     let percentage_basis = flex_main_size(style);
@@ -276,12 +332,14 @@ pub(super) fn append_gap(
     if style.flex_items_row {
         spacer_style.letter_spacing = gap_px;
         spacer_style.letter_spacing_px = true;
-        spacer_style.flex_distributed_gap = distribute || distribute_grow || distribute_shrink;
+        spacer_style.flex_distributed_gap =
+            distribute || distribute_grow || distribute_shrink || distribute_basis;
         spacer_style.flex_distributed_gap_leading =
             leading && style.justify_content == FlexAlignment::SpaceAround;
         spacer_style.flex_distributed_gap_applied = false;
         spacer_style.flex_grow_weight = grow_weight;
         spacer_style.flex_shrink_weight = shrink_weight;
+        spacer_style.flex_basis = basis;
         spacer_style.flex_justify_distributed = distribute;
         spacer_style.flex_wrap_break = wrap_break;
         spacer_style.flex_wrap_gap_px = if wrap_break {
