@@ -214,6 +214,7 @@ pub(crate) struct TextStyle {
     pub(crate) flex_direction_column: bool,
     pub(crate) flex_direction_reverse: bool,
     pub(crate) flex_wrap: bool,
+    pub(crate) flex_wrap_reverse: bool,
     pub(crate) flex_item_no_wrap: bool,
     pub(crate) flex_order: i32,
     pub(crate) flex_grow: f32,

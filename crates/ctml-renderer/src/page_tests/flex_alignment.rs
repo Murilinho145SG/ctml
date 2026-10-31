@@ -127,6 +127,29 @@ fn flex_wrap_defaults_to_single_row_and_wrap_allows_items_on_another_line() {
 }
 
 #[test]
+fn flex_wrap_reverse_places_the_first_wrapped_row_at_the_cross_end() {
+    let mut wrap = flex_wrap_page(Some("wrap"));
+    let mut reverse = flex_wrap_page(Some("wrap-reverse"));
+    wrap.prepare_layout(60, 120);
+    reverse.prepare_layout(60, 120);
+    assert!(item_y(&wrap, "Second") > item_y(&wrap, "First"));
+    assert!(
+        item_y(&reverse, "First") > item_y(&reverse, "Second"),
+        "wrap-reverse should place the first source row at the cross-end"
+    );
+    let first_glyph = item_glyph(&reverse, "First");
+    reverse.update_hover(
+        f64::from(first_glyph.x + crate::page::PAGE_PADDING + 2.0),
+        f64::from(item_y(&reverse, "First") + crate::page::PAGE_PADDING + 8.0),
+    );
+    assert_eq!(
+        reverse.hovered_path.last(),
+        Some(&2),
+        "hit testing should follow the moved row"
+    );
+}
+
+#[test]
 fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
     page.prepare_layout(400, 120);
@@ -242,6 +265,10 @@ fn aligned_flex_page(direction: &str, property: &str, value: &str) -> PageRaster
 }
 
 fn flex_wrap_page(wrap: Option<&str>) -> PageRasterizer {
+    flex_wrap_page_with_height(wrap, "")
+}
+
+fn flex_wrap_page_with_height(wrap: Option<&str>, height: &str) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("container".to_owned()),
@@ -268,20 +295,24 @@ fn flex_wrap_page(wrap: Option<&str>) -> PageRasterizer {
             value: "44px".to_owned(),
         },
     ];
+    if !height.is_empty() {
+        declarations.push(StyleDeclaration {
+            property: "height".to_owned(),
+            value: height.to_owned(),
+        });
+    }
     if let Some(wrap) = wrap {
         declarations.push(StyleDeclaration {
             property: "flex-wrap".to_owned(),
             value: wrap.to_owned(),
         });
     }
-    PageRasterizer::new(
-        &nodes,
-        &[StyleRule {
-            selectors: vec![".container".to_owned()],
-            layer: None,
-            declarations,
-        }],
-    )
+    let stylesheet = [StyleRule {
+        selectors: vec![".container".to_owned()],
+        layer: None,
+        declarations,
+    }];
+    PageRasterizer::new(&nodes, &stylesheet)
 }
 
 fn align_self_flex_page(value: &str) -> PageRasterizer {
@@ -338,8 +369,7 @@ fn item_x(page: &PageRasterizer, item: &str) -> f32 {
 }
 
 fn item_y(page: &PageRasterizer, item: &str) -> f32 {
-    page.buffer
-        .layout_runs()
+    page.layout_runs()
         .find(|line| {
             let Some(start) = line.text.find(item) else {
                 return false;

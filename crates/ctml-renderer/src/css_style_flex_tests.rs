@@ -115,10 +115,14 @@ fn flex_wrap_defaults_to_nowrap_and_supports_wrap_and_css_wide_values() {
     assert!(!style_with_declarations(&[]).flex_wrap);
     assert!(style_with_declarations(&[("flex-wrap", "wrap")]).flex_wrap);
     assert!(!style_with_declarations(&[("flex-wrap", "nowrap")]).flex_wrap);
-    assert!(!style_with_declarations(&[("flex-wrap", "wrap-reverse")]).flex_wrap);
+    let wrap_reverse = style_with_declarations(&[("flex-wrap", "wrap-reverse")]);
+    assert!(wrap_reverse.flex_wrap);
+    assert!(wrap_reverse.flex_wrap_reverse);
+    assert!(!style_with_declarations(&[("flex-wrap", "wrap")]).flex_wrap_reverse);
 
     let inherited = TextStyle {
         flex_wrap: true,
+        flex_wrap_reverse: true,
         ..TextStyle::default()
     };
     let element = ElementIdentity {
@@ -126,11 +130,18 @@ fn flex_wrap_defaults_to_nowrap_and_supports_wrap_and_css_wide_values() {
         class: None,
         id: None,
     };
-    assert!(resolve_style(&inherited, &element, &[], &[rule("flex-wrap", "inherit")]).flex_wrap);
+    let inherited_wrap = resolve_style(&inherited, &element, &[], &[rule("flex-wrap", "inherit")]);
+    assert!(inherited_wrap.flex_wrap);
+    assert!(inherited_wrap.flex_wrap_reverse);
     for keyword in ["initial", "unset", "revert"] {
         assert!(
             !resolve_style(&inherited, &element, &[], &[rule("flex-wrap", keyword)]).flex_wrap,
             "{keyword} should restore nowrap"
+        );
+        assert!(
+            !resolve_style(&inherited, &element, &[], &[rule("flex-wrap", keyword)])
+                .flex_wrap_reverse,
+            "{keyword} should clear the reverse cross direction"
         );
     }
 }
@@ -265,9 +276,14 @@ fn flex_flow_shorthand_sets_direction_and_wrap_and_respects_source_order() {
     );
     assert!(wrap_only.flex_wrap);
 
+    let wrap_reverse = style_with_declarations(&[("flex-flow", "row wrap-reverse")]);
+    assert!(wrap_reverse.flex_wrap);
+    assert!(wrap_reverse.flex_wrap_reverse);
+
     let invalid = style_with_declarations(&[("flex-flow", "column wrap wrap")]);
     assert!(!invalid.flex_direction_column);
     assert!(!invalid.flex_wrap);
+    assert!(!invalid.flex_wrap_reverse);
 
     let longhand_after = style_with_declarations(&[
         ("flex-flow", "column-reverse wrap"),
@@ -284,6 +300,7 @@ fn flex_flow_shorthand_supports_css_wide_inherit_and_reset_keywords() {
         flex_direction_column: true,
         flex_direction_reverse: true,
         flex_wrap: true,
+        flex_wrap_reverse: true,
         ..TextStyle::default()
     };
     let element = ElementIdentity {
@@ -295,6 +312,7 @@ fn flex_flow_shorthand_supports_css_wide_inherit_and_reset_keywords() {
     assert!(inherited_style.flex_direction_column);
     assert!(inherited_style.flex_direction_reverse);
     assert!(inherited_style.flex_wrap);
+    assert!(inherited_style.flex_wrap_reverse);
 
     for keyword in ["initial", "unset", "revert"] {
         let style = resolve_style(&inherited, &element, &[], &[rule("flex-flow", keyword)]);
@@ -304,6 +322,10 @@ fn flex_flow_shorthand_supports_css_wide_inherit_and_reset_keywords() {
             "{keyword} should restore row"
         );
         assert!(!style.flex_wrap, "{keyword} should restore nowrap");
+        assert!(
+            !style.flex_wrap_reverse,
+            "{keyword} should clear the reverse cross direction"
+        );
     }
 }
 

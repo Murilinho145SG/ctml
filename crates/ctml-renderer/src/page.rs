@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, Scroll, SwashCache};
+use cosmic_text::{Buffer, Cursor, FontSystem, LayoutRun, Metrics, Scroll, SwashCache};
 use winit::window::CursorIcon;
 
 use crate::{
@@ -79,6 +79,7 @@ pub(crate) struct PageRasterizer {
     cursor_spans: Vec<CursorSpan>,
     overflow_clips: HashMap<usize, overflow_clip::ClipRect>,
     overflow_geometry: HashMap<usize, overflow_clip::BlockGeometry>,
+    flex_wrap_line_offsets: HashMap<(usize, usize), f32>,
     root_scroll: Scroll,
     nested_scroll: HashMap<usize, (f32, f32)>,
     spacer_line_flags: Vec<bool>,
@@ -117,6 +118,10 @@ pub(crate) struct PageRasterizer {
 }
 
 impl PageRasterizer {
+    pub(super) fn layout_runs(&self) -> impl Iterator<Item = LayoutRun<'_>> + '_ {
+        adjusted_layout_runs(&self.buffer, &self.flex_wrap_line_offsets)
+    }
+
     #[cfg(test)]
     pub(crate) fn new(nodes: &[UiNode], stylesheet: &[StyleRule]) -> Self {
         Self::new_with_fonts(nodes, stylesheet, &[])
@@ -236,6 +241,7 @@ impl PageRasterizer {
             cursor_spans,
             overflow_clips: HashMap::new(),
             overflow_geometry: HashMap::new(),
+            flex_wrap_line_offsets: HashMap::new(),
             root_scroll: Scroll::default(),
             nested_scroll: HashMap::new(),
             spacer_line_flags: Vec::new(),
@@ -472,6 +478,7 @@ impl PageRasterizer {
                 layout_width,
                 layout_height,
                 page_writing_mode,
+                &self.flex_wrap_line_offsets,
             );
             content_visibility::offscreen_auto_nodes(
                 &self.runs,
@@ -572,6 +579,7 @@ impl PageRasterizer {
             layout_width,
             layout_height,
             writing_mode,
+            &self.flex_wrap_line_offsets,
         );
         self.overflow_geometry = overflow_geometry;
         self.overflow_clips = self
@@ -802,6 +810,23 @@ impl PageRasterizer {
     fn writing_mode(&self) -> crate::style::WritingMode {
         self.root_style.writing_mode
     }
+}
+
+pub(super) fn adjusted_layout_runs<'a>(
+    buffer: &'a Buffer,
+    offsets: &'a HashMap<(usize, usize), f32>,
+) -> impl Iterator<Item = LayoutRun<'a>> + 'a {
+    buffer.layout_runs().map(move |mut run| {
+        let offset = run
+            .glyphs
+            .first()
+            .and_then(|glyph| offsets.get(&(run.line_i, glyph.start)))
+            .copied()
+            .unwrap_or_default();
+        run.line_top += offset;
+        run.line_y += offset;
+        run
+    })
 }
 
 #[cfg(test)]

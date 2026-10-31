@@ -20,9 +20,13 @@ impl PageRasterizer {
     ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
         let first_letters = first_formatted_letters(&self.cursor_spans);
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
+        let vertical_origins = local_writing::vertical_block_origins(
+            &self.runs,
+            &self.buffer,
+            self.writing_mode(),
+            &self.flex_wrap_line_offsets,
+        );
+        for run in self.layout_runs() {
             let mut first_line_groups: Vec<(
                 usize,
                 usize,

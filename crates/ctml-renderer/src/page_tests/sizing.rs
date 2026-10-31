@@ -334,6 +334,7 @@ fn nested_vertical_text_is_composed_in_its_local_writing_mode() {
             &page.runs,
             &page.buffer,
             crate::style::WritingMode::HorizontalTb,
+            &page.flex_wrap_line_offsets,
         );
         let first_line = page.buffer.layout_runs().next().unwrap();
         let first_glyph = first_line.glyphs.first().unwrap();

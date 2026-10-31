@@ -143,7 +143,6 @@ impl PageRasterizer {
             return true;
         }
         let Some(text) = self
-            .buffer
             .layout_runs()
             .find(|run| run.line_i == cursor.line)
             .map(|run| run.text.to_owned())
@@ -235,16 +234,21 @@ impl PageRasterizer {
         };
         let x = x + scroll_translation_x;
         let y = y - PAGE_PADDING + scroll_translation_y;
-        let inside_text_line = self.buffer.layout_runs().any(|run| {
+        let hit_line = self.layout_runs().find(|run| {
             run.line_w > 0.0
                 && x >= 0.0
                 && x <= run.line_w
                 && y >= run.line_top
                 && y < run.line_top + run.line_height
         });
-        let cursor = inside_text_line
-            .then(|| self.buffer.hit(x, y))
-            .flatten()
+        let hit_offset = hit_line
+            .as_ref()
+            .and_then(|run| run.glyphs.first().map(|glyph| (run.line_i, glyph.start)))
+            .and_then(|key| self.flex_wrap_line_offsets.get(&key))
+            .copied()
+            .unwrap_or_default();
+        let cursor = hit_line
+            .and_then(|_| self.buffer.hit(x, y - hit_offset))
             .filter(|cursor| {
                 self.cursor_spans.iter().any(|span| {
                     span.line == cursor.line
@@ -316,10 +320,14 @@ impl PageRasterizer {
         let (width, height) = self.layout_size?;
         let style_ranges = local_writing::text_style_ranges(&self.runs);
         let line_starts = local_writing::text_line_starts(&self.runs);
-        let origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
+        let origins = local_writing::vertical_block_origins(
+            &self.runs,
+            &self.buffer,
+            self.writing_mode(),
+            &self.flex_wrap_line_offsets,
+        );
         let mut bounds = HashMap::<usize, (crate::style::WritingMode, f32, f32, f32, f32)>::new();
-        for line in self.buffer.layout_runs() {
+        for line in self.layout_runs() {
             let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
             for glyph in line.glyphs {
                 let Some(style_index) =

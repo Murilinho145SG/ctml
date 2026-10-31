@@ -126,11 +126,12 @@ pub(super) fn block_geometries(
     width: u32,
     height: u32,
     page_writing_mode: WritingMode,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
 ) -> HashMap<usize, BlockGeometry> {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
     let mut extents = HashMap::<usize, BlockExtent>::new();
-    for line in buffer.layout_runs() {
+    for line in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let Some(glyph) = line.glyphs.first() else {
             continue;

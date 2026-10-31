@@ -34,6 +34,7 @@ pub(super) fn draw(
     writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let first_letters = super::highlights::first_formatted_letters(cursor_spans);
@@ -64,8 +65,9 @@ pub(super) fn draw(
     let line_starts = local_writing::text_line_starts(runs);
     let shaper = skia_safe::shapers::hb::shape_dont_wrap_or_reorder(None::<FontMgr>);
     let canvas = surface.canvas();
-    let vertical_block_origins = local_writing::vertical_block_origins(runs, buffer, writing_mode);
-    for run in buffer.layout_runs() {
+    let vertical_block_origins =
+        local_writing::vertical_block_origins(runs, buffer, writing_mode, flex_wrap_line_offsets);
+    for run in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
         let line_start = line_starts.get(run.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < run.glyphs.len() {

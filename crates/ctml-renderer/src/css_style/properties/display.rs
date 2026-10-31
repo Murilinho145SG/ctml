@@ -24,8 +24,18 @@ pub(super) fn apply_flex_direction(style: &mut TextStyle, value: &str) {
 
 pub(super) fn apply_flex_wrap(style: &mut TextStyle, value: &str) {
     match value.trim().to_ascii_lowercase().as_str() {
-        "nowrap" => style.flex_wrap = false,
-        "wrap" => style.flex_wrap = true,
+        "nowrap" => {
+            style.flex_wrap = false;
+            style.flex_wrap_reverse = false;
+        }
+        "wrap" => {
+            style.flex_wrap = true;
+            style.flex_wrap_reverse = false;
+        }
+        "wrap-reverse" => {
+            style.flex_wrap = true;
+            style.flex_wrap_reverse = true;
+        }
         _ => {}
     }
 }
@@ -38,7 +48,7 @@ pub(super) fn apply_flex_flow(style: &mut TextStyle, value: &str) {
             "row" | "row-reverse" | "column" | "column-reverse" if direction.is_none() => {
                 direction = Some(token.to_ascii_lowercase());
             }
-            "wrap" | "nowrap" if wrap.is_none() => {
+            "wrap" | "nowrap" | "wrap-reverse" if wrap.is_none() => {
                 wrap = Some(token.to_ascii_lowercase());
             }
             _ => return,

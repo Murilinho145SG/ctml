@@ -24,9 +24,13 @@ impl PageRasterizer {
         } else {
             (second, first)
         };
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
+        let vertical_origins = local_writing::vertical_block_origins(
+            &self.runs,
+            &self.buffer,
+            self.writing_mode(),
+            &self.flex_wrap_line_offsets,
+        );
+        for run in self.layout_runs() {
             if run.line_i < start.line || run.line_i > end.line {
                 continue;
             }
@@ -115,9 +119,13 @@ impl PageRasterizer {
         image_cache: &mut super::background_images::ImageCache,
     ) {
         let first_lines = first_formatted_line_ranges(&self.buffer, &self.cursor_spans);
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
+        let vertical_origins = local_writing::vertical_block_origins(
+            &self.runs,
+            &self.buffer,
+            self.writing_mode(),
+            &self.flex_wrap_line_offsets,
+        );
+        for run in self.layout_runs() {
             let mut groups: Vec<(usize, usize, usize, Option<[u8; 4]>, Vec<usize>, usize, f32)> =
                 Vec::new();
             for span in self
@@ -270,9 +278,13 @@ impl PageRasterizer {
         clips: &HashMap<usize, ClipRect>,
     ) {
         let first_letters = first_formatted_letters(&self.cursor_spans);
-        let vertical_origins =
-            local_writing::vertical_block_origins(&self.runs, &self.buffer, self.writing_mode());
-        for run in self.buffer.layout_runs() {
+        let vertical_origins = local_writing::vertical_block_origins(
+            &self.runs,
+            &self.buffer,
+            self.writing_mode(),
+            &self.flex_wrap_line_offsets,
+        );
+        for run in self.layout_runs() {
             let mut groups: Vec<(usize, usize, [u8; 4], Vec<usize>, [f32; 4])> = Vec::new();
             for (block, (line, start, end)) in &first_letters {
                 if *line != run.line_i {

@@ -144,13 +144,18 @@ pub(super) fn draw(
     page_writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
     image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
-    let vertical_block_origins =
-        local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
-    for line in buffer.layout_runs() {
+    let vertical_block_origins = local_writing::vertical_block_origins(
+        runs,
+        buffer,
+        page_writing_mode,
+        flex_wrap_line_offsets,
+    );
+    for line in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < line.glyphs.len() {

@@ -90,11 +90,15 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
             style.flex_direction_column = false;
             style.flex_direction_reverse = false;
         }
-        "flex-wrap" => style.flex_wrap = false,
+        "flex-wrap" => {
+            style.flex_wrap = false;
+            style.flex_wrap_reverse = false;
+        }
         "flex-flow" => {
             style.flex_direction_column = false;
             style.flex_direction_reverse = false;
             style.flex_wrap = false;
+            style.flex_wrap_reverse = false;
         }
         "justify-content" => {
             style.justify_content = crate::style::FlexAlignment::default();

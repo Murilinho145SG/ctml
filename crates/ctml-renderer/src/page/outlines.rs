@@ -85,11 +85,16 @@ pub(super) fn draw_first_line_outlines(
     page_writing_mode: crate::style::WritingMode,
     clips: &HashMap<usize, overflow_clip::ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
 ) {
     let first_lines = super::highlights::first_formatted_line_ranges(buffer, spans);
-    let vertical_origins =
-        super::local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
-    let lines = buffer.layout_runs().collect::<Vec<_>>();
+    let vertical_origins = super::local_writing::vertical_block_origins(
+        runs,
+        buffer,
+        page_writing_mode,
+        flex_wrap_line_offsets,
+    );
+    let lines = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets).collect::<Vec<_>>();
     let mut drawn = std::collections::HashSet::new();
     for span in spans {
         let Some(block) = span.first_line_block else {

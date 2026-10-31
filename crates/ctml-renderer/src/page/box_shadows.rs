@@ -38,11 +38,16 @@ pub(super) fn draw_first_letter(
     page_writing_mode: crate::style::WritingMode,
     clips: &HashMap<usize, overflow_clip::ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
     inset: bool,
 ) {
     let first_letters = super::highlights::first_formatted_letters(spans);
-    let vertical_origins =
-        super::local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
+    let vertical_origins = super::local_writing::vertical_block_origins(
+        runs,
+        buffer,
+        page_writing_mode,
+        flex_wrap_line_offsets,
+    );
     let mut drawn = HashSet::new();
     for span in spans {
         let Some(block) = span.first_letter_block else {
@@ -57,7 +62,9 @@ pub(super) fn draw_first_letter(
         let Some(style) = span.first_letter_font_style.as_ref() else {
             continue;
         };
-        let Some(line) = buffer.layout_runs().find(|line| line.line_i == line_index) else {
+        let Some(line) = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets)
+            .find(|line| line.line_i == line_index)
+        else {
             continue;
         };
         let mut left = f32::INFINITY;
@@ -188,12 +195,17 @@ pub(super) fn draw_first_line(
     page_writing_mode: crate::style::WritingMode,
     clips: &HashMap<usize, overflow_clip::ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
+    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
     inset: bool,
 ) {
     let first_lines = super::highlights::first_formatted_line_ranges(buffer, spans);
-    let vertical_origins =
-        super::local_writing::vertical_block_origins(runs, buffer, page_writing_mode);
-    let lines = buffer.layout_runs().collect::<Vec<_>>();
+    let vertical_origins = super::local_writing::vertical_block_origins(
+        runs,
+        buffer,
+        page_writing_mode,
+        flex_wrap_line_offsets,
+    );
+    let lines = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets).collect::<Vec<_>>();
     let mut drawn = HashSet::new();
     for span in spans {
         let Some(block) = span.first_line_block else {

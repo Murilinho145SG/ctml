@@ -97,6 +97,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.flex_direction_column = false;
     style.flex_direction_reverse = false;
     style.flex_wrap = false;
+    style.flex_wrap_reverse = false;
     style.flex_item_no_wrap = false;
     style.flex_order = 0;
     style.flex_grow = 0.0;
