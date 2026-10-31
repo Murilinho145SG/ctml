@@ -22,7 +22,7 @@ pub(super) fn item_alignment(
     } else if inherited.flex_items_row {
         Some(inherited.justify_content)
     } else if inherited.flex_items_column {
-        inherited.align_items
+        style.align_self.or(inherited.align_items)
     } else {
         inherited.flex_item_alignment
     }

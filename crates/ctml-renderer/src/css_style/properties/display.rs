@@ -27,6 +27,16 @@ pub(super) fn apply_align_items(style: &mut TextStyle, value: &str) {
     };
 }
 
+pub(super) fn apply_align_self(style: &mut TextStyle, value: &str) {
+    style.align_self = match value.trim().to_ascii_lowercase().as_str() {
+        "auto" => None,
+        "start" | "flex-start" => Some(crate::style::FlexAlignment::FlexStart),
+        "center" => Some(crate::style::FlexAlignment::Center),
+        "end" | "flex-end" => Some(crate::style::FlexAlignment::FlexEnd),
+        _ => return,
+    };
+}
+
 pub(super) fn apply_flex_order(style: &mut TextStyle, value: &str) {
     if let Some(order) = ctml_css::parse_css_integer(value) {
         style.flex_order = order.parse().unwrap_or_else(|_| {
@@ -45,9 +55,25 @@ pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value
         "flex-direction" => apply_flex_direction(style, value),
         "justify-content" => apply_justify_content(style, value),
         "align-items" => apply_align_items(style, value),
+        "align-self" => apply_align_self(style, value),
         "order" => apply_flex_order(style, value),
         _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
+}
+
+pub(super) fn is_layout_property(property: &str) -> bool {
+    matches!(
+        property,
+        "display"
+            | "flex-direction"
+            | "justify-content"
+            | "align-items"
+            | "align-self"
+            | "order"
+            | "gap"
+            | "row-gap"
+            | "column-gap"
+    )
 }
 
 pub(super) fn apply_display(style: &mut TextStyle, value: &str) {

@@ -207,6 +207,59 @@ fn align_items_parses_supported_alignment_and_css_wide_values() {
 }
 
 #[test]
+fn align_self_parses_supported_overrides_and_css_wide_values() {
+    use crate::style::FlexAlignment::{Center, FlexEnd, FlexStart};
+
+    assert_eq!(style_with_declarations(&[]).align_self, None);
+    assert_eq!(
+        style_with_declarations(&[("align-self", "auto")]).align_self,
+        None
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "flex-start")]).align_self,
+        Some(FlexStart)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "center")]).align_self,
+        Some(Center)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "flex-end")]).align_self,
+        Some(FlexEnd)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "center"), ("align-self", "baseline")]).align_self,
+        Some(Center)
+    );
+    assert_eq!(
+        style_with_declarations(&[("align-self", "center"), ("all", "initial")]).align_self,
+        None
+    );
+
+    let inherited = TextStyle {
+        align_self: Some(Center),
+        ..TextStyle::default()
+    };
+    let element = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[]).align_self,
+        None
+    );
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[rule("align-self", "inherit")]).align_self,
+        Some(Center)
+    );
+    assert_eq!(
+        resolve_style(&inherited, &element, &[], &[rule("align-self", "initial")]).align_self,
+        None
+    );
+}
+
+#[test]
 fn flex_gaps_parse_shorthand_longhands_and_source_order() {
     let single = style_with_declarations(&[("gap", "4px")]);
     assert_eq!(single.row_gap.as_deref(), Some("4px"));

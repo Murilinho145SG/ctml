@@ -74,6 +74,7 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
             style.justify_content = crate::style::FlexAlignment::default();
         }
         "align-items" => style.align_items = None,
+        "align-self" => style.align_self = None,
         "order" => style.flex_order = 0,
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::initial_flex_gap(style, property);

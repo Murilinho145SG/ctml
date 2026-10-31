@@ -43,6 +43,21 @@ fn column_align_items_aligns_flex_items_on_the_cross_axis() {
         );
     }
 }
+
+#[test]
+fn align_self_overrides_the_column_container_alignment_per_item() {
+    let mut center = align_self_flex_page("center");
+    let mut end = align_self_flex_page("flex-end");
+    center.prepare_layout(400, 120);
+    end.prepare_layout(400, 120);
+
+    let first_x = item_x(&center, "First");
+    let center_x = item_x(&center, "Second");
+    let end_x = item_x(&end, "Second");
+    assert!(center_x > first_x + 20.0, "center offset: {center_x}");
+    assert!(end_x > center_x + 20.0, "end offset: {end_x}");
+    assert!(item_y(&center, "Second") > item_y(&center, "First"));
+}
 fn aligned_flex_page(direction: &str, property: &str, value: &str) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -78,6 +93,55 @@ fn aligned_flex_page(direction: &str, property: &str, value: &str) -> PageRaster
             },
         ],
     }];
+    PageRasterizer::new(&nodes, &stylesheet)
+}
+
+fn align_self_flex_page(value: &str) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, text)| UiNode::Element {
+                tag: "p".to_owned(),
+                class: (index == 1).then(|| "second".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "display".to_owned(),
+                    value: "flex".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "flex-direction".to_owned(),
+                    value: "column".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "align-items".to_owned(),
+                    value: "flex-start".to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec![".second".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "align-self".to_owned(),
+                value: value.to_owned(),
+            }],
+        },
+    ];
     PageRasterizer::new(&nodes, &stylesheet)
 }
 
