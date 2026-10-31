@@ -28,6 +28,10 @@ pub(crate) fn apply_color_declaration(
     if let Some((color, opacity)) = color {
         style.color = color;
         style.color_opacity = opacity;
+        style.color_is_explicit = !matches!(
+            value.to_ascii_lowercase().as_str(),
+            "currentcolor" | "inherit" | "unset"
+        );
         true
     } else {
         false

@@ -3,6 +3,11 @@ use super::super::*;
 pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, property: &str) {
     match property {
         "color-scheme" => style.dark_color_scheme = false,
+        "color" => {
+            style.color = [0, 0, 0, 255];
+            style.color_opacity = 1.0;
+            style.color_is_explicit = true;
+        }
         "opacity" => style.opacity = 1.0,
         "transition"
         | "transition-property"

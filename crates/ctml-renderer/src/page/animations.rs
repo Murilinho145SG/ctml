@@ -58,7 +58,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         let color = interpolate_color(transition, now);
         page.element_colors.insert(*node_id, color);
         for run in &mut page.runs {
-            if run.element_path.last() == Some(node_id) {
+            if run.style.color_transition_owner == Some(*node_id) {
                 run.style.color = color;
             }
         }
@@ -175,7 +175,7 @@ fn begin_color_transition(
     let color = interpolate_color(&transition, now);
     page.element_colors.insert(node_id, color);
     for run in &mut page.runs {
-        if run.element_path.last() == Some(&node_id) {
+        if run.style.color_transition_owner == Some(node_id) {
             run.style.color = color;
         }
     }

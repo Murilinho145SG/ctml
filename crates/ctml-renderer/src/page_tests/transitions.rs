@@ -153,3 +153,53 @@ fn text_color_transitions_interpolate_between_rgba_values() {
     );
     assert_eq!(page.runs[0].style.color, [255, 0, 0, 255]);
 }
+
+#[test]
+fn wrapper_color_transitions_inherited_text_without_overriding_explicit_descendant_colors() {
+    let nodes = [crate::UiNode::Element {
+        tag: "section".to_owned(),
+        class: Some("wrapper".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: [("inherited", "Inherited"), ("explicit", "Explicit")]
+            .into_iter()
+            .map(|(class, text)| crate::UiNode::Element {
+                tag: "p".to_owned(),
+                class: Some(class.to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![crate::UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let stylesheet = [
+        rule(
+            ".wrapper",
+            &[("color", "blue"), ("transition", "color 1000ms linear")],
+        ),
+        rule(".wrapper:hover", &[("color", "red")]),
+        rule(".explicit", &[("color", "green")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.color_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    let inherited = page
+        .runs
+        .iter()
+        .find(|run| run.text.contains('I'))
+        .expect("inherited descendant should render text");
+    let explicit = page
+        .runs
+        .iter()
+        .find(|run| run.text.contains('E'))
+        .expect("explicit descendant should render text");
+    assert_eq!(inherited.style.color, [128, 0, 128, 255]);
+    assert_eq!(explicit.style.color, [0, 128, 0, 255]);
+}

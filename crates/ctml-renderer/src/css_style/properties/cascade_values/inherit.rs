@@ -7,6 +7,13 @@ pub(in crate::css_style::properties) fn inherit_property(
 ) {
     match property {
         "color-scheme" => style.dark_color_scheme = inherited.dark_color_scheme,
+        "color" => {
+            style.color = inherited.color;
+            style.color_opacity = inherited.color_opacity;
+            style.color_owner = inherited.color_owner;
+            style.color_is_explicit = false;
+            style.color_transition_owner = inherited.color_transition_owner;
+        }
         "opacity" => style.opacity = inherited.opacity,
         "transition" => {
             style.transition_properties = inherited.transition_properties.clone();

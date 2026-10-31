@@ -52,6 +52,7 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
 ) -> TextStyle {
     let mut style = inherited.clone();
     style.font_relative_units = local_font_units;
+    style.color_is_explicit = false;
     style.opacity = 1.0;
     style.transition_opacity = false;
     style.transition_duration_ms = 0.0;

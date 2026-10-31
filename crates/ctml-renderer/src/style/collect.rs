@@ -98,6 +98,18 @@ pub(super) fn collect_runs(
                     stylesheet,
                     font_metrics,
                 );
+                style.color_owner = if style.color_is_explicit {
+                    Some(sibling.node_id)
+                } else {
+                    inherited.color_owner
+                };
+                style.color_transition_owner = if style.transition_color {
+                    Some(sibling.node_id)
+                } else if style.color_is_explicit {
+                    None
+                } else {
+                    inherited.color_transition_owner
+                };
                 style.content_skipped_by_ancestor = inherited.content_skipped;
                 style.content_skipped =
                     inherited.content_skipped || style.content_visibility_hidden;

@@ -128,7 +128,7 @@ pub(super) fn compile_runs_with_opacity_map(
         keyboard_focus,
         &mut selector_tree,
     );
-    let root_style = font_units::resolve_root_style(
+    let mut root_style = font_units::resolve_root_style(
         &body,
         root_position,
         &selector_tree,
@@ -137,6 +137,8 @@ pub(super) fn compile_runs_with_opacity_map(
         viewport_size,
         color_profiles,
     );
+    root_style.color_owner = Some(0);
+    root_style.color_transition_owner = root_style.transition_color.then_some(0);
     let mut inherited_root_style = root_style.clone();
     inherited_root_style.opacity = 1.0;
     let mut runs = Vec::new();
@@ -154,6 +156,22 @@ pub(super) fn compile_runs_with_opacity_map(
     let mut mix_blend_modes = HashMap::new();
     let mut isolation_groups = HashSet::new();
     let mut transition_styles = HashMap::new();
+    transition_styles.insert(
+        0,
+        ElementTransitionStyle {
+            opacity: root_style.transition_opacity.then_some(TransitionTiming {
+                duration_ms: root_style.transition_duration_ms,
+                delay_ms: root_style.transition_delay_ms,
+                easing: root_style.transition_easing,
+            }),
+            color: root_style.transition_color.then_some(TransitionTiming {
+                duration_ms: root_style.transition_color_duration_ms,
+                delay_ms: root_style.transition_color_delay_ms,
+                easing: root_style.transition_color_easing,
+            }),
+            color_value: root_style.color,
+        },
+    );
     if !root_style.display_none {
         collect::collect_runs(
             nodes,
