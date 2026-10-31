@@ -17,10 +17,14 @@ pub(in crate::page) struct KeyframeAnimationState {
     base_opacity: f32,
     base_color: [u8; 4],
     base_background_color: [u8; 4],
+    base_outline_color: [u8; 4],
+    base_border_colors: [[u8; 4]; 4],
     base_visibility_hidden: bool,
     opacity_frames: Option<Vec<(f32, f32)>>,
     color_frames: Option<Vec<(f32, [u8; 4])>>,
     background_color_frames: Option<Vec<(f32, [u8; 4])>>,
+    outline_color_frames: Option<Vec<(f32, [u8; 4])>>,
+    border_color_frames: [Option<Vec<(f32, [u8; 4])>>; 4],
     visibility_frames: Option<Vec<(f32, bool)>>,
     pub(in crate::page) starts_at: Instant,
     paused_at: Option<Instant>,
@@ -51,6 +55,8 @@ pub(in crate::page) fn build_states(
             };
             let base_color = style.color_value;
             let base_background_color = style.background_color_value;
+            let base_outline_color = style.outline_color_value;
+            let base_border_colors = style.border_color_value;
             let base_visibility_hidden = style.visibility_hidden;
             let states = style
                 .animation
@@ -64,17 +70,39 @@ pub(in crate::page) fn build_states(
                         .find(|rule| rule.name == animation.name)?;
                     let opacity_frames = collect_opacity_frames(rule, base_opacity);
                     let color_frames =
-                        color::collect_color_frames(rule, "color", base_color, base_color);
+                        color::collect_color_frames(rule, &["color"], base_color, base_color);
                     let background_color_frames = color::collect_color_frames(
                         rule,
-                        "background-color",
+                        &["background-color"],
                         base_background_color,
                         base_color,
                     );
+                    let outline_color_frames = color::collect_color_frames(
+                        rule,
+                        &["outline-color"],
+                        base_outline_color,
+                        base_color,
+                    );
+                    let border_color_properties = [
+                        ["border-color", "border-top-color"],
+                        ["border-color", "border-right-color"],
+                        ["border-color", "border-bottom-color"],
+                        ["border-color", "border-left-color"],
+                    ];
+                    let border_color_frames = std::array::from_fn(|side| {
+                        color::collect_color_frames(
+                            rule,
+                            &border_color_properties[side],
+                            base_border_colors[side],
+                            base_color,
+                        )
+                    });
                     let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
                     if opacity_frames.is_none()
                         && color_frames.is_none()
                         && background_color_frames.is_none()
+                        && outline_color_frames.is_none()
+                        && border_color_frames.iter().all(Option::is_none)
                         && visibility_frames.is_none()
                     {
                         return None;
@@ -83,10 +111,14 @@ pub(in crate::page) fn build_states(
                         base_opacity,
                         base_color,
                         base_background_color,
+                        base_outline_color,
+                        base_border_colors,
                         base_visibility_hidden,
                         opacity_frames,
                         color_frames,
                         background_color_frames,
+                        outline_color_frames,
+                        border_color_frames,
                         visibility_frames,
                         starts_at: animation_start(animation, now),
                         paused_at: (animation.play_state == AnimationPlayState::Paused)
@@ -172,6 +204,22 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
             if states.iter().any(|(_, state)| state.color_frames.is_some()) {
                 super::apply_text_color(page, node_id, first.base_color);
             }
+            if states
+                .iter()
+                .any(|(_, state)| state.outline_color_frames.is_some())
+            {
+                super::outline_color::apply(page, node_id, first.base_outline_color);
+                page.element_outline_colors
+                    .insert(node_id, first.base_outline_color);
+            }
+            if states
+                .iter()
+                .any(|(_, state)| state.border_color_frames.iter().any(Option::is_some))
+            {
+                super::border_color::apply(page, node_id, first.base_border_colors);
+                page.element_border_colors
+                    .insert(node_id, first.base_border_colors);
+            }
         }
         for (index, state) in states {
             let timeline_now = state.paused_at.unwrap_or(now);
@@ -236,6 +284,22 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                 if let Some(frames) = &state.color_frames {
                     let color = color::sample_color(frames, directed_progress, state.easing);
                     super::apply_text_color(page, node_id, color);
+                }
+                if let Some(frames) = &state.outline_color_frames {
+                    let color = color::sample_color(frames, directed_progress, state.easing);
+                    super::outline_color::apply(page, node_id, color);
+                    page.element_outline_colors.insert(node_id, color);
+                }
+                if state.border_color_frames.iter().any(Option::is_some) {
+                    let colors = std::array::from_fn(|side| {
+                        state.border_color_frames[side]
+                            .as_ref()
+                            .map_or(state.base_border_colors[side], |frames| {
+                                color::sample_color(frames, directed_progress, state.easing)
+                            })
+                    });
+                    super::border_color::apply(page, node_id, colors);
+                    page.element_border_colors.insert(node_id, colors);
                 }
             }
 

@@ -63,7 +63,7 @@ pub(super) fn begin_transition(
     }
 }
 
-fn apply(page: &mut PageRasterizer, node_id: usize, colors: [[u8; 4]; 4]) {
+pub(super) fn apply(page: &mut PageRasterizer, node_id: usize, colors: [[u8; 4]; 4]) {
     if node_id == 0 {
         page.root_style.border_color = colors.map(Some);
         return;

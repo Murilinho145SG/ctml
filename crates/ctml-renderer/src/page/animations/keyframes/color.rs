@@ -2,7 +2,7 @@ use crate::style::TransitionEasing;
 
 pub(super) fn collect_color_frames(
     rule: &ctml_css::CssKeyframes,
-    property: &str,
+    properties: &[&str],
     base_color: [u8; 4],
     current_color: [u8; 4],
 ) -> Option<Vec<(f32, [u8; 4])>> {
@@ -14,7 +14,7 @@ pub(super) fn collect_color_frames(
                 .declarations
                 .iter()
                 .rev()
-                .find(|declaration| declaration.property == property)?;
+                .find(|declaration| properties.contains(&declaration.property.as_str()))?;
             let color = if declaration.value.eq_ignore_ascii_case("currentcolor") {
                 current_color
             } else {

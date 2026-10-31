@@ -150,6 +150,49 @@ fn text_color_keyframes_update_inherited_text_runs() {
 }
 
 #[test]
+fn outline_and_border_color_keyframes_interpolate_layout_box_colors() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Animated".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "animation".to_owned(),
+            value: "edges 1s linear forwards".to_owned(),
+        }],
+    }];
+    let keyframes = [ctml_css::CssKeyframes {
+        name: "edges".to_owned(),
+        frames: ["red", "blue"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, color)| ctml_css::CssKeyframe {
+                offsets: vec![index as f32],
+                declarations: ["outline-color", "border-top-color"]
+                    .into_iter()
+                    .map(|property| StyleDeclaration {
+                        property: property.to_owned(),
+                        value: color.to_owned(),
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    page.advance_animations(starts_at + Duration::from_millis(500));
+
+    assert_eq!(page.element_outline_colors[&1], [128, 0, 128, 255]);
+    assert_eq!(page.element_border_colors[&1][0], [128, 0, 128, 255]);
+}
+
+#[test]
 fn backwards_fill_applies_the_first_keyframe_during_a_positive_delay() {
     let mut page = animated_page("fade 1s linear 500ms both", 0.8);
     let starts_at = page.keyframe_animation_start(1).unwrap();
