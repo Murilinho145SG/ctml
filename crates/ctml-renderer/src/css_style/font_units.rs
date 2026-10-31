@@ -52,6 +52,10 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
 ) -> TextStyle {
     let mut style = inherited.clone();
     style.font_relative_units = local_font_units;
+    style.opacity = 1.0;
+    style.background_blend_modes.clear();
+    style.mix_blend_mode = crate::style::BackgroundBlendMode::Normal;
+    style.isolation = false;
     style.width = None;
     style.min_width = None;
     style.max_width = None;

@@ -200,7 +200,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `mix-blend-mode` for all standard blend modes on element subtrees.
   - [x] `isolation: isolate` contains descendant blending within an element subtree.
   - [x] Root `body` blend mode composites the page-root group over the white canvas.
-  - [ ] Full stacking-context interaction.
+  - [x] Stacking-context interaction across non-inherited blend/isolation defaults, nested isolation, and translucent opacity groups.
 
 ## Box model and sizing
 
@@ -360,7 +360,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `mix-blend-mode` on element subtrees.
   - [x] `isolation: isolate` on element subtrees.
   - [x] Root `body` blend mode over the white page canvas.
-  - [ ] Full stacking-context interaction.
+  - [x] Stacking-context interaction across non-inherited blend/isolation defaults, nested isolation, and translucent opacity groups.
 - [ ] Image rendering and object fit/position for replaced content.
 
 ## Interaction and user interface

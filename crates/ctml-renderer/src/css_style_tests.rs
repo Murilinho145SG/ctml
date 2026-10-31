@@ -86,6 +86,56 @@ fn resolves_isolation_auto_and_isolate_values() {
 }
 
 #[test]
+fn stacking_context_properties_reset_by_default_and_support_explicit_inherit() {
+    let inherited = TextStyle {
+        opacity: 0.5,
+        background_blend_modes: vec![BackgroundBlendMode::Screen],
+        mix_blend_mode: BackgroundBlendMode::Multiply,
+        isolation: true,
+        ..TextStyle::default()
+    };
+    let paragraph = ElementIdentity {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+    };
+
+    let defaults = resolve_style(&inherited, &paragraph, &[], &[]);
+    assert_eq!(defaults.opacity, 1.0);
+    assert!(defaults.background_blend_modes.is_empty());
+    assert_eq!(defaults.mix_blend_mode, BackgroundBlendMode::Normal);
+    assert!(!defaults.isolation);
+
+    let rule = StyleRule {
+        selectors: vec!["p".to_owned()],
+        layer: None,
+        declarations: [
+            "opacity",
+            "background-blend-mode",
+            "mix-blend-mode",
+            "isolation",
+        ]
+        .into_iter()
+        .map(|property| StyleDeclaration {
+            property: property.to_owned(),
+            value: "inherit".to_owned(),
+        })
+        .collect(),
+    };
+    let explicitly_inherited = resolve_style(&inherited, &paragraph, &[], &[rule]);
+    assert_eq!(explicitly_inherited.opacity, inherited.opacity);
+    assert_eq!(
+        explicitly_inherited.background_blend_modes,
+        inherited.background_blend_modes
+    );
+    assert_eq!(
+        explicitly_inherited.mix_blend_mode,
+        inherited.mix_blend_mode
+    );
+    assert_eq!(explicitly_inherited.isolation, inherited.isolation);
+}
+
+#[test]
 fn resolves_numeric_weight_font_style_and_stretch() {
     let style = style_for_declarations(&[
         ("font-weight", "350"),

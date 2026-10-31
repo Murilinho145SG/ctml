@@ -148,6 +148,70 @@ fn isolation_prevents_descendant_blending_with_the_outside_backdrop() {
 }
 
 #[test]
+fn isolated_blending_inside_translucent_group_uses_the_group_backdrop() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("backdrop".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "section".to_owned(),
+            class: Some("context".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Element {
+                tag: "p".to_owned(),
+                class: Some("source".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("X".to_owned())],
+            }],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".backdrop".to_owned()],
+            layer: None,
+            declarations: vec![
+                declaration("width", "80px"),
+                declaration("height", "70px"),
+                declaration("background-color", "blue"),
+            ],
+        },
+        StyleRule {
+            selectors: vec![".context".to_owned()],
+            layer: None,
+            declarations: vec![
+                declaration("width", "60px"),
+                declaration("height", "50px"),
+                declaration("background-color", "yellow"),
+                declaration("opacity", "0.5"),
+                declaration("isolation", "isolate"),
+            ],
+        },
+        StyleRule {
+            selectors: vec![".source".to_owned()],
+            layer: None,
+            declarations: vec![
+                declaration("color", "transparent"),
+                declaration("width", "30px"),
+                declaration("height", "30px"),
+                declaration("background-color", "red"),
+                declaration("mix-blend-mode", "multiply"),
+            ],
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(100, 90);
+    let pixel_at = |x: usize, y: usize| {
+        let index = (y * 100 + x) * 4;
+        &pixels[index..index + 4]
+    };
+    assert_eq!(pixel_at(10, 10), [128, 0, 127, 255]);
+    assert_eq!(pixel_at(40, 40), [128, 128, 127, 255]);
+    assert_eq!(pixel_at(70, 10), [0, 0, 255, 255]);
+}
+
+#[test]
 fn root_body_mix_blend_mode_composites_over_the_page_canvas() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),
