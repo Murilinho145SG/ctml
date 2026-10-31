@@ -174,6 +174,10 @@ fn justify_content_parses_supported_alignment_and_css_wide_values() {
         style_with_declarations(&[("justify-content", "space-around")]).justify_content,
         crate::style::FlexAlignment::SpaceAround
     );
+    assert_eq!(
+        style_with_declarations(&[("justify-content", "space-evenly")]).justify_content,
+        crate::style::FlexAlignment::SpaceEvenly
+    );
 
     let inherited = TextStyle {
         justify_content: Center,

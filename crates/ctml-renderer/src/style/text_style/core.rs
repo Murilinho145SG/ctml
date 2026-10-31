@@ -26,6 +26,7 @@ pub(crate) enum FlexAlignment {
     End,
     SpaceBetween,
     SpaceAround,
+    SpaceEvenly,
 }
 
 #[derive(Clone, Debug, PartialEq)]

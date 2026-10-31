@@ -45,7 +45,8 @@ fn visual_justify(alignment: FlexAlignment, reverse: bool) -> FlexAlignment {
         | FlexAlignment::End
         | FlexAlignment::Center
         | FlexAlignment::SpaceBetween
-        | FlexAlignment::SpaceAround => alignment,
+        | FlexAlignment::SpaceAround
+        | FlexAlignment::SpaceEvenly => alignment,
     }
 }
 
@@ -117,7 +118,10 @@ impl FlexGapState {
         }
         if self.item_count == 0
             && style.flex_items_row
-            && style.justify_content == FlexAlignment::SpaceAround
+            && matches!(
+                style.justify_content,
+                FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
+            )
         {
             append_gap(
                 style,
@@ -141,6 +145,30 @@ impl FlexGapState {
         self.item_count += 1;
         self.last_item_id = Some(item_id);
     }
+
+    pub(super) fn finish(
+        &self,
+        style: &TextStyle,
+        element_path: &[usize],
+        output: &mut Vec<TextRun>,
+        last_was_space: &mut bool,
+        capitalize_next: &mut bool,
+    ) {
+        if self.item_count == 0
+            || !style.flex_items_row
+            || style.justify_content != FlexAlignment::SpaceEvenly
+        {
+            return;
+        }
+        append_gap(
+            style,
+            false,
+            element_path,
+            output,
+            last_was_space,
+            capitalize_next,
+        );
+    }
 }
 
 pub(super) fn append_gap(
@@ -162,7 +190,7 @@ pub(super) fn append_gap(
         && style.display_block != Some(false)
         && matches!(
             style.justify_content,
-            FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround
+            FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
         );
     if gap.is_none() && !distribute {
         return;
@@ -207,7 +235,8 @@ pub(super) fn append_gap(
         spacer_style.letter_spacing = gap_px;
         spacer_style.letter_spacing_px = true;
         spacer_style.flex_distributed_gap = distribute;
-        spacer_style.flex_distributed_gap_leading = leading;
+        spacer_style.flex_distributed_gap_leading =
+            leading && style.justify_content == FlexAlignment::SpaceAround;
         spacer_style.flex_distributed_gap_applied = false;
     } else {
         spacer_style.line_height = gap_px;

@@ -77,6 +77,38 @@ fn row_reverse_space_around_distributes_space_on_both_ends() {
 }
 
 #[test]
+fn row_justify_content_space_evenly_distributes_equal_edge_and_item_gaps() {
+    let mut page = aligned_flex_page("row", "justify-content", "space-evenly");
+    page.prepare_layout(800, 120);
+
+    let first = item_x(&page, "First");
+    let second = item_x(&page, "Second");
+    assert_eq!(item_y(&page, "First"), item_y(&page, "Second"));
+    let line = page
+        .buffer
+        .layout_runs()
+        .find(|line| line.text.contains("First"))
+        .expect("flex items should share a formatted line");
+    let gap_widths = line
+        .glyphs
+        .iter()
+        .filter(|glyph| [0, 8, 17].contains(&glyph.start))
+        .map(|glyph| glyph.w)
+        .collect::<Vec<_>>();
+    assert_eq!(gap_widths.len(), 3, "leading, item, and trailing gaps");
+    assert!(
+        gap_widths.iter().copied().fold(f32::NEG_INFINITY, f32::max)
+            - gap_widths.iter().copied().fold(f32::INFINITY, f32::min)
+            < 0.1,
+        "all three gaps should be equal: {gap_widths:?}"
+    );
+    assert!(
+        first > 100.0 && second > first,
+        "items should follow the leading gap"
+    );
+}
+
+#[test]
 fn row_reverse_space_between_keeps_the_first_source_item_at_the_main_start() {
     let mut page = aligned_flex_page("row-reverse", "justify-content", "space-between");
     page.prepare_layout(400, 120);

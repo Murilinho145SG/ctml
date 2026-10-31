@@ -90,7 +90,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 .map(|glyph| glyph.x + glyph.w)
                 .fold(f32::NEG_INFINITY, f32::max);
             let used_width = right - left;
-            let extra = (group.available_width - used_width).max(0.0) / marker_count as f32;
+            // Keep one pixel free so shaped advances cannot push the last item onto a new line.
+            let extra = (group.available_width - used_width - 1.0).max(0.0) / marker_count as f32;
             Some((line.line_i, group.container_id?, extra))
         })
         .map(|(line, container, extra)| ((line, container), extra))

@@ -473,4 +473,11 @@ pub(super) fn collect_runs(
             }
         }
     }
+    flex_gap_state.finish(
+        inherited,
+        element_path,
+        output,
+        last_was_space,
+        capitalize_next,
+    );
 }

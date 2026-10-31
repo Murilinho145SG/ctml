@@ -44,6 +44,7 @@ pub(super) fn line_alignments(
                     crate::style::FlexAlignment::End => cosmic_text::Align::End,
                     crate::style::FlexAlignment::SpaceBetween => cosmic_text::Align::Start,
                     crate::style::FlexAlignment::SpaceAround => cosmic_text::Align::Start,
+                    crate::style::FlexAlignment::SpaceEvenly => cosmic_text::Align::Start,
                 })
                 .unwrap_or(style.text_align),
             style.text_align_last,
