@@ -309,7 +309,7 @@ fn explicit_row_cross_size(style: &TextStyle) -> Option<f32> {
     ctml_css::parse_math_expression(value, resolve).or_else(|| resolve(value))
 }
 
-fn flex_main_size(style: &TextStyle) -> Option<f32> {
+pub(super) fn flex_main_size(style: &TextStyle) -> Option<f32> {
     let (declared_size, viewport_size) = if style.flex_items_row {
         (
             style.width.as_deref().or(style.inline_size.as_deref()),

@@ -196,6 +196,12 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
+                Some(FlexBasis::GridFraction {
+                    fraction,
+                    fixed_space,
+                }) => group.basis_size.map_or(content_size, |size| {
+                    (size - fixed_space).max(0.0) * fraction
+                }),
                 Some(FlexBasis::Calculation(expression)) => group
                     .basis_size
                     .and_then(|basis_size| {

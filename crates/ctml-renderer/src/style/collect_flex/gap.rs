@@ -240,8 +240,12 @@ impl FlexGapState {
                 && style.align_content.unwrap_or(FlexAlignment::Stretch) == FlexAlignment::Stretch
                 && explicit_row_cross_size(style).is_some())
         {
+            let mut trailing_style = style.clone();
+            if style.display_grid {
+                trailing_style.column_gap = None;
+            }
             append_gap(
-                style,
+                &trailing_style,
                 false,
                 self.last_item_grow,
                 self.last_item_shrink,

@@ -109,6 +109,7 @@ pub(crate) enum FlexBasis {
     FitContent,
     Length(f32),
     Percentage(f32),
+    GridFraction { fraction: f32, fixed_space: f32 },
     Calculation(String),
 }
 

@@ -35,11 +35,7 @@ fn parse_grid_template_columns(value: &str, style: &TextStyle) -> Option<Vec<Gri
             .map(|track| parse_track(track, style))
             .collect::<Option<Vec<_>>>()?
     };
-    let first_is_fraction = matches!(tracks.first(), Some(GridTrack::Fraction(_)));
-    tracks
-        .iter()
-        .all(|track| matches!(track, GridTrack::Fraction(_)) == first_is_fraction)
-        .then_some(tracks)
+    Some(tracks)
 }
 
 fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
@@ -66,7 +62,7 @@ mod tests {
     use crate::style::{GridTrack, TextStyle};
 
     #[test]
-    fn parses_fixed_and_repeated_fractional_column_tracks() {
+    fn parses_fixed_fractional_and_mixed_column_tracks() {
         let mut style = TextStyle::default();
         apply_grid_property(&mut style, "100px 120px");
         assert_eq!(
@@ -76,6 +72,16 @@ mod tests {
 
         apply_grid_property(&mut style, "repeat(3, 1fr)");
         assert_eq!(style.grid_template_columns, [GridTrack::Fraction(1.0); 3]);
+
+        apply_grid_property(&mut style, "100px 2fr 1fr");
+        assert_eq!(
+            style.grid_template_columns,
+            [
+                GridTrack::Length(100.0),
+                GridTrack::Fraction(2.0),
+                GridTrack::Fraction(1.0)
+            ]
+        );
     }
 
     #[test]
