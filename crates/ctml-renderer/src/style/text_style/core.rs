@@ -53,12 +53,13 @@ pub(crate) enum StepPosition {
     JumpBoth,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum FlexBasis {
     Auto,
     Content,
     Length(f32),
     Percentage(f32),
+    Calculation(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]

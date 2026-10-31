@@ -164,7 +164,7 @@ impl FlexGapState {
                 false,
                 self.last_item_grow,
                 self.last_item_shrink,
-                self.last_item_basis,
+                self.last_item_basis.clone(),
                 is_justify_distribution(style),
                 element_path,
                 output,
@@ -197,7 +197,7 @@ impl FlexGapState {
                 false,
                 self.last_item_grow,
                 self.last_item_shrink,
-                self.last_item_basis,
+                self.last_item_basis.clone(),
                 trailing_justify,
                 element_path,
                 output,
@@ -216,7 +216,7 @@ fn is_justify_distribution(style: &TextStyle) -> bool {
 }
 
 pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
-    let basis = style.flex_basis.unwrap_or(FlexBasis::Auto);
+    let basis = style.flex_basis.clone().unwrap_or(FlexBasis::Auto);
     match basis {
         FlexBasis::Auto => {
             let logical_order = style.size_property_orders.get("inline-size");

@@ -135,7 +135,7 @@ pub(in crate::css_style::properties) fn inherit_property(
         "order" => style.flex_order = inherited.flex_order,
         "flex-grow" => style.flex_grow = inherited.flex_grow,
         "flex-shrink" => style.flex_shrink = inherited.flex_shrink,
-        "flex-basis" => style.flex_basis = inherited.flex_basis,
+        "flex-basis" => style.flex_basis = inherited.flex_basis.clone(),
         "gap" | "row-gap" | "column-gap" => {
             super::super::flex_gap::inherit_flex_gap(style, inherited, property);
         }

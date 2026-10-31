@@ -189,7 +189,7 @@ fn flex_shrink_defaults_to_one_and_parses_nonnegative_finite_numbers() {
 }
 
 #[test]
-fn flex_basis_accepts_auto_content_lengths_and_percentages() {
+fn flex_basis_accepts_auto_content_lengths_percentages_and_calculations() {
     use crate::style::FlexBasis;
 
     assert_eq!(style_with_declarations(&[]).flex_basis, None);
@@ -208,6 +208,10 @@ fn flex_basis_accepts_auto_content_lengths_and_percentages() {
     assert_eq!(
         style_with_declarations(&[("flex-basis", "50%")]).flex_basis,
         Some(FlexBasis::Percentage(0.5))
+    );
+    assert_eq!(
+        style_with_declarations(&[("flex-basis", "calc(25% + 10px)")]).flex_basis,
+        Some(FlexBasis::Calculation("calc(25% + 10px)".to_owned()))
     );
 
     let invalid_after_valid =

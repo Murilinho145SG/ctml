@@ -10,12 +10,16 @@ struct FlexGapLine {
     mixed_containers: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct FlexGapMarker {
     position: usize,
     grow: f32,
     shrink: f32,
     basis: Option<FlexBasis>,
+    font_size: f32,
+    line_height: f32,
+    font_relative_units: ctml_css::FontRelativeUnits,
+    viewport_size: ctml_css::ViewportSize,
     justify: bool,
 }
 
@@ -71,7 +75,11 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                         position: byte_index,
                         grow: run.style.flex_grow_weight,
                         shrink: run.style.flex_shrink_weight,
-                        basis: run.style.flex_basis,
+                        basis: run.style.flex_basis.clone(),
+                        font_size: run.style.font_size,
+                        line_height: run.style.line_height,
+                        font_relative_units: run.style.font_relative_units,
+                        viewport_size: run.style.viewport_size,
                         justify: run.style.flex_justify_distributed,
                     });
                 }
@@ -128,11 +136,17 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 .filter(|glyph| glyph.start >= item_start && glyph.end <= marker.position)
                 .map(|glyph| glyph.w)
                 .sum::<f32>();
-            let base_size = match marker.basis {
-                Some(FlexBasis::Length(length)) => length,
+            let base_size = match marker.basis.as_ref() {
+                Some(FlexBasis::Length(length)) => *length,
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
+                Some(FlexBasis::Calculation(expression)) => group
+                    .basis_size
+                    .and_then(|basis_size| {
+                        resolve_flex_basis_calculation(expression, basis_size, marker)
+                    })
+                    .map_or(content_size, |size| size),
                 Some(FlexBasis::Auto | FlexBasis::Content) | None => content_size,
             };
             item_sizes.push((content_size, base_size));
@@ -214,4 +228,25 @@ fn flex_basis_container_size(style: &crate::style::TextStyle, inline_size: f32) 
     }
     let declared_size = style.inline_size.as_deref().or(style.width.as_deref())?;
     (!declared_size.eq_ignore_ascii_case("auto")).then_some(inline_size)
+}
+
+fn resolve_flex_basis_calculation(
+    expression: &str,
+    percentage_basis: f32,
+    marker: &FlexGapMarker,
+) -> Option<f32> {
+    let value = ctml_css::parse_math_expression(expression, |component| {
+        ctml_css::parse_css_percentage(component)
+            .map(|percentage| percentage_basis * percentage / 100.0)
+            .or_else(|| {
+                ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+                    component,
+                    marker.font_size,
+                    marker.line_height,
+                    marker.font_relative_units,
+                    marker.viewport_size,
+                )
+            })
+    })?;
+    (value.is_finite() && value >= 0.0).then_some(value)
 }

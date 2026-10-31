@@ -5,21 +5,28 @@ fn flex_basis_sets_item_advance_from_lengths_and_percentages() {
     let mut natural = flex_basis_page(None, None, false);
     let mut fixed_basis = flex_basis_page(Some("150px"), None, false);
     let mut percentage_basis = flex_basis_page(Some("50%"), None, false);
+    let mut calculated_basis = flex_basis_page(Some("calc(25% + 50px)"), None, false);
     let mut auto_width = flex_basis_page(Some("auto"), Some("150px"), false);
     natural.prepare_layout(400, 120);
     fixed_basis.prepare_layout(400, 120);
     percentage_basis.prepare_layout(400, 120);
+    calculated_basis.prepare_layout(400, 120);
     auto_width.prepare_layout(400, 120);
 
     let natural_second = item_x(&natural, "Second");
     let fixed_second = item_x(&fixed_basis, "Second");
     let percentage_second = item_x(&percentage_basis, "Second");
+    let calculated_second = item_x(&calculated_basis, "Second");
     let auto_width_second = item_x(&auto_width, "Second");
     assert!(fixed_second > natural_second + 70.0);
     assert!((fixed_second - 150.0).abs() < 2.0);
     assert!(
         (percentage_second - 200.0).abs() < 2.0,
         "50% flex-basis should position the next item at 200px; observed {percentage_second}"
+    );
+    assert!(
+        (calculated_second - 150.0).abs() < 2.0,
+        "calc(25% + 50px) should resolve against the 400px container; observed {calculated_second}"
     );
     assert!((auto_width_second - fixed_second).abs() < 2.0);
 }

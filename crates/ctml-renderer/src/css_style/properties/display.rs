@@ -133,6 +133,22 @@ pub(super) fn apply_flex_basis(style: &mut TextStyle, value: &str) {
         Some(FlexBasis::Content)
     } else if let Some(percentage) = ctml_css::parse_css_percentage(value) {
         (percentage >= 0.0).then_some(FlexBasis::Percentage(percentage / 100.0))
+    } else if ctml_css::parse_math_expression(value, |component| {
+        ctml_css::parse_css_percentage(component)
+            .map(|percentage| percentage / 100.0)
+            .or_else(|| {
+                ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+                    component,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+            })
+    })
+    .is_some()
+    {
+        Some(FlexBasis::Calculation(value.to_ascii_lowercase()))
     } else {
         ctml_css::parse_nonnegative_font_relative_length_with_viewport(
             value,
