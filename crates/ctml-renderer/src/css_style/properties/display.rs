@@ -20,11 +20,12 @@ pub(super) fn apply_flex_order(style: &mut TextStyle, value: &str) {
     }
 }
 
-pub(super) fn apply_flex_property(style: &mut TextStyle, property: &str, value: &str) {
+pub(super) fn apply_layout_property(style: &mut TextStyle, property: &str, value: &str) {
     match property {
+        "display" => apply_display(style, value),
         "flex-direction" => apply_flex_direction(style, value),
         "order" => apply_flex_order(style, value),
-        _ => {}
+        _ => super::flex_gap::apply_flex_gap(style, property, value),
     }
 }
 

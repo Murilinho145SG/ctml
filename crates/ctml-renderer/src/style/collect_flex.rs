@@ -1,5 +1,157 @@
+use super::{TextRun, TextStyle, UserSelect, append_text, push_line_break};
 use crate::{StyleRule, UiNode, css_style};
 use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
+
+#[derive(Default)]
+pub(super) struct FlexGapState {
+    item_count: usize,
+    last_item_id: Option<usize>,
+}
+
+impl FlexGapState {
+    pub(super) fn append_text(
+        &mut self,
+        style: &TextStyle,
+        item_id: usize,
+        text: &str,
+        element_path: &[usize],
+        output: &mut Vec<TextRun>,
+        last_was_space: &mut bool,
+        capitalize_next: &mut bool,
+    ) {
+        self.before_item(
+            style,
+            item_id,
+            !text.chars().all(char::is_whitespace),
+            element_path,
+            output,
+            last_was_space,
+            capitalize_next,
+        );
+        append_text(
+            text,
+            style,
+            element_path,
+            output,
+            last_was_space,
+            capitalize_next,
+        );
+    }
+
+    pub(super) fn before_element(
+        &mut self,
+        style: &TextStyle,
+        item_id: usize,
+        element_path: &[usize],
+        output: &mut Vec<TextRun>,
+        last_was_space: &mut bool,
+        capitalize_next: &mut bool,
+    ) {
+        self.before_item(
+            style,
+            item_id,
+            true,
+            element_path,
+            output,
+            last_was_space,
+            capitalize_next,
+        );
+    }
+
+    fn before_item(
+        &mut self,
+        style: &TextStyle,
+        item_id: usize,
+        is_item: bool,
+        element_path: &[usize],
+        output: &mut Vec<TextRun>,
+        last_was_space: &mut bool,
+        capitalize_next: &mut bool,
+    ) {
+        if !is_item || !(style.flex_items_row || style.flex_items_column) {
+            return;
+        }
+        if self.last_item_id == Some(item_id) {
+            return;
+        }
+        if self.item_count > 0 {
+            append_gap(style, element_path, output, last_was_space, capitalize_next);
+        }
+        self.item_count += 1;
+        self.last_item_id = Some(item_id);
+    }
+}
+
+pub(super) fn append_gap(
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+    last_was_space: &mut bool,
+    capitalize_next: &mut bool,
+) {
+    let gap = if style.flex_items_row {
+        style.column_gap.as_deref()
+    } else if style.flex_items_column {
+        style.row_gap.as_deref()
+    } else {
+        None
+    };
+    let Some(gap) = gap else {
+        return;
+    };
+    let resolve_length = |component: &str| {
+        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            component,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+    };
+    let Some(gap_px) = resolve_length(gap)
+        .or_else(|| ctml_css::parse_math_expression(gap, resolve_length))
+        .filter(|gap| *gap > 0.0)
+    else {
+        return;
+    };
+
+    let mut spacer_style = style.clone();
+    spacer_style.font_size = 1.0;
+    spacer_style.font_scale = 1.0;
+    spacer_style.line_height = 1.0;
+    spacer_style.line_height_multiplier = None;
+    spacer_style.line_height_normal = false;
+    spacer_style.inline_box = true;
+    spacer_style.pointer_events_none = true;
+    spacer_style.cursor_hidden = true;
+    spacer_style.user_select = UserSelect::None;
+    spacer_style.user_select_none = true;
+    spacer_style.user_select_all_owner = None;
+
+    if style.flex_items_row {
+        spacer_style.letter_spacing = gap_px;
+        spacer_style.letter_spacing_px = true;
+    } else {
+        spacer_style.line_height = gap_px;
+        spacer_style.flow_spacer = true;
+    }
+
+    let previous_space = *last_was_space;
+    let previous_capitalize = *capitalize_next;
+    append_text(
+        "\u{200b}",
+        &spacer_style,
+        element_path,
+        output,
+        last_was_space,
+        capitalize_next,
+    );
+    if style.flex_items_column {
+        push_line_break(output, &spacer_style, element_path, last_was_space);
+    }
+    *last_was_space = previous_space;
+    *capitalize_next = previous_capitalize;
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn order_nodes(
@@ -12,14 +164,18 @@ pub(super) fn order_nodes(
     siblings_before_ancestors: &[Vec<SelectorSibling>],
     ancestor_positions: &[SelectorPosition],
     selector_tree: &[SelectorTreeElement],
-) -> Vec<(usize, Option<usize>)> {
+) -> Vec<(usize, Option<usize>, usize)> {
     let is_flex_container = inherited.flex_items_row || inherited.flex_items_column;
     let mut element_index = 0;
+    let mut item_id = 0;
+    let mut previous_was_text = false;
     let mut ordered_nodes = nodes
         .iter()
         .enumerate()
         .map(|(node_index, node)| {
             let (source_element_index, order) = if matches!(node, UiNode::Element { .. }) {
+                item_id += 1;
+                previous_was_text = false;
                 let sibling = &siblings[element_index];
                 let inline_style = sibling
                     .attributes
@@ -49,18 +205,24 @@ pub(super) fn order_nodes(
                 element_index += 1;
                 (source_element_index, order)
             } else {
+                if !previous_was_text {
+                    item_id += 1;
+                }
+                previous_was_text = true;
                 (None, 0)
             };
-            (node_index, source_element_index, order)
+            (node_index, source_element_index, item_id, order)
         })
         .collect::<Vec<_>>();
 
     if is_flex_container {
-        ordered_nodes.sort_by_key(|(_, _, order)| *order);
+        ordered_nodes.sort_by_key(|(_, _, _, order)| *order);
     }
 
     ordered_nodes
         .into_iter()
-        .map(|(node_index, source_element_index, _)| (node_index, source_element_index))
+        .map(|(node_index, source_element_index, item_id, _)| {
+            (node_index, source_element_index, item_id)
+        })
         .collect()
 }

@@ -1,3 +1,4 @@
+use super::overflow::{apply_overflow, apply_overflow_axis};
 use super::*;
 
 pub(super) fn apply_declaration(
@@ -40,26 +41,15 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "contain" => apply_contain(style, value),
-        "flex-direction" | "order" => display::apply_flex_property(style, property, value),
+        "display" | "flex-direction" | "order" | "gap" | "row-gap" | "column-gap" => {
+            display::apply_layout_property(style, property, value)
+        }
         "contain-intrinsic-size" => apply_contain_intrinsic_size(style, value),
         "contain-intrinsic-width" => apply_contain_intrinsic_width(style, value),
         "contain-intrinsic-height" => apply_contain_intrinsic_height(style, value),
-        "overflow" => {
-            if let Some((overflow_x, overflow_y)) = parse_overflow_value(value) {
-                style.overflow_x = overflow_x;
-                style.overflow_y = overflow_y;
-            }
-        }
-        "overflow-x" => {
-            if let Some(overflow) = parse_overflow_keyword(value) {
-                style.overflow_x = overflow;
-            }
-        }
-        "overflow-y" => {
-            if let Some(overflow) = parse_overflow_keyword(value) {
-                style.overflow_y = overflow;
-            }
-        }
+        "overflow" => apply_overflow(style, value),
+        "overflow-x" => apply_overflow_axis(style, value, true),
+        "overflow-y" => apply_overflow_axis(style, value, false),
         "pointer-events" => match value.to_ascii_lowercase().as_str() {
             "auto" => style.pointer_events_none = false,
             "none" => style.pointer_events_none = true,
@@ -82,7 +72,6 @@ pub(super) fn apply_declaration(
             _ => {}
         },
         "font" => apply_font_shorthand(style, value, parent_line_height, parent_font_units),
-        "display" => apply_display(style, value),
         "width" => apply_width(style, value),
         "inline-size" => apply_inline_size(style, value),
         "box-sizing" => apply_box_sizing(style, value),

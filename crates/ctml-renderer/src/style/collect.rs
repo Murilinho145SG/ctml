@@ -1,15 +1,11 @@
-use crate::{
-    StyleRule, UiNode,
-    css_style::{self, ElementIdentity},
-};
-use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
-use std::collections::{HashMap, HashSet};
-
 use super::{
     LayoutHeight, TextRun, TextStyle, UserSelect, append_text, collect_counters, collect_display,
-    collect_flex, collect_layout, collect_spacers, list_marker::format_marker, pseudo,
-    push_line_break, selector_sibling_contexts,
+    collect_flex, collect_helpers, collect_layout, collect_spacers, list_marker::format_marker,
+    pseudo, push_line_break, selector_sibling_contexts,
 };
+use crate::{StyleRule, UiNode, css_style::ElementIdentity};
+use ctml_css::{SelectorPosition, SelectorSibling, SelectorTreeElement};
+use std::collections::{HashMap, HashSet};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn collect_runs(
@@ -58,16 +54,18 @@ pub(super) fn collect_runs(
         selector_tree,
     );
     let (mut element_index, mut list_item_index) = (0, 0);
+    let mut flex_gap_state = collect_flex::FlexGapState::default();
     let mut run_in_before_block = false;
-    for (node_index, source_element_index) in ordered_nodes {
+    for (node_index, source_element_index, flex_item_id) in ordered_nodes {
         let node = &nodes[node_index];
         if let Some(source_element_index) = source_element_index {
             element_index = source_element_index;
         }
         match node {
-            UiNode::Text(text) => append_text(
-                text,
+            UiNode::Text(text) => flex_gap_state.append_text(
                 inherited,
+                flex_item_id,
+                text,
                 element_path,
                 output,
                 last_was_space,
@@ -82,27 +80,13 @@ pub(super) fn collect_runs(
             } => {
                 let sibling = &siblings[element_index];
                 let position = sibling.position;
-                let identity = ElementIdentity {
-                    tag: tag.clone(),
-                    class: class.clone(),
-                    id: id.clone(),
-                };
-                let inline_style = attributes
-                    .iter()
-                    .find(|(name, _)| name.eq_ignore_ascii_case("style"))
-                    .and_then(|(_, value)| value.as_deref());
-                let mut inherited_style = inherited.clone();
-                inherited_style.counter_reset.clear();
-                inherited_style.counter_increment.clear();
-                inherited_style.counter_set.clear();
-                if let Some(font_metrics) = font_metrics {
-                    inherited_style.font_relative_units = font_metrics.resolve(inherited);
-                }
-                let initial_style = css_style::resolve_style_with_selector_tree_context(
-                    &inherited_style,
+                let identity = collect_helpers::element_identity(tag, class, id);
+                let inline_style = collect_helpers::inline_style(attributes);
+                let mut style = collect_helpers::resolve_element_style(
+                    inherited,
                     &identity,
-                    path,
                     attributes,
+                    path,
                     path_attributes,
                     &siblings[..element_index],
                     path_siblings,
@@ -111,24 +95,7 @@ pub(super) fn collect_runs(
                     selector_tree,
                     inline_style,
                     stylesheet,
-                );
-                let local_font_units = font_metrics
-                    .map(|font_metrics| font_metrics.resolve(&initial_style))
-                    .unwrap_or(initial_style.font_relative_units);
-                let mut style = css_style::resolve_style_with_selector_tree_context_and_font_units(
-                    &inherited_style,
-                    &identity,
-                    path,
-                    attributes,
-                    path_attributes,
-                    &siblings[..element_index],
-                    path_siblings,
-                    position,
-                    path_positions,
-                    selector_tree,
-                    inline_style,
-                    stylesheet,
-                    local_font_units,
+                    font_metrics,
                 );
                 style.content_skipped_by_ancestor = inherited.content_skipped;
                 style.content_skipped =
@@ -172,6 +139,14 @@ pub(super) fn collect_runs(
                 if style.display_none {
                     continue;
                 }
+                flex_gap_state.before_element(
+                    inherited,
+                    flex_item_id,
+                    element_path,
+                    output,
+                    last_was_space,
+                    capitalize_next,
+                );
                 let scoped_counters = style.style_contained.then(|| counters.clone());
                 let scoped_quote_depth = style.style_contained.then_some(*quote_depth);
                 let mut counter_scope = Vec::new();

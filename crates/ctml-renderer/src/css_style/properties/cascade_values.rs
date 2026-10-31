@@ -113,6 +113,9 @@ pub(super) fn inherit_property(style: &mut TextStyle, inherited: &TextStyle, pro
             style.flex_direction_column = inherited.flex_direction_column;
         }
         "order" => style.flex_order = inherited.flex_order,
+        "gap" | "row-gap" | "column-gap" => {
+            super::flex_gap::inherit_flex_gap(style, inherited, property);
+        }
         "width" => inherit_width(style, inherited),
         "inline-size" => inherit_inline_size(style, inherited),
         "box-sizing" => style.border_box = inherited.border_box,
@@ -378,6 +381,9 @@ pub(super) fn initial_property(style: &mut TextStyle, property: &str) {
         "display" => reset_display(style),
         "flex-direction" => style.flex_direction_column = false,
         "order" => style.flex_order = 0,
+        "gap" | "row-gap" | "column-gap" => {
+            super::flex_gap::initial_flex_gap(style, property);
+        }
         "width" => style.width = None,
         "inline-size" => style.inline_size = None,
         "box-sizing" => style.border_box = false,

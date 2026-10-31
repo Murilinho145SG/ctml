@@ -48,7 +48,7 @@ use contain_intrinsic_size::{
 };
 use counters::{CounterProperty, apply_counter_property};
 use cursor::apply_cursor;
-use display::{apply_display, inherit_display, reset_display, revert_display};
+use display::{inherit_display, reset_display, revert_display};
 #[cfg(test)]
 pub(super) use font::parse_font_size;
 use font::{
@@ -104,11 +104,13 @@ mod contain_intrinsic_size;
 mod counters;
 mod cursor;
 mod display;
+mod flex_gap;
 mod font;
 mod font_feature_settings;
 mod font_variation_settings;
 mod list_style;
 mod outline;
+mod overflow;
 mod quotes;
 mod size;
 mod spacing;
@@ -305,28 +307,4 @@ pub(crate) fn resolve_logical_margin(style: &mut TextStyle) {
 
 pub(crate) fn resolve_logical_borders(style: &mut TextStyle) {
     border::resolve_logical_borders(style);
-}
-
-fn parse_overflow_value(value: &str) -> Option<(Overflow, Overflow)> {
-    let mut values = value.split_ascii_whitespace();
-    let first = parse_overflow_keyword(values.next()?)?;
-    let second = match values.next() {
-        Some(value) => Some(parse_overflow_keyword(value)?),
-        None => None,
-    };
-    if values.next().is_some() {
-        return None;
-    }
-    Some((first, second.unwrap_or(first)))
-}
-
-fn parse_overflow_keyword(value: &str) -> Option<Overflow> {
-    match value.to_ascii_lowercase().as_str() {
-        "visible" => Some(Overflow::Visible),
-        "hidden" => Some(Overflow::Hidden),
-        "clip" => Some(Overflow::Clip),
-        "auto" => Some(Overflow::Auto),
-        "scroll" => Some(Overflow::Scroll),
-        _ => None,
-    }
 }

@@ -11,6 +11,7 @@ mod collect;
 mod collect_counters;
 mod collect_display;
 mod collect_flex;
+mod collect_helpers;
 mod collect_layout;
 mod collect_spacers;
 mod font_units;

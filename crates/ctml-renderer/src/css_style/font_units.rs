@@ -60,6 +60,10 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.display_flex = false;
     style.flex_direction_column = false;
     style.flex_order = 0;
+    style.row_gap = None;
+    style.column_gap = None;
+    style.row_gap_order = 0;
+    style.column_gap_order = 0;
     style.background_blend_modes.clear();
     style.mix_blend_mode = crate::style::BackgroundBlendMode::Normal;
     style.isolation = false;
