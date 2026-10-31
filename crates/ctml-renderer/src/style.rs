@@ -200,16 +200,7 @@ pub(super) fn compile_runs_with_opacity_map(
             }),
             visibility: root_style.transition_visibility,
             visibility_hidden: root_style.visibility_hidden,
-            animation: root_style.animation_name.clone().map(|name| AnimationSpec {
-                name,
-                duration_ms: root_style.animation_duration_ms,
-                delay_ms: root_style.animation_delay_ms,
-                iterations: root_style.animation_iterations,
-                direction: root_style.animation_direction,
-                fill_mode: root_style.animation_fill_mode,
-                play_state: root_style.animation_play_state,
-                easing: root_style.animation_easing,
-            }),
+            animation: root_style.animation_specs(),
         },
     );
     if !root_style.display_none {

@@ -122,7 +122,7 @@ pub(crate) struct ElementTransitionStyle {
     pub(crate) border_color_value: [[u8; 4]; 4],
     pub(crate) visibility: Option<TransitionTiming>,
     pub(crate) visibility_hidden: bool,
-    pub(crate) animation: Option<AnimationSpec>,
+    pub(crate) animation: Vec<Option<AnimationSpec>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -166,14 +166,14 @@ pub(crate) struct TextStyle {
     pub(crate) transition_border_color_delay_ms: f32,
     pub(crate) transition_border_color_easing: TransitionEasing,
     pub(crate) transition_visibility: Option<TransitionTiming>,
-    pub(crate) animation_name: Option<String>,
-    pub(crate) animation_duration_ms: f32,
-    pub(crate) animation_delay_ms: f32,
-    pub(crate) animation_iterations: f32,
-    pub(crate) animation_direction: AnimationDirection,
-    pub(crate) animation_fill_mode: AnimationFillMode,
-    pub(crate) animation_play_state: AnimationPlayState,
-    pub(crate) animation_easing: TransitionEasing,
+    pub(crate) animation_name: Vec<Option<String>>,
+    pub(crate) animation_duration_ms: Vec<f32>,
+    pub(crate) animation_delay_ms: Vec<f32>,
+    pub(crate) animation_iterations: Vec<f32>,
+    pub(crate) animation_direction: Vec<AnimationDirection>,
+    pub(crate) animation_fill_mode: Vec<AnimationFillMode>,
+    pub(crate) animation_play_state: Vec<AnimationPlayState>,
+    pub(crate) animation_easing: Vec<TransitionEasing>,
     pub(crate) transition_behaviors: Vec<bool>,
     pub(crate) transition_properties: Vec<String>,
     pub(crate) transition_durations_ms: Vec<f32>,
@@ -375,6 +375,38 @@ pub(crate) struct TextStyle {
 }
 
 impl TextStyle {
+    pub(crate) fn animation_specs(&self) -> Vec<Option<AnimationSpec>> {
+        let count = self.animation_name.len();
+        (0..count)
+            .map(|index| {
+                self.animation_name[index]
+                    .clone()
+                    .map(|name| AnimationSpec {
+                        name,
+                        duration_ms: cycle_value(&self.animation_duration_ms, index, 0.0),
+                        delay_ms: cycle_value(&self.animation_delay_ms, index, 0.0),
+                        iterations: cycle_value(&self.animation_iterations, index, 1.0),
+                        direction: cycle_value(
+                            &self.animation_direction,
+                            index,
+                            AnimationDirection::Normal,
+                        ),
+                        fill_mode: cycle_value(
+                            &self.animation_fill_mode,
+                            index,
+                            AnimationFillMode::None,
+                        ),
+                        play_state: cycle_value(
+                            &self.animation_play_state,
+                            index,
+                            AnimationPlayState::Running,
+                        ),
+                        easing: cycle_value(&self.animation_easing, index, TransitionEasing::Ease),
+                    })
+            })
+            .collect()
+    }
+
     pub(crate) fn parse_color(&self, value: &str) -> Option<([u8; 3], f32)> {
         ctml_css::parse_color_with_opacity_and_profiles_for_scheme(
             value,
@@ -397,4 +429,11 @@ impl TextStyle {
         self.size_property_orders
             .insert(property.to_owned(), self.current_declaration_order);
     }
+}
+
+fn cycle_value<T: Copy>(values: &[T], index: usize, default: T) -> T {
+    values
+        .get(index % values.len().max(1))
+        .copied()
+        .unwrap_or(default)
 }

@@ -32,133 +32,158 @@ pub(in crate::page) fn build_states(
     opacity_groups: &HashMap<usize, f32>,
     root_opacity: f32,
     now: Instant,
-    previous: &HashMap<usize, KeyframeAnimationState>,
-) -> HashMap<usize, KeyframeAnimationState> {
+    previous: &HashMap<usize, Vec<(usize, KeyframeAnimationState)>>,
+) -> HashMap<usize, Vec<(usize, KeyframeAnimationState)>> {
     styles
         .iter()
         .filter_map(|(node_id, style)| {
-            let animation = style.animation.as_ref()?;
-            let rule = keyframes
-                .iter()
-                .rev()
-                .find(|rule| rule.name == animation.name)?;
             let base_opacity = if *node_id == 0 {
                 root_opacity
             } else {
                 *opacity_groups.get(node_id)?
             };
             let base_visibility_hidden = style.visibility_hidden;
-            let opacity_frames = collect_opacity_frames(rule, base_opacity);
-            let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
-            if opacity_frames.is_none() && visibility_frames.is_none() {
-                return None;
-            }
-            let mut state = KeyframeAnimationState {
-                base_opacity,
-                base_visibility_hidden,
-                opacity_frames,
-                visibility_frames,
-                starts_at: animation_start(animation, now),
-                animation: animation.clone(),
-                duration: duration_from_millis(animation.duration_ms),
-                iterations: animation.iterations,
-                direction: animation.direction,
-                fill_mode: animation.fill_mode,
-                play_state: animation.play_state,
-                easing: animation.easing,
-            };
-            if let Some(previous) = previous
-                .get(node_id)
-                .filter(|previous| previous.animation == *animation)
-            {
-                state.starts_at = previous.starts_at;
-            }
-            Some((*node_id, state))
+            let states = style
+                .animation
+                .iter()
+                .enumerate()
+                .filter_map(|(index, animation)| {
+                    let animation = animation.as_ref()?;
+                    let rule = keyframes
+                        .iter()
+                        .rev()
+                        .find(|rule| rule.name == animation.name)?;
+                    let opacity_frames = collect_opacity_frames(rule, base_opacity);
+                    let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
+                    if opacity_frames.is_none() && visibility_frames.is_none() {
+                        return None;
+                    }
+                    let mut state = KeyframeAnimationState {
+                        base_opacity,
+                        base_visibility_hidden,
+                        opacity_frames,
+                        visibility_frames,
+                        starts_at: animation_start(animation, now),
+                        animation: animation.clone(),
+                        duration: duration_from_millis(animation.duration_ms),
+                        iterations: animation.iterations,
+                        direction: animation.direction,
+                        fill_mode: animation.fill_mode,
+                        play_state: animation.play_state,
+                        easing: animation.easing,
+                    };
+                    if let Some((_, previous)) = previous.get(node_id).into_iter().flatten().find(
+                        |(previous_index, previous)| {
+                            *previous_index == index && previous.animation == *animation
+                        },
+                    ) {
+                        state.starts_at = previous.starts_at;
+                    }
+                    Some((index, state))
+                })
+                .collect::<Vec<_>>();
+            (!states.is_empty()).then_some((*node_id, states))
         })
         .collect()
 }
 
 pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
-    let mut finished = Vec::new();
+    let mut finished = Vec::<(usize, usize)>::new();
     let mut active = false;
-    for (node_id, state) in page
+    for (node_id, states) in page
         .keyframe_animations
         .iter()
-        .map(|(node_id, state)| (*node_id, state.clone()))
+        .map(|(node_id, states)| (*node_id, states.clone()))
         .collect::<Vec<_>>()
     {
-        let elapsed = now.saturating_duration_since(state.starts_at);
-        let before_start = now < state.starts_at;
-        let total_duration = state.duration.as_secs_f64() * f64::from(state.iterations);
-        let elapsed_seconds = elapsed.as_secs_f64();
-        let total_seconds = total_duration;
-        let infinite = state.iterations.is_infinite();
-        let is_finished = !before_start
-            && !infinite
-            && (state.duration.is_zero() || elapsed_seconds >= total_seconds);
-
-        let progress = if before_start || state.play_state == AnimationPlayState::Paused {
-            0.0
-        } else if state.duration.is_zero() {
-            1.0
-        } else if is_finished {
-            1.0
-        } else {
-            let position = elapsed_seconds / state.duration.as_secs_f64();
-            (position - position.floor()) as f32
-        };
-        let iteration = if state.duration.is_zero() || before_start {
-            0u64
-        } else if is_finished {
-            state.iterations.ceil().max(1.0) as u64 - 1
-        } else {
-            (elapsed_seconds / state.duration.as_secs_f64()).floor() as u64
-        };
-        let directed_progress = direct_progress(progress, iteration, state.direction);
-        let has_backwards_fill = matches!(
-            state.fill_mode,
-            AnimationFillMode::Backwards | AnimationFillMode::Both
-        );
-        let has_forwards_fill = matches!(
-            state.fill_mode,
-            AnimationFillMode::Forwards | AnimationFillMode::Both
-        );
-        let effect_applies = if before_start {
-            has_backwards_fill
-        } else if is_finished {
-            has_forwards_fill
-        } else {
-            true
-        };
-        if let Some(frames) = &state.opacity_frames {
-            let opacity = if effect_applies {
-                sample_opacity(frames, directed_progress, state.easing)
-            } else {
-                state.base_opacity
-            };
-            apply_opacity(page, node_id, opacity);
-        }
-        if let Some(frames) = &state.visibility_frames {
-            let hidden = if effect_applies {
-                sample_visibility(frames, directed_progress, state.easing)
-            } else {
-                state.base_visibility_hidden
-            };
-            super::visibility::apply_visibility(page, node_id, hidden);
-            page.element_visibility.insert(node_id, hidden);
-        }
-
-        if is_finished {
-            if !has_forwards_fill {
-                finished.push(node_id);
+        if let Some((_, first)) = states.first() {
+            if states
+                .iter()
+                .any(|(_, state)| state.opacity_frames.is_some())
+            {
+                apply_opacity(page, node_id, first.base_opacity);
             }
-        } else if state.play_state == AnimationPlayState::Running {
-            active = true;
+            if states
+                .iter()
+                .any(|(_, state)| state.visibility_frames.is_some())
+            {
+                super::visibility::apply_visibility(page, node_id, first.base_visibility_hidden);
+                page.element_visibility
+                    .insert(node_id, first.base_visibility_hidden);
+            }
+        }
+        for (index, state) in states {
+            let elapsed = now.saturating_duration_since(state.starts_at);
+            let before_start = now < state.starts_at;
+            let total_duration = state.duration.as_secs_f64() * f64::from(state.iterations);
+            let elapsed_seconds = elapsed.as_secs_f64();
+            let infinite = state.iterations.is_infinite();
+            let is_finished = !before_start
+                && !infinite
+                && (state.duration.is_zero() || elapsed_seconds >= total_duration);
+
+            let progress = if before_start || state.play_state == AnimationPlayState::Paused {
+                0.0
+            } else if state.duration.is_zero() || is_finished {
+                1.0
+            } else {
+                let position = elapsed_seconds / state.duration.as_secs_f64();
+                (position - position.floor()) as f32
+            };
+            let iteration = if state.duration.is_zero() || before_start {
+                0u64
+            } else if is_finished {
+                state.iterations.ceil().max(1.0) as u64 - 1
+            } else {
+                (elapsed_seconds / state.duration.as_secs_f64()).floor() as u64
+            };
+            let directed_progress = direct_progress(progress, iteration, state.direction);
+            let has_backwards_fill = matches!(
+                state.fill_mode,
+                AnimationFillMode::Backwards | AnimationFillMode::Both
+            );
+            let has_forwards_fill = matches!(
+                state.fill_mode,
+                AnimationFillMode::Forwards | AnimationFillMode::Both
+            );
+            let effect_applies = if before_start {
+                has_backwards_fill
+            } else if is_finished {
+                has_forwards_fill
+            } else {
+                true
+            };
+            if effect_applies {
+                if let Some(frames) = &state.opacity_frames {
+                    apply_opacity(
+                        page,
+                        node_id,
+                        sample_opacity(frames, directed_progress, state.easing),
+                    );
+                }
+                if let Some(frames) = &state.visibility_frames {
+                    let hidden = sample_visibility(frames, directed_progress, state.easing);
+                    super::visibility::apply_visibility(page, node_id, hidden);
+                    page.element_visibility.insert(node_id, hidden);
+                }
+            }
+
+            if is_finished {
+                if !has_forwards_fill {
+                    finished.push((node_id, index));
+                }
+            } else if state.play_state == AnimationPlayState::Running {
+                active = true;
+            }
         }
     }
-    for node_id in finished {
-        page.keyframe_animations.remove(&node_id);
+    for (node_id, index) in finished {
+        if let Some(states) = page.keyframe_animations.get_mut(&node_id) {
+            states.retain(|(state_index, _)| *state_index != index);
+        }
     }
+    page.keyframe_animations
+        .retain(|_, states| !states.is_empty());
     active
 }
 

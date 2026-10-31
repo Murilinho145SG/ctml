@@ -100,7 +100,8 @@ pub(crate) struct PageRasterizer {
     border_color_transitions: HashMap<usize, [animations::ColorTransition; 4]>,
     element_visibility: HashMap<usize, bool>,
     visibility_transitions: HashMap<usize, animations::VisibilityTransition>,
-    keyframe_animations: HashMap<usize, animations::keyframes::KeyframeAnimationState>,
+    keyframe_animations:
+        HashMap<usize, Vec<(usize, animations::keyframes::KeyframeAnimationState)>>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
     isolation_groups: HashSet<usize>,
     decoration_opacity_scales: Vec<f32>,
@@ -655,7 +656,8 @@ impl PageRasterizer {
     pub(crate) fn keyframe_animation_start(&self, node_id: usize) -> Option<Instant> {
         self.keyframe_animations
             .get(&node_id)
-            .map(|state| state.starts_at)
+            .and_then(|states| states.first())
+            .map(|(_, state)| state.starts_at)
     }
 
     fn rebuild_interaction_styles(&mut self) {

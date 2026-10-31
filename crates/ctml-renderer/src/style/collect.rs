@@ -195,19 +195,7 @@ pub(super) fn collect_runs(
                         }),
                         visibility: style.transition_visibility,
                         visibility_hidden: style.visibility_hidden,
-                        animation: style
-                            .animation_name
-                            .clone()
-                            .map(|name| super::AnimationSpec {
-                                name,
-                                duration_ms: style.animation_duration_ms,
-                                delay_ms: style.animation_delay_ms,
-                                iterations: style.animation_iterations,
-                                direction: style.animation_direction,
-                                fill_mode: style.animation_fill_mode,
-                                play_state: style.animation_play_state,
-                                easing: style.animation_easing,
-                            }),
+                        animation: style.animation_specs(),
                     },
                 );
                 style.opacity *= inherited.opacity;

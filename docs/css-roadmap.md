@@ -395,8 +395,8 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 ## Animation and transitions
 
 - [ ] Transitions: property, duration, delay, timing function, and behavior. Opacity interpolates for the root body style, text-bearing elements, and wrapper subtrees; text `color` interpolates on text-bearing elements and inherited wrapper text while preserving explicit descendant colors; `background-color` interpolates on text elements and layout boxes; `outline-color` and all four sides of `border-color` interpolate on layout boxes; `visibility` changes discretely at the transition midpoint when `allow-discrete` is specified. The shorthand and longhands accept comma-separated entries, match values by list index, and select the last matching property or `all` entry. Standard easing keywords, `cubic-bezier()`, and `steps()` are supported. Other animated properties and discrete properties without `allow-discrete` remain.
-- [ ] Keyframe animations. The parser preserves named `@keyframes` blocks and normalized offsets; one named animation per element supports interpolated `opacity` and discrete `visibility`. `WindowConfig.animations_enabled` can disable transitions and animations.
-- [ ] Animation composition and simultaneous animation lists. One animation supports direction, fill mode, iteration count, play state, and easing.
+- [ ] Keyframe animations. The parser preserves named `@keyframes` blocks and normalized offsets; animation lists support interpolated `opacity`, discrete `visibility`, CSS list matching, and later-entry replacement. `WindowConfig.animations_enabled` can disable transitions and animations.
+- [ ] Animation composition beyond replace ordering, including additive and accumulative effects. Multiple animation lists and their timing properties are supported.
 - [ ] Animatable property definitions and interpolation beyond `opacity`.
 - [ ] Scroll-driven and view-driven animations if appropriate for CTML.
 - [ ] View transitions between UI states if appropriate for CTML.
@@ -410,7 +410,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] `@media`, `@supports`, `@container`, and other conditional at-rules.
 - [x] `@font-face` local URLs and static font weight/style/stretch descriptors.
 - [ ] Font feature/value rules and variable descriptors.
-- [x] Parse and preserve named `@keyframes` rules and normalized `from`, `to`, and percentage offsets; single-animation `opacity` and `visibility` playback is tracked in the animation roadmap.
+- [x] Parse and preserve named `@keyframes` rules and normalized `from`, `to`, and percentage offsets; `opacity`, `visibility`, and multi-animation playback are tracked in the animation roadmap.
 - [ ] `@page` and margin at-rules for print output.
 - [ ] `@property` registration for custom properties.
 - [ ] Counter style and font palette at-rules where relevant.

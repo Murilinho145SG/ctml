@@ -178,6 +178,78 @@ fn animated_parent_visibility_preserves_an_explicitly_visible_child() {
     );
 }
 
+#[test]
+fn multiple_animations_apply_distinct_properties_and_later_values_win() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Animated".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "animation".to_owned(),
+                value: "fade 1s linear forwards, hide 1s linear forwards".to_owned(),
+            },
+            StyleDeclaration {
+                property: "opacity".to_owned(),
+                value: "1".to_owned(),
+            },
+        ],
+    }];
+    let keyframes = [
+        opacity_keyframes("fade", 0.0, 0.4),
+        visibility_keyframes("hide"),
+    ];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+    assert_eq!(page.keyframe_animations[&1].len(), 2);
+
+    page.advance_animations(starts_at + Duration::from_millis(750));
+
+    assert!((page.opacity_groups[&1] - 0.3).abs() < 0.01);
+    assert!(page.element_visibility[&1]);
+}
+
+#[test]
+fn later_animation_overrides_the_same_property_at_equal_progress() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Animated".to_owned())],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "animation".to_owned(),
+                value: "fade 1s linear forwards, pulse 1s linear forwards".to_owned(),
+            },
+            StyleDeclaration {
+                property: "opacity".to_owned(),
+                value: "1".to_owned(),
+            },
+        ],
+    }];
+    let keyframes = [
+        opacity_keyframes("fade", 0.0, 0.4),
+        opacity_keyframes("pulse", 0.6, 1.0),
+    ];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    page.advance_animations(starts_at + Duration::from_millis(500));
+
+    assert!((page.opacity_groups[&1] - 0.8).abs() < 0.01);
+}
+
 fn animated_page(animation: &str, base_opacity: f32) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
@@ -238,24 +310,40 @@ fn visibility_animated_page(animation: &str) -> PageRasterizer {
             value: animation.to_owned(),
         }],
     }];
-    let keyframes = [ctml_css::CssKeyframes {
-        name: "fade".to_owned(),
-        frames: vec![
-            ctml_css::CssKeyframe {
-                offsets: vec![0.0],
-                declarations: vec![StyleDeclaration {
-                    property: "visibility".to_owned(),
-                    value: "visible".to_owned(),
-                }],
-            },
-            ctml_css::CssKeyframe {
-                offsets: vec![1.0],
-                declarations: vec![StyleDeclaration {
-                    property: "visibility".to_owned(),
-                    value: "hidden".to_owned(),
-                }],
-            },
-        ],
-    }];
+    let keyframes = [visibility_keyframes("fade")];
     PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes)
+}
+
+fn opacity_keyframes(name: &str, from: f32, to: f32) -> ctml_css::CssKeyframes {
+    ctml_css::CssKeyframes {
+        name: name.to_owned(),
+        frames: [from, to]
+            .into_iter()
+            .enumerate()
+            .map(|(index, opacity)| ctml_css::CssKeyframe {
+                offsets: vec![index as f32],
+                declarations: vec![StyleDeclaration {
+                    property: "opacity".to_owned(),
+                    value: opacity.to_string(),
+                }],
+            })
+            .collect(),
+    }
+}
+
+fn visibility_keyframes(name: &str) -> ctml_css::CssKeyframes {
+    ctml_css::CssKeyframes {
+        name: name.to_owned(),
+        frames: ["visible", "hidden"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, visibility)| ctml_css::CssKeyframe {
+                offsets: vec![index as f32],
+                declarations: vec![StyleDeclaration {
+                    property: "visibility".to_owned(),
+                    value: visibility.to_owned(),
+                }],
+            })
+            .collect(),
+    }
 }
