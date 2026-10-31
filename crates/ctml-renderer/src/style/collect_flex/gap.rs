@@ -1,4 +1,6 @@
-use super::super::{FlexAlignment, FlexBasis, TextRun, TextStyle, append_text};
+use super::super::{
+    FlexAlignment, FlexBasis, TextRun, TextStyle, UserSelect, WhiteSpace, append_text,
+};
 use super::{append_gap, explicit_row_cross_size};
 
 #[derive(Default)]
@@ -148,6 +150,28 @@ impl FlexGapState {
         }
         if self.item_count == 0
             && style.flex_items_row
+            && style.flex_wrap
+            && explicit_row_cross_size(style).is_some()
+            && matches!(
+                style.align_content,
+                Some(
+                    FlexAlignment::Center
+                        | FlexAlignment::FlexEnd
+                        | FlexAlignment::SpaceAround
+                        | FlexAlignment::SpaceEvenly
+                )
+            )
+        {
+            append_leading_wrap_spacer(
+                style,
+                element_path,
+                output,
+                last_was_space,
+                capitalize_next,
+            );
+        }
+        if self.item_count == 0
+            && style.flex_items_row
             && matches!(
                 style.justify_content,
                 FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
@@ -231,6 +255,47 @@ impl FlexGapState {
             );
         }
     }
+}
+
+fn append_leading_wrap_spacer(
+    style: &TextStyle,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+    last_was_space: &mut bool,
+    capitalize_next: &mut bool,
+) {
+    // A tiny synthetic paragraph lets the wrapped-line pass allocate leading cross-axis space.
+    let mut spacer_style = style.clone();
+    spacer_style.font_size = 0.01;
+    spacer_style.font_scale = 1.0;
+    spacer_style.line_height = 0.01;
+    spacer_style.line_height_multiplier = None;
+    spacer_style.line_height_normal = false;
+    spacer_style.white_space = WhiteSpace::PreLine;
+    spacer_style.inline_box = false;
+    spacer_style.pointer_events_none = true;
+    spacer_style.cursor_hidden = true;
+    spacer_style.user_select = UserSelect::None;
+    spacer_style.user_select_none = true;
+    spacer_style.user_select_all_owner = None;
+    spacer_style.layout_sizes.clear();
+    spacer_style.layout_end_sizes.clear();
+    spacer_style.flex_wrap_leading_spacer = true;
+    spacer_style.flex_wrap_cross_size_px = explicit_row_cross_size(style);
+    spacer_style.flex_wrap_gap_applied = false;
+
+    let previous_space = *last_was_space;
+    let previous_capitalize = *capitalize_next;
+    append_text(
+        "\u{200b}\n",
+        &spacer_style,
+        element_path,
+        output,
+        last_was_space,
+        capitalize_next,
+    );
+    *last_was_space = previous_space;
+    *capitalize_next = previous_capitalize;
 }
 
 fn is_justify_distribution(style: &TextStyle) -> bool {

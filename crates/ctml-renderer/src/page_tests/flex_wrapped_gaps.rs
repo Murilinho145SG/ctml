@@ -142,6 +142,52 @@ fn default_align_content_stretches_wrapped_rows_with_a_definite_cross_size() {
     assert!((default_distance - stretch_distance).abs() < 0.5);
 }
 
+#[test]
+fn align_content_positions_and_distributes_wrapped_rows() {
+    let mut start =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-start"));
+    let mut flex_end =
+        wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("flex-end"));
+    start.prepare_layout(60, 120);
+    let mut center = wrapped_row_gap_page("0px", Some(("height", "100px")), false, Some("center"));
+    let mut space_around = wrapped_row_gap_page(
+        "0px",
+        Some(("height", "100px")),
+        false,
+        Some("space-around"),
+    );
+    let mut space_evenly = wrapped_row_gap_page(
+        "0px",
+        Some(("height", "100px")),
+        false,
+        Some("space-evenly"),
+    );
+    flex_end.prepare_layout(60, 120);
+    center.prepare_layout(60, 120);
+    space_around.prepare_layout(60, 120);
+    space_evenly.prepare_layout(60, 120);
+
+    let start_top = item_y(&start, "First");
+    let flex_end_top = item_y(&flex_end, "First");
+    let center_offset = item_y(&center, "First") - start_top;
+    let around_offset = item_y(&space_around, "First") - start_top;
+    let evenly_offset = item_y(&space_evenly, "First") - start_top;
+    let end_offset = flex_end_top - start_top;
+    assert!(
+        end_offset > center_offset && center_offset > 0.0,
+        "center and flex-end should move rows toward the cross end: center={center_offset}, end={end_offset}"
+    );
+    assert!(
+        around_offset > 0.0 && evenly_offset > 0.0,
+        "space-around and space-evenly should leave leading cross-axis space: around={around_offset}, evenly={evenly_offset}"
+    );
+    let around_distance = item_y(&space_around, "Second") - item_y(&space_around, "First");
+    let evenly_distance = item_y(&space_evenly, "Second") - item_y(&space_evenly, "First");
+    let start_distance = item_y(&start, "Second") - start_top;
+    assert!(around_distance > start_distance);
+    assert!(evenly_distance > start_distance);
+}
+
 fn wrapped_row_gap_page(
     row_gap: &str,
     cross_size: Option<(&str, &str)>,

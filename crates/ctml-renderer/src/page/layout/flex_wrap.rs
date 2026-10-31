@@ -22,6 +22,15 @@ struct WrappedBreak {
     gap: f32,
 }
 
+#[derive(Clone, Copy)]
+struct LeadingSpacer {
+    run_index: usize,
+    paragraph: usize,
+    container_id: Option<usize>,
+    cross_size: f32,
+    alignment: FlexAlignment,
+}
+
 pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     let mut glyphs_by_paragraph = HashMap::<usize, Vec<(usize, usize, usize, f32)>>::new();
     let mut line_heights_by_paragraph = HashMap::<usize, BTreeMap<usize, f32>>::new();
@@ -43,10 +52,23 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     }
 
     let mut markers = Vec::new();
+    let mut leading_spacers = Vec::new();
     let mut paragraph = 0;
     let mut byte_offset = 0;
     for (run_index, run) in page.runs.iter().enumerate() {
         let alignment = run.style.align_content.unwrap_or(FlexAlignment::Stretch);
+        if run.style.flex_wrap_leading_spacer
+            && let Some(cross_size) = run.style.flex_wrap_cross_size_px
+            && let Some(alignment) = run.style.align_content
+        {
+            leading_spacers.push(LeadingSpacer {
+                run_index,
+                paragraph: paragraph + run.text.matches('\n').count(),
+                container_id: run.element_path.last().copied(),
+                cross_size,
+                alignment,
+            });
+        }
         for character in run.text.chars() {
             if character == '\n' {
                 paragraph += 1;
@@ -60,7 +82,10 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                     || (run.style.flex_wrap_cross_size_px.is_some()
                         && matches!(
                             alignment,
-                            FlexAlignment::SpaceBetween | FlexAlignment::Stretch
+                            FlexAlignment::SpaceBetween
+                                | FlexAlignment::Stretch
+                                | FlexAlignment::SpaceAround
+                                | FlexAlignment::SpaceEvenly
                         )))
             {
                 markers.push(WrapMarker {
@@ -161,7 +186,14 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
         else {
             continue;
         };
-        if marker.alignment != Some(FlexAlignment::SpaceBetween) {
+        if !matches!(
+            marker.alignment,
+            Some(
+                FlexAlignment::SpaceBetween
+                    | FlexAlignment::SpaceAround
+                    | FlexAlignment::SpaceEvenly
+            )
+        ) {
             continue;
         }
         let Some(cross_size) = marker.cross_size else {
@@ -176,10 +208,42 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             .map(|wrapped| wrapped.gap)
             .sum::<f32>();
         let free_space = (cross_size - used_size - base_gaps).max(0.0);
-        extra_by_container.insert(
-            (*paragraph, *container_id),
-            free_space / wrapped_breaks.len().max(1) as f32,
-        );
+        let row_count = line_heights.len().max(1) as f32;
+        let extra = match marker.alignment {
+            Some(FlexAlignment::SpaceBetween) => free_space / wrapped_breaks.len().max(1) as f32,
+            Some(FlexAlignment::SpaceAround) => free_space / row_count,
+            Some(FlexAlignment::SpaceEvenly) => free_space / (row_count + 1.0),
+            _ => 0.0,
+        };
+        extra_by_container.insert((*paragraph, *container_id), extra);
+    }
+
+    let mut leading_offsets_by_container = HashMap::new();
+    for spacer in leading_spacers {
+        let key = (spacer.paragraph, spacer.container_id);
+        let Some(line_heights) = line_heights_by_paragraph.get(&spacer.paragraph) else {
+            continue;
+        };
+        let row_count = line_heights.len();
+        if row_count < 2 {
+            continue;
+        }
+        let used_size = line_heights.values().sum::<f32>();
+        let base_gaps = breaks_by_container
+            .get(&key)
+            .into_iter()
+            .flatten()
+            .map(|wrapped| wrapped.gap)
+            .sum::<f32>();
+        let free_space = (spacer.cross_size - used_size - base_gaps).max(0.0);
+        let leading = match spacer.alignment {
+            FlexAlignment::Center => free_space / 2.0,
+            FlexAlignment::FlexEnd | FlexAlignment::End => free_space,
+            FlexAlignment::SpaceAround => free_space / (2.0 * row_count as f32),
+            FlexAlignment::SpaceEvenly => free_space / (row_count as f32 + 1.0),
+            _ => 0.0,
+        };
+        leading_offsets_by_container.insert(key, (spacer.run_index, leading));
     }
 
     let mut applied_lines = HashSet::new();
@@ -221,6 +285,15 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
                 run.style.flex_wrap_gap_applied = true;
                 changed = true;
             }
+        }
+    }
+    for (run_index, leading) in leading_offsets_by_container.into_values() {
+        if let Some(run) = page.runs.get_mut(run_index)
+            && (run.style.line_height - leading).abs() > 0.01
+        {
+            run.style.line_height = leading.max(0.01);
+            run.style.line_height_normal = false;
+            changed = true;
         }
     }
     changed

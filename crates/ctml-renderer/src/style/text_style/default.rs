@@ -114,6 +114,7 @@ impl Default for TextStyle {
             flex_shrink_weight: 0.0,
             flex_justify_distributed: false,
             flex_wrap_break: false,
+            flex_wrap_leading_spacer: false,
             flex_wrap_gap_px: 0.0,
             flex_wrap_gap_applied: false,
             flex_wrap_cross_size_px: None,

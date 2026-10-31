@@ -233,6 +233,7 @@ pub(crate) struct TextStyle {
     pub(crate) flex_shrink_weight: f32,
     pub(crate) flex_justify_distributed: bool,
     pub(crate) flex_wrap_break: bool,
+    pub(crate) flex_wrap_leading_spacer: bool,
     pub(crate) flex_wrap_gap_px: f32,
     pub(crate) flex_wrap_gap_applied: bool,
     pub(crate) flex_wrap_cross_size_px: Option<f32>,
