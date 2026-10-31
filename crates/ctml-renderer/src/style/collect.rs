@@ -183,12 +183,16 @@ pub(super) fn collect_runs(
                 if style.display_none {
                     continue;
                 }
+                let (flex_min_main_size, flex_max_main_size) =
+                    collect_flex::effective_flex_main_constraints(&style, inherited.writing_mode);
                 flex_gap_state.before_element(
                     inherited,
                     flex_item_id,
                     style.flex_grow,
                     style.flex_shrink,
                     collect_flex::effective_flex_basis(&style),
+                    flex_min_main_size,
+                    flex_max_main_size,
                     element_path,
                     output,
                     last_was_space,

@@ -2,6 +2,12 @@ use std::collections::HashMap;
 
 use crate::{page::PageRasterizer, style::FlexBasis};
 
+mod sizing;
+use sizing::{
+    clamp_flex_size, distribute_flex_sizes, fit_content_size, item_intrinsic_size,
+    resolve_flex_basis_calculation, resolve_flex_size_limits,
+};
+
 struct FlexGapLine {
     markers: Vec<FlexGapMarker>,
     available_width: f32,
@@ -16,6 +22,8 @@ struct FlexGapMarker {
     grow: f32,
     shrink: f32,
     basis: Option<FlexBasis>,
+    min_main_size: Option<String>,
+    max_main_size: Option<String>,
     font_size: f32,
     line_height: f32,
     font_relative_units: ctml_css::FontRelativeUnits,
@@ -89,6 +97,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                         grow: run.style.flex_grow_weight,
                         shrink: run.style.flex_shrink_weight,
                         basis: run.style.flex_basis.clone(),
+                        min_main_size: run.style.flex_min_main_size.clone(),
+                        max_main_size: run.style.flex_max_main_size.clone(),
                         font_size: run.style.font_size,
                         line_height: run.style.line_height,
                         font_relative_units: run.style.font_relative_units,
@@ -142,6 +152,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             .min()
             .unwrap_or_default();
         let mut item_sizes = Vec::with_capacity(line_markers.len());
+        let mut size_limits = Vec::with_capacity(line_markers.len());
         for marker in &line_markers {
             let content_size = line
                 .glyphs
@@ -193,7 +204,15 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     .map_or(content_size, |size| size),
                 Some(FlexBasis::Auto) | None => content_size,
             };
+            let limits = resolve_flex_size_limits(
+                marker.min_main_size.as_deref(),
+                marker.max_main_size.as_deref(),
+                group.basis_size,
+                marker,
+            );
+            let base_size = clamp_flex_size(base_size, limits);
             item_sizes.push((content_size, base_size));
+            size_limits.push(limits);
             item_start = marker.position + '\u{200b}'.len_utf8();
         }
         let basis_adjustment = item_sizes
@@ -201,36 +220,10 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             .map(|(content_size, base_size)| base_size - content_size)
             .sum::<f32>();
         let free_space = group.available_width - used_width - basis_adjustment;
-        // Keep one pixel free so shaped advances cannot push the last item onto a new line.
-        let grow_space = (free_space - 1.0).max(0.0);
-        let total_grow = line_markers
-            .iter()
-            .map(|marker| f64::from(marker.grow))
-            .sum::<f64>();
-        let justify_count = line_markers.iter().filter(|marker| marker.justify).count();
-        let shrink_weights = line_markers
-            .iter()
-            .zip(&item_sizes)
-            .map(|(marker, (_, base_size))| (marker.shrink, *base_size))
-            .collect::<Vec<_>>();
-        let total_shrink = shrink_weights
-            .iter()
-            .map(|(factor, base_size)| f64::from(*factor) * f64::from(*base_size))
-            .sum::<f64>();
+        let target_sizes =
+            distribute_flex_sizes(&line_markers, &item_sizes, &size_limits, free_space);
         for (index, marker) in line_markers.iter().enumerate() {
-            let basis_extra = item_sizes[index].1 - item_sizes[index].0;
-            let distributed_extra = if grow_space > 0.0 && total_grow > 0.0 {
-                (f64::from(grow_space) * f64::from(marker.grow) / total_grow) as f32
-            } else if grow_space > 0.0 && total_grow == 0.0 && marker.justify {
-                grow_space / justify_count.max(1) as f32
-            } else if free_space < 0.0 && total_shrink > 0.0 {
-                let (factor, base_size) = shrink_weights[index];
-                let weighted_size = f64::from(factor) * f64::from(base_size);
-                -((f64::from(-free_space) * weighted_size / total_shrink) as f32).min(base_size)
-            } else {
-                0.0
-            };
-            let extra = basis_extra + distributed_extra;
+            let extra = target_sizes[index] - item_sizes[index].0;
             extras.insert((line.line_i, container_id, marker.position), extra);
         }
     }
@@ -272,105 +265,4 @@ fn flex_basis_container_size(style: &crate::style::TextStyle, inline_size: f32) 
     }
     let declared_size = style.inline_size.as_deref().or(style.width.as_deref())?;
     (!declared_size.eq_ignore_ascii_case("auto")).then_some(inline_size)
-}
-
-fn resolve_flex_basis_calculation(
-    expression: &str,
-    percentage_basis: f32,
-    marker: &FlexGapMarker,
-) -> Option<f32> {
-    let value = ctml_css::parse_math_expression(expression, |component| {
-        ctml_css::parse_css_percentage(component)
-            .map(|percentage| percentage_basis * percentage / 100.0)
-            .or_else(|| {
-                ctml_css::parse_nonnegative_font_relative_length_with_viewport(
-                    component,
-                    marker.font_size,
-                    marker.line_height,
-                    marker.font_relative_units,
-                    marker.viewport_size,
-                )
-            })
-    })?;
-    (value.is_finite() && value >= 0.0).then_some(value)
-}
-
-fn item_intrinsic_size(
-    marker_position: usize,
-    group: &FlexGapLine,
-    glyphs: Option<&Vec<(usize, usize, f32)>>,
-    paragraph_text: Option<&String>,
-    min_content: bool,
-) -> f32 {
-    let Some(glyphs) = glyphs else {
-        return 0.0;
-    };
-    let item_start = group
-        .markers
-        .iter()
-        .filter(|previous| previous.position < marker_position)
-        .max_by_key(|previous| previous.position)
-        .map(|previous| previous.position + '\u{200b}'.len_utf8())
-        .unwrap_or_else(|| glyphs.iter().map(|glyph| glyph.0).min().unwrap_or_default());
-    let item_glyphs = glyphs
-        .iter()
-        .filter(|(start, end, _)| *start >= item_start && *end <= marker_position)
-        .collect::<Vec<_>>();
-    if !min_content {
-        return item_glyphs.iter().map(|(_, _, width)| *width).sum();
-    }
-
-    let mut current_word = 0.0;
-    let mut min_content_size = 0.0f32;
-    for (start, end, width) in item_glyphs {
-        let is_break = paragraph_text
-            .and_then(|text| text.get(*start..*end))
-            .is_some_and(|text| text.chars().all(char::is_whitespace));
-        if is_break {
-            min_content_size = min_content_size.max(current_word);
-            current_word = 0.0;
-        } else {
-            current_word += width;
-        }
-    }
-    min_content_size.max(current_word)
-}
-
-fn fit_content_size(min_content: f32, max_content: f32, available_size: f32) -> f32 {
-    max_content.min(available_size.max(min_content))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn min_content_uses_the_longest_whitespace_separated_segment() {
-        let group = FlexGapLine {
-            markers: vec![],
-            available_width: 100.0,
-            basis_size: Some(100.0),
-            container_id: Some(1),
-            mixed_containers: false,
-        };
-        let glyphs = (0..7)
-            .map(|index| (index, index + 1, 1.0))
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            item_intrinsic_size(7, &group, Some(&glyphs), Some(&"one two".to_owned()), false),
-            7.0
-        );
-        assert_eq!(
-            item_intrinsic_size(7, &group, Some(&glyphs), Some(&"one two".to_owned()), true),
-            3.0
-        );
-    }
-
-    #[test]
-    fn fit_content_clamps_max_content_to_available_space_with_min_content_floor() {
-        assert_eq!(fit_content_size(20.0, 100.0, 60.0), 60.0);
-        assert_eq!(fit_content_size(20.0, 100.0, 120.0), 100.0);
-        assert_eq!(fit_content_size(20.0, 100.0, 10.0), 20.0);
-    }
 }

@@ -1,219 +1,10 @@
 pub(super) use super::collect_flex_order::order_nodes;
+
+mod gap;
 use super::{
     FlexAlignment, FlexBasis, TextRun, TextStyle, UserSelect, append_text, push_line_break,
 };
-
-#[derive(Default)]
-pub(super) struct FlexGapState {
-    item_count: usize,
-    last_item_id: Option<usize>,
-    last_item_grow: f32,
-    last_item_shrink: f32,
-    last_item_basis: Option<FlexBasis>,
-}
-
-pub(super) fn item_alignment(
-    style: &TextStyle,
-    inherited: &TextStyle,
-    block: bool,
-) -> Option<FlexAlignment> {
-    if style.display_flex && block {
-        if style.flex_direction_column {
-            Some(style.align_items.unwrap_or(FlexAlignment::Stretch))
-        } else {
-            Some(visual_justify(
-                style.justify_content,
-                style.flex_direction_reverse,
-            ))
-        }
-    } else if inherited.flex_items_row {
-        Some(visual_justify(
-            inherited.justify_content,
-            inherited.flex_direction_reverse,
-        ))
-    } else if inherited.flex_items_column {
-        Some(
-            style
-                .align_self
-                .or(inherited.align_items)
-                .unwrap_or(FlexAlignment::Stretch),
-        )
-    } else {
-        inherited.flex_item_alignment
-    }
-}
-
-fn visual_justify(alignment: FlexAlignment, reverse: bool) -> FlexAlignment {
-    if !reverse {
-        return alignment;
-    }
-    match alignment {
-        FlexAlignment::FlexStart => FlexAlignment::FlexEnd,
-        FlexAlignment::FlexEnd => FlexAlignment::FlexStart,
-        FlexAlignment::Start
-        | FlexAlignment::End
-        | FlexAlignment::Center
-        | FlexAlignment::Stretch
-        | FlexAlignment::SpaceBetween
-        | FlexAlignment::SpaceAround
-        | FlexAlignment::SpaceEvenly => alignment,
-    }
-}
-
-impl FlexGapState {
-    pub(super) fn append_text(
-        &mut self,
-        style: &TextStyle,
-        item_id: usize,
-        text: &str,
-        element_path: &[usize],
-        output: &mut Vec<TextRun>,
-        last_was_space: &mut bool,
-        capitalize_next: &mut bool,
-    ) {
-        self.before_item(
-            style,
-            item_id,
-            !text.chars().all(char::is_whitespace),
-            0.0,
-            1.0,
-            None,
-            element_path,
-            output,
-            last_was_space,
-            capitalize_next,
-        );
-        append_text(
-            text,
-            style,
-            element_path,
-            output,
-            last_was_space,
-            capitalize_next,
-        );
-    }
-
-    pub(super) fn before_element(
-        &mut self,
-        style: &TextStyle,
-        item_id: usize,
-        grow: f32,
-        shrink: f32,
-        basis: Option<FlexBasis>,
-        element_path: &[usize],
-        output: &mut Vec<TextRun>,
-        last_was_space: &mut bool,
-        capitalize_next: &mut bool,
-    ) {
-        self.before_item(
-            style,
-            item_id,
-            true,
-            grow,
-            shrink,
-            basis,
-            element_path,
-            output,
-            last_was_space,
-            capitalize_next,
-        );
-    }
-
-    fn before_item(
-        &mut self,
-        style: &TextStyle,
-        item_id: usize,
-        is_item: bool,
-        grow: f32,
-        shrink: f32,
-        basis: Option<FlexBasis>,
-        element_path: &[usize],
-        output: &mut Vec<TextRun>,
-        last_was_space: &mut bool,
-        capitalize_next: &mut bool,
-    ) {
-        if !is_item || !(style.flex_items_row || style.flex_items_column) {
-            return;
-        }
-        if self.last_item_id == Some(item_id) {
-            return;
-        }
-        if self.item_count == 0
-            && style.flex_items_row
-            && matches!(
-                style.justify_content,
-                FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
-            )
-        {
-            append_gap(
-                style,
-                true,
-                0.0,
-                0.0,
-                None,
-                true,
-                element_path,
-                output,
-                last_was_space,
-                capitalize_next,
-            );
-        }
-        if self.item_count > 0 {
-            append_gap(
-                style,
-                false,
-                self.last_item_grow,
-                self.last_item_shrink,
-                self.last_item_basis.clone(),
-                is_justify_distribution(style),
-                element_path,
-                output,
-                last_was_space,
-                capitalize_next,
-            );
-        }
-        self.item_count += 1;
-        self.last_item_id = Some(item_id);
-        self.last_item_grow = grow;
-        self.last_item_shrink = shrink;
-        self.last_item_basis = basis;
-    }
-
-    pub(super) fn finish(
-        &self,
-        style: &TextStyle,
-        element_path: &[usize],
-        output: &mut Vec<TextRun>,
-        last_was_space: &mut bool,
-        capitalize_next: &mut bool,
-    ) {
-        if self.item_count == 0 || !style.flex_items_row {
-            return;
-        }
-        let trailing_justify = style.justify_content == FlexAlignment::SpaceEvenly;
-        if trailing_justify || self.last_item_grow > 0.0 || self.last_item_shrink > 0.0 {
-            append_gap(
-                style,
-                false,
-                self.last_item_grow,
-                self.last_item_shrink,
-                self.last_item_basis.clone(),
-                trailing_justify,
-                element_path,
-                output,
-                last_was_space,
-                capitalize_next,
-            );
-        }
-    }
-}
-
-fn is_justify_distribution(style: &TextStyle) -> bool {
-    matches!(
-        style.justify_content,
-        FlexAlignment::SpaceBetween | FlexAlignment::SpaceAround | FlexAlignment::SpaceEvenly
-    )
-}
+pub(super) use gap::{FlexGapState, item_alignment};
 
 pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
     let basis = style.flex_basis.clone().unwrap_or(FlexBasis::Auto);
@@ -235,6 +26,84 @@ pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
         FlexBasis::Content => Some(FlexBasis::Content),
         basis => Some(basis),
     }
+}
+
+pub(super) fn effective_flex_main_constraints(
+    item_style: &TextStyle,
+    container_writing_mode: super::WritingMode,
+) -> (Option<String>, Option<String>) {
+    let container_is_vertical = matches!(
+        container_writing_mode,
+        super::WritingMode::VerticalRl | super::WritingMode::VerticalLr
+    );
+    let item_is_vertical = matches!(
+        item_style.writing_mode,
+        super::WritingMode::VerticalRl | super::WritingMode::VerticalLr
+    );
+    let (logical_min, logical_max, logical_min_name, logical_max_name) =
+        if container_is_vertical == item_is_vertical {
+            (
+                item_style.min_inline_size.as_ref(),
+                item_style.max_inline_size.as_ref(),
+                "min-inline-size",
+                "max-inline-size",
+            )
+        } else {
+            (
+                item_style.min_block_size.as_ref(),
+                item_style.max_block_size.as_ref(),
+                "min-block-size",
+                "max-block-size",
+            )
+        };
+    let (physical_min, physical_max, physical_min_name, physical_max_name) =
+        if container_is_vertical {
+            (
+                item_style.min_height.as_ref(),
+                item_style.max_height.as_ref(),
+                "min-height",
+                "max-height",
+            )
+        } else {
+            (
+                item_style.min_width.as_ref(),
+                item_style.max_width.as_ref(),
+                "min-width",
+                "max-width",
+            )
+        };
+    let select = |logical: Option<&String>,
+                  physical: Option<&String>,
+                  logical_name: &str,
+                  physical_name: &str| {
+        let value = match (
+            item_style.size_property_orders.get(logical_name),
+            item_style.size_property_orders.get(physical_name),
+        ) {
+            (Some(logical_order), Some(physical_order)) if logical_order > physical_order => {
+                logical
+            }
+            (Some(_), Some(_)) => physical,
+            (Some(_), None) => logical,
+            (None, Some(_)) => physical,
+            (None, None) => logical.or(physical),
+        };
+        value.cloned()
+    };
+    (
+        select(
+            logical_min,
+            physical_min,
+            logical_min_name,
+            physical_min_name,
+        ),
+        select(
+            logical_max,
+            physical_max,
+            logical_max_name,
+            physical_max_name,
+        ),
+    )
 }
 
 fn parse_item_basis(value: &str, style: &TextStyle) -> Option<FlexBasis> {
@@ -264,6 +133,8 @@ pub(super) fn append_gap(
     grow_weight: f32,
     shrink_weight: f32,
     basis: Option<FlexBasis>,
+    min_main_size: Option<String>,
+    max_main_size: Option<String>,
     justify_distribution: bool,
     element_path: &[usize],
     output: &mut Vec<TextRun>,
@@ -288,7 +159,8 @@ pub(super) fn append_gap(
         style.flex_items_row && grow_weight > 0.0 && flex_main_size(style).is_some();
     let distribute_shrink =
         style.flex_items_row && shrink_weight > 0.0 && flex_main_size(style).is_some();
-    let distribute_basis = style.flex_items_row && basis.is_some();
+    let distribute_basis = style.flex_items_row
+        && (basis.is_some() || min_main_size.is_some() || max_main_size.is_some());
     let wrap_break = style.flex_items_row && style.flex_wrap;
     if gap.is_none()
         && !distribute
@@ -346,6 +218,8 @@ pub(super) fn append_gap(
         spacer_style.flex_grow_weight = grow_weight;
         spacer_style.flex_shrink_weight = shrink_weight;
         spacer_style.flex_basis = basis;
+        spacer_style.flex_min_main_size = min_main_size;
+        spacer_style.flex_max_main_size = max_main_size;
         spacer_style.flex_justify_distributed = distribute;
         spacer_style.flex_wrap_break = wrap_break;
         spacer_style.flex_wrap_gap_px = if wrap_break {

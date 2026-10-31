@@ -32,6 +32,35 @@ fn flex_basis_sets_item_advance_from_lengths_and_percentages() {
 }
 
 #[test]
+fn min_and_max_main_sizes_clamp_the_flex_base_size() {
+    let mut min_clamped =
+        flex_basis_page_with_constraints(Some("50px"), None, false, Some("120px"), None);
+    let mut max_clamped =
+        flex_basis_page_with_constraints(Some("150px"), None, false, None, Some("100px"));
+    let mut percent_min_clamped =
+        flex_basis_page_with_constraints(Some("50px"), None, false, Some("25%"), None);
+    min_clamped.prepare_layout(400, 120);
+    max_clamped.prepare_layout(400, 120);
+    percent_min_clamped.prepare_layout(400, 120);
+
+    let min_second = item_x(&min_clamped, "Second");
+    let max_second = item_x(&max_clamped, "Second");
+    let percent_min_second = item_x(&percent_min_clamped, "Second");
+    assert!(
+        (min_second - 120.0).abs() < 2.0,
+        "min-width should raise the 50px flex basis to 120px; observed {min_second}"
+    );
+    assert!(
+        (max_second - 100.0).abs() < 2.0,
+        "max-width should lower the 150px flex basis to 100px; observed {max_second}"
+    );
+    assert!(
+        (percent_min_second - 100.0).abs() < 2.0,
+        "a definite 25% min-width should clamp the basis to 100px; observed {percent_min_second}"
+    );
+}
+
+#[test]
 fn percentage_flex_basis_uses_content_size_in_auto_sized_inline_flex() {
     let mut natural = flex_basis_page(None, None, true);
     let mut percentage = flex_basis_page(Some("50%"), None, true);
@@ -113,6 +142,16 @@ fn item_y(page: &PageRasterizer, text: &str) -> f32 {
 }
 
 fn flex_basis_page(basis: Option<&str>, width: Option<&str>, inline_flex: bool) -> PageRasterizer {
+    flex_basis_page_with_constraints(basis, width, inline_flex, None, None)
+}
+
+fn flex_basis_page_with_constraints(
+    basis: Option<&str>,
+    width: Option<&str>,
+    inline_flex: bool,
+    min_width: Option<&str>,
+    max_width: Option<&str>,
+) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("container".to_owned()),
@@ -146,6 +185,12 @@ fn flex_basis_page(basis: Option<&str>, width: Option<&str>, inline_flex: bool) 
     }
     if let Some(width) = width {
         first_declarations.push(("width", width));
+    }
+    if let Some(min_width) = min_width {
+        first_declarations.push(("min-width", min_width));
+    }
+    if let Some(max_width) = max_width {
+        first_declarations.push(("max-width", max_width));
     }
     let display = if inline_flex { "inline-flex" } else { "flex" };
     let mut container_declarations = vec![("display", display)];
