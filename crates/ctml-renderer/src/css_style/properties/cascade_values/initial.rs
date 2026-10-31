@@ -4,6 +4,12 @@ pub(in crate::css_style::properties) fn initial_property(style: &mut TextStyle, 
     match property {
         "color-scheme" => style.dark_color_scheme = false,
         "opacity" => style.opacity = 1.0,
+        "transition" | "transition-property" => style.transition_opacity = false,
+        "transition-duration" => style.transition_duration_ms = 0.0,
+        "transition-delay" => style.transition_delay_ms = 0.0,
+        "transition-timing-function" => {
+            style.transition_easing = crate::style::TransitionEasing::default()
+        }
         "visibility" => style.visibility_hidden = false,
         "content-visibility" => {
             style.content_visibility_hidden = false;

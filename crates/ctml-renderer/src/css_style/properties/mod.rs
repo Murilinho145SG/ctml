@@ -119,6 +119,7 @@ mod text_emphasis;
 mod text_indent;
 mod text_shadow;
 mod text_transform;
+mod transition;
 use size::is_valid_size_declaration;
 use text_transform::apply_text_transform_property;
 

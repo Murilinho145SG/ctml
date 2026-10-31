@@ -129,6 +129,8 @@ mod sizing_percentages;
 mod sizing_vertical;
 #[path = "page_tests/text_transform.rs"]
 mod text_transform;
+#[path = "page_tests/transitions.rs"]
+mod transitions;
 #[path = "page_tests/viewport_units.rs"]
 mod viewport_units;
 

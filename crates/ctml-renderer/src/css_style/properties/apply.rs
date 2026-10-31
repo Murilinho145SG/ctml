@@ -20,6 +20,11 @@ pub(super) fn apply_declaration(
                 style.opacity = opacity.clamp(0.0, 1.0);
             }
         }
+        "transition"
+        | "transition-property"
+        | "transition-duration"
+        | "transition-delay"
+        | "transition-timing-function" => transition::apply_transition(style, property, value),
         "visibility" => match value.to_ascii_lowercase().as_str() {
             "visible" => style.visibility_hidden = false,
             "hidden" | "collapse" => style.visibility_hidden = true,

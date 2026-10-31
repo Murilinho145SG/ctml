@@ -30,7 +30,7 @@ pub(super) use text_style::{
     RadialGradient, RadialGradientExtent, RadialGradientShape, TextDecorationSkipInk,
     TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
     TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle, TextTransform,
-    TextWrapMode, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
+    TextWrapMode, TransitionEasing, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,
 };
 pub(crate) use text_transform::transform_character;
 

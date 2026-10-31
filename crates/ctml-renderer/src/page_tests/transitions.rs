@@ -1,0 +1,86 @@
+use std::time::Duration;
+
+use super::super::PageRasterizer;
+use crate::{StyleDeclaration, StyleRule};
+
+fn rule(selector: &str, declarations: &[(&str, &str)]) -> StyleRule {
+    StyleRule {
+        selectors: vec![selector.to_owned()],
+        layer: None,
+        declarations: declarations
+            .iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: (*property).to_owned(),
+                value: (*value).to_owned(),
+            })
+            .collect(),
+    }
+}
+
+#[test]
+fn root_opacity_transition_interpolates_and_finishes_at_target() {
+    let stylesheet = [
+        rule("body", &[("transition", "opacity 1000ms linear")]),
+        rule("body:hover", &[("opacity", "0")]),
+    ];
+    let mut page = PageRasterizer::new(&[], &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.root_opacity_transition.as_ref().unwrap();
+    let starts_at = transition.starts_at;
+    assert!((page.root_opacity - 1.0).abs() < 0.001);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert!((page.root_opacity - 0.5).abs() < 0.01);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(page.root_opacity, 0.0);
+    assert!(page.root_opacity_transition.is_none());
+}
+
+#[test]
+fn zero_duration_keeps_interaction_opacity_discrete() {
+    let stylesheet = [rule("body:hover", &[("opacity", "0")])];
+    let mut page = PageRasterizer::new(&[], &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+    assert_eq!(page.root_opacity, 0.0);
+    assert!(page.root_opacity_transition.is_none());
+}
+
+#[test]
+fn text_element_opacity_transitions_on_hover() {
+    let nodes = [crate::UiNode::Element {
+        tag: "button".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![crate::UiNode::Text("Fade".to_owned())],
+    }];
+    let stylesheet = [
+        rule("button", &[("transition", "opacity 1000ms linear")]),
+        rule("button:hover", &[("opacity", "0")]),
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.hovered_path.push(1);
+    page.rebuild_interaction_styles();
+
+    let transition = page.opacity_transitions.get(&1).unwrap();
+    let starts_at = transition.starts_at;
+    assert_eq!(page.opacity_groups.get(&1), Some(&1.0));
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert!((page.opacity_groups[&1] - 0.5).abs() < 0.01);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(false)
+    );
+    assert_eq!(page.opacity_groups.get(&1), Some(&0.0));
+}

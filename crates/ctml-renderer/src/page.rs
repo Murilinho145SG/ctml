@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 
 use cosmic_text::{Buffer, Cursor, FontSystem, Metrics, Scroll, SwashCache};
 use winit::window::CursorIcon;
@@ -13,6 +16,7 @@ use crate::{
     },
 };
 
+mod animations;
 mod background_blend;
 mod background_images;
 mod backgrounds;
@@ -81,7 +85,9 @@ pub(crate) struct PageRasterizer {
     buffer: Buffer,
     root_style: TextStyle,
     root_opacity: f32,
+    root_opacity_transition: Option<animations::OpacityTransition>,
     opacity_groups: HashMap<usize, f32>,
+    opacity_transitions: HashMap<usize, animations::OpacityTransition>,
     mix_blend_modes: HashMap<usize, BackgroundBlendMode>,
     isolation_groups: HashSet<usize>,
     decoration_opacity_scales: Vec<f32>,
@@ -185,7 +191,9 @@ impl PageRasterizer {
             buffer,
             root_style,
             root_opacity,
+            root_opacity_transition: None,
             opacity_groups,
+            opacity_transitions: HashMap::new(),
             mix_blend_modes,
             isolation_groups,
             decoration_opacity_scales: Vec::new(),
@@ -552,7 +560,13 @@ impl PageRasterizer {
         self.upload_pixels(queue, texture, width, height);
     }
 
+    pub(crate) fn advance_animations(&mut self, now: Instant) -> Option<bool> {
+        animations::advance(self, now)
+    }
+
     fn rebuild_interaction_styles(&mut self) {
+        let previous_root_opacity = self.root_opacity;
+        let previous_opacity_groups = self.opacity_groups.clone();
         let (compiled_runs, root_style, opacity_groups, mix_blend_modes, isolation_groups) =
             compile_runs_with_opacity_map(
                 &self.nodes,
@@ -586,7 +600,12 @@ impl PageRasterizer {
         self.mix_blend_modes = mix_blend_modes;
         self.isolation_groups = isolation_groups;
         self.decoration_opacity_scales.clear();
-        self.root_opacity = root_style.opacity;
+        animations::begin_transitions(
+            self,
+            previous_root_opacity,
+            &previous_opacity_groups,
+            &root_style,
+        );
         self.root_style = root_style;
         self.root_style.opacity = 1.0;
         self.cursor_spans = cursor_spans(&self.runs);

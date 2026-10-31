@@ -305,6 +305,26 @@ impl ApplicationHandler for WindowApplication {
             _ => {}
         }
     }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let Some(window) = self.window.as_ref() else {
+            return;
+        };
+        let animation_state = self
+            .renderer
+            .as_mut()
+            .and_then(|renderer| renderer.advance_animations(Instant::now()));
+        if let Some(active) = animation_state {
+            window.request_redraw();
+            event_loop.set_control_flow(if active {
+                ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(16))
+            } else {
+                ControlFlow::Wait
+            });
+        } else {
+            event_loop.set_control_flow(ControlFlow::Wait);
+        }
+    }
 }
 
 fn positions_are_close(first: PhysicalPosition<f64>, second: PhysicalPosition<f64>) -> bool {

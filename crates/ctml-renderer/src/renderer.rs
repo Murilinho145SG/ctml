@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use super::window::WindowError;
 use crate::{CssColorProfile, FontFace, StyleRule, UiNode, page::PageRasterizer};
@@ -149,6 +149,12 @@ impl Renderer {
             self.surface.configure(&self.device, &self.config);
         }
         Ok(())
+    }
+
+    pub(super) fn advance_animations(&mut self, now: Instant) -> Option<bool> {
+        let active = self.page.advance_animations(now)?;
+        self.page.redraw(&self.queue, &self.page_texture);
+        Some(active)
     }
 
     pub(super) fn pointer_moved(

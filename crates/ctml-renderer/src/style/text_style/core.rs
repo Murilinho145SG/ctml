@@ -30,6 +30,16 @@ pub(crate) enum FlexAlignment {
     SpaceEvenly,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum TransitionEasing {
+    Linear,
+    #[default]
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextStyle {
     pub(crate) font_relative_units: FontRelativeUnits,
@@ -45,6 +55,10 @@ pub(crate) struct TextStyle {
     pub(crate) color: [u8; 4],
     pub(crate) color_opacity: f32,
     pub(crate) opacity: f32,
+    pub(crate) transition_opacity: bool,
+    pub(crate) transition_duration_ms: f32,
+    pub(crate) transition_delay_ms: f32,
+    pub(crate) transition_easing: TransitionEasing,
     pub(crate) background: [u8; 3],
     pub(crate) background_color: Option<[u8; 4]>,
     pub(crate) background_layers: Vec<[u8; 4]>,
@@ -268,6 +282,10 @@ impl Default for TextStyle {
             color: [0, 0, 0, 255],
             color_opacity: 1.0,
             opacity: 1.0,
+            transition_opacity: false,
+            transition_duration_ms: 0.0,
+            transition_delay_ms: 0.0,
+            transition_easing: TransitionEasing::default(),
             background: [255, 255, 255],
             background_color: None,
             background_layers: Vec::new(),

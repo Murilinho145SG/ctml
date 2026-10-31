@@ -53,6 +53,10 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     let mut style = inherited.clone();
     style.font_relative_units = local_font_units;
     style.opacity = 1.0;
+    style.transition_opacity = false;
+    style.transition_duration_ms = 0.0;
+    style.transition_delay_ms = 0.0;
+    style.transition_easing = crate::style::TransitionEasing::default();
     style.display_none = false;
     style.display_block = None;
     style.display_list_item = None;

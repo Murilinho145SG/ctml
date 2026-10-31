@@ -8,6 +8,12 @@ pub(in crate::css_style::properties) fn inherit_property(
     match property {
         "color-scheme" => style.dark_color_scheme = inherited.dark_color_scheme,
         "opacity" => style.opacity = inherited.opacity,
+        "transition" | "transition-property" => {
+            style.transition_opacity = inherited.transition_opacity
+        }
+        "transition-duration" => style.transition_duration_ms = inherited.transition_duration_ms,
+        "transition-delay" => style.transition_delay_ms = inherited.transition_delay_ms,
+        "transition-timing-function" => style.transition_easing = inherited.transition_easing,
         "visibility" => style.visibility_hidden = inherited.visibility_hidden,
         "content-visibility" => {
             style.content_visibility_hidden = inherited.content_visibility_hidden;
