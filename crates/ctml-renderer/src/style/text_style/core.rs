@@ -57,6 +57,7 @@ pub(crate) enum StepPosition {
 pub(crate) enum FlexBasis {
     Auto,
     Content,
+    MinContent,
     MaxContent,
     Length(f32),
     Percentage(f32),

@@ -238,6 +238,9 @@ pub(super) fn effective_flex_basis(style: &TextStyle) -> Option<FlexBasis> {
 }
 
 fn parse_item_basis(value: &str, style: &TextStyle) -> Option<FlexBasis> {
+    if value.eq_ignore_ascii_case("min-content") {
+        return Some(FlexBasis::MinContent);
+    }
     if value.eq_ignore_ascii_case("max-content") {
         return Some(FlexBasis::MaxContent);
     }

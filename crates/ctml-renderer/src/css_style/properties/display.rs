@@ -148,6 +148,8 @@ pub(super) fn apply_flex_basis(style: &mut TextStyle, value: &str) {
         Some(FlexBasis::Content)
     } else if value.eq_ignore_ascii_case("max-content") {
         Some(FlexBasis::MaxContent)
+    } else if value.eq_ignore_ascii_case("min-content") {
+        Some(FlexBasis::MinContent)
     } else if let Some(percentage) = ctml_css::parse_css_percentage(value) {
         (percentage >= 0.0).then_some(FlexBasis::Percentage(percentage / 100.0))
     } else if ctml_css::parse_math_expression(value, |component| {

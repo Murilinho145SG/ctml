@@ -26,6 +26,7 @@ struct FlexGapMarker {
 pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_width: f32) -> bool {
     let mut markers_by_line = HashMap::<usize, FlexGapLine>::new();
     let mut glyphs_by_paragraph = HashMap::<usize, Vec<(usize, usize, f32)>>::new();
+    let mut text_by_paragraph = HashMap::<usize, String>::new();
     for line in page.buffer.layout_runs() {
         glyphs_by_paragraph.entry(line.line_i).or_default().extend(
             line.glyphs
@@ -41,6 +42,10 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 line_index += 1;
                 byte_index = 0;
             } else {
+                text_by_paragraph
+                    .entry(line_index)
+                    .or_default()
+                    .push(character);
                 if character == '\u{200b}' && run.style.flex_distributed_gap {
                     let container_id = run.element_path.last().copied();
                     let line = markers_by_line.entry(line_index).or_insert_with(|| {
@@ -146,27 +151,20 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 .sum::<f32>();
             let base_size = match marker.basis.as_ref() {
                 Some(FlexBasis::Length(length)) => *length,
-                Some(FlexBasis::Content | FlexBasis::MaxContent) => {
-                    let item_start = group
-                        .markers
-                        .iter()
-                        .filter(|previous| previous.position < marker.position)
-                        .max_by_key(|previous| previous.position)
-                        .map(|previous| previous.position + '\u{200b}'.len_utf8())
-                        .unwrap_or_else(|| {
-                            glyphs_by_paragraph
-                                .get(&line.line_i)
-                                .and_then(|glyphs| glyphs.iter().map(|glyph| glyph.0).min())
-                                .unwrap_or_default()
-                        });
-                    glyphs_by_paragraph
-                        .get(&line.line_i)
-                        .into_iter()
-                        .flatten()
-                        .filter(|(start, end, _)| *start >= item_start && *end <= marker.position)
-                        .map(|(_, _, width)| *width)
-                        .sum::<f32>()
-                }
+                Some(FlexBasis::Content | FlexBasis::MaxContent) => item_intrinsic_size(
+                    marker.position,
+                    group,
+                    glyphs_by_paragraph.get(&line.line_i),
+                    text_by_paragraph.get(&line.line_i),
+                    false,
+                ),
+                Some(FlexBasis::MinContent) => item_intrinsic_size(
+                    marker.position,
+                    group,
+                    glyphs_by_paragraph.get(&line.line_i),
+                    text_by_paragraph.get(&line.line_i),
+                    true,
+                ),
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
@@ -278,4 +276,73 @@ fn resolve_flex_basis_calculation(
             })
     })?;
     (value.is_finite() && value >= 0.0).then_some(value)
+}
+
+fn item_intrinsic_size(
+    marker_position: usize,
+    group: &FlexGapLine,
+    glyphs: Option<&Vec<(usize, usize, f32)>>,
+    paragraph_text: Option<&String>,
+    min_content: bool,
+) -> f32 {
+    let Some(glyphs) = glyphs else {
+        return 0.0;
+    };
+    let item_start = group
+        .markers
+        .iter()
+        .filter(|previous| previous.position < marker_position)
+        .max_by_key(|previous| previous.position)
+        .map(|previous| previous.position + '\u{200b}'.len_utf8())
+        .unwrap_or_else(|| glyphs.iter().map(|glyph| glyph.0).min().unwrap_or_default());
+    let item_glyphs = glyphs
+        .iter()
+        .filter(|(start, end, _)| *start >= item_start && *end <= marker_position)
+        .collect::<Vec<_>>();
+    if !min_content {
+        return item_glyphs.iter().map(|(_, _, width)| *width).sum();
+    }
+
+    let mut current_word = 0.0;
+    let mut min_content_size = 0.0f32;
+    for (start, end, width) in item_glyphs {
+        let is_break = paragraph_text
+            .and_then(|text| text.get(*start..*end))
+            .is_some_and(|text| text.chars().all(char::is_whitespace));
+        if is_break {
+            min_content_size = min_content_size.max(current_word);
+            current_word = 0.0;
+        } else {
+            current_word += width;
+        }
+    }
+    min_content_size.max(current_word)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn min_content_uses_the_longest_whitespace_separated_segment() {
+        let group = FlexGapLine {
+            markers: vec![],
+            available_width: 100.0,
+            basis_size: Some(100.0),
+            container_id: Some(1),
+            mixed_containers: false,
+        };
+        let glyphs = (0..7)
+            .map(|index| (index, index + 1, 1.0))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            item_intrinsic_size(7, &group, Some(&glyphs), Some(&"one two".to_owned()), false),
+            7.0
+        );
+        assert_eq!(
+            item_intrinsic_size(7, &group, Some(&glyphs), Some(&"one two".to_owned()), true),
+            3.0
+        );
+    }
 }
