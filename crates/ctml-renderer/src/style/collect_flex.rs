@@ -99,14 +99,22 @@ pub(super) fn append_gap(
     let Some(gap) = gap else {
         return;
     };
+    let percentage_basis = flex_main_size(style);
     let resolve_length = |component: &str| {
-        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
-            component,
-            style.font_size,
-            style.line_height,
-            style.font_relative_units,
-            style.viewport_size,
-        )
+        let percentage = || {
+            let basis = percentage_basis?;
+            let percentage = ctml_css::parse_css_percentage(component)?;
+            (percentage >= 0.0).then_some(basis * percentage / 100.0)
+        };
+        percentage().or_else(|| {
+            ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+                component,
+                style.font_size,
+                style.line_height,
+                style.font_relative_units,
+                style.viewport_size,
+            )
+        })
     };
     let Some(gap_px) = resolve_length(gap)
         .or_else(|| ctml_css::parse_math_expression(gap, resolve_length))
@@ -151,6 +159,37 @@ pub(super) fn append_gap(
     }
     *last_was_space = previous_space;
     *capitalize_next = previous_capitalize;
+}
+
+fn flex_main_size(style: &TextStyle) -> Option<f32> {
+    let (declared_size, viewport_size) = if style.flex_items_row {
+        (
+            style.width.as_deref().or(style.inline_size.as_deref()),
+            style.viewport_size.width,
+        )
+    } else {
+        (
+            style.height.as_deref().or(style.block_size.as_deref()),
+            style.viewport_size.height,
+        )
+    };
+    let Some(declared_size) = declared_size else {
+        return style.flex_items_row.then_some(viewport_size);
+    };
+    let resolve = |value: &str| {
+        ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+            value,
+            style.font_size,
+            style.line_height,
+            style.font_relative_units,
+            style.viewport_size,
+        )
+        .or_else(|| {
+            let percentage = ctml_css::parse_css_percentage(value)?;
+            (percentage >= 0.0).then_some(viewport_size * percentage / 100.0)
+        })
+    };
+    resolve(declared_size).or_else(|| ctml_css::parse_math_expression(declared_size, resolve))
 }
 
 #[allow(clippy::too_many_arguments)]

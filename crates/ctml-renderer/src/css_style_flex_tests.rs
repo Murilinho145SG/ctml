@@ -108,6 +108,10 @@ fn flex_gaps_parse_shorthand_longhands_and_source_order() {
     let math = style_with_declarations(&[("gap", "calc(1px + 2px)")]);
     assert_eq!(math.row_gap.as_deref(), Some("calc(1px + 2px)"));
 
+    let percentage = style_with_declarations(&[("gap", "10% 5%")]);
+    assert_eq!(percentage.row_gap.as_deref(), Some("10%"));
+    assert_eq!(percentage.column_gap.as_deref(), Some("5%"));
+
     let ordered = style_with_declarations(&[
         ("gap", "3px 6px"),
         ("row-gap", "5px"),
@@ -121,6 +125,8 @@ fn flex_gaps_parse_shorthand_longhands_and_source_order() {
 
     let invalid = style_with_declarations(&[("gap", "-2px")]);
     assert_eq!(invalid.row_gap, None);
+    let negative_percentage = style_with_declarations(&[("gap", "-2%")]);
+    assert_eq!(negative_percentage.row_gap, None);
     assert_eq!(
         style_with_declarations(&[("gap", "normal")])
             .column_gap

@@ -178,6 +178,22 @@ fn column_gap_adds_inline_advance_between_row_items() {
 }
 
 #[test]
+fn percentage_column_gap_uses_the_flex_container_inline_size() {
+    let mut without_gap = two_item_flex_page("row", None);
+    let mut page = two_item_flex_page("row", Some("10%"));
+    without_gap.prepare_layout(400, 120);
+    page.prepare_layout(400, 120);
+
+    let baseline_advance = second_item_x(&without_gap) - first_item_x(&without_gap);
+    let spaced_advance = second_item_x(&page) - first_item_x(&page);
+    assert!(
+        (spaced_advance - baseline_advance - 40.0).abs() < 1.0,
+        "10% column gap should resolve to 40px, observed {}",
+        spaced_advance - baseline_advance
+    );
+}
+
+#[test]
 fn row_gap_adds_vertical_flow_between_column_items() {
     let mut without_gap = two_item_flex_page("column", None);
     let mut with_gap = two_item_flex_page("column", Some("12px"));
@@ -189,6 +205,22 @@ fn row_gap_adds_vertical_flow_between_column_items() {
     assert!(
         (spaced - baseline - 12.0).abs() < 1.0,
         "gap advance was {}",
+        spaced - baseline
+    );
+}
+
+#[test]
+fn percentage_row_gap_uses_an_explicit_flex_container_block_size() {
+    let mut without_gap = two_item_flex_page_with_height("column", None, None);
+    let mut with_gap = two_item_flex_page_with_height("column", Some("10%"), Some("200px"));
+    without_gap.prepare_layout(200, 200);
+    with_gap.prepare_layout(200, 200);
+
+    let baseline = second_item_y(&without_gap) - first_item_y(&without_gap);
+    let spaced = second_item_y(&with_gap) - first_item_y(&with_gap);
+    assert!(
+        (spaced - baseline - 20.0).abs() < 1.0,
+        "10% row gap should resolve to 20px, observed {}",
         spaced - baseline
     );
 }
@@ -210,6 +242,14 @@ fn row_gap_does_not_split_contiguous_anonymous_text_items() {
 }
 
 fn two_item_flex_page(direction: &str, gap: Option<&str>) -> PageRasterizer {
+    two_item_flex_page_with_height(direction, gap, None)
+}
+
+fn two_item_flex_page_with_height(
+    direction: &str,
+    gap: Option<&str>,
+    height: Option<&str>,
+) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),
         class: Some("container".to_owned()),
@@ -240,6 +280,12 @@ fn two_item_flex_page(direction: &str, gap: Option<&str>) -> PageRasterizer {
         declarations.push(StyleDeclaration {
             property: "gap".to_owned(),
             value: gap.to_owned(),
+        });
+    }
+    if let Some(height) = height {
+        declarations.push(StyleDeclaration {
+            property: "height".to_owned(),
+            value: height.to_owned(),
         });
     }
     let stylesheet = [StyleRule {

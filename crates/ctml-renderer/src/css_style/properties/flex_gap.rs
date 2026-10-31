@@ -89,6 +89,9 @@ fn parse_gap_value(style: &TextStyle, value: &str) -> Option<String> {
             style.font_relative_units,
             style.viewport_size,
         )
+        .or_else(|| {
+            ctml_css::parse_css_percentage(component).filter(|percentage| *percentage >= 0.0)
+        })
     };
     if length_is_valid(value).is_some()
         || parse_math_expression(value, |component| length_is_valid(component)).is_some()
