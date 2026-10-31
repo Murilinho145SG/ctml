@@ -194,6 +194,30 @@ fn percentage_column_gap_uses_the_flex_container_inline_size() {
 }
 
 #[test]
+fn percentage_gap_stays_zero_in_an_inline_flex_with_auto_main_size() {
+    let mut without_gap = inline_row_flex_page(None);
+    let mut with_gap = inline_row_flex_page(Some("10%"));
+    let mut with_calc = inline_row_flex_page(Some("calc(10% + 3px)"));
+    without_gap.prepare_layout(400, 120);
+    with_gap.prepare_layout(400, 120);
+    with_calc.prepare_layout(400, 120);
+
+    let baseline_advance = second_item_x(&without_gap) - first_item_x(&without_gap);
+    let spaced_advance = second_item_x(&with_gap) - first_item_x(&with_gap);
+    assert!(
+        (spaced_advance - baseline_advance).abs() < 1.0,
+        "percentage gap on an auto-sized inline flex container should be zero, observed {}",
+        spaced_advance - baseline_advance
+    );
+    let calc_advance = second_item_x(&with_calc) - first_item_x(&with_calc);
+    assert!(
+        (calc_advance - baseline_advance - 3.0).abs() < 1.0,
+        "indefinite percentage should resolve to zero while calc length remains, observed {}",
+        calc_advance - baseline_advance
+    );
+}
+
+#[test]
 fn row_gap_adds_vertical_flow_between_column_items() {
     let mut without_gap = two_item_flex_page("column", None);
     let mut with_gap = two_item_flex_page("column", Some("12px"));
@@ -243,6 +267,41 @@ fn row_gap_does_not_split_contiguous_anonymous_text_items() {
 
 fn two_item_flex_page(direction: &str, gap: Option<&str>) -> PageRasterizer {
     two_item_flex_page_with_height(direction, gap, None)
+}
+
+fn inline_row_flex_page(gap: Option<&str>) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "span".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let mut declarations = vec![StyleDeclaration {
+        property: "display".to_owned(),
+        value: "inline-flex".to_owned(),
+    }];
+    if let Some(gap) = gap {
+        declarations.push(StyleDeclaration {
+            property: "gap".to_owned(),
+            value: gap.to_owned(),
+        });
+    }
+    let stylesheet = [StyleRule {
+        selectors: vec![".container".to_owned()],
+        layer: None,
+        declarations,
+    }];
+    PageRasterizer::new(&nodes, &stylesheet)
 }
 
 fn two_item_flex_page_with_height(

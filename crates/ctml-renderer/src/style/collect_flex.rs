@@ -122,9 +122,8 @@ pub(super) fn append_gap(
     let percentage_basis = flex_main_size(style);
     let resolve_length = |component: &str| {
         let percentage = || {
-            let basis = percentage_basis?;
             let percentage = ctml_css::parse_css_percentage(component)?;
-            (percentage >= 0.0).then_some(basis * percentage / 100.0)
+            (percentage >= 0.0).then_some(percentage_basis.unwrap_or_default() * percentage / 100.0)
         };
         percentage().or_else(|| {
             ctml_css::parse_nonnegative_font_relative_length_with_viewport(
@@ -136,8 +135,8 @@ pub(super) fn append_gap(
             )
         })
     };
-    let Some(gap_px) = resolve_length(gap)
-        .or_else(|| ctml_css::parse_math_expression(gap, resolve_length))
+    let Some(gap_px) = ctml_css::parse_math_expression(gap, resolve_length)
+        .or_else(|| resolve_length(gap))
         .filter(|gap| *gap > 0.0)
     else {
         return;
@@ -193,9 +192,13 @@ fn flex_main_size(style: &TextStyle) -> Option<f32> {
             style.viewport_size.height,
         )
     };
+    let viewport_derived_main_size = style.flex_items_row && style.display_block != Some(false);
     let Some(declared_size) = declared_size else {
-        return style.flex_items_row.then_some(viewport_size);
+        return viewport_derived_main_size.then_some(viewport_size);
     };
+    if declared_size.eq_ignore_ascii_case("auto") {
+        return viewport_derived_main_size.then_some(viewport_size);
+    }
     let resolve = |value: &str| {
         ctml_css::parse_nonnegative_font_relative_length_with_viewport(
             value,

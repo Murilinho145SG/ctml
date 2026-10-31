@@ -271,6 +271,8 @@ fn flex_gaps_parse_shorthand_longhands_and_source_order() {
 
     let math = style_with_declarations(&[("gap", "calc(1px + 2px)")]);
     assert_eq!(math.row_gap.as_deref(), Some("calc(1px + 2px)"));
+    let percentage_math = style_with_declarations(&[("gap", "calc(10% + 2px)")]);
+    assert_eq!(percentage_math.row_gap.as_deref(), Some("calc(10% + 2px)"));
 
     let percentage = style_with_declarations(&[("gap", "10% 5%")]);
     assert_eq!(percentage.row_gap.as_deref(), Some("10%"));
