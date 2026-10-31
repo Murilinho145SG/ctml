@@ -28,6 +28,8 @@ pub struct WindowConfig {
     pub stylesheet: Vec<StyleRule>,
     /// CSS `@keyframes` definitions parsed from the linked stylesheets.
     pub keyframes: Vec<CssKeyframes>,
+    /// Enables CSS transitions and animations. Set to `false` to honor a reduced-motion preference.
+    pub animations_enabled: bool,
     /// Local fonts loaded from CSS `@font-face` rules.
     pub fonts: Vec<FontFace>,
     /// Local ICC profiles loaded from CSS `@color-profile` rules.
@@ -43,6 +45,7 @@ impl Default for WindowConfig {
             body: Vec::new(),
             stylesheet: Vec::new(),
             keyframes: Vec::new(),
+            animations_enabled: true,
             fonts: Vec::new(),
             color_profiles: Vec::new(),
         }
@@ -154,6 +157,7 @@ impl ApplicationHandler for WindowApplication {
             &self.config.body,
             &self.config.stylesheet,
             &self.config.keyframes,
+            self.config.animations_enabled,
             &self.config.fonts,
             &self.config.color_profiles,
         )) {

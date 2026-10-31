@@ -152,6 +152,8 @@ Opacity transitions are supported for the root body style, text-bearing elements
 
 Keyframe animations support named `@keyframes` rules, normalized `from`, `to`, and percentage offsets, and `opacity` interpolation. A single named animation can specify duration, delay, iteration count (including `infinite`), direction, fill mode, play state, and easing. `WindowConfig.keyframes` accepts definitions from `ctml_css::Stylesheet::keyframes` so they reach the renderer.
 
+Set `WindowConfig.animations_enabled` to `false` to disable CSS transitions and animations, including when the host application honors a reduced-motion preference. It defaults to `true`.
+
 This list describes the current native renderer and will change as CTML's styling and layout support expands.
 
 ## Testing CSS support

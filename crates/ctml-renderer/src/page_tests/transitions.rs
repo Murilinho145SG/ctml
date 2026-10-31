@@ -44,6 +44,23 @@ fn root_opacity_transition_interpolates_and_finishes_at_target() {
 }
 
 #[test]
+fn disabled_animations_apply_interaction_targets_without_transitioning() {
+    let stylesheet = [
+        rule("body", &[("transition", "opacity 1000ms linear")]),
+        rule("body:hover", &[("opacity", "0")]),
+    ];
+    let mut page = PageRasterizer::new(&[], &stylesheet);
+    page.animations_enabled = false;
+    page.hovered_path.push(1);
+
+    page.rebuild_interaction_styles();
+
+    assert_eq!(page.root_opacity, 0.0);
+    assert!(page.root_opacity_transition.is_none());
+    assert!(page.advance_animations(std::time::Instant::now()).is_none());
+}
+
+#[test]
 fn zero_duration_keeps_interaction_opacity_discrete() {
     let stylesheet = [rule("body:hover", &[("opacity", "0")])];
     let mut page = PageRasterizer::new(&[], &stylesheet);

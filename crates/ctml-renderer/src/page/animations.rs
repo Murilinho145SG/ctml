@@ -128,6 +128,17 @@ pub(super) fn begin_transitions(
     previous_element_border_colors: &HashMap<usize, [[u8; 4]; 4]>,
     previous_element_visibility: &HashMap<usize, bool>,
 ) {
+    if !page.animations_enabled {
+        page.root_opacity = root_style.opacity;
+        page.root_opacity_transition = None;
+        page.opacity_transitions.clear();
+        page.color_transitions.clear();
+        page.background_color_transitions.clear();
+        page.outline_color_transitions.clear();
+        page.border_color_transitions.clear();
+        page.visibility_transitions.clear();
+        return;
+    }
     page.root_opacity = root_style.opacity;
     page.root_opacity_transition = start_transition(
         previous_root_opacity,

@@ -30,6 +30,7 @@ impl Renderer {
         body: &[UiNode],
         stylesheet: &[StyleRule],
         keyframes: &[CssKeyframes],
+        animations_enabled: bool,
         fonts: &[FontFace],
         color_profiles: &[CssColorProfile],
     ) -> Result<Self, WindowError> {
@@ -62,6 +63,7 @@ impl Renderer {
             body,
             stylesheet,
             keyframes,
+            animations_enabled,
             fonts,
             color_profiles,
         );
