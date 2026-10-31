@@ -34,7 +34,7 @@ pub(super) fn draw(
     writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
 ) {
     let first_line_by_block = super::highlights::first_formatted_line_ranges(buffer, cursor_spans);
     let first_letters = super::highlights::first_formatted_letters(cursor_spans);
@@ -66,8 +66,8 @@ pub(super) fn draw(
     let shaper = skia_safe::shapers::hb::shape_dont_wrap_or_reorder(None::<FontMgr>);
     let canvas = surface.canvas();
     let vertical_block_origins =
-        local_writing::vertical_block_origins(runs, buffer, writing_mode, flex_wrap_line_offsets);
-    for run in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
+        local_writing::vertical_block_origins(runs, buffer, writing_mode, flex_layout_offsets);
+    for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
         let line_start = line_starts.get(run.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < run.glyphs.len() {
@@ -284,7 +284,13 @@ pub(super) fn draw(
             if let (Some(style), Some(face)) = (text_style, font_system.db().face(first.font_id)) {
                 apply_synthetic_style(&mut font, face, style);
             }
-            let baseline = run.line_y - 0.4 - text_style.map_or(0.0, |s| s.vertical_align_offset);
+            let item_cross_offset = flex_layout_offsets
+                .get(&(run.line_i, super::FlexLayoutOffsetKey::Glyph(first.start)))
+                .copied()
+                .unwrap_or_default();
+            let baseline = run.line_y + item_cross_offset
+                - 0.4
+                - text_style.map_or(0.0, |s| s.vertical_align_offset);
 
             let group = &run.glyphs[start..end];
             let text_start = group.iter().map(|glyph| glyph.start).min().unwrap_or(0);
@@ -403,7 +409,7 @@ pub(super) fn draw(
 fn draw_conditional_hyphens(
     canvas: &skia_safe::Canvas,
     shaper: Option<&Shaper>,
-    line: &cosmic_text::LayoutRun<'_>,
+    line: &super::PageLayoutRun<'_>,
     glyphs: &[cosmic_text::LayoutGlyph],
     font: &Font,
     style: &TextStyle,

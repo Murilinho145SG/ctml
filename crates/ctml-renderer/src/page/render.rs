@@ -28,7 +28,7 @@ impl PageRasterizer {
         }
         let overflow_clips = &self.overflow_clips;
         let nested_scroll = &self.nested_scroll;
-        let flex_wrap_line_offsets = &self.flex_wrap_line_offsets;
+        let flex_layout_offsets = &self.flex_layout_offsets;
         let mut background_image_cache = super::background_images::ImageCache::default();
         box_shadows::draw_outer(
             &self.runs,
@@ -49,7 +49,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 false,
             );
         }
@@ -75,7 +75,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 &mut background_image_cache,
             );
             inline_boxes::draw(
@@ -87,7 +87,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 &mut background_image_cache,
             );
         }
@@ -122,7 +122,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 false,
             );
             self.draw_first_line_backgrounds(
@@ -142,7 +142,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
             );
             outlines::draw_first_line_outlines(
                 &self.runs,
@@ -154,7 +154,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
             );
             box_shadows::draw_first_line(
                 &self.runs,
@@ -166,7 +166,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 true,
             );
             self.draw_first_letter_backgrounds(&mut pixels, width, height, &overflow_clips);
@@ -180,7 +180,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 &self.nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 true,
             );
             self.draw_selection(&mut pixels, width, height, &overflow_clips);
@@ -198,7 +198,7 @@ impl PageRasterizer {
                 cache,
                 cursor_spans,
                 decoration_opacity_scales,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
                 ..
             } = self;
             font_raster::draw(
@@ -213,7 +213,7 @@ impl PageRasterizer {
                 writing_mode,
                 &overflow_clips,
                 nested_scroll,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
             );
             let default_color = Color::rgb(0, 0, 0);
             let mut auto_ink_mask = vec![0; pixels.len() / 4];
@@ -222,12 +222,12 @@ impl PageRasterizer {
                 runs,
                 buffer,
                 writing_mode,
-                flex_wrap_line_offsets,
+                flex_layout_offsets,
             );
             let style_ranges = super::local_writing::text_style_ranges(runs);
             let line_starts = super::local_writing::text_line_starts(runs);
-            for run in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
-                for glyph in run.glyphs {
+            for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
+                for glyph in run.glyphs.iter() {
                     let style_index = super::local_writing::style_index_at(
                         &style_ranges,
                         line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
@@ -319,7 +319,7 @@ impl PageRasterizer {
                     );
                 }
             }
-            for run in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
+            for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
                 let (nested_scroll_x, nested_scroll_y) = run
                     .glyphs
                     .first()

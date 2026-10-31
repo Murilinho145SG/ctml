@@ -328,5 +328,7 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
         shape_buffer(page, content_width, content_height);
     } else if super::flex_wrap::apply_wrapped_row_gaps(page) {
         shape_buffer(page, content_width, content_height);
+    } else {
+        super::flex_row_alignment::apply_flex_row_alignment(page);
     }
 }

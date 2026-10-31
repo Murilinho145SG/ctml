@@ -14,16 +14,16 @@ pub(super) fn draw_borders(
     page_writing_mode: WritingMode,
     clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
 ) {
     let first_lines = super::highlights::first_formatted_line_ranges(buffer, spans);
     let vertical_origins = super::local_writing::vertical_block_origins(
         runs,
         buffer,
         page_writing_mode,
-        flex_wrap_line_offsets,
+        flex_layout_offsets,
     );
-    let lines = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets).collect::<Vec<_>>();
+    let lines = super::adjusted_layout_runs(buffer, flex_layout_offsets).collect::<Vec<_>>();
     let mut drawn = HashSet::new();
     for span in spans {
         let Some(block) = span.first_line_block else {
@@ -49,7 +49,7 @@ pub(super) fn draw_borders(
         };
         let end = span.end.min(line_end);
         let (mut left, mut right) = (f32::INFINITY, f32::NEG_INFINITY);
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             if glyph.start < end && glyph.end > span.start {
                 left = left.min(glyph.x);
                 right = right.max(glyph.x + glyph.w);

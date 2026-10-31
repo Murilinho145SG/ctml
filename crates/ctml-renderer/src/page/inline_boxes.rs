@@ -34,16 +34,16 @@ pub(super) fn draw(
     page_writing_mode: WritingMode,
     clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
     image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
     let mut fragments = HashMap::<usize, Vec<Fragment>>::new();
-    for line in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
+    for line in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let mut line_fragments = HashMap::<usize, Fragment>::new();
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             let Some(style_index) =
                 local_writing::style_index_at(&style_ranges, line_start + glyph.start)
             else {
@@ -58,6 +58,7 @@ pub(super) fn draw(
             let Some(node_id) = run.element_path.last().copied() else {
                 continue;
             };
+            let cross_offset = line.offset_for_range(glyph.start, glyph.end);
             let has_border = run
                 .style
                 .border_style
@@ -78,8 +79,8 @@ pub(super) fn draw(
                 style_index,
                 left: glyph.x,
                 right: glyph.x + glyph.w,
-                top: line.line_top,
-                bottom: line.line_top + line.line_height,
+                top: line.line_top + cross_offset,
+                bottom: line.line_top + line.line_height + cross_offset,
                 source_start: glyph.start,
                 source_end: glyph.end,
             });

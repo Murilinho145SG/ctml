@@ -24,7 +24,7 @@ impl PageRasterizer {
             &self.runs,
             &self.buffer,
             self.writing_mode(),
-            &self.flex_wrap_line_offsets,
+            &self.flex_layout_offsets,
         );
         for run in self.layout_runs() {
             let mut first_line_groups: Vec<(
@@ -133,7 +133,7 @@ impl PageRasterizer {
 }
 
 fn draw_decoration(
-    run: &cosmic_text::LayoutRun<'_>,
+    run: &super::PageLayoutRun<'_>,
     start: usize,
     end: usize,
     decoration: crate::css_style::PseudoDecoration,
@@ -182,6 +182,7 @@ fn draw_decoration(
         translate_y,
         decoration_opacity_scale: 1.0,
     };
+    let cross_offset = run.offset_for_range(start.index, end.index);
     for (left, span_width) in run.highlight(start, end) {
         let width_exact = span_width.max(0.0);
         let line_width = width_exact as u32;
@@ -192,10 +193,16 @@ fn draw_decoration(
         for (enabled, y) in [
             (
                 decoration.underline,
-                run.line_y + 1.0 + decoration.underline_offset.unwrap_or(0.0),
+                run.line_y + cross_offset + 1.0 + decoration.underline_offset.unwrap_or(0.0),
             ),
-            (decoration.overline, run.line_y - run.line_height * 0.8),
-            (decoration.line_through, run.line_y - run.line_height * 0.3),
+            (
+                decoration.overline,
+                run.line_y + cross_offset - run.line_height * 0.8,
+            ),
+            (
+                decoration.line_through,
+                run.line_y + cross_offset - run.line_height * 0.3,
+            ),
         ] {
             if enabled {
                 super::decorations::draw_line(

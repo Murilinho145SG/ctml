@@ -1,4 +1,4 @@
-use cosmic_text::{Color, DecorationSpan, LayoutRun, Renderer, UnderlineStyle};
+use cosmic_text::{Color, DecorationSpan, Renderer, UnderlineStyle};
 use std::collections::HashMap;
 
 use super::CursorSpan;
@@ -12,7 +12,7 @@ use super::{
 
 pub(super) fn render_patterned_decorations<'a>(
     renderer: &mut PixelRenderer<'a>,
-    run: &LayoutRun<'_>,
+    run: &super::PageLayoutRun<'_>,
     default_color: Color,
     auto_ink_mask: &'a [u8],
     all_ink_mask: &'a [u8],
@@ -57,7 +57,7 @@ pub(super) fn render_patterned_decorations<'a>(
 
 fn render_span<R: Renderer>(
     renderer: &mut R,
-    run: &LayoutRun<'_>,
+    run: &super::PageLayoutRun<'_>,
     span: &DecorationSpan,
     default_color: Color,
 ) {
@@ -88,6 +88,7 @@ fn render_span<R: Renderer>(
     };
     let data = &span.data;
     let decoration = &data.text_decoration;
+    let line_y = run.line_y + run.offset_for_range(glyphs[0].start, glyphs[glyphs.len() - 1].end);
     let font_size = span.font_size;
     let metadata = glyphs[0].metadata;
     let has_custom_thickness = metadata & (1 << 6) != 0;
@@ -116,7 +117,7 @@ fn render_span<R: Renderer>(
             0
         };
         let baseline_adjustment = i32::from(!has_explicit_underline_offset);
-        let y = (run.line_y - data.underline_metrics.offset * font_size) as i32
+        let y = (line_y - data.underline_metrics.offset * font_size) as i32
             + baseline_adjustment
             + thickness_offset
             + underline_offset;
@@ -142,8 +143,7 @@ fn render_span<R: Renderer>(
             .strikethrough_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let y =
-            (run.line_y - data.strikethrough_metrics.offset * font_size) as i32 + thickness_offset;
+        let y = (line_y - data.strikethrough_metrics.offset * font_size) as i32 + thickness_offset;
         draw_line(
             renderer,
             x_min as i32,
@@ -161,7 +161,7 @@ fn render_span<R: Renderer>(
             .overline_color_opt
             .or(span.color_opt)
             .unwrap_or(default_color);
-        let text_top = run.line_y - data.ascent * font_size;
+        let text_top = line_y - data.ascent * font_size;
         let y = text_top as i32 - 2 + thickness_offset;
         draw_line(
             renderer,

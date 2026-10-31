@@ -108,6 +108,8 @@ impl Default for TextStyle {
             align_items: None,
             align_self: None,
             flex_item_alignment: None,
+            flex_item_cross_alignment: None,
+            flex_item_cross_id: None,
             flex_distributed_gap: false,
             flex_distributed_gap_leading: false,
             flex_distributed_gap_applied: false,

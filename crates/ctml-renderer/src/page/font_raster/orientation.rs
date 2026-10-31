@@ -8,7 +8,7 @@ use crate::style::{TextOrientation, TextStyle, WritingMode};
 use super::text_effects::draw_text_shadows;
 
 pub(super) fn glyph_is_upright(
-    line: &cosmic_text::LayoutRun<'_>,
+    line: &super::super::PageLayoutRun<'_>,
     glyph: &LayoutGlyph,
     style: Option<&TextStyle>,
     writing_mode: WritingMode,

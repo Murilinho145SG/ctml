@@ -28,7 +28,7 @@ impl PageRasterizer {
             &self.runs,
             &self.buffer,
             self.writing_mode(),
-            &self.flex_wrap_line_offsets,
+            &self.flex_layout_offsets,
         );
         for run in self.layout_runs() {
             if run.line_i < start.line || run.line_i > end.line {
@@ -123,7 +123,7 @@ impl PageRasterizer {
             &self.runs,
             &self.buffer,
             self.writing_mode(),
-            &self.flex_wrap_line_offsets,
+            &self.flex_layout_offsets,
         );
         for run in self.layout_runs() {
             let mut groups: Vec<(usize, usize, usize, Option<[u8; 4]>, Vec<usize>, usize, f32)> =
@@ -282,7 +282,7 @@ impl PageRasterizer {
             &self.runs,
             &self.buffer,
             self.writing_mode(),
-            &self.flex_wrap_line_offsets,
+            &self.flex_layout_offsets,
         );
         for run in self.layout_runs() {
             let mut groups: Vec<(usize, usize, [u8; 4], Vec<usize>, [f32; 4])> = Vec::new();

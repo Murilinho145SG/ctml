@@ -95,7 +95,7 @@ pub(super) fn vertical_block_origins(
     runs: &[TextRun],
     buffer: &Buffer,
     page_writing_mode: WritingMode,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
 ) -> HashMap<usize, f32> {
     let mut origins = HashMap::new();
     if page_writing_mode != WritingMode::HorizontalTb {
@@ -104,9 +104,9 @@ pub(super) fn vertical_block_origins(
 
     let style_ranges = text_style_ranges(runs);
     let line_starts = text_line_starts(runs);
-    for line in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
+    for line in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             let Some(index) = style_index_at(&style_ranges, line_start + glyph.start) else {
                 continue;
             };

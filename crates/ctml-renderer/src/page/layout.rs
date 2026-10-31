@@ -7,6 +7,7 @@ use crate::{
 
 mod first_letter_box;
 mod flex_distribution;
+mod flex_row_alignment;
 mod flex_wrap;
 mod shape_buffer;
 pub(super) use first_letter_box::insert_first_letter_spacing;

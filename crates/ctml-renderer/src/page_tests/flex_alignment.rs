@@ -210,6 +210,62 @@ fn column_align_items_aligns_flex_items_on_the_cross_axis() {
 }
 
 #[test]
+fn row_align_items_positions_different_line_heights_on_the_cross_axis() {
+    let mut start = row_align_items_page("flex-start");
+    let mut normal = row_align_items_page("normal");
+    let mut stretch = row_align_items_page("stretch");
+    let mut center = row_align_items_page("center");
+    let mut end = row_align_items_page("flex-end");
+    for page in [&mut start, &mut normal, &mut stretch, &mut center, &mut end] {
+        page.prepare_layout(400, 120);
+    }
+
+    let start_y = item_glyph_y(&start, "Short");
+    assert!((item_glyph_y(&normal, "Short") - start_y).abs() < 0.1);
+    assert!((item_glyph_y(&stretch, "Short") - start_y).abs() < 0.1);
+    let center_y = item_glyph_y(&center, "Short");
+    let end_y = item_glyph_y(&end, "Short");
+    assert!(
+        center_y > start_y + 4.0,
+        "center offset: {start_y} -> {center_y}"
+    );
+    assert!(end_y > center_y + 4.0, "end offset: {center_y} -> {end_y}");
+
+    let text_x = item_x(&start, "Short") + crate::page::PAGE_PADDING;
+    let start_painted_y = item_painted_y_bounds(&mut start, text_x).0;
+    let center_painted_y = item_painted_y_bounds(&mut center, text_x).0;
+    let end_painted_y = item_painted_y_bounds(&mut end, text_x).0;
+    assert!(center_painted_y > start_painted_y + 4);
+    assert!(end_painted_y > center_painted_y + 4);
+
+    let glyph_x = end
+        .layout_runs()
+        .find_map(|line| {
+            let start = line.text.find("Short")?;
+            let glyph = line.glyphs.iter().find(|glyph| glyph.start == start)?;
+            Some(glyph.x)
+        })
+        .expect("the aligned item should have a glyph");
+    end.update_hover(
+        f64::from(glyph_x + crate::page::PAGE_PADDING + 2.0),
+        f64::from(crate::page::PAGE_PADDING + 8.0 + end_y - start_y),
+    );
+    assert_eq!(end.hovered_path.last(), Some(&3));
+}
+
+#[test]
+fn row_align_self_overrides_the_container_cross_alignment() {
+    let mut centered = row_align_items_page_with_self("center", None);
+    let mut end = row_align_items_page_with_self("center", Some("flex-end"));
+    centered.prepare_layout(400, 120);
+    end.prepare_layout(400, 120);
+    assert!(
+        item_glyph_y(&end, "Short") > item_glyph_y(&centered, "Short") + 4.0,
+        "align-self should override the row container's align-items value"
+    );
+}
+
+#[test]
 fn align_self_overrides_the_column_container_alignment_per_item() {
     let mut normal = align_self_flex_page("normal");
     let mut center = align_self_flex_page("center");
@@ -261,6 +317,72 @@ fn aligned_flex_page(direction: &str, property: &str, value: &str) -> PageRaster
             },
         ],
     }];
+    PageRasterizer::new(&nodes, &stylesheet)
+}
+
+fn row_align_items_page(alignment: &str) -> PageRasterizer {
+    row_align_items_page_with_self(alignment, None)
+}
+
+fn row_align_items_page_with_self(alignment: &str, align_self: Option<&str>) -> PageRasterizer {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: [("large", "Tall"), ("small", "Short")]
+            .into_iter()
+            .map(|(class, text)| UiNode::Element {
+                tag: "p".to_owned(),
+                class: Some(class.to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let mut stylesheet = vec![
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "display".to_owned(),
+                    value: "flex".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "align-items".to_owned(),
+                    value: alignment.to_owned(),
+                },
+            ],
+        },
+        StyleRule {
+            selectors: vec![".large".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "40px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".small".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "12px".to_owned(),
+            }],
+        },
+    ];
+    if let Some(align_self) = align_self {
+        stylesheet.push(StyleRule {
+            selectors: vec![".small".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "align-self".to_owned(),
+                value: align_self.to_owned(),
+            }],
+        });
+    }
     PageRasterizer::new(&nodes, &stylesheet)
 }
 
@@ -378,6 +500,43 @@ fn item_y(page: &PageRasterizer, item: &str) -> f32 {
         })
         .expect("flex item should be on a formatted line")
         .line_top
+}
+
+fn item_glyph_y(page: &PageRasterizer, item: &str) -> f32 {
+    page.layout_runs()
+        .find_map(|line| {
+            let start = line.text.find(item)?;
+            line.glyphs
+                .iter()
+                .find(|glyph| glyph.start == start)
+                .map(|glyph| glyph.y)
+        })
+        .expect("flex item should have a positioned glyph")
+}
+
+fn item_painted_y_bounds(page: &mut PageRasterizer, text_x: f32) -> (i32, i32) {
+    let pixels = page.render_layout_pixels(400, 120, crate::style::WritingMode::HorizontalTb);
+    let x_start = (text_x.floor() as usize).min(399);
+    let x_end = (x_start + 80).min(400);
+    let mut min_y = i32::MAX;
+    let mut max_y = i32::MIN;
+    for y in 0..120_usize {
+        for x in x_start..x_end {
+            let index = (y * 400 + x) * 4;
+            if pixels[index..index + 3]
+                .iter()
+                .any(|channel| *channel < 245)
+            {
+                min_y = min_y.min(y as i32);
+                max_y = max_y.max(y as i32);
+            }
+        }
+    }
+    assert!(
+        min_y < i32::MAX,
+        "the aligned text should produce painted pixels"
+    );
+    (min_y, max_y)
 }
 
 fn item_glyph<'a>(page: &'a PageRasterizer, item: &str) -> &'a cosmic_text::LayoutGlyph {

@@ -144,18 +144,14 @@ pub(super) fn draw(
     page_writing_mode: WritingMode,
     overflow_clips: &HashMap<usize, ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
     image_cache: &mut super::background_images::ImageCache,
 ) {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
-    let vertical_block_origins = local_writing::vertical_block_origins(
-        runs,
-        buffer,
-        page_writing_mode,
-        flex_wrap_line_offsets,
-    );
-    for line in super::adjusted_layout_runs(buffer, flex_wrap_line_offsets) {
+    let vertical_block_origins =
+        local_writing::vertical_block_origins(runs, buffer, page_writing_mode, flex_layout_offsets);
+    for line in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let mut start = 0;
         while start < line.glyphs.len() {
@@ -209,6 +205,10 @@ pub(super) fn draw(
                 end += 1;
             }
             let fragment = &line.glyphs[start..end];
+            let cross_offset = fragment
+                .first()
+                .map(|glyph| line.offset_for_range(glyph.start, glyph.end))
+                .unwrap_or_default();
             let (scroll_offset_x, scroll_offset_y) = style_index
                 .and_then(|index| runs.get(index))
                 .map_or((0.0, 0.0), |run| {
@@ -251,12 +251,13 @@ pub(super) fn draw(
                             .and_then(|run| run.first_line_block)
                             .and_then(|block| vertical_block_origins.get(&block).copied())
                             .unwrap_or(line.line_y);
+                        let origin_y = origin_y + cross_offset;
                         let transform = local_writing::LocalVerticalTransform::new(
                             mode, origin_y, width, height,
                         );
                         let (left, top, rect_width, rect_height) = transform.map_rect(
                             left + crate::page::PAGE_PADDING,
-                            line.line_top + crate::page::PAGE_PADDING,
+                            line.line_top + cross_offset + crate::page::PAGE_PADDING,
                             right - left,
                             line.line_height,
                         );
@@ -287,7 +288,7 @@ pub(super) fn draw(
                             width,
                             height,
                             left - scroll_offset_x,
-                            line.line_top - scroll_offset_y,
+                            line.line_top + cross_offset - scroll_offset_y,
                             right - left,
                             line.line_height,
                             color,
@@ -320,21 +321,24 @@ pub(super) fn draw(
                     overflow_clip::BackgroundBoxes {
                         border: overflow_clip::ClipRect {
                             left: left - scroll_offset_x,
-                            top: line.line_top - scroll_offset_y,
+                            top: line.line_top + cross_offset - scroll_offset_y,
                             right: right - scroll_offset_x,
-                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                            bottom: line.line_top + line.line_height + cross_offset
+                                - scroll_offset_y,
                         },
                         padding: overflow_clip::ClipRect {
                             left: left - scroll_offset_x,
-                            top: line.line_top - scroll_offset_y,
+                            top: line.line_top + cross_offset - scroll_offset_y,
                             right: right - scroll_offset_x,
-                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                            bottom: line.line_top + line.line_height + cross_offset
+                                - scroll_offset_y,
                         },
                         content: overflow_clip::ClipRect {
                             left: left - scroll_offset_x,
-                            top: line.line_top - scroll_offset_y,
+                            top: line.line_top + cross_offset - scroll_offset_y,
                             right: right - scroll_offset_x,
-                            bottom: line.line_top + line.line_height - scroll_offset_y,
+                            bottom: line.line_top + line.line_height + cross_offset
+                                - scroll_offset_y,
                         },
                     },
                     clip,

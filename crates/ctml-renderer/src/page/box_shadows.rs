@@ -38,7 +38,7 @@ pub(super) fn draw_first_letter(
     page_writing_mode: crate::style::WritingMode,
     clips: &HashMap<usize, overflow_clip::ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
     inset: bool,
 ) {
     let first_letters = super::highlights::first_formatted_letters(spans);
@@ -46,7 +46,7 @@ pub(super) fn draw_first_letter(
         runs,
         buffer,
         page_writing_mode,
-        flex_wrap_line_offsets,
+        flex_layout_offsets,
     );
     let mut drawn = HashSet::new();
     for span in spans {
@@ -62,14 +62,14 @@ pub(super) fn draw_first_letter(
         let Some(style) = span.first_letter_font_style.as_ref() else {
             continue;
         };
-        let Some(line) = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets)
+        let Some(line) = super::adjusted_layout_runs(buffer, flex_layout_offsets)
             .find(|line| line.line_i == line_index)
         else {
             continue;
         };
         let mut left = f32::INFINITY;
         let mut right = f32::NEG_INFINITY;
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             if glyph.start < end && glyph.end > start {
                 left = left.min(glyph.x);
                 right = right.max(glyph.x + glyph.w);
@@ -195,7 +195,7 @@ pub(super) fn draw_first_line(
     page_writing_mode: crate::style::WritingMode,
     clips: &HashMap<usize, overflow_clip::ClipRect>,
     nested_scroll: &HashMap<usize, (f32, f32)>,
-    flex_wrap_line_offsets: &HashMap<(usize, usize), f32>,
+    flex_layout_offsets: &super::FlexLayoutOffsets,
     inset: bool,
 ) {
     let first_lines = super::highlights::first_formatted_line_ranges(buffer, spans);
@@ -203,9 +203,9 @@ pub(super) fn draw_first_line(
         runs,
         buffer,
         page_writing_mode,
-        flex_wrap_line_offsets,
+        flex_layout_offsets,
     );
-    let lines = super::adjusted_layout_runs(buffer, flex_wrap_line_offsets).collect::<Vec<_>>();
+    let lines = super::adjusted_layout_runs(buffer, flex_layout_offsets).collect::<Vec<_>>();
     let mut drawn = HashSet::new();
     for span in spans {
         let Some(block) = span.first_line_block else {
@@ -231,7 +231,7 @@ pub(super) fn draw_first_line(
         };
         let end = span.end.min(line_end);
         let (mut left, mut right) = (f32::INFINITY, f32::NEG_INFINITY);
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             if glyph.start < end && glyph.end > span.start {
                 left = left.min(glyph.x);
                 right = right.max(glyph.x + glyph.w);

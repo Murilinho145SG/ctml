@@ -227,6 +227,8 @@ pub(crate) struct TextStyle {
     pub(crate) align_items: Option<FlexAlignment>,
     pub(crate) align_self: Option<FlexAlignment>,
     pub(crate) flex_item_alignment: Option<FlexAlignment>,
+    pub(crate) flex_item_cross_alignment: Option<FlexAlignment>,
+    pub(crate) flex_item_cross_id: Option<usize>,
     pub(crate) flex_distributed_gap: bool,
     pub(crate) flex_distributed_gap_leading: bool,
     pub(crate) flex_distributed_gap_applied: bool,

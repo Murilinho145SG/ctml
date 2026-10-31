@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::{page::PageRasterizer, style::FlexAlignment};
+use crate::{
+    page::{FlexLayoutOffsetKey, PageRasterizer},
+    style::FlexAlignment,
+};
 
 #[derive(Clone, Copy)]
 struct WrapMarker {
@@ -40,7 +43,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
     let mut glyphs_by_paragraph = HashMap::<usize, Vec<(usize, usize, usize, f32)>>::new();
     let mut line_heights_by_paragraph = HashMap::<usize, BTreeMap<usize, f32>>::new();
     let mut line_tops_by_paragraph = HashMap::<usize, BTreeMap<usize, f32>>::new();
-    let mut line_keys_by_visual = HashMap::<usize, (usize, usize)>::new();
+    let mut line_keys_by_visual = HashMap::<usize, (usize, FlexLayoutOffsetKey)>::new();
     let mut visual_line = 0;
     for line in page.buffer.layout_runs() {
         line_heights_by_paragraph
@@ -52,9 +55,12 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             .or_default()
             .insert(visual_line, line.line_top);
         if let Some(glyph) = line.glyphs.first() {
-            line_keys_by_visual.insert(visual_line, (line.line_i, glyph.start));
+            line_keys_by_visual.insert(
+                visual_line,
+                (line.line_i, FlexLayoutOffsetKey::Line(glyph.start)),
+            );
         }
-        for glyph in line.glyphs {
+        for glyph in line.glyphs.iter() {
             glyphs_by_paragraph.entry(line.line_i).or_default().push((
                 glyph.start,
                 glyph.end,
@@ -349,7 +355,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             changed = true;
         }
     }
-    page.flex_wrap_line_offsets.clear();
+    page.flex_layout_offsets.clear();
     for ((paragraph, container_id), (first_line, last_line, cross_size, alignment)) in
         reverse_lines_by_container
     {
@@ -398,7 +404,7 @@ pub(super) fn apply_wrapped_row_gaps(page: &mut PageRasterizer) -> bool {
             if offset.abs() > 0.01
                 && let Some(key) = line_keys_by_visual.get(&line).copied()
             {
-                page.flex_wrap_line_offsets.insert(key, offset);
+                page.flex_layout_offsets.insert(key, offset);
             }
         }
     }

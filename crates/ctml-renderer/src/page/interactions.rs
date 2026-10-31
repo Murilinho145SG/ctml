@@ -243,9 +243,28 @@ impl PageRasterizer {
         });
         let hit_offset = hit_line
             .as_ref()
-            .and_then(|run| run.glyphs.first().map(|glyph| (run.line_i, glyph.start)))
-            .and_then(|key| self.flex_wrap_line_offsets.get(&key))
-            .copied()
+            .map(|run| {
+                let line_offset = run
+                    .glyphs
+                    .first()
+                    .and_then(|glyph| {
+                        self.flex_layout_offsets
+                            .get(&(run.line_i, super::FlexLayoutOffsetKey::Line(glyph.start)))
+                    })
+                    .copied()
+                    .unwrap_or_default();
+                let glyph_offset = run
+                    .glyphs
+                    .iter()
+                    .find(|glyph| x >= glyph.x && x <= glyph.x + glyph.w)
+                    .and_then(|glyph| {
+                        self.flex_layout_offsets
+                            .get(&(run.line_i, super::FlexLayoutOffsetKey::Glyph(glyph.start)))
+                    })
+                    .copied()
+                    .unwrap_or_default();
+                line_offset + glyph_offset
+            })
             .unwrap_or_default();
         let cursor = hit_line
             .and_then(|_| self.buffer.hit(x, y - hit_offset))
@@ -324,12 +343,12 @@ impl PageRasterizer {
             &self.runs,
             &self.buffer,
             self.writing_mode(),
-            &self.flex_wrap_line_offsets,
+            &self.flex_layout_offsets,
         );
         let mut bounds = HashMap::<usize, (crate::style::WritingMode, f32, f32, f32, f32)>::new();
         for line in self.layout_runs() {
             let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
-            for glyph in line.glyphs {
+            for glyph in line.glyphs.iter() {
                 let Some(style_index) =
                     local_writing::style_index_at(&style_ranges, line_start + glyph.start)
                 else {

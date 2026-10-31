@@ -36,7 +36,7 @@ pub(super) fn draw_text_shadows(canvas: &Canvas, blob: &TextBlob, style: &TextSt
 
 pub(super) fn draw_text_emphasis(
     canvas: &Canvas,
-    line: &cosmic_text::LayoutRun<'_>,
+    line: &super::super::PageLayoutRun<'_>,
     glyphs: &[cosmic_text::LayoutGlyph],
     style: &TextStyle,
     writing_mode: WritingMode,
@@ -65,12 +65,13 @@ pub(super) fn draw_text_emphasis(
             continue;
         }
         let radius = (glyph.font_size * 0.14).clamp(1.0, 2.5);
+        let cross_offset = line.offset_for_range(glyph.start, glyph.end);
         let center = Point::new(
             glyph.x + glyph.w * 0.5 + PAGE_PADDING,
             match emphasis_position(style, writing_mode) {
-                TextEmphasisPosition::Over => line.line_top + radius + PAGE_PADDING,
+                TextEmphasisPosition::Over => line.line_top + cross_offset + radius + PAGE_PADDING,
                 TextEmphasisPosition::Under => {
-                    line.line_top + line.line_height - radius - 1.0 + PAGE_PADDING
+                    line.line_top + cross_offset + line.line_height - radius - 1.0 + PAGE_PADDING
                 }
             },
         );

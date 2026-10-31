@@ -15,7 +15,7 @@ pub(super) fn draw_highlight_background_images(
     line_height: f32,
     start: usize,
     end: usize,
-    run: &cosmic_text::LayoutRun<'_>,
+    run: &super::PageLayoutRun<'_>,
     local_transform: Option<LocalVerticalTransform>,
     scroll_translation: (f32, f32),
     element_scroll: (f32, f32),
@@ -28,6 +28,7 @@ pub(super) fn draw_highlight_background_images(
     if style.background_images.is_empty() {
         return;
     }
+    let line_top = line_top + run.offset_for_range(start, end);
     let start = Cursor {
         line,
         index: start,
@@ -98,7 +99,7 @@ pub(super) fn fill_highlight(
     start: usize,
     end: usize,
     color: [u8; 4],
-    run: &cosmic_text::LayoutRun<'_>,
+    run: &super::PageLayoutRun<'_>,
     pixels: &mut [u8],
     width: u32,
     height: u32,
@@ -108,6 +109,7 @@ pub(super) fn fill_highlight(
     translate_y: f32,
     border_radius: Option<&crate::style::TextStyle>,
 ) {
+    let line_top = line_top + run.offset_for_range(start, end);
     let start = Cursor {
         line,
         index: start,

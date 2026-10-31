@@ -294,6 +294,18 @@ pub(super) fn collect_runs(
                 style.flex_item_no_wrap = inherited.flex_item_no_wrap
                     || (inherited.flex_items_row && !inherited.flex_wrap);
                 style.flex_item_alignment = collect_flex::item_alignment(&style, inherited, block);
+                if inherited.flex_items_row {
+                    style.flex_item_cross_id = Some(sibling.node_id);
+                    style.flex_item_cross_alignment = Some(
+                        style
+                            .align_self
+                            .or(inherited.align_items)
+                            .unwrap_or(super::FlexAlignment::Stretch),
+                    );
+                } else {
+                    style.flex_item_cross_id = inherited.flex_item_cross_id;
+                    style.flex_item_cross_alignment = inherited.flex_item_cross_alignment;
+                }
                 style.inline_box = !block;
                 let empty_box = children.is_empty()
                     && before_content.is_none()
