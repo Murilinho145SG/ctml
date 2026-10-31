@@ -66,6 +66,46 @@ fn mixed_fixed_and_fraction_tracks_use_the_remaining_block_grid_width() {
     );
 }
 
+#[test]
+fn min_content_and_max_content_tracks_size_from_item_text() {
+    let mut min_content = grid_page(
+        None,
+        "min-content 1fr",
+        "0px",
+        "0px",
+        &["Alpha Beta", "Gamma"],
+    );
+    let mut max_content = grid_page(
+        None,
+        "max-content 1fr",
+        "0px",
+        "0px",
+        &["Alpha Beta", "Gamma"],
+    );
+    min_content.prepare_layout(500, 160);
+    max_content.prepare_layout(500, 160);
+
+    let min_content_start = item_position(&min_content, "Gamma").0;
+    let max_content_start = item_position(&max_content, "Gamma").0;
+    assert!(
+        max_content_start > min_content_start + 10.0,
+        "max-content track should include the inter-word advance: min={min_content_start}, max={max_content_start}"
+    );
+}
+
+#[test]
+fn auto_tracks_stretch_to_fill_the_definite_block_grid_width() {
+    let mut page = grid_page(None, "auto auto", "0px", "0px", &["Alpha", "Beta"]);
+    page.prepare_layout(400, 160);
+
+    let alpha = item_position(&page, "Alpha");
+    let beta = item_position(&page, "Beta");
+    assert!(
+        beta.0 - alpha.0 > 150.0,
+        "auto tracks should share remaining width: {alpha:?}, {beta:?}"
+    );
+}
+
 fn grid_page(
     width: Option<&str>,
     columns: &str,

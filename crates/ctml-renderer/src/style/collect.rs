@@ -101,7 +101,7 @@ pub(super) fn collect_runs(
                     flex_gap_state.before_element(
                         inherited,
                         flex_item_id,
-                        0.0,
+                        super::collect_grid::item_grow(inherited, position),
                         0.0,
                         Some(super::collect_grid::item_basis(inherited, position)),
                         None,
@@ -270,7 +270,9 @@ pub(super) fn collect_runs(
                     inherited,
                     flex_item_id,
                     if inherited.display_grid {
-                        0.0
+                        grid_item_position
+                            .map(|position| super::collect_grid::item_grow(inherited, position))
+                            .unwrap_or_default()
                     } else {
                         style.flex_grow
                     },

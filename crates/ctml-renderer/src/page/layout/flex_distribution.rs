@@ -196,12 +196,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 Some(FlexBasis::Percentage(percentage)) => group
                     .basis_size
                     .map_or(content_size, |size| size * percentage),
-                Some(FlexBasis::GridFraction {
-                    fraction,
-                    fixed_space,
-                }) => group.basis_size.map_or(content_size, |size| {
-                    (size - fixed_space).max(0.0) * fraction
-                }),
+                Some(FlexBasis::GridFraction { .. }) => content_size,
                 Some(FlexBasis::Calculation(expression)) => group
                     .basis_size
                     .and_then(|basis_size| {
@@ -234,6 +229,25 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             item_sizes.push((content_size, base_size));
             size_limits.push(limits);
             item_start = marker.position + '\u{200b}'.len_utf8();
+        }
+        let intrinsic_track_size = line_markers
+            .iter()
+            .zip(&item_sizes)
+            .filter_map(|(marker, (_, base_size))| match marker.basis.as_ref() {
+                Some(FlexBasis::Length(_) | FlexBasis::GridFraction { .. }) | None => None,
+                Some(_) => Some(*base_size),
+            })
+            .sum::<f32>();
+        for (index, marker) in line_markers.iter().enumerate() {
+            if let Some(FlexBasis::GridFraction {
+                fraction,
+                fixed_space,
+            }) = marker.basis.as_ref()
+            {
+                item_sizes[index].1 = group.basis_size.map_or(item_sizes[index].0, |size| {
+                    (size - fixed_space - intrinsic_track_size).max(0.0) * fraction
+                });
+            }
         }
         let basis_adjustment = item_sizes
             .iter()

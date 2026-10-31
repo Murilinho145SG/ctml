@@ -8,12 +8,18 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
     };
     match tracks[item_index % tracks.len()] {
         GridTrack::Length(length) => FlexBasis::Length(length),
+        GridTrack::Auto => FlexBasis::MaxContent,
+        GridTrack::MinContent => FlexBasis::MinContent,
+        GridTrack::MaxContent => FlexBasis::MaxContent,
         GridTrack::Fraction(fraction) => {
             let total_fraction = tracks
                 .iter()
                 .filter_map(|track| match track {
                     GridTrack::Fraction(fraction) => Some(*fraction),
-                    GridTrack::Length(_) => None,
+                    GridTrack::Length(_)
+                    | GridTrack::Auto
+                    | GridTrack::MinContent
+                    | GridTrack::MaxContent => None,
                 })
                 .sum::<f32>();
             let fractional_share = fraction / total_fraction.max(fraction);
@@ -24,7 +30,10 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                 .iter()
                 .filter_map(|track| match track {
                     GridTrack::Length(length) => Some(*length),
-                    GridTrack::Fraction(_) => None,
+                    GridTrack::Fraction(_)
+                    | GridTrack::Auto
+                    | GridTrack::MinContent
+                    | GridTrack::MaxContent => None,
                 })
                 .sum::<f32>();
             let gaps = resolve_column_gap(style) * tracks.len().saturating_sub(1) as f32;
@@ -33,6 +42,23 @@ pub(super) fn item_basis(style: &TextStyle, item_index: usize) -> FlexBasis {
                 fixed_space: fixed_tracks + gaps + 1.0,
             }
         }
+    }
+}
+
+pub(super) fn item_grow(style: &TextStyle, item_index: usize) -> f32 {
+    if style.grid_template_columns.is_empty() {
+        return 0.0;
+    }
+    let Some(track) = style
+        .grid_template_columns
+        .get(item_index % style.grid_template_columns.len())
+    else {
+        return 0.0;
+    };
+    if matches!(track, GridTrack::Auto) {
+        1.0
+    } else {
+        0.0
     }
 }
 
@@ -94,7 +120,7 @@ pub(super) fn row_gap(style: &TextStyle) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::item_basis;
+    use super::{item_basis, item_grow};
     use crate::style::{FlexBasis, GridTrack, TextStyle};
 
     #[test]
@@ -114,5 +140,13 @@ mod tests {
                 fixed_space
             } if (fraction - 1.0).abs() < 0.001 && (fixed_space - 121.0).abs() < 0.001
         ));
+
+        style.grid_template_columns = [GridTrack::Auto].into();
+        assert!(matches!(item_basis(&style, 0), FlexBasis::MaxContent));
+        assert_eq!(item_grow(&style, 0), 1.0);
+        style.grid_template_columns = [GridTrack::MinContent, GridTrack::MaxContent].into();
+        assert!(matches!(item_basis(&style, 0), FlexBasis::MinContent));
+        assert!(matches!(item_basis(&style, 1), FlexBasis::MaxContent));
+        assert_eq!(item_grow(&style, 1), 0.0);
     }
 }

@@ -39,6 +39,12 @@ fn parse_grid_template_columns(value: &str, style: &TextStyle) -> Option<Vec<Gri
 }
 
 fn parse_track(value: &str, style: &TextStyle) -> Option<GridTrack> {
+    match value {
+        "auto" => return Some(GridTrack::Auto),
+        "min-content" => return Some(GridTrack::MinContent),
+        "max-content" => return Some(GridTrack::MaxContent),
+        _ => {}
+    }
     if let Some(fraction) = value
         .strip_suffix("fr")
         .and_then(|fraction| fraction.trim().parse::<f32>().ok())
@@ -62,7 +68,7 @@ mod tests {
     use crate::style::{GridTrack, TextStyle};
 
     #[test]
-    fn parses_fixed_fractional_and_mixed_column_tracks() {
+    fn parses_fixed_fractional_mixed_and_intrinsic_column_tracks() {
         let mut style = TextStyle::default();
         apply_grid_property(&mut style, "100px 120px");
         assert_eq!(
@@ -80,6 +86,16 @@ mod tests {
                 GridTrack::Length(100.0),
                 GridTrack::Fraction(2.0),
                 GridTrack::Fraction(1.0)
+            ]
+        );
+
+        apply_grid_property(&mut style, "auto min-content max-content");
+        assert_eq!(
+            style.grid_template_columns,
+            [
+                GridTrack::Auto,
+                GridTrack::MinContent,
+                GridTrack::MaxContent
             ]
         );
     }

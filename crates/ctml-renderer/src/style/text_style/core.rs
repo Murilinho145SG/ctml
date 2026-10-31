@@ -117,6 +117,9 @@ pub(crate) enum FlexBasis {
 pub(crate) enum GridTrack {
     Length(f32),
     Fraction(f32),
+    Auto,
+    MinContent,
+    MaxContent,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
