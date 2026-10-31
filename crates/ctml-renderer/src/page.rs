@@ -661,6 +661,10 @@ impl PageRasterizer {
     }
 
     fn rebuild_interaction_styles(&mut self) {
+        self.rebuild_interaction_styles_at(Instant::now());
+    }
+
+    pub(crate) fn rebuild_interaction_styles_at(&mut self, now: Instant) {
         let previous_root_opacity = self.root_opacity;
         let previous_opacity_groups = self.opacity_groups.clone();
         let previous_element_colors = self.element_colors.clone();
@@ -710,7 +714,7 @@ impl PageRasterizer {
                 &self.keyframes,
                 &self.opacity_groups,
                 root_style.opacity,
-                Instant::now(),
+                now,
                 &self.keyframe_animations,
             )
         } else {

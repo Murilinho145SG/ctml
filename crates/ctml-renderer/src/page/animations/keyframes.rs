@@ -17,6 +17,7 @@ pub(in crate::page) struct KeyframeAnimationState {
     opacity_frames: Option<Vec<(f32, f32)>>,
     visibility_frames: Option<Vec<(f32, bool)>>,
     pub(in crate::page) starts_at: Instant,
+    paused_at: Option<Instant>,
     animation: AnimationSpec,
     duration: Duration,
     iterations: f32,
@@ -64,6 +65,8 @@ pub(in crate::page) fn build_states(
                         opacity_frames,
                         visibility_frames,
                         starts_at: animation_start(animation, now),
+                        paused_at: (animation.play_state == AnimationPlayState::Paused)
+                            .then_some(now),
                         animation: animation.clone(),
                         duration: duration_from_millis(animation.duration_ms),
                         iterations: animation.iterations,
@@ -74,10 +77,33 @@ pub(in crate::page) fn build_states(
                     };
                     if let Some((_, previous)) = previous.get(node_id).into_iter().flatten().find(
                         |(previous_index, previous)| {
-                            *previous_index == index && previous.animation == *animation
+                            *previous_index == index
+                                && same_animation_except_play_state(&previous.animation, animation)
                         },
                     ) {
                         state.starts_at = previous.starts_at;
+                        state.paused_at = match (
+                            previous.play_state,
+                            animation.play_state,
+                            previous.paused_at,
+                        ) {
+                            (AnimationPlayState::Running, AnimationPlayState::Paused, _) => {
+                                Some(now)
+                            }
+                            (
+                                AnimationPlayState::Paused,
+                                AnimationPlayState::Running,
+                                Some(paused_at),
+                            ) => {
+                                state.starts_at = state
+                                    .starts_at
+                                    .checked_add(now.saturating_duration_since(paused_at))
+                                    .unwrap_or(state.starts_at);
+                                None
+                            }
+                            (_, AnimationPlayState::Paused, paused_at) => paused_at.or(Some(now)),
+                            (_, AnimationPlayState::Running, _) => None,
+                        };
                     }
                     Some((index, state))
                 })
@@ -113,8 +139,9 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
             }
         }
         for (index, state) in states {
-            let elapsed = now.saturating_duration_since(state.starts_at);
-            let before_start = now < state.starts_at;
+            let timeline_now = state.paused_at.unwrap_or(now);
+            let elapsed = timeline_now.saturating_duration_since(state.starts_at);
+            let before_start = timeline_now < state.starts_at;
             let total_duration = state.duration.as_secs_f64() * f64::from(state.iterations);
             let elapsed_seconds = elapsed.as_secs_f64();
             let infinite = state.iterations.is_infinite();
@@ -122,7 +149,7 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                 && !infinite
                 && (state.duration.is_zero() || elapsed_seconds >= total_duration);
 
-            let progress = if before_start || state.play_state == AnimationPlayState::Paused {
+            let progress = if before_start {
                 0.0
             } else if state.duration.is_zero() || is_finished {
                 1.0
@@ -185,6 +212,16 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
     page.keyframe_animations
         .retain(|_, states| !states.is_empty());
     active
+}
+
+fn same_animation_except_play_state(left: &AnimationSpec, right: &AnimationSpec) -> bool {
+    left.name == right.name
+        && left.duration_ms == right.duration_ms
+        && left.delay_ms == right.delay_ms
+        && left.iterations == right.iterations
+        && left.direction == right.direction
+        && left.fill_mode == right.fill_mode
+        && left.easing == right.easing
 }
 
 fn collect_opacity_frames(

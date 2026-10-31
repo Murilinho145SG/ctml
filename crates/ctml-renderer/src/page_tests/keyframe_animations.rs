@@ -67,6 +67,59 @@ fn unrelated_interaction_restyles_preserve_the_animation_timeline() {
 }
 
 #[test]
+fn paused_keyframes_freeze_and_resume_their_timeline() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text("Animated".to_owned())],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["div".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "animation".to_owned(),
+                value: "fade 1s linear infinite".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec!["div:hover".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "animation-play-state".to_owned(),
+                value: "paused".to_owned(),
+            }],
+        },
+    ];
+    let keyframes = [opacity_keyframes("fade", 0.0, 1.0)];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    page.advance_animations(starts_at + Duration::from_millis(500));
+    assert!((page.opacity_groups[&1] - 0.5).abs() < 0.01);
+
+    let paused_at = starts_at + Duration::from_millis(500);
+    page.hovered_path = vec![1];
+    page.rebuild_interaction_styles_at(paused_at);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(900)),
+        Some(false)
+    );
+    assert!((page.opacity_groups[&1] - 0.5).abs() < 0.01);
+
+    page.hovered_path.clear();
+    let resumed_at = starts_at + Duration::from_millis(900);
+    page.rebuild_interaction_styles_at(resumed_at);
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_secs(1)),
+        Some(true)
+    );
+    assert!((page.opacity_groups[&1] - 0.6).abs() < 0.01);
+}
+
+#[test]
 fn disabling_animations_cancels_keyframes_and_stops_animation_ticks() {
     let mut page = animated_page("fade 1s linear infinite", 1.0);
     page.animations_enabled = false;
