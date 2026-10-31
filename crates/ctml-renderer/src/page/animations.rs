@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Instant};
 
-use crate::style::{TextStyle, TransitionEasing};
+use crate::style::{StepPosition, TextStyle, TransitionEasing};
 
 use super::PageRasterizer;
 
@@ -151,16 +151,28 @@ fn interpolate_opacity(transition: &OpacityTransition, now: Instant) -> f32 {
 }
 
 fn ease_transition(progress: f32, easing: TransitionEasing) -> f32 {
-    if easing == TransitionEasing::Linear {
-        return progress;
-    }
     let (x1, y1, x2, y2) = match easing {
         TransitionEasing::Linear => return progress,
         TransitionEasing::Ease => (0.25, 0.1, 0.25, 1.0),
         TransitionEasing::EaseIn => (0.42, 0.0, 1.0, 1.0),
         TransitionEasing::EaseOut => (0.0, 0.0, 0.58, 1.0),
         TransitionEasing::EaseInOut => (0.42, 0.0, 0.58, 1.0),
+        TransitionEasing::CubicBezier(values) => {
+            let [x1, y1, x2, y2] = values.map(f32::from_bits);
+            return cubic_bezier(progress, x1, y1, x2, y2);
+        }
+        TransitionEasing::Steps { count, position } => return steps(progress, count, position),
     };
+    cubic_bezier(progress, x1, y1, x2, y2)
+}
+
+fn cubic_bezier(progress: f32, x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
+    if progress <= 0.0 {
+        return 0.0;
+    }
+    if progress >= 1.0 {
+        return 1.0;
+    }
     let cubic = |t: f32, first: f32, second: f32| {
         3.0 * (1.0 - t).powi(2) * t * first + 3.0 * (1.0 - t) * t.powi(2) * second + t.powi(3)
     };
@@ -175,4 +187,45 @@ fn ease_transition(progress: f32, easing: TransitionEasing) -> f32 {
         }
     }
     cubic((lower + upper) * 0.5, y1, y2)
+}
+
+fn steps(progress: f32, count: u32, position: StepPosition) -> f32 {
+    let count = count as f32;
+    if progress >= 1.0 {
+        return 1.0;
+    }
+    let step = (progress * count).floor();
+    match position {
+        StepPosition::JumpStart => ((step + 1.0) / count).min(1.0),
+        StepPosition::JumpEnd => step / count,
+        StepPosition::JumpNone => step / (count - 1.0),
+        StepPosition::JumpBoth => (step + 1.0) / (count + 1.0),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_cubic_bezier_preserves_endpoints_and_midpoint() {
+        let easing = TransitionEasing::CubicBezier([
+            0.0f32.to_bits(),
+            0.0f32.to_bits(),
+            1.0f32.to_bits(),
+            1.0f32.to_bits(),
+        ]);
+        assert_eq!(ease_transition(0.0, easing), 0.0);
+        assert!((ease_transition(0.5, easing) - 0.5).abs() < 0.001);
+        assert_eq!(ease_transition(1.0, easing), 1.0);
+    }
+
+    #[test]
+    fn step_easing_uses_requested_jump_position() {
+        assert_eq!(steps(0.0, 4, StepPosition::JumpStart), 0.25);
+        assert_eq!(steps(0.0, 4, StepPosition::JumpEnd), 0.0);
+        assert_eq!(steps(0.5, 4, StepPosition::JumpNone), 2.0 / 3.0);
+        assert_eq!(steps(0.0, 4, StepPosition::JumpBoth), 0.2);
+        assert_eq!(steps(1.0, 4, StepPosition::JumpEnd), 1.0);
+    }
 }

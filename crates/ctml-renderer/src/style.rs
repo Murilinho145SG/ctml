@@ -27,7 +27,7 @@ pub(super) use text_style::{
     BorderImageRepeat, BorderImageSlice, BorderImageWidth, BorderLineStyle, BoxDecorationBreak,
     BoxShadow, ConicGradient, Direction, FlexAlignment, FontVariantCaps, FontVariantPosition,
     Hyphens, LayoutHeight, LayoutSize, LineBreak, LinearGradient, Overflow, OverflowWrap,
-    RadialGradient, RadialGradientExtent, RadialGradientShape, TextDecorationSkipInk,
+    RadialGradient, RadialGradientExtent, RadialGradientShape, StepPosition, TextDecorationSkipInk,
     TextDecorationStyle, TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle,
     TextOrientation, TextOverflow, TextRendering, TextShadow, TextStyle, TextTransform,
     TextWrapMode, TransitionEasing, UnicodeBidi, UserSelect, WhiteSpace, WordBreak, WritingMode,

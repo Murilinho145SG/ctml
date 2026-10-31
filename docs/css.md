@@ -148,7 +148,7 @@ Malformed declarations and selector rules are skipped without a warning, and par
 - Media and container queries, `@supports`, and other conditional rules.
 - Keyframe animations, scroll-driven and view-driven animations, view transitions, and transition interpolation for properties other than opacity.
 
-Opacity transitions are supported for the root body style and elements that render their own text. The `transition` shorthand and `transition-property`, `transition-duration`, `transition-delay`, and `transition-timing-function` longhands accept one transition entry; only `opacity` and `all` animate a property. Supported easing keywords are `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`. Transitions run when interaction state changes, including hover, active, and focus. Empty wrapper elements and wrappers whose text is rendered only by descendants do not yet get per-element opacity interpolation.
+Opacity transitions are supported for the root body style and elements that render their own text. The `transition` shorthand and `transition-property`, `transition-duration`, `transition-delay`, and `transition-timing-function` longhands accept one transition entry; only `opacity` and `all` animate a property. Easing supports `linear`, `ease`, `ease-in`, `ease-out`, `ease-in-out`, `cubic-bezier()`, and `steps()` with the standard jump positions and aliases. Transitions run when interaction state changes, including hover, active, and focus. Empty wrapper elements and wrappers whose text is rendered only by descendants do not yet get per-element opacity interpolation.
 
 This list describes the current native renderer and will change as CTML's styling and layout support expands.
 

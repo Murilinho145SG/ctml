@@ -38,6 +38,19 @@ pub(crate) enum TransitionEasing {
     EaseIn,
     EaseOut,
     EaseInOut,
+    CubicBezier([u32; 4]),
+    Steps {
+        count: u32,
+        position: StepPosition,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StepPosition {
+    JumpStart,
+    JumpEnd,
+    JumpNone,
+    JumpBoth,
 }
 
 #[derive(Clone, Debug, PartialEq)]
