@@ -56,6 +56,16 @@ fn backwards_fill_applies_the_first_keyframe_during_a_positive_delay() {
     assert!((page.opacity_groups[&1] - 0.25).abs() < 0.01);
 }
 
+#[test]
+fn unrelated_interaction_restyles_preserve_the_animation_timeline() {
+    let mut page = animated_page("fade 1s linear infinite", 1.0);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    page.rebuild_interaction_styles();
+
+    assert_eq!(page.keyframe_animation_start(1), Some(starts_at));
+}
+
 fn animated_page(animation: &str, base_opacity: f32) -> PageRasterizer {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

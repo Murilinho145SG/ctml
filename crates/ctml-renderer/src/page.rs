@@ -200,6 +200,7 @@ impl PageRasterizer {
             &opacity_groups,
             root_style.opacity,
             Instant::now(),
+            &HashMap::new(),
         );
         let root_opacity = root_style.opacity;
         let mut root_style = root_style;
@@ -690,6 +691,7 @@ impl PageRasterizer {
             &self.opacity_groups,
             root_style.opacity,
             Instant::now(),
+            &self.keyframe_animations,
         );
         self.element_colors = transition_styles
             .iter()

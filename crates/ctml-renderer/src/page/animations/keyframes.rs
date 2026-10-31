@@ -15,6 +15,7 @@ pub(in crate::page) struct KeyframeAnimationState {
     base_opacity: f32,
     opacity_frames: Vec<(f32, f32)>,
     pub(in crate::page) starts_at: Instant,
+    animation: AnimationSpec,
     duration: Duration,
     iterations: f32,
     direction: AnimationDirection,
@@ -29,6 +30,7 @@ pub(in crate::page) fn build_states(
     opacity_groups: &HashMap<usize, f32>,
     root_opacity: f32,
     now: Instant,
+    previous: &HashMap<usize, KeyframeAnimationState>,
 ) -> HashMap<usize, KeyframeAnimationState> {
     styles
         .iter()
@@ -44,20 +46,25 @@ pub(in crate::page) fn build_states(
                 *opacity_groups.get(node_id)?
             };
             let opacity_frames = collect_opacity_frames(rule, base_opacity)?;
-            Some((
-                *node_id,
-                KeyframeAnimationState {
-                    base_opacity,
-                    opacity_frames,
-                    starts_at: animation_start(animation, now),
-                    duration: duration_from_millis(animation.duration_ms),
-                    iterations: animation.iterations,
-                    direction: animation.direction,
-                    fill_mode: animation.fill_mode,
-                    play_state: animation.play_state,
-                    easing: animation.easing,
-                },
-            ))
+            let mut state = KeyframeAnimationState {
+                base_opacity,
+                opacity_frames,
+                starts_at: animation_start(animation, now),
+                animation: animation.clone(),
+                duration: duration_from_millis(animation.duration_ms),
+                iterations: animation.iterations,
+                direction: animation.direction,
+                fill_mode: animation.fill_mode,
+                play_state: animation.play_state,
+                easing: animation.easing,
+            };
+            if let Some(previous) = previous
+                .get(node_id)
+                .filter(|previous| previous.animation == *animation)
+            {
+                state.starts_at = previous.starts_at;
+            }
+            Some((*node_id, state))
         })
         .collect()
 }
