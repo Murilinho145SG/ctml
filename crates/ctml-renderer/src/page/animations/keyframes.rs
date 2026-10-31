@@ -15,9 +15,11 @@ mod color;
 #[derive(Clone)]
 pub(in crate::page) struct KeyframeAnimationState {
     base_opacity: f32,
+    base_color: [u8; 4],
     base_background_color: [u8; 4],
     base_visibility_hidden: bool,
     opacity_frames: Option<Vec<(f32, f32)>>,
+    color_frames: Option<Vec<(f32, [u8; 4])>>,
     background_color_frames: Option<Vec<(f32, [u8; 4])>>,
     visibility_frames: Option<Vec<(f32, bool)>>,
     pub(in crate::page) starts_at: Instant,
@@ -47,6 +49,7 @@ pub(in crate::page) fn build_states(
             } else {
                 *opacity_groups.get(node_id)?
             };
+            let base_color = style.color_value;
             let base_background_color = style.background_color_value;
             let base_visibility_hidden = style.visibility_hidden;
             let states = style
@@ -60,13 +63,17 @@ pub(in crate::page) fn build_states(
                         .rev()
                         .find(|rule| rule.name == animation.name)?;
                     let opacity_frames = collect_opacity_frames(rule, base_opacity);
-                    let background_color_frames = color::collect_background_color_frames(
+                    let color_frames =
+                        color::collect_color_frames(rule, "color", base_color, base_color);
+                    let background_color_frames = color::collect_color_frames(
                         rule,
+                        "background-color",
                         base_background_color,
-                        style.color_value,
+                        base_color,
                     );
                     let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
                     if opacity_frames.is_none()
+                        && color_frames.is_none()
                         && background_color_frames.is_none()
                         && visibility_frames.is_none()
                     {
@@ -74,9 +81,11 @@ pub(in crate::page) fn build_states(
                     }
                     let mut state = KeyframeAnimationState {
                         base_opacity,
+                        base_color,
                         base_background_color,
                         base_visibility_hidden,
                         opacity_frames,
+                        color_frames,
                         background_color_frames,
                         visibility_frames,
                         starts_at: animation_start(animation, now),
@@ -160,6 +169,9 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                 page.element_background_colors
                     .insert(node_id, first.base_background_color);
             }
+            if states.iter().any(|(_, state)| state.color_frames.is_some()) {
+                super::apply_text_color(page, node_id, first.base_color);
+            }
         }
         for (index, state) in states {
             let timeline_now = state.paused_at.unwrap_or(now);
@@ -217,10 +229,13 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                     page.element_visibility.insert(node_id, hidden);
                 }
                 if let Some(frames) = &state.background_color_frames {
-                    let color =
-                        color::sample_background_color(frames, directed_progress, state.easing);
+                    let color = color::sample_color(frames, directed_progress, state.easing);
                     super::apply_background_color(page, node_id, color);
                     page.element_background_colors.insert(node_id, color);
+                }
+                if let Some(frames) = &state.color_frames {
+                    let color = color::sample_color(frames, directed_progress, state.easing);
+                    super::apply_text_color(page, node_id, color);
                 }
             }
 

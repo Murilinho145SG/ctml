@@ -68,16 +68,16 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> Option<bool> {
         page.opacity_transitions.remove(&node_id);
     }
     let mut completed_colors = Vec::new();
-    for (node_id, transition) in &page.color_transitions {
-        let color = interpolate_color(transition, now);
-        page.element_colors.insert(*node_id, color);
-        for run in &mut page.runs {
-            if run.style.color_transition_owner == Some(*node_id) {
-                run.style.color = color;
-            }
-        }
+    for (node_id, transition) in page
+        .color_transitions
+        .iter()
+        .map(|(node_id, transition)| (*node_id, *transition))
+        .collect::<Vec<_>>()
+    {
+        let color = interpolate_color(&transition, now);
+        apply_text_color(page, node_id, color);
         if now >= transition.starts_at + transition.duration {
-            completed_colors.push(*node_id);
+            completed_colors.push(node_id);
         }
     }
     for node_id in completed_colors {
@@ -342,6 +342,18 @@ fn apply_background_color(page: &mut PageRasterizer, node_id: usize, color: [u8;
             if let Some(background) = size.background_layers.last_mut() {
                 *background = color;
             }
+        }
+    }
+}
+
+pub(super) fn apply_text_color(page: &mut PageRasterizer, node_id: usize, color: [u8; 4]) {
+    let previous = page.element_colors.insert(node_id, color);
+    for run in &mut page.runs {
+        if run.style.color_transition_owner == Some(node_id)
+            || (run.element_path.contains(&node_id)
+                && previous.is_some_and(|previous| run.style.color == previous))
+        {
+            run.style.color = color;
         }
     }
 }

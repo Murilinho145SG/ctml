@@ -1,7 +1,8 @@
 use crate::style::TransitionEasing;
 
-pub(super) fn collect_background_color_frames(
+pub(super) fn collect_color_frames(
     rule: &ctml_css::CssKeyframes,
+    property: &str,
     base_color: [u8; 4],
     current_color: [u8; 4],
 ) -> Option<Vec<(f32, [u8; 4])>> {
@@ -13,7 +14,7 @@ pub(super) fn collect_background_color_frames(
                 .declarations
                 .iter()
                 .rev()
-                .find(|declaration| declaration.property == "background-color")?;
+                .find(|declaration| declaration.property == property)?;
             let color = if declaration.value.eq_ignore_ascii_case("currentcolor") {
                 current_color
             } else {
@@ -44,7 +45,7 @@ pub(super) fn collect_background_color_frames(
     Some(unique)
 }
 
-pub(super) fn sample_background_color(
+pub(super) fn sample_color(
     frames: &[(f32, [u8; 4])],
     progress: f32,
     easing: TransitionEasing,

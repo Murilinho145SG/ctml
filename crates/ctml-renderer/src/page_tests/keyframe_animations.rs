@@ -90,6 +90,66 @@ fn background_color_keyframes_interpolate_premultiplied_color() {
 }
 
 #[test]
+fn text_color_keyframes_update_inherited_text_runs() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![("style".to_owned(), Some("color: black".to_owned()))],
+        children: vec![
+            UiNode::Text("Animated".to_owned()),
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: vec![("style".to_owned(), Some("color: green".to_owned()))],
+                children: vec![UiNode::Text(" Explicit".to_owned())],
+            },
+        ],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "animation".to_owned(),
+            value: "colors 1s linear forwards".to_owned(),
+        }],
+    }];
+    let keyframes = [ctml_css::CssKeyframes {
+        name: "colors".to_owned(),
+        frames: ["red", "blue"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, color)| ctml_css::CssKeyframe {
+                offsets: vec![index as f32],
+                declarations: vec![StyleDeclaration {
+                    property: "color".to_owned(),
+                    value: color.to_owned(),
+                }],
+            })
+            .collect(),
+    }];
+    let mut page = PageRasterizer::new_with_keyframes(&nodes, &stylesheet, &keyframes);
+    let starts_at = page.keyframe_animation_start(1).unwrap();
+
+    assert_eq!(
+        page.advance_animations(starts_at + Duration::from_millis(500)),
+        Some(true)
+    );
+    assert_eq!(page.element_colors[&1], [128, 0, 128, 255]);
+    assert!(
+        page.runs
+            .iter()
+            .any(|run| run.style.color == [128, 0, 128, 255])
+    );
+    assert!(
+        page.runs
+            .iter()
+            .any(|run| run.style.color == [0, 128, 0, 255])
+    );
+}
+
+#[test]
 fn backwards_fill_applies_the_first_keyframe_during_a_positive_delay() {
     let mut page = animated_page("fade 1s linear 500ms both", 0.8);
     let starts_at = page.keyframe_animation_start(1).unwrap();
