@@ -10,11 +10,15 @@ use crate::style::{
 
 use super::{PageRasterizer, ease_transition};
 
+mod color;
+
 #[derive(Clone)]
 pub(in crate::page) struct KeyframeAnimationState {
     base_opacity: f32,
+    base_background_color: [u8; 4],
     base_visibility_hidden: bool,
     opacity_frames: Option<Vec<(f32, f32)>>,
+    background_color_frames: Option<Vec<(f32, [u8; 4])>>,
     visibility_frames: Option<Vec<(f32, bool)>>,
     pub(in crate::page) starts_at: Instant,
     paused_at: Option<Instant>,
@@ -43,6 +47,7 @@ pub(in crate::page) fn build_states(
             } else {
                 *opacity_groups.get(node_id)?
             };
+            let base_background_color = style.background_color_value;
             let base_visibility_hidden = style.visibility_hidden;
             let states = style
                 .animation
@@ -55,14 +60,24 @@ pub(in crate::page) fn build_states(
                         .rev()
                         .find(|rule| rule.name == animation.name)?;
                     let opacity_frames = collect_opacity_frames(rule, base_opacity);
+                    let background_color_frames = color::collect_background_color_frames(
+                        rule,
+                        base_background_color,
+                        style.color_value,
+                    );
                     let visibility_frames = collect_visibility_frames(rule, base_visibility_hidden);
-                    if opacity_frames.is_none() && visibility_frames.is_none() {
+                    if opacity_frames.is_none()
+                        && background_color_frames.is_none()
+                        && visibility_frames.is_none()
+                    {
                         return None;
                     }
                     let mut state = KeyframeAnimationState {
                         base_opacity,
+                        base_background_color,
                         base_visibility_hidden,
                         opacity_frames,
+                        background_color_frames,
                         visibility_frames,
                         starts_at: animation_start(animation, now),
                         paused_at: (animation.play_state == AnimationPlayState::Paused)
@@ -137,6 +152,14 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                 page.element_visibility
                     .insert(node_id, first.base_visibility_hidden);
             }
+            if states
+                .iter()
+                .any(|(_, state)| state.background_color_frames.is_some())
+            {
+                super::apply_background_color(page, node_id, first.base_background_color);
+                page.element_background_colors
+                    .insert(node_id, first.base_background_color);
+            }
         }
         for (index, state) in states {
             let timeline_now = state.paused_at.unwrap_or(now);
@@ -192,6 +215,12 @@ pub(super) fn advance(page: &mut PageRasterizer, now: Instant) -> bool {
                     let hidden = sample_visibility(frames, directed_progress, state.easing);
                     super::visibility::apply_visibility(page, node_id, hidden);
                     page.element_visibility.insert(node_id, hidden);
+                }
+                if let Some(frames) = &state.background_color_frames {
+                    let color =
+                        color::sample_background_color(frames, directed_progress, state.easing);
+                    super::apply_background_color(page, node_id, color);
+                    page.element_background_colors.insert(node_id, color);
                 }
             }
 
