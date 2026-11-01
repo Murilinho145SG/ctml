@@ -1,12 +1,86 @@
 <headers>
-    <application name="CTML Native Demo" desktop width="960" height="640" />
+    <application name="CTML — Native Interface" desktop width="1120" height="800" />
     <stylesheet href="base.css" />
     <stylesheet href="main.css" />
 </headers>
 
 <body>
-    <main>
-        <h1>CTML Native Demo</h1>
-        <p class="message">This page is styled from a regular CSS file and rendered natively.</p>
+    <main class="window">
+        <header class="header">
+            <p class="logo">ctml<span class="logo-dot">.</span></p>
+            <p class="header-center">A NEW WAY TO BUILD INTERFACES</p>
+            <p class="header-right">EXPERIMENTAL <span class="divider">/</span> BUILD 001</p>
+        </header>
+
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="label"><span class="label-mark">■</span> INTRODUCING CTML <span class="label-number">— 01</span></p>
+                <h1>Build beyond<br /><em>the browser.</em></h1>
+                <p class="description">A familiar language for creating native interfaces. Simple to write. Designed to feel effortless.</p>
+                <div class="hero-rule"></div>
+                <div class="technical-info">
+                    <div class="technical-item">
+                        <p class="technical-number">01 /</p>
+                        <p class="technical-name">MARKUP</p>
+                        <p class="technical-value">Familiar structure</p>
+                    </div>
+                    <div class="technical-item">
+                        <p class="technical-number">02 /</p>
+                        <p class="technical-name">STYLING</p>
+                        <p class="technical-value">Declarative CSS</p>
+                    </div>
+                    <div class="technical-item">
+                        <p class="technical-number">03 /</p>
+                        <p class="technical-name">ENGINE</p>
+                        <p class="technical-value">Rust / Native</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview">
+                <div class="preview-header">
+                    <p><span class="preview-symbol">◇</span> COMPONENT PREVIEW</p>
+                    <p>001 <span class="divider">/</span> 003</p>
+                </div>
+                <div class="preview-content">
+                    <p class="preview-label">A NEW CANVAS FOR DESKTOP</p>
+                    <h2>Beautiful<br /><em>by nature.</em></h2>
+                    <p class="preview-description">Crafted in markup.<br />Rendered for the machine.</p>
+                    <div class="preview-controls">
+                        <p class="preview-pill">DESKTOP</p>
+                        <p class="preview-pill">RUST</p>
+                        <p class="preview-pill">UI</p>
+                    </div>
+                </div>
+                <div class="preview-footer">
+                    <p><span class="status-dot">●</span> INTERFACE READY</p>
+                    <p>CTML / 01</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="feature-strip">
+            <div class="feature">
+                <p class="feature-index">01 <span class="feature-arrow">↗</span></p>
+                <h3>Familiar syntax.</h3>
+                <p class="feature-description">Write interfaces using a language that already feels natural.</p>
+            </div>
+            <div class="feature">
+                <p class="feature-index">02 <span class="feature-arrow">↗</span></p>
+                <h3>Precise design.</h3>
+                <p class="feature-description">Express your layout, typography and visual details with CSS.</p>
+            </div>
+            <div class="feature feature-last">
+                <p class="feature-index">03 <span class="feature-arrow">↗</span></p>
+                <h3>Native ambition.</h3>
+                <p class="feature-description">From declarative markup to a new kind of desktop experience.</p>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>CTML © 2026</p>
+            <p>DESIGNED FOR WHAT COMES NEXT</p>
+            <p>DEVELOPED WITH RUST <span class="divider">/</span> EXPERIMENTAL</p>
+        </footer>
     </main>
 </body>

@@ -11,5 +11,6 @@ fn main() -> Result<(), ctml::WindowError> {
         stylesheet: generated::stylesheet(),
         fonts: generated::fonts(),
         color_profiles: generated::color_profiles(),
+        ..ctml::WindowConfig::default()
     })
 }

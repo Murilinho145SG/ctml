@@ -68,7 +68,7 @@ fn main() -> Result<(), ctml::WindowError> {
 }
 ```
 
-The integrated demo parses `examples/native-app/src/main.ctml` and its linked `main.css` stylesheet in its build script. The `.ctml` and `.css` parsers are not part of the running application. The current CSS subset covers common selectors and text styling. See [docs/css.md](docs/css.md) for supported syntax and [docs/css-roadmap.md](docs/css-roadmap.md) for the broader CSS feature checklist.
+The integrated demo presents a visual overview of CTML with a responsive layout, local artwork, and a compact set of interface principles. Its build script parses `examples/native-app/src/main.ctml` and the linked CSS files into Rust data; the `.ctml` and `.css` parsers are not part of the running application. The current CSS subset covers common selectors, typography, block styling, flex, and text-grid layout. See [docs/css.md](docs/css.md) for supported syntax and [docs/css-roadmap.md](docs/css-roadmap.md) for the broader CSS feature checklist.
 
 Run the integrated demo with:
 
