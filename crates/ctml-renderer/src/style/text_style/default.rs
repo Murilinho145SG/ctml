@@ -99,6 +99,7 @@ impl Default for TextStyle {
             flex_wrap: false,
             flex_wrap_reverse: false,
             flex_item_no_wrap: false,
+            flex_block_item: false,
             flex_order: 0,
             flex_grow: 0.0,
             flex_shrink: 1.0,

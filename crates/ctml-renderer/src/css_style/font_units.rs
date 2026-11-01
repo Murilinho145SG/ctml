@@ -67,6 +67,16 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.transition_background_color_duration_ms = 0.0;
     style.transition_background_color_delay_ms = 0.0;
     style.transition_background_color_easing = crate::style::TransitionEasing::default();
+    style.background_color = None;
+    style.background_layers.clear();
+    style.background_images.clear();
+    style.background_blend_modes.clear();
+    style.background_repeats.clear();
+    style.background_positions.clear();
+    style.background_sizes.clear();
+    style.background_attachments.clear();
+    style.background_origins.clear();
+    style.background_clips.clear();
     style.transition_outline_color = false;
     style.transition_outline_color_duration_ms = 0.0;
     style.transition_outline_color_delay_ms = 0.0;
@@ -117,7 +127,6 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.column_gap = None;
     style.row_gap_order = 0;
     style.column_gap_order = 0;
-    style.background_blend_modes.clear();
     style.mix_blend_mode = crate::style::BackgroundBlendMode::Normal;
     style.isolation = false;
     style.width = None;

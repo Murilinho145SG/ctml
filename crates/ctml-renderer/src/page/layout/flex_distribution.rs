@@ -59,26 +59,41 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     let container_id = run.element_path.last().copied();
                     let line = markers_by_line.entry(line_index).or_insert_with(|| {
                         let writing_mode = page.writing_mode();
+                        let sizes = &run.style.layout_sizes;
                         let inline_size = super::super::sizing::resolve_layout_width(
-                            &run.style.layout_sizes,
+                            sizes,
                             content_width,
                             writing_mode,
                         );
-                        let (padding_start, _) = super::super::sizing_padding::inline_padding(
-                            &run.style.layout_sizes,
+                        let containing_width = super::super::sizing::resolve_layout_width(
+                            &sizes[..sizes.len().saturating_sub(1)],
                             content_width,
                             writing_mode,
                         );
-                        let (border_start, _) = super::super::sizing_padding::inline_borders(
-                            &run.style.layout_sizes,
-                            content_width,
-                            writing_mode,
-                        );
-                        let (margin_start, _) = super::super::sizing_padding::inline_margin(
-                            &run.style.layout_sizes,
-                            content_width,
-                            writing_mode,
-                        );
+                        let (padding_start, border_start, margin_start) = sizes
+                            .last()
+                            .map(|size| {
+                                let padding = super::super::sizing_padding::resolve_padding(
+                                    size,
+                                    containing_width,
+                                );
+                                let border = super::super::sizing_padding::resolve_borders(
+                                    size,
+                                    containing_width,
+                                );
+                                let margin = super::super::sizing_padding::resolve_margin(
+                                    size,
+                                    containing_width,
+                                );
+                                if writing_mode == crate::style::WritingMode::VerticalRl
+                                    || writing_mode == crate::style::WritingMode::VerticalLr
+                                {
+                                    (padding[0], border[0], margin[0])
+                                } else {
+                                    (padding[3], border[3], margin[3])
+                                }
+                            })
+                            .unwrap_or_default();
                         FlexGapLine {
                             markers: Vec::new(),
                             available_width: inline_size

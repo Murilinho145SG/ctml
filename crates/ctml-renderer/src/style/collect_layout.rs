@@ -36,6 +36,7 @@ pub(super) fn register_layout_size(style: &mut TextStyle, node_id: usize, block:
     }
     style.layout_sizes.push(LayoutSize {
         node_id,
+        flex_items_row: style.flex_items_row,
         width: style.width.clone(),
         min_width: style.min_width.clone(),
         max_width: style.max_width.clone(),

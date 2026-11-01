@@ -85,6 +85,8 @@ mod first_line_spacing;
 mod first_line_transform;
 #[path = "page_tests/flex_alignment.rs"]
 mod flex_alignment;
+#[path = "page_tests/flex_columns.rs"]
+mod flex_columns;
 #[path = "page_tests/flex_display.rs"]
 mod flex_display;
 #[path = "page_tests/flex_wrap_reverse.rs"]

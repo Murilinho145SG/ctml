@@ -6,6 +6,7 @@ use crate::{
 };
 
 mod first_letter_box;
+mod flex_columns;
 mod flex_distribution;
 mod flex_row_alignment;
 mod flex_wrap;
@@ -14,6 +15,7 @@ pub(super) use first_letter_box::insert_first_letter_spacing;
 pub(super) use first_letter_box::insert_first_line_spacing;
 pub(super) use first_letter_box::resolve_border_side;
 pub(super) use first_letter_box::resolve_first_letter_padding;
+pub(super) use flex_columns::apply_flex_columns;
 pub(super) use shape_buffer::shape_buffer;
 
 use super::CursorSpan;

@@ -1,5 +1,5 @@
 use crate::{
-    StyleRule,
+    StyleRule, UiNode,
     css_style::{self, ElementIdentity},
     style::TextStyle,
 };
@@ -32,6 +32,13 @@ pub(super) fn is_block(tag: &str) -> bool {
 }
 
 #[allow(clippy::too_many_arguments)]
+pub(super) fn has_block_children(children: &[UiNode]) -> bool {
+    children.iter().any(|child| match child {
+        UiNode::Element { tag, .. } => is_block(tag),
+        UiNode::Text(_) => false,
+    })
+}
+
 pub(super) fn resolve_block(
     style: &TextStyle,
     inherited: &TextStyle,

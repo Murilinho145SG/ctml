@@ -3,6 +3,10 @@ use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem};
 use std::collections::HashSet;
 
+mod flex_geometry;
+
+use flex_geometry::nearest_flex_box_x;
+
 use crate::style::{BackgroundBox, LayoutSize, TextRun, WritingMode};
 
 use super::{
@@ -115,6 +119,7 @@ pub(super) fn scroll_translation_for_path(
 struct BlockExtent {
     size: LayoutSize,
     top: f32,
+    bottom: f32,
     content_height: f32,
     content_inline_extent: f32,
 }
@@ -127,10 +132,13 @@ pub(super) fn block_geometries(
     height: u32,
     page_writing_mode: WritingMode,
     flex_layout_offsets: &super::FlexLayoutOffsets,
+    flex_item_box_x: &HashMap<usize, f32>,
+    _flex_column_extents: &HashMap<usize, (f32, f32)>,
 ) -> HashMap<usize, BlockGeometry> {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
     let mut extents = HashMap::<usize, BlockExtent>::new();
+    let mut flex_item_content_heights = HashMap::<(usize, usize), f32>::new();
     for line in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
         let Some(glyph) = line.glyphs.first() else {
@@ -144,16 +152,28 @@ pub(super) fn block_geometries(
         let Some(style_run) = runs.get(style_index) else {
             continue;
         };
+        for (depth, size) in style_run.style.layout_sizes.iter().enumerate() {
+            if size.flex_items_row
+                && let Some(item) = style_run.style.layout_sizes.get(depth + 1)
+            {
+                *flex_item_content_heights
+                    .entry((size.node_id, item.node_id))
+                    .or_default() += line.line_height;
+            }
+        }
         for size in &style_run.style.layout_sizes {
             extents
                 .entry(size.node_id)
                 .and_modify(|extent| {
+                    extent.top = extent.top.min(line.line_top);
+                    extent.bottom = extent.bottom.max(line.line_top + line.line_height);
                     extent.content_height += line.line_height;
                     extent.content_inline_extent = extent.content_inline_extent.max(line.line_w);
                 })
                 .or_insert(BlockExtent {
                     size: size.clone(),
                     top: line.line_top,
+                    bottom: line.line_top + line.line_height,
                     content_height: line.line_height,
                     content_inline_extent: line.line_w,
                 });
@@ -215,6 +235,49 @@ pub(super) fn block_geometries(
 
     let available_width = (width as f32 - PAGE_PADDING * 2.0).max(0.0);
     let available_height = (height as f32 - PAGE_PADDING * 2.0).max(0.0);
+    let mut flex_row_heights = HashMap::<usize, f32>::new();
+    for ((container, item), item_content_height) in flex_item_content_heights {
+        let item_sizes = runs
+            .iter()
+            .find_map(|run| {
+                let end = run
+                    .style
+                    .layout_sizes
+                    .iter()
+                    .position(|size| size.node_id == item)?;
+                Some(run.style.layout_sizes[..=end].to_vec())
+            })
+            .unwrap_or_default();
+        let item_height = if item_sizes.is_empty() {
+            item_content_height
+        } else {
+            used_block_height_for_path(
+                item,
+                &item_sizes,
+                &extents,
+                available_height,
+                available_width,
+                page_writing_mode,
+            )
+            .max(item_content_height)
+        };
+        flex_row_heights
+            .entry(container)
+            .and_modify(|height| *height = height.max(item_height))
+            .or_insert(item_height);
+    }
+
+    for extent in extents.values_mut() {
+        if extent.size.flex_items_row {
+            if let Some(height) = flex_row_heights.get(&extent.size.node_id) {
+                extent.content_height = *height;
+            } else {
+                extent.content_height = extent.bottom - extent.top;
+            }
+        } else {
+            extent.content_height = extent.content_height.max(extent.bottom - extent.top);
+        }
+    }
     extents
         .iter()
         .filter(|(_, extent)| {
@@ -284,7 +347,14 @@ pub(super) fn block_geometries(
                 WritingMode::VerticalLr => (border_widths[3], border_widths[1]),
             };
             let block_border_extent = border_block_start + border_block_end;
-            let clipped_block_height = (block_height - block_border_extent).max(0.0);
+            let margins = super::sizing_padding::resolve_margin(&extent.size, containing_width);
+            let block_margin_end = match page_writing_mode {
+                WritingMode::HorizontalTb => margins[2],
+                WritingMode::VerticalRl => margins[3],
+                WritingMode::VerticalLr => margins[1],
+            };
+            let clipped_block_height =
+                (block_height - block_border_extent - block_margin_end).max(0.0);
             let clip = if page_writing_mode == WritingMode::HorizontalTb
                 && is_vertical(extent.size.writing_mode)
             {
@@ -307,10 +377,11 @@ pub(super) fn block_geometries(
                     bottom: top + rect_height,
                 }
             } else {
+                let x_offset = nearest_flex_box_x(runs, node_id, flex_item_box_x);
                 ClipRect {
-                    left: PAGE_PADDING,
+                    left: PAGE_PADDING + x_offset,
                     top: PAGE_PADDING + extent.top,
-                    right: PAGE_PADDING + block_width.max(0.0),
+                    right: PAGE_PADDING + x_offset + block_width.max(0.0),
                     bottom: PAGE_PADDING + extent.top + clipped_block_height,
                 }
             };
@@ -327,6 +398,23 @@ pub(super) fn block_geometries(
                 right: (clip.right - padding[1]).max(clip.left + padding[3]),
                 bottom: (clip.bottom - padding[2]).max(clip.top + padding[0]),
             };
+            if std::env::var_os("CTML_DEBUG_GEO").is_some()
+                && (!extent.size.background_layers.is_empty()
+                    || extent
+                        .size
+                        .border_style
+                        .iter()
+                        .any(|style| *style != crate::style::BorderLineStyle::None))
+            {
+                eprintln!(
+                    "GEO node={node_id} layers={:?} clip={:?} border={:?} content={:?} h={}",
+                    extent.size.background_layers,
+                    clip,
+                    border_box,
+                    content_box,
+                    extent.content_height
+                );
+            }
             (
                 node_id,
                 BlockGeometry {

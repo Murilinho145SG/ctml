@@ -7,6 +7,8 @@ use unicode_segmentation::UnicodeSegmentation;
 pub(crate) enum FlexLayoutOffsetKey {
     Line(usize),
     Glyph(usize),
+    PageLineX(usize),
+    PageLineY(usize),
 }
 
 pub(crate) type FlexLayoutOffsets = HashMap<(usize, FlexLayoutOffsetKey), f32>;
@@ -77,12 +79,22 @@ pub(crate) fn adjusted_layout_runs<'a>(
     buffer: &'a Buffer,
     offsets: &'a FlexLayoutOffsets,
 ) -> impl Iterator<Item = PageLayoutRun<'a>> + 'a {
-    buffer.layout_runs().map(move |run| {
+    let runs = buffer.layout_runs().zip(0..);
+    runs.map(move |(run, visual_line)| {
         let first_start = run.glyphs.first().map(|glyph| glyph.start);
+        let page_line_offset = offsets
+            .get(&(visual_line, FlexLayoutOffsetKey::PageLineY(visual_line)))
+            .copied()
+            .unwrap_or_default();
+        let line_x = offsets
+            .get(&(visual_line, FlexLayoutOffsetKey::PageLineX(visual_line)))
+            .copied()
+            .unwrap_or_default();
         let line_offset = first_start
             .and_then(|start| offsets.get(&(run.line_i, FlexLayoutOffsetKey::Line(start))))
             .copied()
-            .unwrap_or_default();
+            .unwrap_or_default()
+            + page_line_offset;
         let has_glyph_offsets = run.glyphs.iter().any(|glyph| {
             offsets.contains_key(&(run.line_i, FlexLayoutOffsetKey::Glyph(glyph.start)))
         });
@@ -113,6 +125,14 @@ pub(crate) fn adjusted_layout_runs<'a>(
                 {
                     glyph.y += *offset;
                 }
+            }
+        }
+        if page_line_offset != 0.0 || line_x != 0.0 {
+            if !has_glyph_offsets {
+                glyphs = Cow::Owned(run.glyphs.to_vec());
+            }
+            for glyph in glyphs.to_mut() {
+                glyph.x += line_x;
             }
         }
         PageLayoutRun {

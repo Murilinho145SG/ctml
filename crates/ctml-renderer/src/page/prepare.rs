@@ -3,6 +3,15 @@ use super::*;
 impl PageRasterizer {
     pub(super) fn prepare_layout(&mut self, width: u32, height: u32) {
         self.layout_size = Some((width, height));
+        self.flex_layout_offsets.retain(|(_, key), _| {
+            !matches!(
+                key,
+                crate::page::FlexLayoutOffsetKey::PageLineX(_)
+                    | crate::page::FlexLayoutOffsetKey::PageLineY(_)
+            )
+        });
+        self.flex_item_box_x.clear();
+        self.flex_column_extents.clear();
         for run in &mut self.runs {
             if run.style.flex_wrap_break {
                 run.style.line_height = 1.0;
@@ -169,6 +178,8 @@ impl PageRasterizer {
                 layout_height,
                 page_writing_mode,
                 &self.flex_layout_offsets,
+                &self.flex_item_box_x,
+                &self.flex_column_extents,
             );
             content_visibility::offscreen_auto_nodes(
                 &self.runs,
@@ -255,6 +266,7 @@ impl PageRasterizer {
         self.buffer.set_scroll(self.root_scroll);
         self.buffer.shape_until_scroll(&mut self.font_system, false);
         self.root_scroll = self.buffer.scroll();
+        layout::apply_flex_columns(self, content_width);
         self.refresh_overflow_geometry(width, height);
     }
 
@@ -270,6 +282,8 @@ impl PageRasterizer {
             layout_height,
             writing_mode,
             &self.flex_layout_offsets,
+            &self.flex_item_box_x,
+            &self.flex_column_extents,
         );
         self.overflow_geometry = overflow_geometry;
         self.overflow_clips = self

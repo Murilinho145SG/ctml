@@ -11,6 +11,7 @@ use super::{
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LayoutSize {
     pub(crate) node_id: usize,
+    pub(crate) flex_items_row: bool,
     pub(crate) width: Option<String>,
     pub(crate) min_width: Option<String>,
     pub(crate) max_width: Option<String>,

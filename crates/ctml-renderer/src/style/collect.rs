@@ -348,7 +348,7 @@ pub(super) fn collect_runs(
                     counters,
                 )
                 .is_some();
-                let (block, run_in_inline) = collect_display::resolve_block(
+                let (mut block, mut run_in_inline) = collect_display::resolve_block(
                     &style,
                     inherited,
                     tag,
@@ -361,6 +361,16 @@ pub(super) fn collect_runs(
                     selector_tree,
                     stylesheet,
                 );
+                if !block
+                    && inherited.flex_items_row
+                    && collect_display::has_block_children(children)
+                {
+                    block = true;
+                    run_in_inline = false;
+                }
+                if block && inherited.flex_items_row {
+                    style.flex_block_item = true;
+                }
                 style.flex_items_row =
                     (style.display_flex || style.display_grid) && !style.flex_direction_column;
                 style.flex_items_column = style.display_flex && style.flex_direction_column;
