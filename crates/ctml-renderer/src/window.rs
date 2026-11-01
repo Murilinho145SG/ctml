@@ -152,8 +152,8 @@ impl ApplicationHandler for WindowApplication {
         let renderer = match pollster::block_on(Renderer::new(
             window.clone(),
             event_loop.owned_display_handle(),
-            self.config.width,
-            self.config.height,
+            window.inner_size().width.max(1),
+            window.inner_size().height.max(1),
             &self.config.body,
             &self.config.stylesheet,
             &self.config.keyframes,
@@ -318,20 +318,21 @@ impl ApplicationHandler for WindowApplication {
         let Some(window) = self.window.as_ref() else {
             return;
         };
-        let animation_state = self
-            .renderer
-            .as_mut()
-            .and_then(|renderer| renderer.advance_animations(Instant::now()));
-        if let Some(active) = animation_state {
-            window.request_redraw();
-            event_loop.set_control_flow(if active {
-                ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(16))
-            } else {
-                ControlFlow::Wait
-            });
-        } else {
-            event_loop.set_control_flow(ControlFlow::Wait);
+        let now = Instant::now();
+        let mut redraw = false;
+        let mut next_wake = None;
+        if let Some(renderer) = self.renderer.as_mut() {
+            if let Some(active) = renderer.advance_animations(now) {
+                redraw = true;
+                if active {
+                    next_wake = Some(now + Duration::from_millis(16));
+                }
+            }
         }
+        if redraw {
+            window.request_redraw();
+        }
+        event_loop.set_control_flow(next_wake.map_or(ControlFlow::Wait, ControlFlow::WaitUntil));
     }
 }
 

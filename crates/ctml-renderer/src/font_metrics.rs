@@ -9,6 +9,15 @@ use std::collections::HashMap;
 
 use crate::{font_family::resolve_family_list, style::TextStyle};
 
+// Skia's system font manager is expensive to initialize, so reuse one per UI thread.
+thread_local! {
+    static FONT_MANAGER: FontMgr = FontMgr::new();
+}
+
+pub(crate) fn shared_font_manager() -> FontMgr {
+    FONT_MANAGER.with(Clone::clone)
+}
+
 pub(crate) fn font_relative_units(
     font_system: &FontSystem,
     style: &TextStyle,
@@ -35,14 +44,7 @@ pub(crate) fn font_relative_units(
     }) else {
         return ctml_css::FontRelativeUnits::default();
     };
-    let font_manager = FontMgr::new();
-    let Some(typeface) = font_system
-        .db()
-        .with_face_data(id, |data, index| {
-            font_manager.new_from_bytes(data, Some(index))
-        })
-        .flatten()
-    else {
+    let Some(typeface) = crate::typeface_cache::load(font_system, id) else {
         return ctml_css::FontRelativeUnits::default();
     };
     let font_size = style.font_size.max(1.0);
@@ -134,13 +136,7 @@ pub(crate) fn normal_line_height(
             cosmic_text::Style::Oblique => cosmic_text::fontdb::Style::Oblique,
         },
     })?;
-    let font_manager = FontMgr::new();
-    let typeface = font_system
-        .db()
-        .with_face_data(id, |data, index| {
-            font_manager.new_from_bytes(data, Some(index))
-        })
-        .flatten()?;
+    let typeface = crate::typeface_cache::load(font_system, id)?;
     let variations = variation_settings(style);
     let typeface = apply_variations(&typeface, &variations, style.weight);
     let mut font = Font::from_typeface(typeface, style.font_size);

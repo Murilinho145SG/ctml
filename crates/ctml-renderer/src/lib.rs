@@ -6,6 +6,7 @@ mod fontconfig;
 mod page;
 mod renderer;
 mod style;
+mod typeface_cache;
 mod ui;
 mod window;
 

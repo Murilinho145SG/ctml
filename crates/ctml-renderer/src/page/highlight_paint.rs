@@ -121,15 +121,22 @@ pub(super) fn fill_highlight(
         affinity: cosmic_text::Affinity::After,
     };
     for (left, span_width) in run.highlight(start, end) {
-        let (left, top, span_width, line_height) =
-            local_transform.map_or((left, line_top, span_width, line_height), |transform| {
+        let (left, top, span_width, line_height) = local_transform.map_or(
+            (
+                left + super::PAGE_PADDING,
+                line_top + super::PAGE_PADDING,
+                span_width,
+                line_height,
+            ),
+            |transform| {
                 transform.map_rect(
                     left + super::PAGE_PADDING,
                     line_top + super::PAGE_PADDING,
                     span_width,
                     line_height,
                 )
-            });
+            },
+        );
         let rect = ClipRect {
             left: left - translate_x,
             top: top - translate_y,

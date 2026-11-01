@@ -16,23 +16,7 @@ impl PageRasterizer {
         let Some(cursor) = self.hit(x, y) else {
             return (fallback, fallback_visible);
         };
-        self.cursor_spans
-            .iter()
-            .find(|span| {
-                span.line == cursor.line
-                    && cursor.index >= span.start
-                    && cursor.index < span.end
-                    && !span.visibility_hidden
-                    && !span.pointer_events_none
-            })
-            .or_else(|| {
-                self.cursor_spans.iter().rev().find(|span| {
-                    span.line == cursor.line
-                        && cursor.index == span.end
-                        && !span.visibility_hidden
-                        && !span.pointer_events_none
-                })
-            })
+        self.span_at_cursor(cursor)
             .map_or((fallback, fallback_visible), |span| {
                 (span.icon, !span.hidden)
             })
@@ -44,8 +28,12 @@ impl PageRasterizer {
             return false;
         }
         self.hovered_path = path;
-        self.rebuild_interaction_styles();
-        true
+        if self.has_interaction_rules {
+            self.rebuild_interaction_styles();
+            true
+        } else {
+            false
+        }
     }
 
     pub(crate) fn clear_hover(&mut self) -> bool {
@@ -53,8 +41,12 @@ impl PageRasterizer {
             return false;
         }
         self.hovered_path.clear();
-        self.rebuild_interaction_styles();
-        true
+        if self.has_interaction_rules {
+            self.rebuild_interaction_styles();
+            true
+        } else {
+            false
+        }
     }
 
     pub(crate) fn focus_next(&mut self, backwards: bool) -> bool {
@@ -65,9 +57,11 @@ impl PageRasterizer {
         if changed {
             self.focused_path = focused_path;
             self.keyboard_focus = true;
-            self.rebuild_interaction_styles();
+            if self.has_interaction_rules {
+                self.rebuild_interaction_styles();
+            }
         }
-        changed
+        changed && self.has_interaction_rules
     }
 
     pub(crate) fn begin_selection(&mut self, x: f64, y: f64) -> bool {
@@ -86,7 +80,7 @@ impl PageRasterizer {
         if active_changed {
             self.active_path = path.clone();
         }
-        if active_changed || focus_changed || modality_changed {
+        if self.has_interaction_rules && (active_changed || focus_changed || modality_changed) {
             self.rebuild_interaction_styles();
         }
         let Some(cursor) = self.selection_hit(x, y) else {
@@ -106,7 +100,7 @@ impl PageRasterizer {
         let Some(anchor) = self.selection_anchor else {
             return false;
         };
-        let Some(cursor) = self.selection_hit(x, y) else {
+        let Some(cursor) = self.selection_hit_with_clamp(x, y, true) else {
             return false;
         };
         let selection = self
@@ -179,35 +173,27 @@ impl PageRasterizer {
             return false;
         }
         self.active_path.clear();
-        self.rebuild_interaction_styles();
-        true
+        if self.has_interaction_rules {
+            self.rebuild_interaction_styles();
+            true
+        } else {
+            false
+        }
     }
 
     fn element_path_at(&self, x: f64, y: f64) -> Vec<usize> {
         let Some(cursor) = self.hit(x, y) else {
             return Vec::new();
         };
-        self.cursor_spans
-            .iter()
-            .find(|span| {
-                span.line == cursor.line
-                    && cursor.index >= span.start
-                    && cursor.index < span.end
-                    && !span.visibility_hidden
-                    && !span.pointer_events_none
-            })
-            .or_else(|| {
-                self.cursor_spans.iter().rev().find(|span| {
-                    span.line == cursor.line
-                        && cursor.index == span.end
-                        && !span.visibility_hidden
-                        && !span.pointer_events_none
-                })
-            })
+        self.span_at_cursor(cursor)
             .map_or_else(Vec::new, |span| span.element_path.clone())
     }
 
     fn hit(&self, x: f64, y: f64) -> Option<Cursor> {
+        self.hit_with_clamp(x, y, false)
+    }
+
+    fn hit_with_clamp(&self, x: f64, y: f64, clamp: bool) -> Option<Cursor> {
         let (pointer_x, pointer_y) = self.layout_point(x as f32, y as f32);
         let (x, y) = self
             .local_vertical_layout_point(x as f32, y as f32)
@@ -234,13 +220,45 @@ impl PageRasterizer {
         };
         let x = x + scroll_translation_x;
         let y = y - PAGE_PADDING + scroll_translation_y;
-        let hit_line = self.layout_runs().find(|run| {
-            run.line_w > 0.0
-                && x >= 0.0
-                && x <= run.line_w
-                && y >= run.line_top
-                && y < run.line_top + run.line_height
-        });
+        let mut x = x;
+        let mut y = y;
+        let hit_line = if clamp {
+            let line = self
+                .layout_runs()
+                .filter(|run| run.line_w > 0.0)
+                .min_by(|left, right| {
+                    let distance = |run: &super::PageLayoutRun<'_>| {
+                        (run.line_top - y).max(0.0) + (y - run.line_top - run.line_height).max(0.0)
+                    };
+                    distance(left).total_cmp(&distance(right))
+                });
+            if let Some(line) = &line {
+                let left = line
+                    .glyphs
+                    .iter()
+                    .map(|glyph| glyph.x)
+                    .fold(f32::INFINITY, f32::min);
+                let right = line
+                    .glyphs
+                    .iter()
+                    .map(|glyph| glyph.x + glyph.w)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                x = x.clamp(left, right);
+                y = y.clamp(line.line_top, line.line_top + line.line_height * 0.999);
+            }
+            line
+        } else {
+            // line_w is the text advance, excluding CSS indentation and alignment offsets.
+            self.layout_runs().find(|run| {
+                run.line_w > 0.0
+                    && y >= run.line_top
+                    && y < run.line_top + run.line_height
+                    && run
+                        .glyphs
+                        .iter()
+                        .any(|glyph| x >= glyph.x && x <= glyph.x + glyph.w)
+            })
+        };
         let hit_offset = hit_line
             .as_ref()
             .map(|run| {
@@ -266,20 +284,11 @@ impl PageRasterizer {
                 line_offset + glyph_offset
             })
             .unwrap_or_default();
-        let cursor = hit_line
-            .and_then(|_| self.buffer.hit(x, y - hit_offset))
-            .filter(|cursor| {
-                self.cursor_spans.iter().any(|span| {
-                    span.line == cursor.line
-                        && cursor.index >= span.start
-                        && cursor.index < span.end
-                        && !span.visibility_hidden
-                        && !span.pointer_events_none
-                })
-            })?;
-        let span = self.cursor_spans.iter().find(|span| {
-            span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
-        })?;
+        let cursor = hit_line.and_then(|_| self.buffer.hit(x, y - hit_offset))?;
+        let span = self.span_at_cursor(cursor)?;
+        if span.visibility_hidden || span.pointer_events_none {
+            return None;
+        }
         overflow_clip::clip_for_path(&span.element_path, &self.overflow_clips)
             .is_none_or(|clip| {
                 pointer_x >= clip.left
@@ -290,23 +299,28 @@ impl PageRasterizer {
             .then_some(cursor)
     }
 
+    fn span_at_cursor(&self, cursor: Cursor) -> Option<&super::CursorSpan> {
+        self.cursor_spans.iter().find(|span| {
+            span.line == cursor.line
+                && cursor.index >= span.start
+                && (cursor.index < span.end
+                    || (cursor.index == span.end && cursor.affinity == Affinity::Before))
+        })
+    }
+
     fn selection_hit(&self, x: f64, y: f64) -> Option<Cursor> {
-        self.hit(x, y).filter(|cursor| {
-            self.cursor_spans.iter().any(|span| {
-                span.line == cursor.line
-                    && cursor.index >= span.start
-                    && cursor.index < span.end
-                    && !span.user_select_none
-            })
+        self.selection_hit_with_clamp(x, y, false)
+    }
+
+    fn selection_hit_with_clamp(&self, x: f64, y: f64, clamp: bool) -> Option<Cursor> {
+        self.hit_with_clamp(x, y, clamp).filter(|cursor| {
+            self.span_at_cursor(*cursor)
+                .is_some_and(|span| !span.user_select_none)
         })
     }
 
     fn user_select_owner_at(&self, cursor: Cursor) -> Option<usize> {
-        self.cursor_spans
-            .iter()
-            .find(|span| {
-                span.line == cursor.line && cursor.index >= span.start && cursor.index < span.end
-            })
+        self.span_at_cursor(cursor)
             .and_then(|span| span.user_select_all_owner)
     }
 
@@ -333,7 +347,12 @@ impl PageRasterizer {
     }
 
     fn local_vertical_layout_point(&self, x: f32, y: f32) -> Option<(f32, f32)> {
-        if self.writing_mode() != crate::style::WritingMode::HorizontalTb {
+        if self.writing_mode() != crate::style::WritingMode::HorizontalTb
+            || self
+                .runs
+                .iter()
+                .all(|run| run.style.writing_mode == crate::style::WritingMode::HorizontalTb)
+        {
             return None;
         }
         let (width, height) = self.layout_size?;

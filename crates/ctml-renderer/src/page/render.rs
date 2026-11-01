@@ -16,16 +16,16 @@ impl PageRasterizer {
         transparent: bool,
         skip_text: bool,
     ) -> Vec<u8> {
-        let mut pixels = vec![0_u8; width as usize * height as usize * 4];
-        for pixel in pixels.chunks_exact_mut(4) {
-            if transparent {
-                pixel[..3].fill(0);
-                pixel[3] = 0;
-            } else {
-                pixel[..3].copy_from_slice(&background);
-                pixel[3] = 255;
-            }
-        }
+        let pixel = if transparent {
+            [0; 4]
+        } else {
+            [background[0], background[1], background[2], 255]
+        };
+        let mut pixels = super::pixel::filled_pixels(
+            std::mem::take(&mut self.frame_pixels),
+            pixel,
+            width as usize * height as usize,
+        );
         let overflow_clips = &self.overflow_clips;
         let nested_scroll = &self.nested_scroll;
         let flex_layout_offsets = &self.flex_layout_offsets;
@@ -215,146 +215,119 @@ impl PageRasterizer {
                 nested_scroll,
                 flex_layout_offsets,
             );
-            let default_color = Color::rgb(0, 0, 0);
-            let mut auto_ink_mask = vec![0; pixels.len() / 4];
-            let mut all_ink_mask = vec![0; pixels.len() / 4];
-            let vertical_block_origins = super::local_writing::vertical_block_origins(
-                runs,
-                buffer,
-                writing_mode,
-                flex_layout_offsets,
-            );
-            let style_ranges = super::local_writing::text_style_ranges(runs);
-            let line_starts = super::local_writing::text_line_starts(runs);
-            for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
-                for glyph in run.glyphs.iter() {
-                    let style_index = super::local_writing::style_index_at(
-                        &style_ranges,
-                        line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
-                    );
-                    let local_transform = style_index
-                        .and_then(|index| runs.get(index))
-                        .filter(|style_run| {
-                            writing_mode == crate::style::WritingMode::HorizontalTb
-                                && style_run.style.writing_mode
-                                    != crate::style::WritingMode::HorizontalTb
-                        })
-                        .and_then(|style_run| {
-                            let block = style_run.first_line_block?;
-                            let origin_y = vertical_block_origins.get(&block).copied()?;
-                            Some(super::local_writing::LocalVerticalTransform::new(
-                                style_run.style.writing_mode,
-                                origin_y,
-                                width,
-                                height,
-                            ))
-                        });
-                    let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
-                    let mask_color = Color::rgba(255, 255, 255, 255);
-                    let auto_mask = &mut auto_ink_mask;
-                    let all_mask = &mut all_ink_mask;
-                    let has_descender = run.text[glyph.start..glyph.end]
-                        .chars()
-                        .any(is_underline_descender);
-                    let glyph_clip =
-                        style_index
-                            .and_then(|index| runs.get(index))
-                            .and_then(|style_run| {
-                                super::overflow_clip::clip_for_path(
-                                    &style_run.element_path,
-                                    &overflow_clips,
-                                )
-                            });
-                    cache.with_pixels(
-                        font_system,
-                        physical_glyph.cache_key,
-                        mask_color,
-                        |x, y, pixel_color| {
-                            let source_x = physical_glyph.x + x + PAGE_PADDING as i32;
-                            let source_y = physical_glyph.y + y + PAGE_PADDING as i32;
-                            let (pixel_x, pixel_y) =
-                                local_transform.map_or((source_x, source_y), |transform| {
-                                    let (x, y, _, _) = transform.map_rect(
-                                        source_x as f32,
-                                        source_y as f32,
-                                        1.0,
-                                        1.0,
-                                    );
-                                    (x.round() as i32, y.round() as i32)
-                                });
-                            let (nested_scroll_x, nested_scroll_y) = style_index
-                                .and_then(|index| runs.get(index))
-                                .map_or((0.0, 0.0), |run| {
-                                    super::overflow_clip::scroll_translation_for_path(
-                                        &run.element_path,
-                                        nested_scroll,
-                                        writing_mode,
-                                    )
-                                });
-                            let pixel_x = (pixel_x as f32 - nested_scroll_x).round() as i32;
-                            let pixel_y = (pixel_y as f32 - nested_scroll_y).round() as i32;
-                            if pixel_x >= 0
-                                && pixel_y >= 0
-                                && pixel_x < width as i32
-                                && pixel_y < height as i32
-                                && glyph_clip.is_none_or(|clip| {
-                                    (pixel_x as f32) >= clip.left
-                                        && (pixel_x as f32) < clip.right
-                                        && (pixel_y as f32) >= clip.top
-                                        && (pixel_y as f32) < clip.bottom
-                                })
-                            {
-                                let mask_index =
-                                    pixel_y as usize * width as usize + pixel_x as usize;
-                                if pixel_color.a() > 0 {
-                                    all_mask[mask_index] =
-                                        all_mask[mask_index].max(pixel_color.a());
-                                    if has_descender {
-                                        auto_mask[mask_index] =
-                                            auto_mask[mask_index].max(pixel_color.a());
-                                    }
-                                }
-                            }
-                        },
-                    );
-                }
-            }
-            for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
-                let (nested_scroll_x, nested_scroll_y) = run
-                    .glyphs
-                    .first()
-                    .and_then(|glyph| {
-                        super::local_writing::style_index_at(
+            if runs.iter().any(|run| {
+                run.style.underline
+                    || run.style.overline
+                    || run.style.strikethrough
+                    || run.first_line_decoration.is_some()
+                    || run.first_letter_decoration.is_some()
+            }) {
+                let default_color = Color::rgb(0, 0, 0);
+                let mut auto_ink_mask = vec![0; pixels.len() / 4];
+                let mut all_ink_mask = vec![0; pixels.len() / 4];
+                let vertical_block_origins = super::local_writing::vertical_block_origins(
+                    runs,
+                    buffer,
+                    writing_mode,
+                    flex_layout_offsets,
+                );
+                let style_ranges = super::local_writing::text_style_ranges(runs);
+                let line_starts = super::local_writing::text_line_starts(runs);
+                for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
+                    for glyph in run.glyphs.iter() {
+                        let style_index = super::local_writing::style_index_at(
                             &style_ranges,
                             line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
-                        )
-                    })
-                    .and_then(|index| runs.get(index))
-                    .map_or((0.0, 0.0), |run| {
-                        super::overflow_clip::scroll_translation_for_path(
-                            &run.element_path,
-                            nested_scroll,
-                            writing_mode,
-                        )
-                    });
-                let mut renderer = PixelRenderer {
-                    pixels: &mut pixels,
-                    width,
-                    height,
-                    skip_ink_mask: None,
-                    local_transform: super::local_writing::LocalVerticalTransform::from_run(
-                        runs,
-                        buffer,
-                        run.line_i,
-                        writing_mode,
-                        width,
-                        height,
-                        &vertical_block_origins,
-                    ),
-                    clip_rect: None,
-                    translate_y: nested_scroll_y,
-                    translate_x: nested_scroll_x,
-                    decoration_opacity_scale: run
+                        );
+                        let local_transform = style_index
+                            .and_then(|index| runs.get(index))
+                            .filter(|style_run| {
+                                writing_mode == crate::style::WritingMode::HorizontalTb
+                                    && style_run.style.writing_mode
+                                        != crate::style::WritingMode::HorizontalTb
+                            })
+                            .and_then(|style_run| {
+                                let block = style_run.first_line_block?;
+                                let origin_y = vertical_block_origins.get(&block).copied()?;
+                                Some(super::local_writing::LocalVerticalTransform::new(
+                                    style_run.style.writing_mode,
+                                    origin_y,
+                                    width,
+                                    height,
+                                ))
+                            });
+                        let physical_glyph = glyph.physical((0.0, run.line_y), 1.0);
+                        let mask_color = Color::rgba(255, 255, 255, 255);
+                        let auto_mask = &mut auto_ink_mask;
+                        let all_mask = &mut all_ink_mask;
+                        let has_descender = run.text[glyph.start..glyph.end]
+                            .chars()
+                            .any(is_underline_descender);
+                        let glyph_clip =
+                            style_index
+                                .and_then(|index| runs.get(index))
+                                .and_then(|style_run| {
+                                    super::overflow_clip::clip_for_path(
+                                        &style_run.element_path,
+                                        &overflow_clips,
+                                    )
+                                });
+                        cache.with_pixels(
+                            font_system,
+                            physical_glyph.cache_key,
+                            mask_color,
+                            |x, y, pixel_color| {
+                                let source_x = physical_glyph.x + x + PAGE_PADDING as i32;
+                                let source_y = physical_glyph.y + y + PAGE_PADDING as i32;
+                                let (pixel_x, pixel_y) =
+                                    local_transform.map_or((source_x, source_y), |transform| {
+                                        let (x, y, _, _) = transform.map_rect(
+                                            source_x as f32,
+                                            source_y as f32,
+                                            1.0,
+                                            1.0,
+                                        );
+                                        (x.round() as i32, y.round() as i32)
+                                    });
+                                let (nested_scroll_x, nested_scroll_y) = style_index
+                                    .and_then(|index| runs.get(index))
+                                    .map_or((0.0, 0.0), |run| {
+                                        super::overflow_clip::scroll_translation_for_path(
+                                            &run.element_path,
+                                            nested_scroll,
+                                            writing_mode,
+                                        )
+                                    });
+                                let pixel_x = (pixel_x as f32 - nested_scroll_x).round() as i32;
+                                let pixel_y = (pixel_y as f32 - nested_scroll_y).round() as i32;
+                                if pixel_x >= 0
+                                    && pixel_y >= 0
+                                    && pixel_x < width as i32
+                                    && pixel_y < height as i32
+                                    && glyph_clip.is_none_or(|clip| {
+                                        (pixel_x as f32) >= clip.left
+                                            && (pixel_x as f32) < clip.right
+                                            && (pixel_y as f32) >= clip.top
+                                            && (pixel_y as f32) < clip.bottom
+                                    })
+                                {
+                                    let mask_index =
+                                        pixel_y as usize * width as usize + pixel_x as usize;
+                                    if pixel_color.a() > 0 {
+                                        all_mask[mask_index] =
+                                            all_mask[mask_index].max(pixel_color.a());
+                                        if has_descender {
+                                            auto_mask[mask_index] =
+                                                auto_mask[mask_index].max(pixel_color.a());
+                                        }
+                                    }
+                                }
+                            },
+                        );
+                    }
+                }
+                for run in super::adjusted_layout_runs(buffer, flex_layout_offsets) {
+                    let (nested_scroll_x, nested_scroll_y) = run
                         .glyphs
                         .first()
                         .and_then(|glyph| {
@@ -363,27 +336,62 @@ impl PageRasterizer {
                                 line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
                             )
                         })
-                        .and_then(|index| decoration_opacity_scales.get(index).copied())
-                        .unwrap_or(1.0),
-                };
-                decorations::render_patterned_decorations(
-                    &mut renderer,
-                    &run,
-                    default_color,
+                        .and_then(|index| runs.get(index))
+                        .map_or((0.0, 0.0), |run| {
+                            super::overflow_clip::scroll_translation_for_path(
+                                &run.element_path,
+                                nested_scroll,
+                                writing_mode,
+                            )
+                        });
+                    let mut renderer = PixelRenderer {
+                        pixels: &mut pixels,
+                        width,
+                        height,
+                        skip_ink_mask: None,
+                        local_transform: super::local_writing::LocalVerticalTransform::from_run(
+                            runs,
+                            buffer,
+                            run.line_i,
+                            writing_mode,
+                            width,
+                            height,
+                            &vertical_block_origins,
+                        ),
+                        clip_rect: None,
+                        translate_y: nested_scroll_y,
+                        translate_x: nested_scroll_x,
+                        decoration_opacity_scale: run
+                            .glyphs
+                            .first()
+                            .and_then(|glyph| {
+                                super::local_writing::style_index_at(
+                                    &style_ranges,
+                                    line_starts.get(run.line_i).copied().unwrap_or(0) + glyph.start,
+                                )
+                            })
+                            .and_then(|index| decoration_opacity_scales.get(index).copied())
+                            .unwrap_or(1.0),
+                    };
+                    decorations::render_patterned_decorations(
+                        &mut renderer,
+                        &run,
+                        default_color,
+                        &auto_ink_mask,
+                        &all_ink_mask,
+                        &self.cursor_spans,
+                        &overflow_clips,
+                    );
+                }
+                self.draw_pseudo_decorations(
+                    &mut pixels,
+                    width,
+                    height,
                     &auto_ink_mask,
                     &all_ink_mask,
-                    &self.cursor_spans,
                     &overflow_clips,
                 );
             }
-            self.draw_pseudo_decorations(
-                &mut pixels,
-                width,
-                height,
-                &auto_ink_mask,
-                &all_ink_mask,
-                &overflow_clips,
-            );
         }
         if !scoped {
             self.draw_root_scrollbars(&mut pixels, width, height, writing_mode);
@@ -404,4 +412,66 @@ impl PageRasterizer {
 
 fn is_underline_descender(character: char) -> bool {
     matches!(character, 'g' | 'j' | 'p' | 'q' | 'y')
+}
+
+impl PageRasterizer {
+    pub(super) fn render_pixels(&mut self, width: u32, height: u32) -> Vec<u8> {
+        // Scoped painting can use different fractional positions for the same glyph.
+        let identity = |mut key: cosmic_text::CacheKey| {
+            key.x_bin = cosmic_text::SubpixelBin::Zero;
+            key.y_bin = cosmic_text::SubpixelBin::Zero;
+            key
+        };
+        let active_glyphs: std::collections::HashSet<_> = self
+            .layout_runs()
+            .flat_map(|run| {
+                run.glyphs
+                    .iter()
+                    .map(move |glyph| identity(glyph.physical((0.0, run.line_y), 1.0).cache_key))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        self.cache
+            .image_cache
+            .retain(|key, _| active_glyphs.contains(&identity(*key)));
+        self.cache
+            .outline_command_cache
+            .retain(|key, _| active_glyphs.contains(&identity(*key)));
+        let mode = self.writing_mode();
+        let (layout_width, layout_height) = super::vertical::layout_dimensions(mode, width, height);
+        let pixels = self.render_layout_pixels(layout_width, layout_height, mode);
+        super::vertical::orient_pixels(mode, pixels, width, height)
+    }
+}
+
+impl PageRasterizer {
+    pub(super) fn upload_pixels(
+        &mut self,
+        queue: &wgpu::Queue,
+        texture: &wgpu::Texture,
+        width: u32,
+        height: u32,
+    ) {
+        let pixels = self.render_pixels(width, height);
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &pixels,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(width * 4),
+                rows_per_image: Some(height),
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.frame_pixels = pixels;
+    }
 }

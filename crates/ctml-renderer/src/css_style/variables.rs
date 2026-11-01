@@ -63,6 +63,13 @@ fn substitute_value(
     cyclic: &HashSet<String>,
     stack: &mut Vec<String>,
 ) -> Option<String> {
+    if !value
+        .as_bytes()
+        .windows(4)
+        .any(|part| part.eq_ignore_ascii_case(b"var("))
+    {
+        return (value.len() <= MAX_SUBSTITUTED_VALUE_LENGTH).then(|| value.to_owned());
+    }
     let mut output = String::with_capacity(value.len());
     let mut cursor = 0;
     while cursor < value.len() {
@@ -343,6 +350,17 @@ mod tests {
         assert_eq!(
             substitute_vars("content: \"var(--value)\"; myvar(--value)", &properties).as_deref(),
             Some("content: \"var(--value)\"; myvar(--value)")
+        );
+    }
+    #[test]
+    fn preserves_long_literal_values_without_variable_substitution() {
+        let literal = format!(
+            "url(\"data:image/jpeg;base64,{}\")",
+            "AbCd0123".repeat(4096)
+        );
+        assert_eq!(
+            substitute_vars(&literal, &HashMap::new()).as_deref(),
+            Some(literal.as_str())
         );
     }
 }

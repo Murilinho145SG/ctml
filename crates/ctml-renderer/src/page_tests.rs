@@ -14,6 +14,10 @@ use url::Url;
 use crate::UiNode;
 use progress::{ProgressBar, log_notice, log_step, log_success};
 
+#[path = "page_tests/hit_testing.rs"]
+mod hit_testing;
+#[path = "page_tests/performance.rs"]
+mod performance;
 #[path = "page_tests/progress.rs"]
 mod progress;
 

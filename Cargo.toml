@@ -30,3 +30,13 @@ tokio = { version = "1.54.1", features = ["net", "rt", "time"] }
 unicode-segmentation = "1.13.3"
 hyphenation = { version = "0.8.4", features = ["embed_all"] }
 url = "2.5.8"
+
+# Keep interactive layout and rasterization responsive in development builds.
+[profile.dev.package.ctml-renderer]
+opt-level = 1
+
+[profile.dev.package.ctml-css]
+opt-level = 1
+
+[profile.dev.package.cosmic-text]
+opt-level = 1

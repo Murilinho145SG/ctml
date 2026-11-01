@@ -2,17 +2,19 @@ use std::collections::HashMap;
 
 use cosmic_text::{Buffer, Cursor, FontSystem, fontdb};
 use skia_safe::{
-    AlphaType, Color, ColorSpace, ColorType, Font, FontHinting, FontMgr, GlyphId, ImageInfo, Paint,
-    PixelGeometry, Point, Shaper, SurfaceProps, SurfacePropsFlags, TextBlobBuilder,
-    font::Edging,
-    font_style::{FontStyle as SkiaFontStyle, Slant, Weight as SkiaWeight, Width as SkiaWidth},
-    shaper::{Feature as SkiaFeature, TextBlobBuilderRunHandler},
-    surfaces,
+    AlphaType, Color, ColorSpace, ColorType, Font, FontMgr, ImageInfo, Paint, PixelGeometry, Point,
+    Shaper, SurfaceProps, SurfacePropsFlags, surfaces,
 };
 
 use crate::page::overflow_clip::{self, ClipRect};
 use crate::page::{CursorSpan, PAGE_PADDING, local_writing};
 use crate::style::{TextRun, TextStyle, WritingMode};
+
+mod shaping;
+use shaping::{positioned_group, shape_group};
+
+mod fonts;
+use fonts::{apply_synthetic_style, configure_font, load_typeface};
 
 mod highlight;
 mod orientation;
@@ -59,7 +61,7 @@ pub(super) fn draw(
         return;
     };
 
-    let font_manager = FontMgr::new();
+    let font_manager = crate::font_metrics::shared_font_manager();
     let mut typefaces = HashMap::new();
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -293,33 +295,37 @@ pub(super) fn draw(
                 - text_style.map_or(0.0, |s| s.vertical_align_offset);
 
             let group = &run.glyphs[start..end];
-            let text_start = group.iter().map(|glyph| glyph.start).min().unwrap_or(0);
-            let text_end = group
-                .iter()
-                .map(|glyph| glyph.end)
-                .max()
-                .unwrap_or(text_start);
-            let group_text = run.text.get(text_start..text_end);
-            let anchor = if first.level.number() % 2 == 0 {
-                group.first().unwrap_or(first)
-            } else {
-                group.last().unwrap_or(first)
-            };
-            let blob = shaper.as_ref().and_then(|shaper| {
-                let style = text_style?;
-                let text = group_text?;
-                shape_group(
-                    shaper,
-                    text,
-                    &font,
-                    style,
-                    first.level.number(),
-                    Point::new(
-                        anchor.x + anchor.x_offset * anchor.font_size + PAGE_PADDING,
-                        baseline + PAGE_PADDING + font.metrics().1.ascent,
-                    ),
-                )
-            });
+            let blob = shaper
+                .as_ref()
+                .and_then(|shaper| {
+                    // Preserve first-line font overrides applied at paint time.
+                    let style = first_line_style?;
+                    let text_start = group.iter().map(|glyph| glyph.start).min().unwrap_or(0);
+                    let text_end = group
+                        .iter()
+                        .map(|glyph| glyph.end)
+                        .max()
+                        .unwrap_or(text_start);
+                    let group_text = run.text.get(text_start..text_end);
+                    let anchor = if first.level.number() % 2 == 0 {
+                        group.first().unwrap_or(first)
+                    } else {
+                        group.last().unwrap_or(first)
+                    };
+                    let text = group_text?;
+                    shape_group(
+                        shaper,
+                        text,
+                        &font,
+                        style,
+                        first.level.number(),
+                        Point::new(
+                            anchor.x + anchor.x_offset * anchor.font_size + PAGE_PADDING,
+                            baseline + PAGE_PADDING + font.metrics().1.ascent,
+                        ),
+                    )
+                })
+                .or_else(|| positioned_group(&font, group, baseline));
             if first_upright {
                 draw_upright_glyphs(
                     canvas,
@@ -357,33 +363,6 @@ pub(super) fn draw(
                         &font,
                         opacity,
                     );
-                }
-            } else {
-                let mut builder = TextBlobBuilder::new();
-                let (glyph_ids, positions) = builder.alloc_run_pos(&font, group.len(), None);
-                for (index, glyph) in group.iter().enumerate() {
-                    glyph_ids[index] = GlyphId::from(glyph.glyph_id);
-                    positions[index] = Point::new(
-                        glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
-                        baseline + PAGE_PADDING - glyph.y_offset * glyph.font_size,
-                    );
-                }
-                if let Some(blob) = builder.make() {
-                    if let Some(style) = text_style {
-                        draw_text_shadows(canvas, &blob, style, opacity);
-                    }
-                    canvas.draw_text_blob(blob, Point::default(), &paint);
-                    if let Some(style) = text_style {
-                        draw_text_emphasis(
-                            canvas,
-                            &run,
-                            group,
-                            style,
-                            glyph_writing_mode,
-                            &font,
-                            opacity,
-                        );
-                    }
                 }
             }
             if let Some(style) = text_style {
@@ -454,113 +433,6 @@ fn draw_conditional_hyphens(
         draw_text_shadows(canvas, &blob, style, opacity);
         canvas.draw_text_blob(blob, Point::default(), &paint);
     }
-}
-
-fn shape_group(
-    shaper: &Shaper,
-    text: &str,
-    font: &Font,
-    style: &TextStyle,
-    bidi_level: u8,
-    offset: Point,
-) -> Option<skia_safe::TextBlob> {
-    let mut font_runs = Shaper::new_trivial_font_run_iterator(font, text.len());
-    let mut bidi_runs = Shaper::new_bidi_run_iterator(text, bidi_level)?;
-    let mut script_runs = Shaper::new_hb_icu_script_run_iterator(text);
-    let mut language_runs = match style.language.as_deref() {
-        Some(language) => Shaper::new_trivial_language_run_iterator(language, text.len()),
-        None => Shaper::new_std_language_run_iterator(text)?,
-    };
-    let features = style
-        .font_features()
-        .features
-        .into_iter()
-        .map(|feature| SkiaFeature {
-            tag: u32::from_be_bytes(*feature.tag.as_bytes()),
-            value: feature.value,
-            start: 0,
-            end: text.len(),
-        })
-        .collect::<Vec<_>>();
-    let tracking = if style.letter_spacing_px {
-        style.letter_spacing / style.font_size
-    } else {
-        style.letter_spacing
-    };
-    let mut handler = TextBlobBuilderRunHandler::new(text, offset);
-    shaper.shape_with_iterators_and_features_and_options(
-        text,
-        &mut font_runs,
-        &mut bidi_runs,
-        &mut script_runs,
-        &mut language_runs,
-        &features,
-        f32::MAX,
-        tracking,
-        &mut handler,
-    );
-    handler.make_blob()
-}
-
-fn configure_font(font: &mut Font) {
-    font.set_edging(Edging::AntiAlias);
-    font.set_hinting(FontHinting::None);
-    font.set_force_auto_hinting(true);
-    font.set_embedded_bitmaps(true);
-    font.set_subpixel(true);
-    font.set_linear_metrics(true);
-}
-
-fn apply_synthetic_style(font: &mut Font, face: &fontdb::FaceInfo, style: &TextStyle) {
-    font.set_embolden(
-        style.weight >= fontdb::Weight::SEMIBOLD && face.weight < fontdb::Weight::SEMIBOLD,
-    );
-    font.set_skew_x(
-        if style.font_style != fontdb::Style::Normal && face.style == fontdb::Style::Normal {
-            -0.25
-        } else {
-            0.0
-        },
-    );
-}
-
-fn load_typeface(
-    font_system: &FontSystem,
-    font_manager: &FontMgr,
-    font_id: fontdb::ID,
-) -> Option<skia_safe::Typeface> {
-    let from_database = font_system
-        .db()
-        .with_face_data(font_id, |data, index| {
-            font_manager.new_from_bytes(data, Some(index))
-        })
-        .flatten();
-    if from_database.is_some() {
-        return from_database;
-    }
-
-    let matched = font_system.db().face(font_id).and_then(|face| {
-        let family = face.families.first()?.0.as_str();
-        let width = match face.stretch {
-            fontdb::Stretch::UltraCondensed => SkiaWidth::ULTRA_CONDENSED,
-            fontdb::Stretch::ExtraCondensed => SkiaWidth::EXTRA_CONDENSED,
-            fontdb::Stretch::Condensed => SkiaWidth::CONDENSED,
-            fontdb::Stretch::SemiCondensed => SkiaWidth::SEMI_CONDENSED,
-            fontdb::Stretch::Normal => SkiaWidth::NORMAL,
-            fontdb::Stretch::SemiExpanded => SkiaWidth::SEMI_EXPANDED,
-            fontdb::Stretch::Expanded => SkiaWidth::EXPANDED,
-            fontdb::Stretch::ExtraExpanded => SkiaWidth::EXTRA_EXPANDED,
-            fontdb::Stretch::UltraExpanded => SkiaWidth::ULTRA_EXPANDED,
-        };
-        let slant = match face.style {
-            fontdb::Style::Normal => Slant::Upright,
-            fontdb::Style::Italic => Slant::Italic,
-            fontdb::Style::Oblique => Slant::Oblique,
-        };
-        let style = SkiaFontStyle::new(SkiaWeight::from(i32::from(face.weight.0)), width, slant);
-        font_manager.match_family_style(family, style)
-    });
-    matched
 }
 
 #[cfg(test)]

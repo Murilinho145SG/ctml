@@ -13,7 +13,12 @@ pub(super) struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
+    page_size: PhysicalSize<u32>,
     page: PageRasterizer,
+    page_dirty: bool,
+    page_needs_layout: bool,
+    pending_resize: Option<PhysicalSize<u32>>,
+    suspended: bool,
     page_texture: wgpu::Texture,
     page_layout: wgpu::BindGroupLayout,
     page_sampler: wgpu::Sampler,
@@ -49,7 +54,8 @@ impl Renderer {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("ctml-device"),
-                required_limits: wgpu::Limits::downlevel_defaults(),
+                required_limits: wgpu::Limits::downlevel_defaults()
+                    .using_resolution(adapter.limits()),
                 memory_hints: wgpu::MemoryHints::MemoryUsage,
                 ..Default::default()
             })
@@ -75,7 +81,12 @@ impl Renderer {
             device,
             queue,
             config,
+            page_size: PhysicalSize::new(width, height),
             page,
+            page_dirty: false,
+            page_needs_layout: false,
+            pending_resize: None,
+            suspended: false,
             page_texture,
             page_layout,
             page_sampler,
@@ -85,38 +96,78 @@ impl Renderer {
     }
 
     pub(super) fn resize(&mut self, size: PhysicalSize<u32>) {
-        if size.width == 0 || size.height == 0 {
+        self.suspended = size.width == 0 || size.height == 0;
+        if self.suspended {
+            self.pending_resize = None;
             return;
         }
+        // Coalesce window-manager events; configure and reflow once before presenting.
+        self.pending_resize = Some(size);
+    }
 
+    fn flush_pending_resize(&mut self) {
+        let Some(size) = self.pending_resize.take() else {
+            return;
+        };
+        if size == self.page_size {
+            return;
+        }
         self.config.width = size.width;
         self.config.height = size.height;
         self.surface.configure(&self.device, &self.config);
-        self.page_texture =
-            create_page_texture(&self.device, &self.queue, &self.config, &mut self.page);
+        let old_texture = std::mem::replace(
+            &mut self.page_texture,
+            create_page_texture(&self.device, size),
+        );
         let view = self
             .page_texture
             .create_view(&wgpu::TextureViewDescriptor::default());
         self.page_bind_group =
             create_page_bind_group(&self.device, &self.page_layout, &self.page_sampler, &view);
+        old_texture.destroy();
+        let _ = self.device.poll(wgpu::PollType::Poll);
+        self.page_size = size;
+        self.page_needs_layout = true;
     }
 
     pub(super) fn render(&mut self, window: &NativeWindow) -> Result<(), WindowError> {
-        self.page.redraw(&self.queue, &self.page_texture);
+        if self.suspended {
+            return Ok(());
+        }
+        self.flush_pending_resize();
         let (frame, suboptimal) = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(frame) => (frame, false),
             wgpu::CurrentSurfaceTexture::Suboptimal(frame) => (frame, true),
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+            wgpu::CurrentSurfaceTexture::Timeout => {
+                window.request_redraw();
+                return Ok(());
+            }
+            wgpu::CurrentSurfaceTexture::Occluded => {
                 return Ok(());
             }
             wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
                 self.surface.configure(&self.device, &self.config);
+                window.request_redraw();
                 return Ok(());
             }
             wgpu::CurrentSurfaceTexture::Validation => {
                 return Err(WindowError::SurfaceValidation);
             }
         };
+
+        if self.page_needs_layout {
+            self.page.resize(
+                &self.queue,
+                &self.page_texture,
+                self.page_size.width,
+                self.page_size.height,
+            );
+            self.page_needs_layout = false;
+            self.page_dirty = false;
+        } else if self.page_dirty {
+            self.page.redraw(&self.queue, &self.page_texture);
+            self.page_dirty = false;
+        }
 
         let view = frame
             .texture
@@ -157,7 +208,7 @@ impl Renderer {
 
     pub(super) fn advance_animations(&mut self, now: Instant) -> Option<bool> {
         let active = self.page.advance_animations(now)?;
-        self.page.redraw(&self.queue, &self.page_texture);
+        self.page_dirty = true;
         Some(active)
     }
 
@@ -168,7 +219,9 @@ impl Renderer {
         let hover_changed = self.page.update_hover(position.x, position.y);
         let selection_changed = self.page.extend_selection(position.x, position.y);
         let (cursor, visible) = self.page.cursor_at(position.x, position.y);
-        (cursor, visible, hover_changed || selection_changed)
+        let changed = hover_changed || selection_changed;
+        self.page_dirty |= changed;
+        (cursor, visible, changed)
     }
 
     pub(super) fn scroll_by(
@@ -184,20 +237,26 @@ impl Renderer {
         {
             return false;
         }
-        self.page.redraw(&self.queue, &self.page_texture);
+        self.page_dirty = true;
         true
     }
 
     pub(super) fn pointer_left(&mut self) -> bool {
-        self.page.clear_hover()
+        let changed = self.page.clear_hover();
+        self.page_dirty |= changed;
+        changed
     }
 
     pub(super) fn tab_focus(&mut self, backwards: bool) -> bool {
-        self.page.focus_next(backwards)
+        let changed = self.page.focus_next(backwards);
+        self.page_dirty |= changed;
+        changed
     }
 
     pub(super) fn select_word_at(&mut self, position: PhysicalPosition<f64>) -> bool {
-        self.page.select_word_at(position.x, position.y)
+        let changed = self.page.select_word_at(position.x, position.y);
+        self.page_dirty |= changed;
+        changed
     }
 
     pub(super) fn mouse_input(
@@ -209,13 +268,15 @@ impl Renderer {
         if button != MouseButton::Left {
             return false;
         }
-        match state {
+        let changed = match state {
             ElementState::Pressed => self.page.begin_selection(position.x, position.y),
             ElementState::Released => {
                 self.page.end_selection();
                 self.page.end_active()
             }
-        }
+        };
+        self.page_dirty |= changed;
+        changed
     }
 }
 
@@ -234,7 +295,9 @@ fn create_page_renderer(
     ),
     WindowError,
 > {
-    let texture = create_page_texture(device, queue, config, page);
+    let capacity = PhysicalSize::new(config.width, config.height);
+    let texture = create_page_texture(device, capacity);
+    page.resize(queue, &texture, config.width, config.height);
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         mag_filter: wgpu::FilterMode::Linear,
@@ -315,17 +378,12 @@ fn create_page_renderer(
     Ok((texture, layout, sampler, bind_group, pipeline))
 }
 
-fn create_page_texture(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    config: &wgpu::SurfaceConfiguration,
-    page: &mut PageRasterizer,
-) -> wgpu::Texture {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
+fn create_page_texture(device: &wgpu::Device, size: PhysicalSize<u32>) -> wgpu::Texture {
+    device.create_texture(&wgpu::TextureDescriptor {
         label: Some("ctml-page-texture"),
         size: wgpu::Extent3d {
-            width: config.width,
-            height: config.height,
+            width: size.width,
+            height: size.height,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -334,9 +392,7 @@ fn create_page_texture(
         format: wgpu::TextureFormat::Rgba8UnormSrgb,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         view_formats: &[],
-    });
-    page.resize(queue, &texture, config.width, config.height);
-    texture
+    })
 }
 
 fn create_page_bind_group(

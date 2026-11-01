@@ -15,6 +15,38 @@ impl PageRasterizer {
         height: u32,
         writing_mode: WritingMode,
     ) -> Vec<u8> {
+        // Avoid a full-page offscreen layer per text run when stacking effects are absent.
+        if self.root_style.mix_blend_mode == BackgroundBlendMode::Normal
+            && self.opacity_groups.values().all(|opacity| *opacity >= 1.0)
+            && self
+                .mix_blend_modes
+                .values()
+                .all(|mode| *mode == BackgroundBlendMode::Normal)
+            && self.isolation_groups.is_empty()
+            && self.runs.iter().all(|run| {
+                run.style.opacity >= 1.0
+                    && run.first_line_opacity.is_none_or(|opacity| opacity >= 1.0)
+                    && run
+                        .first_letter_opacity
+                        .is_none_or(|opacity| opacity >= 1.0)
+                    && run.style.box_shadows.is_empty()
+                    && run.style.text_shadows.is_empty()
+            })
+        {
+            let mut pixels = self.render_layout_pixels_raw(
+                width,
+                height,
+                writing_mode,
+                self.root_style.background,
+                false,
+                false,
+                false,
+                false,
+            );
+            self.apply_root_opacity(&mut pixels);
+            return pixels;
+        }
+
         let mut pixels = self.render_scoped_raw(
             None,
             self.root_style.background,
@@ -28,9 +60,7 @@ impl PageRasterizer {
             true,
         );
         if self.root_opacity == 0.0 {
-            for pixel in pixels.chunks_exact_mut(4) {
-                pixel[..3].copy_from_slice(&[255, 255, 255]);
-            }
+            self.apply_root_opacity(&mut pixels);
             return pixels;
         }
         if self.root_style.mix_blend_mode != BackgroundBlendMode::Normal {
@@ -80,6 +110,11 @@ impl PageRasterizer {
                 }
             }
         }
+        self.apply_root_opacity(&mut pixels);
+        pixels
+    }
+
+    fn apply_root_opacity(&self, pixels: &mut [u8]) {
         if self.root_opacity < 1.0 {
             for pixel in pixels.chunks_exact_mut(4) {
                 for channel in &mut pixel[..3] {
@@ -89,7 +124,6 @@ impl PageRasterizer {
                 }
             }
         }
-        pixels
     }
 
     fn render_group_layer(

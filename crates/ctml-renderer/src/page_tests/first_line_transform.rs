@@ -131,10 +131,10 @@ fn first_line_border_radius_rounds_its_background() {
     }));
     let pixel_at = |x: usize, y: usize| &pixels[(y * 180 + x) * 4..][..3];
 
-    let rounded_corner = pixel_at(1, 1);
+    let rounded_corner = pixel_at(9, 9);
     assert_eq!(rounded_corner[0], 255);
     assert!(rounded_corner[1] > 200 && rounded_corner[1] < 255);
-    assert_eq!(pixel_at(20, 8), [255, 0, 0]);
+    assert_eq!(pixel_at(28, 16), [255, 0, 0]);
 }
 
 #[test]
