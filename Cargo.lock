@@ -691,6 +691,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctml-feature-showcase"
+version = "0.1.0"
+dependencies = [
+ "ctml",
+ "ctml-compiler",
+]
+
+[[package]]
 name = "ctml-native-demo"
 version = "0.1.0"
 dependencies = [

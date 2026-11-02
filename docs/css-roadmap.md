@@ -31,13 +31,13 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [x] Adjacent sibling (`+`) and general sibling (`~`) combinators.
 - [x] Structural pseudo-classes: `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child()`, `:nth-last-child()`, and type-based equivalents.
 - [x] Pointer-state pseudo-classes `:hover` and `:active` for text-bearing CTML elements.
-- [x] `:focus` and `:focus-within` for clicked links with `href` and elements with numeric `tabindex`.
-- [x] `:focus-visible` based on keyboard focus, with Tab and Shift+Tab navigation through links and sequentially focusable elements.
-- [ ] Form-state pseudo-classes; CTML does not yet have native form controls.
+- [x] `:focus` and `:focus-within` for clicked links with `href`, buttons, supported text inputs, and elements with numeric `tabindex`.
+- [x] `:focus-visible` based on keyboard focus, with Tab and Shift+Tab navigation through links, buttons, supported text inputs, and sequentially focusable elements.
+- [ ] Form-state pseudo-classes such as `:checked`, `:placeholder-shown`, and `:valid`; control disabled state is handled for focus and activation.
 - [x] Selector logic: `:is()`, `:where()`, and `:not()`.
 - [x] Relational selector `:has()` with descendant, child, adjacent-sibling, and general-sibling relative selectors.
 - [x] Language and direction selectors: inherited `:lang()` ranges and explicit/inherited `:dir(ltr|rtl)`.
-- [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Form, range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
+- [x] Link pseudo-classes `:link` and `:any-link` for `<a href>` elements. Range, visited-history, and target pseudo-classes do not currently apply because CTML has no corresponding controls, history state, or navigation target.
 - [x] `::before` and `::after` generated text from quoted `content` strings and string-valued `attr(name)`, with supported text properties.
 - [x] String-valued `attr(name, fallback)` uses a serialized token-sequence fallback when the attribute is missing.
 - [x] Generated-content `attr()` converts `type(<string>)`, `type(<number>)`, and `type(<integer>)`, using the fallback when conversion fails.
@@ -81,7 +81,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] `outline`, `outline-width`, `outline-style`, `outline-color`, and signed `outline-offset` paint around the first formatted line.
   - [x] Physical and logical border shorthands and side longhands paint around the first formatted line and add inline border widths to its advance.
   - [x] Supported `border-image` sources and nine-slice values paint around the first formatted line and replace its solid border.
-- [ ] `::placeholder`; CTML does not currently define form controls.
+- [ ] `::placeholder`; supported text inputs show placeholder text but do not expose the pseudo-element for styling.
 - [ ] Shadow-tree and part selectors if CTML introduces component encapsulation.
 - [x] CSS escapes in type, class, and ID identifiers, attribute names and values, plus specificity for the currently supported selector constructs.
 - [x] Filtered `:nth-child(... of S)` and `:nth-last-child(... of S)` matching.
@@ -193,7 +193,7 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
   - [x] Compose overlapping sibling opacity groups in document paint order.
   - [x] Preserve paint order when opacity groups overlap non-opacity element siblings, including nested element subtrees.
   - [x] Preserve paint order when opacity groups overlap text or generated-content nodes interleaved with element siblings.
-- [ ] `accent-color` and color adjustment properties. CTML has no native form controls or OS forced-color preference source.
+- [ ] `accent-color` and color adjustment properties. Current text inputs and buttons do not expose accentable states, and CTML has no OS forced-color preference source.
 - [x] `color-scheme: normal | light | dark` with ordered supported schemes and optional `only`; system color keywords resolve using the selected inherited light or dark palette. OS preference negotiation remains unsupported because CTML exposes no preferred-scheme input.
 - [x] Blend modes and isolation for supported background layers and element subtrees.
   - [x] `background-blend-mode` for normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, hue, saturation, color, and luminosity modes.
@@ -376,9 +376,10 @@ Namespace selectors do not apply to current CTML documents: tag names do not acc
 - [ ] Custom cursor images and hotspot coordinates.
 - [x] `pointer-events: auto|none` for rendered text targets, including descendant overrides.
 - [x] `user-select: auto|text|none|all` for rendered text, including descendant overrides and atomic element selection.
-- [ ] `caret-color` and `accent-color`.
-- [ ] Native default focus indication and additional keyboard UI states; `:focus-visible`, keyboard navigation, and CSS outline properties are supported.
-- [ ] Form control appearance, sizing, and styling if CTML provides native form controls.
+- [ ] `caret-color`; text inputs do not yet paint or position a caret.
+- [ ] `accent-color` for controls.
+- [x] Basic default appearance, sizing, focus rings, and author styling for buttons and single-line text inputs.
+- [ ] Full form control appearance and sizing for password, checkbox, radio, range, number, date, select, and form controls beyond the documented text inputs.
 - [ ] Resize behavior and `resize` property.
 - [ ] Touch and pointer action properties where relevant.
 - [ ] Scrollbar styling and platform-native scrollbar policy.

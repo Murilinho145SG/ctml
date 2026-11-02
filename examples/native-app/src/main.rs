@@ -9,6 +9,7 @@ fn main() -> Result<(), ctml::WindowError> {
         height: generated::WINDOW_HEIGHT,
         body: generated::body(),
         stylesheet: generated::stylesheet(),
+        keyframes: generated::keyframes(),
         fonts: generated::fonts(),
         color_profiles: generated::color_profiles(),
         ..ctml::WindowConfig::default()

@@ -1,0 +1,12 @@
+[package]
+name = "ctml-feature-showcase"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+build = "build.rs"
+
+[dependencies]
+ctml = { path = "../../crates/ctml" }
+
+[build-dependencies]
+ctml-compiler = { path = "../../crates/ctml-compiler" }

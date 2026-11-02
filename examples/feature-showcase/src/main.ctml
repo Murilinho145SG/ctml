@@ -1,0 +1,198 @@
+<headers>
+    <application name="CTML Feature Showcase" desktop width="1440" height="1000" />
+    <stylesheet href="showcase.css" />
+    <stylesheet href="effects.css" />
+</headers>
+
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand"><span class="brand-mark">C</span><span>CTML</span><span class="brand-version">SHOWCASE / 01</span></div>
+            <div class="topbar-center"><span class="live-dot"></span> COMPILED NATIVE INTERFACE</div>
+            <div class="topbar-meta">RUST <span>/</span> CSS <span>/</span> DESKTOP</div>
+        </header>
+
+        <div class="workspace">
+            <aside class="sidebar">
+                <p class="eyebrow">EXPLORER</p>
+                <p class="sidebar-current"><span class="sidebar-icon">◈</span> Feature tour</p>
+                <p class="sidebar-item">01 <span>Typography</span></p>
+                <p class="sidebar-item">02 <span>Color systems</span></p>
+                <p class="sidebar-item">03 <span>Layout engine</span></p>
+                <p class="sidebar-item">04 <span>Interaction</span></p>
+                <p class="sidebar-item">05 <span>Rendering</span></p>
+                <div class="sidebar-note">
+                    <p class="eyebrow">BUILD STATUS</p>
+                    <p><span class="status-check">✓</span> READY TO RENDER</p>
+                    <p class="muted">No browser runtime</p>
+                </div>
+            </aside>
+
+            <div class="page-content">
+                <section class="intro panel">
+                    <div class="intro-copy">
+                        <p class="eyebrow"><span class="accent-square"></span> THE COMPILED UI TOOLKIT</p>
+                        <h1>One language.<br /><em>Native by design.</em></h1>
+                        <p class="intro-text">Describe an interface with familiar markup, style it with CSS, and compile it into a desktop application.</p>
+                        <div class="intro-actions">
+                            <button action="explore">Explore the features</button>
+                            <button class="button-quiet" action="reset">Reset demo</button>
+                        </div>
+                    </div>
+                    <div class="build-card">
+                        <div class="build-card-head"><span>COMPILE TARGET</span><span>● READY</span></div>
+                        <p class="build-command">cargo run -p ctml-feature-showcase</p>
+                        <div class="build-metrics">
+                            <div><p class="metric-value">01</p><p class="metric-label">WINDOW</p></div>
+                            <div><p class="metric-value">02</p><p class="metric-label">STYLESHEETS</p></div>
+                            <div><p class="metric-value">00</p><p class="metric-label">BROWSER DEPS</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-block" id="typography">
+                    <div class="section-heading"><div><p class="eyebrow">01 / TYPE SYSTEM</p><h2>Typography with range.</h2></div><p class="section-note">Font selection · shaping · decoration · writing modes</p></div>
+                    <div class="type-grid">
+                        <article class="panel type-specimen">
+                            <p class="eyebrow">DISPLAY / SERIF ITALIC</p>
+                            <h3 class="specimen-title">The quick brown fox</h3>
+                            <p class="specimen-copy">Variable font weight, optical sizing, kerning, OpenType variants, and font-relative lengths shape the text that reaches the native rasterizer.</p>
+                            <p class="type-tags">font-variation-settings <span>·</span> font-feature-settings <span>·</span> text-rendering</p>
+                        </article>
+                        <article class="panel type-details">
+                            <p class="eyebrow">TEXT TREATMENTS</p>
+                            <p class="treatment uppercase">PRECISION IN EVERY LINE</p>
+                            <p class="treatment underline">Underline with skip-ink</p>
+                            <p class="treatment emphasis">Emphasis marks stay attached</p>
+                            <p class="treatment small-caps">small caps / all small caps</p>
+                            <p class="vertical-sample">VERTICAL TYPE</p>
+                        </article>
+                    </div>
+                    <div class="panel text-flow">
+                        <div><p class="eyebrow">LINE FORMATION</p><p class="flow-title">Readable text flow</p></div>
+                        <p class="flow-copy">Wrapping, white-space modes, language-aware hyphenation, bidirectional text, text indentation, word and letter spacing, and ellipsis handling are resolved before pixels are painted. Resize the window to watch the layout reflow.</p>
+                        <p class="flow-sample" lang="en">Internationalization: coöperate — façade — typography</p>
+                    </div>
+                    <div class="panel list-specimen">
+                        <div><p class="eyebrow">LISTS / COUNTERS</p><p class="list-title">Native markers, composed in flow</p></div>
+                        <ul><li>Bullets and marker alignment</li><li>Nested list scopes</li><li>Predefined counter styles</li></ul>
+                        <ol><li>Ordered counters</li><li>Alphabetic and numeral systems</li></ol>
+                    </div>
+                </section>
+
+                <section class="section-block" id="color">
+                    <div class="section-heading"><div><p class="eyebrow">02 / COLOR LAB</p><h2>Color beyond hex.</h2></div><p class="section-note">Modern color spaces · interpolation · alpha compositing</p></div>
+                    <div class="color-grid">
+                        <article class="color-card color-spectrum"><p class="eyebrow">COLOR-MIX / OKLCH</p><p>Perceptual gradient</p><span>oklch(72% 0.16 245)</span></article>
+                        <article class="color-card color-sunset"><p class="eyebrow">DISPLAY-P3 SOURCE</p><p>Gamut-mapped for display</p><span>color(display-p3 0.8 0.3 0.5)</span></article>
+                        <article class="color-card color-glass"><p class="eyebrow">ALPHA / BLEND</p><p>Layered transparencies</p><span>color-mix(in srgb, …)</span></article>
+                    </div>
+                    <div class="panel palette-panel">
+                        <div><p class="eyebrow">SYSTEM PALETTE</p><p class="palette-title">Light and dark color-scheme values</p></div>
+                        <div class="swatches"><span class="swatch swatch-canvas"></span><span class="swatch swatch-raised"></span><span class="swatch swatch-primary"></span><span class="swatch swatch-success"></span><span class="swatch swatch-warning"></span><span class="swatch swatch-danger"></span></div>
+                        <p class="palette-caption">Named colors · relative colors · ICC profiles · color-mix()</p>
+                    </div>
+                    <div class="panel cascade-panel">
+                        <p class="eyebrow">CASCADE LAYERS / TYPED ATTR()</p>
+                        <p class="cascade-sample">Later named layers win for normal declarations.</p>
+                        <p class="attribute-sample" data-detail="content attr()" >Generated content reads an element attribute.</p>
+                    </div>
+                </section>
+
+                <section class="section-block" id="layout">
+                    <div class="section-heading"><div><p class="eyebrow">03 / LAYOUT ENGINE</p><h2>Flow, flex, grid.</h2></div><p class="section-note">Measured text · box styling · scrolling · vertical writing</p></div>
+                    <div class="layout-grid">
+                        <article class="panel layout-card">
+                            <div class="card-heading"><p class="eyebrow">GRID / AUTO PLACEMENT</p><span class="tiny-badge">3 × 2</span></div>
+                            <div class="grid-demo"><div>01</div><div>02</div><div>03</div><div>04</div><div>05</div><div>06</div></div>
+                            <p class="card-footnote">Fractional tracks · intrinsic sizing · minmax · gaps</p>
+                        </article>
+                        <article class="panel layout-card">
+                            <div class="card-heading"><p class="eyebrow">FLEX / DISTRIBUTION</p><span class="tiny-badge">SPACE BETWEEN</span></div>
+                            <div class="flex-demo"><span>A</span><span>B</span><span>C</span></div>
+                            <p class="card-footnote">Direction · wrap · order · grow · shrink · alignment</p>
+                        </article>
+                    </div>
+                    <div class="layout-bottom">
+                        <article class="panel box-card">
+                            <p class="eyebrow">BOX PAINT</p>
+                            <div class="box-sample"><span>Border</span><span>Radius</span><span>Shadow</span></div>
+                            <p class="card-footnote">Padding · margin · border-image · outline · aspect-ratio</p>
+                        </article>
+                        <article class="panel scroll-card">
+                            <p class="eyebrow">NESTED SCROLL REGION</p>
+                            <div class="scroll-frame"><p>Scrollable content stays clipped to its own box.</p><p>Wheel input chains to the page at its boundary.</p><p>Overflow auto draws a native scrollbar when needed.</p><p>Content remains selectable inside the region.</p></div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-block" id="interaction">
+                    <div class="section-heading"><div><p class="eyebrow">04 / INTERACTION</p><h2>Controls that respond.</h2></div><p class="section-note">Hover · active · focus-visible · keyboard · callbacks</p></div>
+                    <div class="interaction-grid">
+                        <article class="panel control-panel">
+                            <p class="eyebrow">TEXT INPUT / LIVE VALUE</p>
+                            <label class="input-label" for="search-input">Search this feature tour</label>
+                            <input id="search-input" type="search" placeholder="Type to update the status" value="" />
+                            <p class="input-feedback" id="input-feedback">Your input value will appear here.</p>
+                            <p class="card-footnote">Tab to focus · type to edit · Backspace to delete</p>
+                        </article>
+                        <article class="panel control-panel">
+                            <p class="eyebrow">BUTTON / ACTION CALLBACK</p>
+                            <p class="counter-value" id="counter-value">0</p>
+                            <div class="counter-actions"><button action="increment">Increment</button><button class="button-quiet" action="reset">Reset</button></div>
+                            <p class="input-feedback" id="action-status">Actions update the compiled body tree.</p>
+                        </article>
+                    </div>
+                    <div class="panel focus-demo">
+                        <p class="eyebrow">KEYBOARD CHECK</p>
+                        <p>Use <kbd>Tab</kbd> and <kbd>Shift</kbd> + <kbd>Tab</kbd> to move focus. A visible ring marks keyboard focus.</p>
+                        <a href="#interaction">Focusable link target</a>
+                    </div>
+                </section>
+
+                <section class="section-block" id="rendering">
+                    <div class="section-heading"><div><p class="eyebrow">05 / RENDER PIPELINE</p><h2>Pixels, assembled natively.</h2></div><p class="section-note">Compiled data · shaped glyphs · deterministic paint stages</p></div>
+                    <div class="pipeline panel">
+                        <div><span class="pipeline-index">01</span><p class="pipeline-title">CTML</p><p class="pipeline-caption">Markup tree</p></div>
+                        <span class="pipeline-arrow">→</span>
+                        <div><span class="pipeline-index">02</span><p class="pipeline-title">CSS</p><p class="pipeline-caption">Cascade and values</p></div>
+                        <span class="pipeline-arrow">→</span>
+                        <div><span class="pipeline-index">03</span><p class="pipeline-title">RUST</p><p class="pipeline-caption">Build-time output</p></div>
+                        <span class="pipeline-arrow">→</span>
+                        <div><span class="pipeline-index">04</span><p class="pipeline-title">PIXELS</p><p class="pipeline-caption">Native window</p></div>
+                    </div>
+                    <div class="feature-ledger panel">
+                        <div><p class="eyebrow">FEATURE COVERAGE</p><p class="ledger-title">A compact map of the supported surface</p></div>
+                        <div class="ledger-columns">
+                            <p>Selectors <span>Structural · relational · attribute</span></p>
+                            <p>Typography <span>OpenType · bidi · vertical text</span></p>
+                            <p>Painting <span>Gradients · shadows · blend modes</span></p>
+                            <p>Motion <span>Transitions · keyframes · reduced motion</span></p>
+                            <p>Resources <span>Local fonts · images · ICC profiles</span></p>
+                            <p>Scrolling <span>Clipping · chaining · scrollbars</span></p>
+                        </div>
+                    </div>
+                    <div class="coverage-grid">
+                        <article class="panel coverage-card"><p class="eyebrow">CSS LANGUAGE</p><p>Selectors, specificity, source order, importance, named layers, inline styles, custom properties, var(), attr(), and CSS-wide resets.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">SELECTOR STATES</p><p>Structural and relational selectors, attribute flags, language and direction matching, links, hover, active, focus, and focus-visible.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">GENERATED CONTENT</p><p>Before and after content, counters, quotes, typed attributes, selection colors, first-line and first-letter styling.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">TEXT FLOW</p><p>Wrapping modes, hyphenation, bidi, vertical writing, emphasis, decorations, text shadows, lists, markers, and counter styles.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">BOX PAINT</p><p>Layered backgrounds, gradients, borders, rounded corners, outlines, shadows, border images, opacity, blend modes, and isolation.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">COLOR MANAGEMENT</p><p>Modern CSS color spaces, relative colors, color mixing, gamut mapping, system colors, and local ICC profiles.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">MOTION</p><p>Color and opacity transitions, visibility changes, named keyframes, timing functions, fill modes, and reduced-motion configuration.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">LOCAL RESOURCES</p><p>Build-time imports, embedded images, local fonts, variable font ranges, and safe resource-root validation.</p></article>
+                        <article class="panel coverage-card"><p class="eyebrow">NATIVE INPUT</p><p>Keyboard focus, button actions, editable text inputs, callbacks, selection, scrolling, and operating-system cursors.</p></article>
+                    </div>
+                </section>
+
+                <section class="section-block limitations panel">
+                    <p class="eyebrow">CURRENT BOUNDARIES</p>
+                    <h2>Built for the surface CTML supports today.</h2>
+                    <p>Media queries, positioned boxes, tables, image replaced-element sizing, forms, and caret selection are still in the roadmap. The full supported syntax and limitations are listed in docs/css.md.</p>
+                </section>
+
+                <footer class="footer"><span>CTML FEATURE SHOWCASE</span><span>COMPILED WITH RUST</span><span>NO BROWSER RUNTIME</span></footer>
+            </div>
+        </div>
+    </main>
+</body>

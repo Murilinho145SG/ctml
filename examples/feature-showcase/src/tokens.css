@@ -1,0 +1,23 @@
+@font-face {
+    font-family: "Showcase Mono";
+    src: local("DejaVu Sans Mono");
+    font-weight: normal;
+}
+
+:root {
+    --canvas: #101319;
+    --panel: #171c24;
+    --panel-raised: #1d2430;
+    --line: #2b3442;
+    --ink: #f0f4fa;
+    --muted: #98a5b6;
+    --subtle: #6f7d8f;
+    --cyan: oklch(78% 0.13 205);
+    --blue: oklch(66% 0.19 260);
+    --violet: oklch(70% 0.17 305);
+    --green: oklch(76% 0.16 150);
+    --amber: oklch(82% 0.15 80);
+    --rose: oklch(70% 0.18 20);
+    --mono: "Showcase Mono", "DejaVu Sans Mono", monospace;
+    --sans: "DejaVu Sans", Arial, sans-serif;
+}

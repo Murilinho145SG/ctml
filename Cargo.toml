@@ -6,6 +6,7 @@ members = [
     "crates/ctml-renderer",
     "crates/cosmic-text",
     "examples/native-app",
+    "examples/feature-showcase",
 ]
 resolver = "3"
 

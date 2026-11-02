@@ -76,6 +76,16 @@ Run the integrated demo with:
 cargo run -p ctml-native-demo
 ```
 
+The second example is a scrollable feature tour of the supported CTML surface. It includes typography, modern color spaces, block/flex/grid layout, backgrounds and box paint, generated content, focus states, native buttons and editable text inputs, scrolling, transitions, and keyframe animation. The interactive controls demonstrate `WindowConfig::on_action` and `WindowConfig::on_input`. It also calls out features that remain on the roadmap.
+
+Run the feature showcase with:
+
+```sh
+cargo run -p ctml-feature-showcase
+```
+
+The showcase package shares the integrated demo's build-time CTML and stylesheet compiler, so the compiled application receives markup, CSS, and keyframes without adding a runtime parser.
+
 ## Vision
 
 CTML brings the simplicity of describing interfaces with markup together with the performance and integration of compiled native applications. Browser-based rendering is not part of the project runtime.

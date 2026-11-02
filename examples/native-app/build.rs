@@ -12,6 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(source_path)?;
     let document = parse(&source)?;
     let mut stylesheet = Vec::new();
+    let mut keyframes = Vec::new();
     let mut fonts = Vec::new();
     let mut color_profiles = Vec::new();
     let mut layers = Vec::new();
@@ -81,6 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 layers.insert(insertion, layer.clone());
             }
         }
+        keyframes.extend(parsed.keyframes.iter().cloned());
         for mut rule in parsed.rules {
             rule.layer = rule.layer.map(|index| {
                 let name = &parsed.layers[index];
@@ -101,10 +103,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let height = dimension_attribute(application, "height", 600)?;
     let body = rust_nodes(&document.body)?;
     let stylesheet = rust_stylesheet(&stylesheet);
+    let keyframes = rust_keyframes(&keyframes);
     let fonts = rust_fonts(&fonts);
     let color_profiles = rust_color_profiles(&color_profiles);
     let generated_source = format!(
-        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\npub fn fonts() -> Vec<ctml::FontFace> {{ vec![{fonts}] }}\npub fn color_profiles() -> Vec<ctml::CssColorProfile> {{ vec![{color_profiles}] }}\n"
+        "pub const WINDOW_TITLE: &str = {title:?};\npub const WINDOW_WIDTH: u32 = {width};\npub const WINDOW_HEIGHT: u32 = {height};\npub fn body() -> Vec<ctml::UiNode> {{ vec![{body}] }}\npub fn stylesheet() -> Vec<ctml::StyleRule> {{ vec![{stylesheet}] }}\npub fn keyframes() -> Vec<ctml::CssKeyframes> {{ vec![{keyframes}] }}\npub fn fonts() -> Vec<ctml::FontFace> {{ vec![{fonts}] }}\npub fn color_profiles() -> Vec<ctml::CssColorProfile> {{ vec![{color_profiles}] }}\n"
     );
 
     let output_path = PathBuf::from(
@@ -181,6 +184,46 @@ fn rust_stylesheet(rules: &[CssRule]) -> String {
             format!(
                 "ctml::StyleRule {{ selectors: vec![{selectors}], declarations: vec![{declarations}], layer: {} }}",
                 rule.layer.map_or_else(|| "None".to_owned(), |layer| format!("Some({layer})"))
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn rust_keyframes(keyframes: &[ctml_compiler::CssKeyframes]) -> String {
+    keyframes
+        .iter()
+        .map(|animation| {
+            let frames = animation
+                .frames
+                .iter()
+                .map(|frame| {
+                    let offsets = frame
+                        .offsets
+                        .iter()
+                        .map(|offset| format!("{offset:?}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let declarations = frame
+                        .declarations
+                        .iter()
+                        .map(|declaration| {
+                            format!(
+                                "ctml::StyleDeclaration {{ property: {:?}.to_owned(), value: {:?}.to_owned() }}",
+                                declaration.property, declaration.value
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    format!(
+                        "ctml::CssKeyframe {{ offsets: vec![{offsets}], declarations: vec![{declarations}] }}"
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!(
+                "ctml::CssKeyframes {{ name: {:?}.to_owned(), frames: vec![{frames}] }}",
+                animation.name
             )
         })
         .collect::<Vec<_>>()
