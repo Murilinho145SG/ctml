@@ -1,14 +1,6 @@
-.sidebar-note:has(.status-check) { border-top-color: color-mix(in srgb, var(--green) 35%, var(--line)); }
-.ledger-columns p:nth-child(odd) { color: var(--cyan); }
-.ledger-columns p:nth-child(even) { color: var(--violet); }
-.sidebar-item:hover, .sidebar-current:hover { background-color: color-mix(in srgb, var(--cyan) 9%, transparent); color: var(--ink); }
-button:hover { border-color: var(--blue); background-color: color-mix(in srgb, var(--blue) 80%, #fff); color: #0e1520; }
-.button-quiet:hover { border-color: var(--cyan); background-color: color-mix(in srgb, var(--cyan) 18%, var(--panel-raised)); color: var(--cyan); }
-button:active { opacity: 0.78; }
-button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
-.focus-demo a:hover { color: var(--ink); text-decoration: underline; }
-.control-panel input:focus { border-color: var(--cyan); background-color: #141c26; }
-.intro-text::first-line { color: var(--ink); }
-.limitations > p:last-child::first-letter { color: var(--cyan); font-size: 20px; }
-.pipeline-title::before { content: "// "; color: var(--subtle); }
-::selection { background-color: color-mix(in srgb, var(--cyan) 68%, transparent); color: #0a1118; }
+button:hover { border-color: var(--blue); background-color: var(--blue); color: #101820; }
+button:active { background-color: var(--violet); color: #101820; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+input:focus { border-color: var(--cyan); }
+.type-detail[data-detail]::after { content: " · " attr(data-detail); color: var(--cyan); }
+::selection { background-color: var(--cyan); color: #0a1118; }
