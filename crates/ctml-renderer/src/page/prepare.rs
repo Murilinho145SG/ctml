@@ -266,7 +266,7 @@ impl PageRasterizer {
         self.buffer.set_scroll(self.root_scroll);
         self.buffer.shape_until_scroll(&mut self.font_system, false);
         self.root_scroll = self.buffer.scroll();
-        layout::apply_flex_columns(self, content_width);
+        layout::apply_flex_columns(self, content_width, content_height);
         self.refresh_overflow_geometry(width, height);
     }
 

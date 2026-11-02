@@ -9,7 +9,7 @@ use super::super::{
     sizing_intrinsic::measure_intrinsic_widths,
     sizing_padding::{inline_borders, inline_margin, inline_padding},
 };
-use super::{line_alignments, line_writing_modes, paragraph_directions};
+use super::{line_alignments, paragraph_directions};
 
 pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_height: f32) {
     page.buffer.set_size(
@@ -218,9 +218,6 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
         line.set_base_rtl(Some(direction == crate::style::Direction::Rtl));
     }
     let line_styles = line_alignments(&page.runs);
-    let page_writing_mode = page.writing_mode();
-    let line_writing_modes =
-        line_writing_modes(&page.runs, page.buffer.lines.len(), page_writing_mode);
     for (
         line,
         (
@@ -252,12 +249,27 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
         line.set_ellipsize(ellipsize);
     }
     page.buffer.shape_until_scroll(&mut page.font_system, false);
+    layout_lines(page, content_width, content_height);
+
+    if super::flex_distribution::apply_distributed_flex_gaps(page, content_width) {
+        shape_buffer(page, content_width, content_height);
+    } else if super::flex_wrap::apply_wrapped_row_gaps(page) {
+        shape_buffer(page, content_width, content_height);
+    } else {
+        super::flex_row_alignment::apply_flex_row_alignment(page);
+    }
+}
+
+pub(super) fn layout_lines(page: &mut PageRasterizer, content_width: f32, content_height: f32) {
     let line_sizes = line_layout_sizes(&page.runs, page.buffer.lines.len());
     let metrics = page.buffer.metrics();
     let monospace_width = page.buffer.monospace_width();
     let tab_width = page.buffer.tab_width();
     let hinting = page.buffer.hinting();
     let page_writing_mode = page.writing_mode();
+    let line_writing_modes =
+        super::line_writing_modes(&page.runs, page.buffer.lines.len(), page_writing_mode);
+    let line_styles = super::line_alignments(&page.runs);
     for (
         ((line, sizes), line_writing_mode),
         (_, _, _, wrap, _, _, _, ellipsize, indent, indent_percent, hanging, each_line),
@@ -298,13 +310,11 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
         let (padding_start, _) = inline_padding(&sizes, inline_available, page_writing_mode);
         let (border_start, _) = inline_borders(&sizes, inline_available, page_writing_mode);
         let (margin_start, _) = inline_margin(&sizes, inline_available, page_writing_mode);
-        let line_width = line_content_width + border_start + padding_start + margin_start;
+        let block_indent = border_start + padding_start + margin_start;
+        let line_width = line_content_width;
+        line.set_block_indent(block_indent);
         line.set_indent(
-            border_start
-                + padding_start
-                + margin_start
-                + indent
-                + line_content_width * indent_percent / 100.0,
+            indent + line_content_width * indent_percent / 100.0,
             hanging,
             each_line,
         );
@@ -322,13 +332,5 @@ pub fn shape_buffer(page: &mut PageRasterizer, content_width: f32, content_heigh
             tab_width,
             hinting,
         );
-    }
-
-    if super::flex_distribution::apply_distributed_flex_gaps(page, content_width) {
-        shape_buffer(page, content_width, content_height);
-    } else if super::flex_wrap::apply_wrapped_row_gaps(page) {
-        shape_buffer(page, content_width, content_height);
-    } else {
-        super::flex_row_alignment::apply_flex_row_alignment(page);
     }
 }

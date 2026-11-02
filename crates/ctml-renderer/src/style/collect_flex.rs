@@ -343,3 +343,99 @@ pub(super) fn flex_main_size(style: &TextStyle) -> Option<f32> {
     };
     resolve(declared_size).or_else(|| ctml_css::parse_math_expression(declared_size, resolve))
 }
+
+#[derive(Clone, Copy, Debug)]
+pub(super) struct FlexItemBox {
+    pub(super) inline_start: f32,
+    pub(super) inline_end: f32,
+}
+
+pub(super) fn item_box(style: &TextStyle) -> Option<FlexItemBox> {
+    let padding = resolve_item_lengths(&style.padding, style);
+    let border = resolve_item_borders(style);
+    let margin = resolve_item_lengths(&style.margin, style);
+    let inline_start = margin[3] + border[3] + padding[3];
+    let inline_end = margin[1] + border[1] + padding[1];
+    if inline_start == 0.0 && inline_end == 0.0 {
+        return None;
+    }
+    Some(FlexItemBox {
+        inline_start,
+        inline_end,
+    })
+}
+
+pub(super) fn append_item_box_spacer(
+    container: &TextStyle,
+    advance: f32,
+    element_path: &[usize],
+    output: &mut Vec<TextRun>,
+    last_was_space: &mut bool,
+    capitalize_next: &mut bool,
+) {
+    let mut spacer_style = container.clone();
+    spacer_style.font_size = 1.0;
+    spacer_style.font_scale = 1.0;
+    spacer_style.line_height = 1.0;
+    spacer_style.line_height_multiplier = None;
+    spacer_style.line_height_normal = false;
+    spacer_style.letter_spacing = advance;
+    spacer_style.letter_spacing_px = true;
+    spacer_style.flex_distributed_gap = false;
+    spacer_style.flex_distributed_gap_leading = false;
+    spacer_style.flex_distributed_gap_applied = false;
+    spacer_style.flex_justify_distributed = false;
+    let previous_space = *last_was_space;
+    let previous_capitalize = *capitalize_next;
+    append_text(
+        "\u{200b}",
+        &spacer_style,
+        element_path,
+        output,
+        last_was_space,
+        capitalize_next,
+    );
+    *last_was_space = previous_space;
+    *capitalize_next = previous_capitalize;
+}
+
+fn resolve_item_lengths(values: &[Option<String>; 4], style: &TextStyle) -> [f32; 4] {
+    std::array::from_fn(|index| resolve_item_length(values[index].as_deref(), style))
+}
+
+fn resolve_item_length(value: Option<&str>, style: &TextStyle) -> f32 {
+    let Some(value) = value else {
+        return 0.0;
+    };
+    let value = value.trim();
+    if value.is_empty() || value.contains('%') {
+        return 0.0;
+    }
+    ctml_css::parse_signed_font_relative_length_with_viewport(
+        value,
+        style.font_size,
+        style.line_height,
+        style.font_relative_units,
+        style.viewport_size,
+    )
+    .unwrap_or_default()
+}
+
+fn resolve_item_borders(style: &TextStyle) -> [f32; 4] {
+    std::array::from_fn(|index| {
+        if style.border_style[index] == super::BorderLineStyle::None
+            && style.border_image_source.is_none()
+        {
+            return 0.0;
+        }
+        let Some(value) = style.border_width[index].as_deref() else {
+            return 3.0;
+        };
+        match value {
+            "thin" => 1.0,
+            "medium" => 3.0,
+            "thick" => 5.0,
+            _ => resolve_item_length(Some(value), style),
+        }
+    })
+}

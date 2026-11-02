@@ -164,6 +164,16 @@ pub(super) fn draw(
             let left = fragment.left + PAGE_PADDING;
             let length = (fragment.right - fragment.left).max(0.0);
             let fragment_height = (fragment.bottom - fragment.top).max(0.0);
+            let inline_available = if super::sizing::is_vertical(page_writing_mode) {
+                height as f32 - PAGE_PADDING * 2.0
+            } else {
+                width as f32 - PAGE_PADDING * 2.0
+            };
+            let inline_padding = resolve_inline_padding(style, inline_available.max(0.0));
+            let border_start = if sides[3] { widths[3] } else { 0.0 };
+            let border_end = if sides[1] { widths[1] } else { 0.0 };
+            let padding_start = if sides[3] { inline_padding[3] } else { 0.0 };
+            let padding_end = if sides[1] { inline_padding[1] } else { 0.0 };
             let block_padding = if let Some(block) = run.first_letter_block {
                 run.first_letter_font_style
                     .as_ref()
@@ -199,25 +209,12 @@ pub(super) fn draw(
                 )
             });
             if has_background {
-                let inline_available = if super::sizing::is_vertical(page_writing_mode) {
-                    height as f32 - PAGE_PADDING * 2.0
-                } else {
-                    width as f32 - PAGE_PADDING * 2.0
-                };
-                let background_padding = resolve_inline_padding(style, inline_available.max(0.0));
-                let border_start = if sides[3] { widths[3] } else { 0.0 };
-                let border_end = if sides[1] { widths[1] } else { 0.0 };
-                let padding_start = if sides[3] { background_padding[3] } else { 0.0 };
-                let padding_end = if sides[1] { background_padding[1] } else { 0.0 };
                 let background_left = left - border_start - padding_start;
-                let background_top = top - widths[0] - background_padding[0];
+                let background_top = top - widths[0] - inline_padding[0];
                 let background_width =
                     length + border_start + border_end + padding_start + padding_end;
-                let background_height = fragment_height
-                    + widths[0]
-                    + widths[2]
-                    + background_padding[0]
-                    + background_padding[2];
+                let background_height =
+                    fragment_height + widths[0] + widths[2] + inline_padding[0] + inline_padding[2];
                 let background_boxes = overflow_clip::BackgroundBoxes {
                     border: ClipRect {
                         left: background_left,
@@ -232,14 +229,10 @@ pub(super) fn draw(
                         bottom: background_top + background_height - widths[2],
                     },
                     content: ClipRect {
-                        left: background_left + border_start + background_padding[3],
-                        top: background_top + widths[0] + background_padding[0],
-                        right: background_left + background_width
-                            - border_end
-                            - background_padding[1],
-                        bottom: background_top + background_height
-                            - widths[2]
-                            - background_padding[2],
+                        left: background_left + border_start + inline_padding[3],
+                        top: background_top + widths[0] + inline_padding[0],
+                        right: background_left + background_width - border_end - inline_padding[1],
+                        bottom: background_top + background_height - widths[2] - inline_padding[2],
                     },
                 }
                 .offset(-scroll_x, -scroll_y);
@@ -287,6 +280,21 @@ pub(super) fn draw(
                     image_cache,
                 );
             }
+            let border_box = if style.flex_item_box {
+                overflow_clip::ClipRect {
+                    left: left - border_start - padding_start,
+                    top: top - widths[0] - inline_padding[0],
+                    right: left + length + border_end + padding_end,
+                    bottom: top + fragment_height + widths[2] + inline_padding[2],
+                }
+            } else {
+                overflow_clip::ClipRect {
+                    left,
+                    top,
+                    right: left + length,
+                    bottom: top + fragment_height,
+                }
+            };
             if has_outline {
                 super::outlines::draw_inline_outline(
                     pixels,
@@ -310,12 +318,7 @@ pub(super) fn draw(
                     width,
                     height,
                     style,
-                    overflow_clip::ClipRect {
-                        left,
-                        top,
-                        right: left + length,
-                        bottom: top + fragment_height,
-                    },
+                    border_box,
                     widths,
                     style.opacity * run.first_letter_opacity.unwrap_or(1.0),
                     clip,
@@ -326,25 +329,19 @@ pub(super) fn draw(
             if run.first_letter_block.is_some()
                 && style.border_radius.iter().flatten().any(Option::is_some)
             {
-                let rect = overflow_clip::ClipRect {
-                    left,
-                    top,
-                    right: left + length,
-                    bottom: top + fragment_height,
-                };
                 let radii = super::border_radius::resolve_radii_values(
                     &style.border_radius,
                     style.font_size,
                     style.line_height,
                     style.font_relative_units,
                     style.viewport_size,
-                    rect,
+                    border_box,
                 );
                 super::border_radius::draw_rounded_border(
                     pixels,
                     width,
                     height,
-                    rect,
+                    border_box,
                     widths,
                     radii,
                     style.border_style,
@@ -359,22 +356,34 @@ pub(super) fn draw(
                     continue;
                 }
                 let (x, y, edge_length, thickness, horizontal) = match side {
-                    0 => (left, top, length, widths[0], true),
+                    0 => (
+                        border_box.left,
+                        border_box.top,
+                        border_box.right - border_box.left,
+                        widths[0],
+                        true,
+                    ),
                     1 => (
-                        left + length - widths[1],
-                        top,
-                        fragment_height,
+                        border_box.right - widths[1],
+                        border_box.top,
+                        border_box.bottom - border_box.top,
                         widths[1],
                         false,
                     ),
                     2 => (
-                        left,
-                        top + fragment_height - widths[2],
-                        length,
+                        border_box.left,
+                        border_box.bottom - widths[2],
+                        border_box.right - border_box.left,
                         widths[2],
                         true,
                     ),
-                    _ => (left, top, fragment_height, widths[3], false),
+                    _ => (
+                        border_box.left,
+                        border_box.top,
+                        border_box.bottom - border_box.top,
+                        widths[3],
+                        false,
+                    ),
                 };
                 draw_edge(
                     pixels,

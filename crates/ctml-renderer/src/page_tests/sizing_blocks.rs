@@ -170,3 +170,73 @@ fn nested_vertical_physical_and_logical_sizes_follow_source_order() {
     let physical_last = make_page(("block-size", "80px"), ("width", "160px"));
     assert!(logical_last > physical_last);
 }
+
+#[test]
+fn max_width_constrains_text_wrapping_inside_a_flex_item() {
+    let text = "wrapped words inside a flex item respect the maximum width ".repeat(4);
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("item".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Element {
+                tag: "p".to_owned(),
+                class: Some("description".to_owned()),
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text)],
+            }],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "display".to_owned(),
+                value: "flex".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".item".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "width".to_owned(),
+                value: "300px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".description".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "max-width".to_owned(),
+                value: "120px".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(400, 600);
+
+    let lines = page
+        .buffer
+        .layout_runs()
+        .filter(|line| line.text.contains("wrapped"))
+        .collect::<Vec<_>>();
+    assert!(
+        lines.len() > 1,
+        "the description should wrap inside the flex item, got {} line(s)",
+        lines.len()
+    );
+    for line in &lines {
+        assert!(
+            line.line_w <= 121.0,
+            "wrapped lines should stay within the maximum width, got {}px",
+            line.line_w
+        );
+    }
+}

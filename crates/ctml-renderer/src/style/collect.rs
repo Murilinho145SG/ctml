@@ -97,6 +97,11 @@ pub(super) fn collect_runs(
         }
         match node {
             UiNode::Text(text) => {
+                if (inherited.flex_items_row || inherited.flex_items_column)
+                    && text.chars().all(char::is_whitespace)
+                {
+                    continue;
+                }
                 if let Some(position) = grid_item_position {
                     flex_gap_state.before_element(
                         inherited,
@@ -157,6 +162,7 @@ pub(super) fn collect_runs(
                     stylesheet,
                     font_metrics,
                 );
+                style.flex_item_box = false;
                 style.color_owner = if style.color_is_explicit {
                     Some(sibling.node_id)
                 } else {
@@ -375,8 +381,12 @@ pub(super) fn collect_runs(
                     (style.display_flex || style.display_grid) && !style.flex_direction_column;
                 style.flex_items_column = style.display_flex && style.flex_direction_column;
                 style.flex_wrap |= style.display_grid;
-                style.flex_item_no_wrap = inherited.flex_item_no_wrap
-                    || (inherited.flex_items_row && !inherited.flex_wrap);
+                style.flex_item_no_wrap = if block && !inherited.flex_items_row {
+                    false
+                } else {
+                    inherited.flex_item_no_wrap
+                        || (inherited.flex_items_row && !inherited.flex_wrap)
+                };
                 style.flex_item_alignment = collect_flex::item_alignment(&style, inherited, block);
                 if inherited.flex_items_row {
                     style.flex_item_cross_id = Some(sibling.node_id);
@@ -391,6 +401,12 @@ pub(super) fn collect_runs(
                     style.flex_item_cross_alignment = inherited.flex_item_cross_alignment;
                 }
                 style.inline_box = !block;
+                let flex_item_box = if inherited.flex_items_row && !block {
+                    collect_flex::item_box(&style)
+                } else {
+                    None
+                };
+                style.flex_item_box = flex_item_box.is_some();
                 let empty_box = children.is_empty()
                     && before_content.is_none()
                     && !has_after_content
@@ -400,6 +416,18 @@ pub(super) fn collect_runs(
                 if block && !run_in_before_block {
                     push_line_break(output, &style, element_path, last_was_space);
                     *capitalize_next = true;
+                }
+                if let Some(item_box) = flex_item_box
+                    && item_box.inline_start != 0.0
+                {
+                    collect_flex::append_item_box_spacer(
+                        inherited,
+                        item_box.inline_start,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
                 }
                 path.push(identity.clone());
                 element_path.push(sibling.node_id);
@@ -596,6 +624,13 @@ pub(super) fn collect_runs(
                     let mut end_marker_style = style.clone();
                     end_marker_style.layout_sizes.clear();
                     end_marker_style.layout_end_sizes.clear();
+                    if style.flex_items_row || style.flex_items_column {
+                        end_marker_style.font_size = 1.0;
+                        end_marker_style.font_scale = 1.0;
+                        end_marker_style.line_height = 1.0;
+                        end_marker_style.line_height_multiplier = None;
+                        end_marker_style.line_height_normal = false;
+                    }
                     append_text(
                         "\u{200b}",
                         &end_marker_style,
@@ -620,6 +655,18 @@ pub(super) fn collect_runs(
                 path_attributes.pop();
                 path_siblings.pop();
                 path_positions.pop();
+                if let Some(item_box) = flex_item_box
+                    && item_box.inline_end != 0.0
+                {
+                    collect_flex::append_item_box_spacer(
+                        inherited,
+                        item_box.inline_end,
+                        element_path,
+                        output,
+                        last_was_space,
+                        capitalize_next,
+                    );
+                }
                 for name in counter_scope.into_iter().rev() {
                     if let Some(values) = counters.get_mut(&name) {
                         values.pop();

@@ -20,6 +20,7 @@ pub struct BufferLine {
     indent: f32,
     indent_hanging: bool,
     indent_each_line: bool,
+    block_indent: f32,
     text_justify: TextJustify,
     keep_all: bool,
     wrap: Wrap,
@@ -52,6 +53,7 @@ impl BufferLine {
             indent: 0.0,
             indent_hanging: false,
             indent_each_line: false,
+            block_indent: 0.0,
             text_justify: TextJustify::Auto,
             keep_all: false,
             wrap: Wrap::WordOrGlyph,
@@ -84,6 +86,7 @@ impl BufferLine {
         self.indent = 0.0;
         self.indent_hanging = false;
         self.indent_each_line = false;
+        self.block_indent = 0.0;
         self.text_justify = TextJustify::Auto;
         self.keep_all = false;
         self.wrap = Wrap::WordOrGlyph;
@@ -215,6 +218,20 @@ impl BufferLine {
         }
     }
 
+    /// Set the block-level inline start offset applied to every visual line.
+    ///
+    /// Unlike [`Self::set_indent`], this offset shifts every visual line of the
+    /// paragraph and does not reduce the space available to the text.
+    pub fn set_block_indent(&mut self, block_indent: f32) -> bool {
+        if self.block_indent != block_indent {
+            self.block_indent = block_indent;
+            self.reset_layout();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Set the justification method used when laying out this line.
     pub fn set_text_justify(&mut self, text_justify: TextJustify) -> bool {
         if self.text_justify != text_justify {
@@ -331,6 +348,7 @@ impl BufferLine {
         new.indent = self.indent;
         new.indent_hanging = self.indent_hanging;
         new.indent_each_line = self.indent_each_line;
+        new.block_indent = self.block_indent;
         new.text_justify = self.text_justify;
         new.keep_all = self.keep_all;
         new.wrap = self.wrap;
@@ -411,6 +429,7 @@ impl BufferLine {
             let indent = self.indent;
             let indent_hanging = self.indent_hanging;
             let indent_each_line = self.indent_each_line;
+            let block_indent = self.block_indent;
             let text_justify = self.text_justify;
             let preserve_spaces = self.preserve_spaces;
             let mut layout = self
@@ -429,6 +448,7 @@ impl BufferLine {
                 indent,
                 indent_hanging,
                 indent_each_line,
+                block_indent,
                 text_justify,
                 preserve_spaces,
                 &mut layout,
@@ -474,6 +494,7 @@ impl BufferLine {
             indent: 0.0,
             indent_hanging: false,
             indent_each_line: false,
+            block_indent: 0.0,
             text_justify: TextJustify::Auto,
             keep_all: false,
             wrap: Wrap::WordOrGlyph,
@@ -603,6 +624,37 @@ mod tests {
             .expect("second visual line should contain glyphs");
         assert!(first_left < 12.0);
         assert!(second_left >= 12.0);
+    }
+
+    #[test]
+    fn applies_block_indent_to_every_wrapped_line() {
+        let mut font_system = FontSystem::new();
+        let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
+        buffer.set_size(Some(80.0), None);
+        buffer.set_wrap(Wrap::Word);
+        buffer.set_text(
+            "one two three four five six seven eight",
+            &Attrs::new(),
+            Shaping::Advanced,
+            Some(Align::Left),
+        );
+        buffer.lines[0].set_block_indent(12.0);
+        buffer.shape_until_scroll(&mut font_system, false);
+
+        let runs: Vec<_> = buffer.layout_runs().collect();
+        assert!(runs.len() > 1, "text should wrap to multiple visual lines");
+        for run in &runs {
+            let left = run
+                .glyphs
+                .iter()
+                .map(|glyph| glyph.x)
+                .min_by(f32::total_cmp)
+                .expect("visual line should contain glyphs");
+            assert!(
+                (left - 12.0).abs() < 0.01,
+                "every visual line should keep the block offset, got {left}"
+            );
+        }
     }
 
     #[test]

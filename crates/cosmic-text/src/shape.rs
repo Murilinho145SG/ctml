@@ -2515,6 +2515,7 @@ impl ShapeLine {
             0.0,
             false,
             false,
+            0.0,
             TextJustify::Auto,
             false,
             layout_lines,
@@ -2535,6 +2536,7 @@ impl ShapeLine {
         indent: f32,
         indent_hanging: bool,
         indent_each_line: bool,
+        block_indent: f32,
         text_justify: TextJustify,
         preserve_spaces: bool,
         layout_lines: &mut Vec<LayoutLine>,
@@ -3075,8 +3077,10 @@ impl ShapeLine {
 
             if self.rtl {
                 x -= line_indent;
+                x -= block_indent;
             } else {
                 x += line_indent;
+                x += block_indent;
             }
 
             if hinting == Hinting::Enabled {

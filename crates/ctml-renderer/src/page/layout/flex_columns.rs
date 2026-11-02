@@ -41,7 +41,11 @@ struct ColumnLayout {
     items: Vec<FlexItem>,
 }
 
-pub(crate) fn apply_flex_columns(page: &mut PageRasterizer, content_width: f32) {
+pub(crate) fn apply_flex_columns(
+    page: &mut PageRasterizer,
+    content_width: f32,
+    content_height: f32,
+) {
     page.flex_layout_offsets.retain(|(_, key), _| {
         !matches!(
             key,
@@ -80,6 +84,7 @@ pub(crate) fn apply_flex_columns(page: &mut PageRasterizer, content_width: f32) 
     if original_size.1.is_some() {
         page.buffer.set_size(original_size.0, None);
         page.buffer.shape_until_scroll(&mut page.font_system, false);
+        super::shape_buffer::layout_lines(page, content_width, content_height);
     }
 
     let style_ranges = local_writing::text_style_ranges(&page.runs);

@@ -365,6 +365,72 @@ fn negative_block_start_margin_pulls_content_upward() {
 }
 
 #[test]
+fn soft_wrapped_lines_keep_the_container_inline_start_padding() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "p".to_owned(),
+            class: None,
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text(
+                "wrapped words keep the container padding edge aligned".to_owned(),
+            )],
+        }],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec!["div".to_owned()],
+        layer: None,
+        declarations: vec![
+            StyleDeclaration {
+                property: "padding-left".to_owned(),
+                value: "40px".to_owned(),
+            },
+            StyleDeclaration {
+                property: "width".to_owned(),
+                value: "180px".to_owned(),
+            },
+        ],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(300, 300);
+
+    let lines = page
+        .buffer
+        .layout_runs()
+        .filter(|line| line.text.contains("wrapped") || line.text.contains("padding"))
+        .collect::<Vec<_>>();
+    assert!(
+        lines.len() >= 2,
+        "the paragraph should wrap into multiple lines, got {}",
+        lines.len()
+    );
+    let first_x = lines[0]
+        .glyphs
+        .first()
+        .map(|glyph| glyph.x)
+        .expect("the first line should have glyphs");
+    for line in lines.iter().skip(1) {
+        let line_x = line
+            .glyphs
+            .first()
+            .map(|glyph| glyph.x)
+            .expect("the wrapped line should have glyphs");
+        assert!(
+            (line_x - first_x).abs() < 1.0,
+            "wrapped lines should keep the container padding edge, got {line_x}px and {first_x}px"
+        );
+    }
+    assert!(
+        (first_x - 40.0).abs() < 1.0,
+        "the first line should start at the container padding edge, got {first_x}px"
+    );
+}
+
+#[test]
 fn zero_padding_does_not_insert_an_empty_flow_line() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

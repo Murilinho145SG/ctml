@@ -381,3 +381,156 @@ mod flex_shrink;
 
 #[path = "flex_basis.rs"]
 mod flex_basis;
+
+#[test]
+fn whitespace_between_flex_items_is_not_rendered() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("A".to_owned())],
+            },
+            UiNode::Text(" ".to_owned()),
+            UiNode::Element {
+                tag: "span".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text("B".to_owned())],
+            },
+        ],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".container".to_owned()],
+        layer: None,
+        declarations: vec![StyleDeclaration {
+            property: "display".to_owned(),
+            value: "flex".to_owned(),
+        }],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(200, 120);
+
+    let line = page
+        .buffer
+        .layout_runs()
+        .find(|line| line.text.contains('A') && line.text.contains('B'))
+        .expect("both items should share a flex line");
+    assert!(
+        !line.text.contains(' '),
+        "whitespace between flex items should not be rendered, got {:?}",
+        line.text
+    );
+}
+
+#[test]
+fn flex_item_line_height_uses_the_item_font_size() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("item".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("A".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "display".to_owned(),
+                value: "flex".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "20px".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".item".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "font-size".to_owned(),
+                value: "10px".to_owned(),
+            }],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(200, 120);
+
+    let line = page
+        .buffer
+        .layout_runs()
+        .find(|line| line.text.contains('A'))
+        .expect("the item should be laid out");
+    assert!(
+        line.line_height < 20.0,
+        "the flex line should use the item line height, got {}px",
+        line.line_height
+    );
+}
+
+#[test]
+fn flex_item_box_reserves_padding_and_border_before_its_content() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "span".to_owned(),
+            class: Some("item".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("A".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "display".to_owned(),
+                value: "flex".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".item".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "border".to_owned(),
+                    value: "2px solid black".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "padding".to_owned(),
+                    value: "10px".to_owned(),
+                },
+            ],
+        },
+    ];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(200, 120);
+
+    let content_x = glyph_x(&page, "A");
+    assert!(
+        (content_x - 12.0).abs() < 1.0,
+        "the item content should start after the border and padding, got {content_x}px"
+    );
+}

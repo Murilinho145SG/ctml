@@ -36,12 +36,18 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
     let mut markers_by_line = HashMap::<usize, FlexGapLine>::new();
     let mut glyphs_by_paragraph = HashMap::<usize, Vec<(usize, usize, f32)>>::new();
     let mut text_by_paragraph = HashMap::<usize, String>::new();
-    for line in page.buffer.layout_runs() {
-        glyphs_by_paragraph.entry(line.line_i).or_default().extend(
-            line.glyphs
-                .iter()
-                .map(|glyph| (glyph.start, glyph.end, glyph.w)),
-        );
+    for (line_i, line) in page.buffer.lines.iter().enumerate() {
+        let Some(layout) = line.layout_opt() else {
+            continue;
+        };
+        for layout_line in layout {
+            glyphs_by_paragraph.entry(line_i).or_default().extend(
+                layout_line
+                    .glyphs
+                    .iter()
+                    .map(|glyph| (glyph.start, glyph.end, glyph.w)),
+            );
+        }
     }
     let mut line_index = 0;
     let mut byte_index = 0;
@@ -129,8 +135,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
     }
 
     let mut extras = HashMap::new();
-    for line in page.buffer.layout_runs() {
-        let Some(group) = markers_by_line.get(&line.line_i) else {
+    for (line_i, line) in page.buffer.lines.iter().enumerate() {
+        let Some(group) = markers_by_line.get(&line_i) else {
             continue;
         };
         let Some(container_id) = group.container_id else {
@@ -139,11 +145,15 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
         if group.mixed_containers {
             continue;
         }
+        let Some(layout) = line.layout_opt().and_then(|layout| layout.first()) else {
+            continue;
+        };
         let line_markers = group
             .markers
             .iter()
             .filter(|marker| {
-                line.glyphs
+                layout
+                    .glyphs
                     .iter()
                     .any(|glyph| marker.position == glyph.start)
             })
@@ -151,18 +161,18 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
         if line_markers.is_empty() {
             continue;
         }
-        let left = line
+        let left = layout
             .glyphs
             .iter()
             .map(|glyph| glyph.x)
             .fold(f32::INFINITY, f32::min);
-        let right = line
+        let right = layout
             .glyphs
             .iter()
             .map(|glyph| glyph.x + glyph.w)
             .fold(f32::NEG_INFINITY, f32::max);
         let used_width = right - left;
-        let mut item_start = line
+        let mut item_start = layout
             .glyphs
             .iter()
             .map(|glyph| glyph.start)
@@ -171,7 +181,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
         let mut item_sizes = Vec::with_capacity(line_markers.len());
         let mut size_limits = Vec::with_capacity(line_markers.len());
         for marker in &line_markers {
-            let content_size = line
+            let content_size = layout
                 .glyphs
                 .iter()
                 .filter(|glyph| glyph.start >= item_start && glyph.end <= marker.position)
@@ -182,30 +192,30 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 Some(FlexBasis::Content | FlexBasis::MaxContent) => item_intrinsic_size(
                     marker.position,
                     group,
-                    glyphs_by_paragraph.get(&line.line_i),
-                    text_by_paragraph.get(&line.line_i),
+                    glyphs_by_paragraph.get(&line_i),
+                    text_by_paragraph.get(&line_i),
                     false,
                 ),
                 Some(FlexBasis::MinContent) => item_intrinsic_size(
                     marker.position,
                     group,
-                    glyphs_by_paragraph.get(&line.line_i),
-                    text_by_paragraph.get(&line.line_i),
+                    glyphs_by_paragraph.get(&line_i),
+                    text_by_paragraph.get(&line_i),
                     true,
                 ),
                 Some(FlexBasis::FitContent) => {
                     let max_content = item_intrinsic_size(
                         marker.position,
                         group,
-                        glyphs_by_paragraph.get(&line.line_i),
-                        text_by_paragraph.get(&line.line_i),
+                        glyphs_by_paragraph.get(&line_i),
+                        text_by_paragraph.get(&line_i),
                         false,
                     );
                     let min_content = item_intrinsic_size(
                         marker.position,
                         group,
-                        glyphs_by_paragraph.get(&line.line_i),
-                        text_by_paragraph.get(&line.line_i),
+                        glyphs_by_paragraph.get(&line_i),
+                        text_by_paragraph.get(&line_i),
                         true,
                     );
                     fit_content_size(min_content, max_content, group.available_width)
@@ -214,15 +224,15 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     let max_content = item_intrinsic_size(
                         marker.position,
                         group,
-                        glyphs_by_paragraph.get(&line.line_i),
-                        text_by_paragraph.get(&line.line_i),
+                        glyphs_by_paragraph.get(&line_i),
+                        text_by_paragraph.get(&line_i),
                         false,
                     );
                     let min_content = item_intrinsic_size(
                         marker.position,
                         group,
-                        glyphs_by_paragraph.get(&line.line_i),
-                        text_by_paragraph.get(&line.line_i),
+                        glyphs_by_paragraph.get(&line_i),
+                        text_by_paragraph.get(&line_i),
                         true,
                     );
                     fit_content_size(min_content, max_content, *limit)
@@ -231,8 +241,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                     let max_content = item_intrinsic_size(
                         marker.position,
                         group,
-                        glyphs_by_paragraph.get(&line.line_i),
-                        text_by_paragraph.get(&line.line_i),
+                        glyphs_by_paragraph.get(&line_i),
+                        text_by_paragraph.get(&line_i),
                         false,
                     );
                     max_content.max(*min).min(*max)
@@ -264,8 +274,8 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                 let min_content = item_intrinsic_size(
                     marker.position,
                     group,
-                    glyphs_by_paragraph.get(&line.line_i),
-                    text_by_paragraph.get(&line.line_i),
+                    glyphs_by_paragraph.get(&line_i),
+                    text_by_paragraph.get(&line_i),
                     true,
                 );
                 limits.0 = Some(min_content);
@@ -310,7 +320,7 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
             distribute_flex_sizes(&line_markers, &item_sizes, &size_limits, free_space);
         for (index, marker) in line_markers.iter().enumerate() {
             let extra = target_sizes[index] - item_sizes[index].0;
-            extras.insert((line.line_i, container_id, marker.position), extra);
+            extras.insert((line_i, container_id, marker.position), extra);
         }
     }
 

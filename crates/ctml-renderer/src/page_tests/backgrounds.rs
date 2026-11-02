@@ -483,3 +483,57 @@ fn inline_background_still_paints_over_a_same_color_block_background() {
         "inline background should composite above the block fill"
     );
 }
+
+#[test]
+fn paints_block_background_for_a_flex_item() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Element {
+            tag: "div".to_owned(),
+            class: Some("item".to_owned()),
+            id: None,
+            attributes: Vec::new(),
+            children: vec![UiNode::Text("Item".to_owned())],
+        }],
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "display".to_owned(),
+                value: "flex".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".item".to_owned()],
+            layer: None,
+            declarations: vec![
+                StyleDeclaration {
+                    property: "width".to_owned(),
+                    value: "200px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "height".to_owned(),
+                    value: "100px".to_owned(),
+                },
+                StyleDeclaration {
+                    property: "background-color".to_owned(),
+                    value: "rgb(0 128 0)".to_owned(),
+                },
+            ],
+        },
+    ];
+
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(240, 140);
+
+    assert!(
+        pixels
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3] == [0, 128, 0]),
+        "the flex item background should be painted"
+    );
+}

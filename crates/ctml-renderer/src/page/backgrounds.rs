@@ -35,14 +35,14 @@ pub(super) fn draw_block_boxes(
             let Some(geometry) = geometries.get(&size.node_id) else {
                 continue;
             };
-            let Some(path_index) = run
+            let path_index = run
                 .element_path
                 .iter()
-                .position(|node_id| *node_id == size.node_id)
-            else {
-                continue;
+                .position(|node_id| *node_id == size.node_id);
+            let parent_path = match path_index {
+                Some(index) => &run.element_path[..index],
+                None => run.element_path.as_slice(),
             };
-            let parent_path = &run.element_path[..path_index];
             let clip = overflow_clip::clip_for_path(parent_path, overflow_clips);
             let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
                 parent_path,
