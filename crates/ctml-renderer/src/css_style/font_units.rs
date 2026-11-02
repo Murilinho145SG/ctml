@@ -68,7 +68,6 @@ pub(crate) fn resolve_style_with_selector_tree_context_and_font_units(
     style.transition_background_color_delay_ms = 0.0;
     style.transition_background_color_easing = crate::style::TransitionEasing::default();
     style.background_color = None;
-    style.background_layers.clear();
     style.background_images.clear();
     style.background_blend_modes.clear();
     style.background_repeats.clear();
