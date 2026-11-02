@@ -26,6 +26,7 @@ mod border_radius;
 mod borders;
 mod box_shadows;
 mod content_visibility;
+mod control_defaults;
 mod cursor_spans;
 mod decorations;
 mod first_line_boxes;
@@ -55,6 +56,7 @@ mod sizing;
 mod sizing_height;
 mod sizing_intrinsic;
 mod sizing_padding;
+mod update;
 mod vertical;
 mod viewport;
 
@@ -78,6 +80,8 @@ use sizing_intrinsic::{
 pub(crate) struct PageRasterizer {
     nodes: Vec<UiNode>,
     stylesheet: Vec<StyleRule>,
+    authored_stylesheet: Vec<StyleRule>,
+    fonts: Vec<crate::FontFace>,
     color_profiles: Vec<ctml_css::CssColorProfile>,
     keyframes: Vec<ctml_css::CssKeyframes>,
     animations_enabled: bool,
@@ -171,6 +175,9 @@ impl PageRasterizer {
         fonts: &[crate::FontFace],
         color_profiles: &[ctml_css::CssColorProfile],
     ) -> Self {
+        let resolved_nodes = control_defaults::with_control_content(nodes);
+        let resolved_stylesheet =
+            control_defaults::with_control_defaults(&resolved_nodes, stylesheet);
         let mut font_system = FontSystem::new();
         register_font_faces(&mut font_system, fonts);
         #[cfg(target_os = "linux")]
@@ -193,8 +200,8 @@ impl PageRasterizer {
             isolation_groups,
             transition_styles,
         ) = compile_runs_with_opacity_map(
-            nodes,
-            stylesheet,
+            &resolved_nodes,
+            &resolved_stylesheet,
             &[],
             &[],
             &[],
@@ -203,8 +210,8 @@ impl PageRasterizer {
             color_profiles,
             ctml_css::ViewportSize::default(),
         );
-        let focus_manager = focus::FocusManager::new(nodes);
-        let has_interaction_rules = stylesheet.iter().any(|rule| {
+        let focus_manager = focus::FocusManager::new(&resolved_nodes);
+        let has_interaction_rules = resolved_stylesheet.iter().any(|rule| {
             rule.selectors.iter().any(|selector| {
                 [
                     ":hover",
@@ -218,7 +225,7 @@ impl PageRasterizer {
             })
         });
         let selection_background_color =
-            crate::css_style::selection_background_color(stylesheet, color_profiles);
+            crate::css_style::selection_background_color(&resolved_stylesheet, color_profiles);
         let mut runs = compiled_runs
             .into_iter()
             .flat_map(|run| {
@@ -256,8 +263,10 @@ impl PageRasterizer {
             ),
         );
         Self {
-            nodes: nodes.to_vec(),
-            stylesheet: stylesheet.to_vec(),
+            nodes: resolved_nodes,
+            stylesheet: resolved_stylesheet,
+            authored_stylesheet: stylesheet.to_vec(),
+            fonts: fonts.to_vec(),
             color_profiles: color_profiles.to_vec(),
             keyframes,
             animations_enabled,

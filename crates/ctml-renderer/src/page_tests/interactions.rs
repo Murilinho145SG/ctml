@@ -2,6 +2,49 @@ use super::super::PageRasterizer;
 use crate::{StyleDeclaration, StyleRule, UiNode};
 
 #[test]
+fn buttons_expose_actions_for_pointer_and_keyboard_activation() {
+    let nodes = [UiNode::Element {
+        tag: "button".to_owned(),
+        class: None,
+        id: None,
+        attributes: vec![("action".to_owned(), Some("save".to_owned()))],
+        children: vec![UiNode::Text("Save".to_owned())],
+    }];
+    let mut page = PageRasterizer::new(&nodes, &[]);
+    page.snapshot_pixels(160, 60);
+
+    assert_eq!(page.action_at(10.0, 14.0).as_deref(), Some("save"));
+    assert!(page.focus_next(false));
+    assert_eq!(page.focused_action().as_deref(), Some("save"));
+}
+
+#[test]
+fn text_inputs_render_their_value_and_join_keyboard_focus_order() {
+    let nodes = [UiNode::Element {
+        tag: "input".to_owned(),
+        class: None,
+        id: Some("query".to_owned()),
+        attributes: vec![
+            ("type".to_owned(), Some("text".to_owned())),
+            ("value".to_owned(), Some("CTML".to_owned())),
+        ],
+        children: Vec::new(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &[]);
+    page.snapshot_pixels(260, 70);
+
+    assert_eq!(
+        page.layout_runs().map(|run| run.text).collect::<String>(),
+        "CTML"
+    );
+    assert!(page.focus_next(false));
+    assert_eq!(
+        page.focused_text_input(),
+        Some((vec![0], "query".to_owned(), "CTML".to_owned()))
+    );
+}
+
+#[test]
 fn pointer_hover_and_active_states_restyle_text_runs() {
     let nodes = [UiNode::Element {
         tag: "p".to_owned(),

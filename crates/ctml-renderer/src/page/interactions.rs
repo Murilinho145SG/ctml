@@ -64,6 +64,23 @@ impl PageRasterizer {
         changed && self.has_interaction_rules
     }
 
+    pub(crate) fn action_at(&self, x: f64, y: f64) -> Option<String> {
+        let path = self.element_path_at(x, y);
+        self.focus_manager.action_for_path(&path).map(str::to_owned)
+    }
+
+    pub(crate) fn focused_action(&self) -> Option<String> {
+        self.focus_manager
+            .action_for_focus(&self.focused_path)
+            .map(str::to_owned)
+    }
+
+    pub(crate) fn focused_text_input(&self) -> Option<(Vec<usize>, String, String)> {
+        self.focus_manager
+            .text_input_for_focus(&self.focused_path)
+            .map(|input| (input.path.clone(), input.id.clone(), input.value.clone()))
+    }
+
     pub(crate) fn begin_selection(&mut self, x: f64, y: f64) -> bool {
         let path = self.element_path_at(x, y);
         let focused_path = path

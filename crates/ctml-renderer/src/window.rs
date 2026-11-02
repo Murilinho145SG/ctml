@@ -1,7 +1,9 @@
-use std::{sync::Arc, time::Duration, time::Instant};
+use std::{fmt, sync::Arc, time::Duration, time::Instant};
 
 use super::renderer::Renderer;
-use crate::{CssColorProfile, CssKeyframes, FontFace, StyleRule, UiNode};
+use crate::{
+    CssColorProfile, CssKeyframes, FontFace, StyleRule, UiActionHandler, UiInputHandler, UiNode,
+};
 
 use thiserror::Error;
 use winit::{
@@ -14,10 +16,12 @@ use winit::{
     window::{CursorIcon, Window as NativeWindow, WindowId},
 };
 
+mod controls;
+
 const DOUBLE_CLICK_WINDOW: Duration = Duration::from_millis(500);
 const DOUBLE_CLICK_RADIUS_SQUARED: f64 = 25.0;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct WindowConfig {
     pub title: String,
     pub width: u32,
@@ -34,6 +38,31 @@ pub struct WindowConfig {
     pub fonts: Vec<FontFace>,
     /// Local ICC profiles loaded from CSS `@color-profile` rules.
     pub color_profiles: Vec<CssColorProfile>,
+    /// Receives named actions from enabled `<button action="...">` elements.
+    /// The callback may update the body tree, which is rendered again after it returns.
+    pub on_action: Option<UiActionHandler>,
+    /// Receives edits from text inputs. The first argument is the input's `id` or `name`,
+    /// or an empty string when neither attribute is present.
+    pub on_input: Option<UiInputHandler>,
+}
+
+impl fmt::Debug for WindowConfig {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("WindowConfig")
+            .field("title", &self.title)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("body", &self.body)
+            .field("stylesheet", &self.stylesheet)
+            .field("keyframes", &self.keyframes)
+            .field("animations_enabled", &self.animations_enabled)
+            .field("fonts", &self.fonts)
+            .field("color_profiles", &self.color_profiles)
+            .field("on_action", &self.on_action.is_some())
+            .field("on_input", &self.on_input.is_some())
+            .finish()
+    }
 }
 
 impl Default for WindowConfig {
@@ -48,6 +77,8 @@ impl Default for WindowConfig {
             animations_enabled: true,
             fonts: Vec::new(),
             color_profiles: Vec::new(),
+            on_action: None,
+            on_input: None,
         }
     }
 }
@@ -105,6 +136,8 @@ struct WindowApplication {
     click_start: PhysicalPosition<f64>,
     dragged_during_click: bool,
     double_click_active: bool,
+    pressed_action: Option<String>,
+    space_action: Option<String>,
     last_click: Option<(Instant, PhysicalPosition<f64>)>,
     modifiers: ModifiersState,
 }
@@ -121,6 +154,8 @@ impl WindowApplication {
             click_start: PhysicalPosition::new(0.0, 0.0),
             dragged_during_click: false,
             double_click_active: false,
+            pressed_action: None,
+            space_action: None,
             last_click: None,
             modifiers: ModifiersState::empty(),
         }
@@ -179,7 +214,7 @@ impl ApplicationHandler for WindowApplication {
         window_id: WindowId,
         event: WindowEvent,
     ) {
-        let Some(window) = self.window.as_ref() else {
+        let Some(window) = self.window.as_ref().cloned() else {
             return;
         };
         if window.id() != window_id {
@@ -252,6 +287,55 @@ impl ApplicationHandler for WindowApplication {
                     window.request_redraw();
                 }
             }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == winit::event::ElementState::Pressed
+                    && !event.repeat
+                    && event.logical_key == Key::Named(NamedKey::Enter) =>
+            {
+                let action = self.renderer.as_ref().and_then(Renderer::focused_action);
+                if let Some(action) = action {
+                    self.dispatch_action(&window, action);
+                }
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == winit::event::ElementState::Pressed
+                    && !event.repeat
+                    && event.logical_key == Key::Named(NamedKey::Space) =>
+            {
+                self.space_action = self.renderer.as_ref().and_then(Renderer::focused_action);
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == winit::event::ElementState::Released
+                    && event.logical_key == Key::Named(NamedKey::Space) =>
+            {
+                let pressed = self.space_action.take();
+                let focused = self.renderer.as_ref().and_then(Renderer::focused_action);
+                if let (Some(pressed), Some(focused)) = (pressed, focused)
+                    && pressed == focused
+                {
+                    self.dispatch_action(&window, focused);
+                }
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == winit::event::ElementState::Pressed =>
+            {
+                let Some(input) = self
+                    .renderer
+                    .as_ref()
+                    .and_then(Renderer::focused_text_input)
+                else {
+                    return;
+                };
+                let deletes_text = matches!(
+                    event.logical_key,
+                    Key::Named(NamedKey::Backspace | NamedKey::Delete)
+                );
+                if let Some(value) =
+                    controls::edit_focused_input(&input, event.text.as_deref(), deletes_text)
+                {
+                    self.dispatch_input(&window, &input.0, &input.1, value);
+                }
+            }
             WindowEvent::MouseInput { state, button, .. } => {
                 if button == winit::event::MouseButton::Left {
                     match state {
@@ -272,6 +356,7 @@ impl ApplicationHandler for WindowApplication {
                             self.dragged_during_click = false;
                             self.double_click_active = is_double_click;
                             if let Some(renderer) = self.renderer.as_mut() {
+                                self.pressed_action = renderer.action_at(self.cursor_position);
                                 let changed = if is_double_click {
                                     let active_changed =
                                         renderer.mouse_input(state, button, self.cursor_position);
@@ -295,8 +380,22 @@ impl ApplicationHandler for WindowApplication {
                             } else {
                                 self.last_click = None;
                             }
+                            let pressed_action = self.pressed_action.take();
+                            let released_action = (!self.dragged_during_click)
+                                .then(|| {
+                                    self.renderer.as_ref().and_then(|renderer| {
+                                        renderer.action_at(self.cursor_position)
+                                    })
+                                })
+                                .flatten();
                             self.left_button_down = false;
                             self.double_click_active = false;
+                            if let (Some(pressed), Some(released)) =
+                                (pressed_action, released_action)
+                                && pressed == released
+                            {
+                                self.dispatch_action(&window, released);
+                            }
                         }
                     }
                 } else if let Some(renderer) = self.renderer.as_mut() {
@@ -305,7 +404,7 @@ impl ApplicationHandler for WindowApplication {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = self.renderer.as_mut()
-                    && let Err(error) = renderer.render(window)
+                    && let Err(error) = renderer.render(&window)
                 {
                     self.fail(event_loop, error);
                 }

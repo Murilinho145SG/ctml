@@ -11,7 +11,7 @@ mod ui;
 mod window;
 
 pub use ctml_css::{CssColorProfile, CssKeyframe, CssKeyframes};
-pub use ui::{StyleDeclaration, StyleRule, UiNode};
+pub use ui::{StyleDeclaration, StyleRule, UiActionHandler, UiInputHandler, UiNode};
 /// A local font loaded from a stylesheet `@font-face` rule.
 #[derive(Clone, Debug)]
 pub struct FontFace {

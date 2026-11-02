@@ -253,6 +253,25 @@ impl Renderer {
         changed
     }
 
+    pub(super) fn action_at(&self, position: PhysicalPosition<f64>) -> Option<String> {
+        self.page.action_at(position.x, position.y)
+    }
+
+    pub(super) fn focused_action(&self) -> Option<String> {
+        self.page.focused_action()
+    }
+
+    pub(super) fn focused_text_input(&self) -> Option<(Vec<usize>, String, String)> {
+        self.page.focused_text_input()
+    }
+
+    pub(super) fn replace_body(&mut self, body: &[UiNode]) {
+        self.page.replace_nodes(body);
+        self.page.redraw(&self.queue, &self.page_texture);
+        self.page_needs_layout = false;
+        self.page_dirty = false;
+    }
+
     pub(super) fn select_word_at(&mut self, position: PhysicalPosition<f64>) -> bool {
         let changed = self.page.select_word_at(position.x, position.y);
         self.page_dirty |= changed;
