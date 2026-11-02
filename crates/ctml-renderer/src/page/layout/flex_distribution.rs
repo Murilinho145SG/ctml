@@ -71,41 +71,9 @@ pub(super) fn apply_distributed_flex_gaps(page: &mut PageRasterizer, content_wid
                             content_width,
                             writing_mode,
                         );
-                        let containing_width = super::super::sizing::resolve_layout_width(
-                            &sizes[..sizes.len().saturating_sub(1)],
-                            content_width,
-                            writing_mode,
-                        );
-                        let (padding_start, border_start, margin_start) = sizes
-                            .last()
-                            .map(|size| {
-                                let padding = super::super::sizing_padding::resolve_padding(
-                                    size,
-                                    containing_width,
-                                );
-                                let border = super::super::sizing_padding::resolve_borders(
-                                    size,
-                                    containing_width,
-                                );
-                                let margin = super::super::sizing_padding::resolve_margin(
-                                    size,
-                                    containing_width,
-                                );
-                                if writing_mode == crate::style::WritingMode::VerticalRl
-                                    || writing_mode == crate::style::WritingMode::VerticalLr
-                                {
-                                    (padding[0], border[0], margin[0])
-                                } else {
-                                    (padding[3], border[3], margin[3])
-                                }
-                            })
-                            .unwrap_or_default();
                         FlexGapLine {
                             markers: Vec::new(),
-                            available_width: inline_size
-                                + padding_start
-                                + border_start
-                                + margin_start,
+                            available_width: inline_size,
                             basis_size: flex_basis_container_size(&run.style, inline_size),
                             container_id,
                             mixed_containers: false,
