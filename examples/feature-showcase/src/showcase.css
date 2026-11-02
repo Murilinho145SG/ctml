@@ -21,10 +21,10 @@ button { font-family: var(--sans); }
 .topbar-status { color: var(--muted); }
 .live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--green); }
 .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-.hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-top: 22px; padding: 26px 30px; background: radial-gradient(ellipse at 80% 0%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 48%), var(--panel); }
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; min-height: 265px; margin-top: 22px; padding: 26px 30px; background: radial-gradient(ellipse at 80% 0%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 48%), var(--panel); }
 .hero-copy { width: 58%; }
 .hero h1 { margin: 14px 0 10px; font-size: 40px; font-weight: 400; line-height: 1.08; letter-spacing: -1.5px; }
-.hero h1 em { color: var(--cyan); font-family: Georgia, "DejaVu Serif", serif; }
+.hero h1 em { color: var(--cyan); font-family: Georgia, "DejaVu Serif", serif; font-style: italic; }
 .intro-text { max-width: 510px; color: var(--muted); }
 .actions { display: flex; gap: 8px; margin-top: 16px; }
 .actions button { padding: 8px 11px; border: 1px solid var(--cyan); border-radius: 5px; background: var(--cyan); color: #101820; font-size: 10px; font-weight: 700; }
@@ -34,7 +34,7 @@ button { font-family: var(--sans); }
 .compile-meta { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--line); font-size: 8px; letter-spacing: 0; }
 .specimens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
 .specimen { min-height: 172px; padding: 15px 17px; }
-.specimen h2 { margin: 16px 0 8px; font-family: Georgia, "DejaVu Serif", serif; font-size: 22px; font-style: italic; }
+.specimen h2 { margin: 16px 0 8px; font-family: Georgia, "DejaVu Serif", serif; font-size: 22px; font-style: italic; font-weight: 700; }
 .specimen > p:nth-child(2) { margin-top: 16px; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .specimen h2 + p { margin-top: 0; }
 .type-detail { margin-top: 12px; font-size: 8px; letter-spacing: 0.5px; }

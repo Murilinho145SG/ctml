@@ -45,6 +45,7 @@ struct ColumnLayout {
     depth: usize,
     left: f32,
     width: f32,
+    column_gap: f32,
     style: TextStyle,
     items: Vec<FlexItem>,
 }
@@ -68,8 +69,7 @@ pub(crate) fn apply_flex_columns(
     for run in &page.runs {
         if !run.style.flex_distributed_gap
             || !run.style.flex_items_row
-            || !run.style.display_flex
-            || run.style.display_grid
+            || (!run.style.display_flex && !run.style.display_grid)
         {
             continue;
         }
@@ -136,7 +136,9 @@ pub(crate) fn apply_flex_columns(
         let Some(style) = container_markers.first().cloned() else {
             continue;
         };
-        if style.writing_mode != WritingMode::HorizontalTb || style.flex_wrap {
+        if style.writing_mode != WritingMode::HorizontalTb
+            || (style.flex_wrap && !style.display_grid)
+        {
             continue;
         }
         let mut item_lines = HashMap::<usize, Vec<usize>>::new();
@@ -176,6 +178,11 @@ pub(crate) fn apply_flex_columns(
         let (padding_start, _) = inline_padding(sizes, content_width, writing_mode);
         let container_left = margin_start + border_start + padding_start;
         let container_width = resolve_layout_width(sizes, content_width, writing_mode);
+        let column_gap = if style.display_grid {
+            resolve_grid_column_gap(&style, container_width)
+        } else {
+            0.0
+        };
 
         let all_lines = &lines;
         let mut bases = container_markers
@@ -216,6 +223,7 @@ pub(crate) fn apply_flex_columns(
             depth,
             left: container_left,
             width: container_width,
+            column_gap,
             style,
             items: flex_items,
         });
@@ -273,7 +281,7 @@ pub(crate) fn apply_flex_columns(
         .map(|(_, container)| *container)
         .collect::<HashSet<_>>();
     for run in &page.runs {
-        if !run.style.display_flex || run.style.display_grid {
+        if !run.style.display_flex && !run.style.display_grid {
             continue;
         }
         let Some(container) = run.element_path.last().copied() else {
@@ -371,6 +379,30 @@ fn item_end_decoration(page: &PageRasterizer, item: usize, content_width: f32) -
     padding[2] + border[2] + margin[2]
 }
 
+fn resolve_grid_column_gap(style: &TextStyle, container_width: f32) -> f32 {
+    let Some(gap) = style.column_gap.as_deref() else {
+        return 0.0;
+    };
+    let resolve = |component: &str| {
+        ctml_css::parse_css_percentage(component)
+            .filter(|percentage| *percentage >= 0.0)
+            .map(|percentage| container_width * percentage / 100.0)
+            .or_else(|| {
+                ctml_css::parse_nonnegative_font_relative_length_with_viewport(
+                    component,
+                    style.font_size,
+                    style.line_height,
+                    style.font_relative_units,
+                    style.viewport_size,
+                )
+            })
+    };
+    ctml_css::parse_math_expression(gap, resolve)
+        .or_else(|| resolve(gap))
+        .filter(|gap| gap.is_finite())
+        .unwrap_or_default()
+}
+
 #[allow(clippy::too_many_arguments)]
 fn apply_horizontal(
     layout: &mut ColumnLayout,
@@ -379,11 +411,13 @@ fn apply_horizontal(
     item_box_width: &mut HashMap<usize, f32>,
     writing_mode: WritingMode,
 ) {
+    let explicit_gap = layout.column_gap * layout.items.len().saturating_sub(1) as f32;
     let total = layout
         .items
         .iter()
         .map(|item| item.width + item.margin_start + item.margin_end)
-        .sum::<f32>();
+        .sum::<f32>()
+        + explicit_gap;
     let deficit = (total - layout.width).max(0.0);
     let shrink_weight = layout
         .items
@@ -401,7 +435,8 @@ fn apply_horizontal(
         .items
         .iter()
         .map(|item| item.width + item.margin_start + item.margin_end)
-        .sum::<f32>();
+        .sum::<f32>()
+        + explicit_gap;
     let free_space = (layout.width - total).max(0.0);
     let count = layout.items.len();
     let justify = visual_justify(
@@ -428,6 +463,11 @@ fn apply_horizontal(
             (gap, gap)
         }
         _ => (0.0, 0.0),
+    };
+    let gap = if layout.style.display_grid {
+        layout.column_gap
+    } else {
+        gap
     };
     let accumulated = layout
         .items

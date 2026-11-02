@@ -69,6 +69,8 @@ mod css_math;
 mod display;
 #[path = "page_tests/element_opacity.rs"]
 mod element_opacity;
+#[path = "page_tests/feature_showcase_layout.rs"]
+mod feature_showcase_layout;
 #[path = "page_tests/first_letter_border_image.rs"]
 mod first_letter_border_image;
 #[path = "page_tests/first_letter_logical_box.rs"]
@@ -85,6 +87,8 @@ mod first_line_spacing;
 mod first_line_transform;
 #[path = "page_tests/flex_alignment.rs"]
 mod flex_alignment;
+#[path = "page_tests/flex_block_flow.rs"]
+mod flex_block_flow;
 #[path = "page_tests/flex_columns.rs"]
 mod flex_columns;
 #[path = "page_tests/flex_display.rs"]

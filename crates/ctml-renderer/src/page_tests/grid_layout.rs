@@ -38,6 +38,125 @@ fn repeated_fraction_tracks_distribute_items_across_the_available_width() {
 }
 
 #[test]
+fn formatted_whitespace_does_not_create_empty_grid_cells() {
+    let item = |label: &str| UiNode::Element {
+        tag: "p".to_owned(),
+        class: None,
+        id: None,
+        attributes: Vec::new(),
+        children: vec![UiNode::Text(label.to_owned())],
+    };
+    let nodes = [UiNode::Element {
+        tag: "section".to_owned(),
+        class: Some("grid".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Text("\n    ".to_owned()),
+            item("Alpha"),
+            UiNode::Text("\n    ".to_owned()),
+            item("Beta"),
+            UiNode::Text("\n    ".to_owned()),
+            item("Gamma"),
+            UiNode::Text("\n".to_owned()),
+        ],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".grid".to_owned()],
+        layer: None,
+        declarations: [
+            ("display", "grid"),
+            ("grid-template-columns", "repeat(3, 1fr)"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(400, 120);
+
+    let alpha = item_position(&page, "Alpha");
+    let beta = item_position(&page, "Beta");
+    let gamma = item_position(&page, "Gamma");
+    assert!(
+        (alpha.1 - beta.1).abs() < 1.0 && (beta.1 - gamma.1).abs() < 1.0,
+        "formatted whitespace must not move grid items to extra rows: {alpha:?}, {beta:?}, {gamma:?}"
+    );
+    assert!(
+        beta.0 - alpha.0 > 100.0 && gamma.0 - beta.0 > 100.0,
+        "items should occupy the three fractional columns: {alpha:?}, {beta:?}, {gamma:?}"
+    );
+}
+
+#[test]
+fn grid_items_with_multiple_block_children_share_a_row() {
+    let item = |class: &str, first: &str, second: &str| UiNode::Element {
+        tag: "article".to_owned(),
+        class: Some(class.to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: [first, second]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    };
+    let nodes = [UiNode::Element {
+        tag: "section".to_owned(),
+        class: Some("grid".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: vec![
+            UiNode::Text("\n ".to_owned()),
+            item("first", "First top", "First bottom"),
+            UiNode::Text("\n ".to_owned()),
+            item("second", "Second top", "Second bottom"),
+        ],
+    }];
+    let stylesheet = [StyleRule {
+        selectors: vec![".grid".to_owned()],
+        layer: None,
+        declarations: [
+            ("display", "grid"),
+            ("grid-template-columns", "repeat(2, 1fr)"),
+            ("gap", "12px"),
+        ]
+        .into_iter()
+        .map(|(property, value)| StyleDeclaration {
+            property: property.to_owned(),
+            value: value.to_owned(),
+        })
+        .collect(),
+    }];
+    let mut page = PageRasterizer::new(&nodes, &stylesheet);
+    page.prepare_layout(600, 200);
+    let first = adjusted_item_position(&page, "First top");
+    let second = adjusted_item_position(&page, "Second top");
+    assert!(
+        (first.1 - second.1).abs() < 1.0 && second.0 > first.0 + 200.0,
+        "grid block children should share the same row: {first:?}, {second:?}"
+    );
+}
+
+fn adjusted_item_position(page: &PageRasterizer, item: &str) -> (f32, f32) {
+    page.layout_runs()
+        .find_map(|line| {
+            let start = line.text.find(item)?;
+            let glyph = line.glyphs.iter().find(|glyph| glyph.start == start)?;
+            Some((glyph.x, line.line_top))
+        })
+        .expect("grid item should have an adjusted position")
+}
+
+#[test]
 fn grid_row_gap_adds_space_between_auto_placed_rows() {
     let mut no_gap = grid_page(None, "100px", "0px", "0px", &["Alpha", "Beta"]);
     let mut with_gap = grid_page(None, "100px", "0px", "12px", &["Alpha", "Beta"]);

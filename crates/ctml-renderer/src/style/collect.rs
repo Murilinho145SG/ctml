@@ -56,9 +56,13 @@ pub(super) fn collect_runs(
     );
     let mut grid_item_positions = HashMap::new();
     if inherited.display_grid {
-        for (_, _, item_id) in &ordered_nodes {
-            let next_position = grid_item_positions.len();
-            grid_item_positions.entry(*item_id).or_insert(next_position);
+        for (node_index, source_element_index, item_id) in &ordered_nodes {
+            let is_grid_item = source_element_index.is_some()
+                || matches!(&nodes[*node_index], UiNode::Text(text) if !text.chars().all(char::is_whitespace));
+            if is_grid_item {
+                let next_position = grid_item_positions.len();
+                grid_item_positions.entry(*item_id).or_insert(next_position);
+            }
         }
     }
     let (mut element_index, mut list_item_index) = (0, 0);

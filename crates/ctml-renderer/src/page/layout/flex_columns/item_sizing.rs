@@ -20,6 +20,15 @@ pub(super) fn resolve_item_width(
     let basis_width = match basis {
         Some(FlexBasis::Percentage(percentage)) => Some(container_width * percentage),
         Some(FlexBasis::Length(length)) => Some(*length),
+        Some(FlexBasis::GridFraction {
+            fraction,
+            fixed_space,
+            percentage_space,
+        }) => Some(
+            ((container_width - fixed_space - container_width * percentage_space).max(0.0)
+                * fraction)
+                .max(0.0),
+        ),
         _ => None,
     };
     let measured = item_lines

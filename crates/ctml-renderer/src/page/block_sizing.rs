@@ -64,10 +64,6 @@ pub(super) fn block_spacer_heights(
 
     let mut spacers = HashMap::new();
     for node_id in block_ids {
-        // A second block spacer here counts the row's minimum size twice.
-        if flex_distributed_containers.contains(&node_id) {
-            continue;
-        }
         let size = &block_sizes[&node_id];
         let content_height = content_heights.get(&node_id).copied().unwrap_or_default();
         let containing_height = containing_block_height(
@@ -98,6 +94,11 @@ pub(super) fn block_spacer_heights(
             containing_width,
             page_writing_mode,
         );
+        // Flex row distribution adjusts the inline positions, not the container's
+        // block size. Only skip a flow spacer when the laid out row already fills it.
+        if flex_distributed_containers.contains(&node_id) && requested_height <= content_height {
+            continue;
+        }
         let flow_adjustment = requested_height - content_height;
         if flow_adjustment.abs() < f32::EPSILON {
             continue;
