@@ -317,7 +317,10 @@ pub(crate) fn apply_flex_columns(
             let item_bottom = page
                 .flex_column_extents
                 .get(&item)
-                .map(|(top, height)| top + height)
+                .map(|(top, height)| {
+                    let decoration = item_end_decoration(page, item, content_width);
+                    top + height + decoration
+                })
                 .unwrap_or_else(|| {
                     lines[*last].top
                         + lines[*last].height

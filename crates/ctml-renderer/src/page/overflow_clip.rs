@@ -134,7 +134,7 @@ pub(super) fn block_geometries(
     flex_layout_offsets: &super::FlexLayoutOffsets,
     flex_item_box_x: &HashMap<usize, f32>,
     flex_item_box_width: &HashMap<usize, f32>,
-    _flex_column_extents: &HashMap<usize, (f32, f32)>,
+    flex_column_extents: &HashMap<usize, (f32, f32)>,
 ) -> HashMap<usize, BlockGeometry> {
     let style_ranges = local_writing::text_style_ranges(runs);
     let line_starts = local_writing::text_line_starts(runs);
@@ -277,6 +277,11 @@ pub(super) fn block_geometries(
             }
         } else {
             extent.content_height = extent.content_height.max(extent.bottom - extent.top);
+        }
+        if let Some((top, height)) = flex_column_extents.get(&extent.size.node_id) {
+            extent.top = extent.top.min(*top);
+            extent.bottom = extent.bottom.max(*top + *height);
+            extent.content_height = extent.content_height.max(*height);
         }
     }
     extents
