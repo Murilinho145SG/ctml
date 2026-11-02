@@ -278,7 +278,9 @@ pub(super) fn block_geometries(
         } else {
             extent.content_height = extent.content_height.max(extent.bottom - extent.top);
         }
-        if let Some((top, height)) = flex_column_extents.get(&extent.size.node_id) {
+        if !extent.size.flex_items_row
+            && let Some((top, height)) = flex_column_extents.get(&extent.size.node_id)
+        {
             extent.top = extent.top.min(*top);
             extent.bottom = extent.bottom.max(*top + *height);
             extent.content_height = extent.content_height.max(*height);

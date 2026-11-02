@@ -2,6 +2,10 @@ use cosmic_text::{Color, Renderer};
 
 use super::{local_writing::LocalVerticalTransform, overflow_clip::ClipRect, page_padding};
 
+mod coverage;
+
+pub(super) use coverage::fill_rect_alpha_covered_clipped;
+
 pub(super) struct PixelRenderer<'a> {
     pub(super) pixels: &'a mut [u8],
     pub(super) width: u32,

@@ -56,6 +56,90 @@ fn footer_space_between_respects_both_horizontal_padding_edges() {
     );
 }
 
+#[test]
+fn feature_separators_meet_the_strip_bottom_border() {
+    let page = showcase_page();
+    let strip_id = page
+        .runs
+        .iter()
+        .flat_map(|run| &run.style.layout_sizes)
+        .find(|size| {
+            size.border_style[0] == crate::style::BorderLineStyle::Solid
+                && size.border_style[2] == crate::style::BorderLineStyle::Solid
+                && size.border_style[1] == crate::style::BorderLineStyle::None
+                && size.border_style[3] == crate::style::BorderLineStyle::None
+        })
+        .expect("feature strip border style should be present")
+        .node_id;
+    let feature_id = page
+        .runs
+        .iter()
+        .flat_map(|run| &run.style.layout_sizes)
+        .find(|size| {
+            size.min_height.as_deref() == Some("143px")
+                && size.border_style[1] == crate::style::BorderLineStyle::Solid
+        })
+        .expect("feature separator border style should be present")
+        .node_id;
+    let strip_bottom = page
+        .overflow_geometry
+        .get(&strip_id)
+        .expect("feature strip should have border geometry")
+        .border_box
+        .bottom;
+    let separator_bottom = page
+        .overflow_geometry
+        .get(&feature_id)
+        .expect("feature separator should have border geometry")
+        .border_box
+        .bottom;
+    let gap = strip_bottom - separator_bottom;
+    assert!(
+        (-0.5..=2.5).contains(&gap),
+        "feature separators should meet the strip bottom border, got {gap}px gap"
+    );
+}
+
+#[test]
+fn feature_separators_use_subpixel_coverage_for_one_pixel_strokes() {
+    let mut page = showcase_page();
+    let feature_id = page
+        .runs
+        .iter()
+        .flat_map(|run| &run.style.layout_sizes)
+        .find(|size| {
+            size.min_height.as_deref() == Some("143px")
+                && size.border_style[1] == crate::style::BorderLineStyle::Solid
+        })
+        .expect("feature separator border style should be present")
+        .node_id;
+    let pixels = page.snapshot_pixels(1920, 1024);
+    let feature_box = page
+        .overflow_geometry
+        .get(&feature_id)
+        .expect("feature separator should have border geometry")
+        .border_box;
+    let x = (feature_box.right - 1.0).floor() as usize;
+    let y = (feature_box.top + 70.0).floor() as usize;
+    let pixel = |x: usize| {
+        let offset = (y * 1920 + x) * 4;
+        [pixels[offset], pixels[offset + 1], pixels[offset + 2]]
+    };
+    let left_coverage = pixel(x);
+    let right_coverage = pixel(x + 1);
+
+    assert!(
+        left_coverage[0] > 27 && left_coverage[0] < 52,
+        "fractional border should partially cover its first pixel, got {left_coverage:?}"
+    );
+    assert!(
+        right_coverage[0] > 27 && right_coverage[0] < 52,
+        "fractional border should partially cover its second pixel, got {right_coverage:?}"
+    );
+    assert_eq!(pixel(x - 1), [27, 27, 29]);
+    assert_eq!(pixel(x + 2), [27, 27, 29]);
+}
+
 fn text_bounds(page: &PageRasterizer, text: &str) -> (f32, f32) {
     let line = page
         .layout_runs()

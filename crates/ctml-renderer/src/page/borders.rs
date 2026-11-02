@@ -6,7 +6,7 @@ use super::{
     border_radius::{draw_rounded_border, resolve_radii},
     overflow_clip::{self, BlockGeometry},
     page_padding,
-    pixel::fill_rect_alpha_clipped,
+    pixel::fill_rect_alpha_covered_clipped,
 };
 
 pub(super) fn draw(
@@ -261,7 +261,7 @@ pub(super) fn draw_edge(
         return;
     }
     let draw_rect = |pixels: &mut [u8], x: f32, y: f32, w: f32, h: f32, color: [u8; 4]| {
-        fill_rect_alpha_clipped(
+        fill_rect_alpha_covered_clipped(
             pixels,
             width,
             height,
