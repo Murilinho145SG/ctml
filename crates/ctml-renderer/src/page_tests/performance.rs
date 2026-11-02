@@ -15,14 +15,7 @@ fn native_page_rendering_cost() {
         "\n",
         include_str!("../../../../examples/native-app/src/main.css")
     );
-    use base64::{Engine, engine::general_purpose::STANDARD};
-    let css = css.replace(
-        "CTML_DEMO_ART",
-        &STANDARD.encode(include_bytes!(
-            "../../../../examples/native-app/src/ctml-hero.jpg"
-        )),
-    );
-    let stylesheet = ctml_css::parse_stylesheet(&css).unwrap();
+    let stylesheet = ctml_css::parse_stylesheet(css).unwrap();
     let rules = stylesheet
         .rules
         .into_iter()
