@@ -1,4 +1,12 @@
-use std::{fmt, sync::Arc, time::Duration, time::Instant};
+use std::{
+    fmt,
+    sync::{
+        Arc,
+        mpsc::{self, Receiver, TryRecvError},
+    },
+    time::Duration,
+    time::Instant,
+};
 
 use super::renderer::Renderer;
 use crate::{
@@ -101,6 +109,8 @@ pub enum WindowError {
     UnsupportedSurface,
     #[error("wgpu reported a validation error while acquiring the window surface")]
     SurfaceValidation,
+    #[error("renderer initialization worker stopped unexpectedly")]
+    RendererInitializationFailed,
 }
 
 /// A native application window backed by winit and wgpu.
@@ -130,6 +140,7 @@ struct WindowApplication {
     config: WindowConfig,
     window: Option<Arc<NativeWindow>>,
     renderer: Option<Renderer>,
+    renderer_initialization: Option<Receiver<Result<Renderer, WindowError>>>,
     error: Option<WindowError>,
     cursor_position: PhysicalPosition<f64>,
     left_button_down: bool,
@@ -148,6 +159,7 @@ impl WindowApplication {
             config,
             window: None,
             renderer: None,
+            renderer_initialization: None,
             error: None,
             cursor_position: PhysicalPosition::new(0.0, 0.0),
             left_button_down: false,
@@ -175,7 +187,10 @@ impl ApplicationHandler for WindowApplication {
 
         let attributes = NativeWindow::default_attributes()
             .with_title(self.config.title.clone())
-            .with_inner_size(PhysicalSize::new(self.config.width, self.config.height));
+            .with_inner_size(PhysicalSize::new(self.config.width, self.config.height))
+            .with_resizable(true)
+            .with_decorations(true)
+            .with_enabled_buttons(winit::window::WindowButtons::all());
         let window = match event_loop.create_window(attributes) {
             Ok(window) => Arc::new(window),
             Err(error) => {
@@ -184,28 +199,30 @@ impl ApplicationHandler for WindowApplication {
             }
         };
 
-        let renderer = match pollster::block_on(Renderer::new(
-            window.clone(),
-            event_loop.owned_display_handle(),
-            window.inner_size().width.max(1),
-            window.inner_size().height.max(1),
-            &self.config.body,
-            &self.config.stylesheet,
-            &self.config.keyframes,
-            self.config.animations_enabled,
-            &self.config.fonts,
-            &self.config.color_profiles,
-        )) {
-            Ok(renderer) => renderer,
-            Err(error) => {
-                self.fail(event_loop, error);
-                return;
-            }
-        };
-
+        let (sender, receiver) = mpsc::channel();
+        let config = std::mem::take(&mut self.config);
+        let size = window.inner_size();
+        let display_handle = event_loop.owned_display_handle();
+        let render_window = window.clone();
+        std::thread::spawn(move || {
+            let renderer = pollster::block_on(Renderer::new(
+                render_window.clone(),
+                display_handle,
+                size.width.max(1),
+                size.height.max(1),
+                &config.body,
+                &config.stylesheet,
+                &config.keyframes,
+                config.animations_enabled,
+                &config.fonts,
+                &config.color_profiles,
+            ));
+            let _ = sender.send(renderer);
+            render_window.request_redraw();
+        });
         window.request_redraw();
         self.window = Some(window);
-        self.renderer = Some(renderer);
+        self.renderer_initialization = Some(receiver);
     }
 
     fn window_event(
@@ -414,11 +431,30 @@ impl ApplicationHandler for WindowApplication {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let Some(window) = self.window.as_ref() else {
+        let Some(window) = self.window.as_ref().cloned() else {
             return;
         };
-        let now = Instant::now();
         let mut redraw = false;
+        if let Some(initialization) = self.renderer_initialization.take() {
+            match initialization.try_recv() {
+                Ok(Ok(renderer)) => {
+                    self.renderer = Some(renderer);
+                    redraw = true;
+                }
+                Ok(Err(error)) => {
+                    self.fail(event_loop, error);
+                    return;
+                }
+                Err(TryRecvError::Empty) => {
+                    self.renderer_initialization = Some(initialization);
+                }
+                Err(TryRecvError::Disconnected) => {
+                    self.fail(event_loop, WindowError::RendererInitializationFailed);
+                    return;
+                }
+            }
+        }
+        let now = Instant::now();
         let mut next_wake = None;
         if let Some(renderer) = self.renderer.as_mut() {
             if let Some(active) = renderer.advance_animations(now) {
