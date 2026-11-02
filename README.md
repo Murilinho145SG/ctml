@@ -76,7 +76,7 @@ Run the integrated demo with:
 cargo run -p ctml-native-demo
 ```
 
-The second example is a scrollable feature tour of the supported CTML surface. It includes typography, modern color spaces, block/flex/grid layout, backgrounds and box paint, generated content, focus states, native buttons and editable text inputs, scrolling, transitions, and keyframe animation. The interactive controls demonstrate `WindowConfig::on_action` and `WindowConfig::on_input`. It also calls out features that remain on the roadmap.
+The second example is a scrollable feature tour of the supported CTML surface. It includes typography, modern color spaces, block/flex/grid layout, backgrounds and box paint, generated content, focus states, native buttons and editable text inputs, scrolling, and motion support. The interactive controls demonstrate `WindowConfig::on_action` and `WindowConfig::on_input`. It also calls out features that remain on the roadmap.
 
 Run the feature showcase with:
 

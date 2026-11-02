@@ -12,8 +12,3 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 .limitations > p:last-child::first-letter { color: var(--cyan); font-size: 20px; }
 .pipeline-title::before { content: "// "; color: var(--subtle); }
 ::selection { background-color: color-mix(in srgb, var(--cyan) 68%, transparent); color: #0a1118; }
-.live-dot { animation: status-pulse 900ms ease-out 1 forwards; }
-@keyframes status-pulse {
-    from { background-color: #e7b34f; }
-    to { background-color: #5bd8a0; }
-}
