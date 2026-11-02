@@ -133,6 +133,7 @@ pub(super) fn block_geometries(
     page_writing_mode: WritingMode,
     flex_layout_offsets: &super::FlexLayoutOffsets,
     flex_item_box_x: &HashMap<usize, f32>,
+    flex_item_box_width: &HashMap<usize, f32>,
     _flex_column_extents: &HashMap<usize, (f32, f32)>,
 ) -> HashMap<usize, BlockGeometry> {
     let style_ranges = local_writing::text_style_ranges(runs);
@@ -326,13 +327,12 @@ pub(super) fn block_geometries(
                 available_width,
                 page_writing_mode,
             );
-            let block_width = resolve_layout_width(&sizes, available_width, page_writing_mode)
-                + inline_padding(
-                    std::slice::from_ref(&extent.size),
-                    containing_width,
-                    page_writing_mode,
-                )
-                .1;
+            let padding_extent = inline_padding(
+                std::slice::from_ref(&extent.size),
+                containing_width,
+                page_writing_mode,
+            )
+            .1;
             let border_widths =
                 super::sizing_padding::resolve_borders(&extent.size, containing_width);
             let (border_start, border_end) = if is_vertical(page_writing_mode) {
@@ -347,6 +347,13 @@ pub(super) fn block_geometries(
                 WritingMode::VerticalLr => (border_widths[3], border_widths[1]),
             };
             let block_border_extent = border_block_start + border_block_end;
+            let block_width = flex_item_box_width
+                .get(&node_id)
+                .map(|width| (width - border_extent).max(0.0))
+                .unwrap_or_else(|| {
+                    resolve_layout_width(&sizes, available_width, page_writing_mode)
+                        + padding_extent
+                });
             let margins = super::sizing_padding::resolve_margin(&extent.size, containing_width);
             let block_margin_end = match page_writing_mode {
                 WritingMode::HorizontalTb => margins[2],

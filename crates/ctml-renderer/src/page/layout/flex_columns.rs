@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
+mod item_sizing;
 mod vertical;
 
+use item_sizing::{resolve_item_spacing, resolve_item_width};
 use vertical::{apply_vertical, visual_justify};
 
 use crate::{
@@ -12,7 +14,7 @@ use crate::{
             inline_borders, inline_margin, inline_padding, resolve_borders, resolve_padding,
         },
     },
-    style::{FlexAlignment, FlexBasis, TextStyle, WritingMode},
+    style::{FlexAlignment, TextStyle, WritingMode},
 };
 
 use crate::page::FlexLayoutOffsetKey;
@@ -30,6 +32,9 @@ struct FlexItem {
     id: usize,
     lines: Vec<usize>,
     width: f32,
+    margin_start: f32,
+    margin_end: f32,
+    flex_shrink: f32,
 }
 
 struct ColumnLayout {
@@ -53,6 +58,7 @@ pub(crate) fn apply_flex_columns(
         )
     });
     page.flex_item_box_x.clear();
+    page.flex_item_box_width.clear();
     page.flex_column_extents.clear();
 
     let mut markers = HashMap::<usize, Vec<TextStyle>>::new();
@@ -189,7 +195,16 @@ pub(crate) fn apply_flex_columns(
                     container_width,
                     writing_mode,
                 );
-                FlexItem { id, lines, width }
+                let (margin_start, margin_end, flex_shrink) =
+                    resolve_item_spacing(page, id, container_width, writing_mode);
+                FlexItem {
+                    id,
+                    lines,
+                    width,
+                    margin_start,
+                    margin_end,
+                    flex_shrink,
+                }
             })
             .collect::<Vec<_>>();
         layouts.push(ColumnLayout {
@@ -215,7 +230,13 @@ pub(crate) fn apply_flex_columns(
         .collect::<Vec<_>>();
     horizontal.sort_unstable();
     for (_, index) in horizontal {
-        apply_horizontal(&layouts[index], &mut line_x, &mut page.flex_item_box_x);
+        apply_horizontal(
+            &mut layouts[index],
+            &mut line_x,
+            &mut page.flex_item_box_x,
+            &mut page.flex_item_box_width,
+            writing_mode,
+        );
     }
 
     let mut vertical = layouts
@@ -342,48 +363,36 @@ fn item_end_decoration(page: &PageRasterizer, item: usize, content_width: f32) -
 }
 
 #[allow(clippy::too_many_arguments)]
-fn resolve_item_width(
-    page: &PageRasterizer,
-    item: usize,
-    item_lines: &[usize],
-    lines: &[VisualLine],
-    basis: Option<&FlexBasis>,
-    container_width: f32,
-    writing_mode: WritingMode,
-) -> f32 {
-    match basis {
-        Some(FlexBasis::Percentage(percentage)) => container_width * percentage,
-        Some(FlexBasis::Length(length)) => *length,
-        _ => {
-            let measured = item_lines
-                .iter()
-                .map(|line| (lines[*line].max_x - lines[*line].min_x).max(0.0))
-                .fold(0.0_f32, f32::max);
-            let Some(size) = page.runs.iter().find_map(|run| {
-                run.style
-                    .layout_sizes
-                    .iter()
-                    .find(|size| size.node_id == item)
-            }) else {
-                return measured;
-            };
-            let padding = resolve_padding(size, container_width);
-            let border = resolve_borders(size, container_width);
-            if writing_mode == WritingMode::HorizontalTb {
-                measured + padding[1] + padding[3] + border[1] + border[3]
-            } else {
-                measured
-            }
-        }
-    }
-}
-
 fn apply_horizontal(
-    layout: &ColumnLayout,
+    layout: &mut ColumnLayout,
     line_x: &mut [f32],
     item_box_x: &mut HashMap<usize, f32>,
+    item_box_width: &mut HashMap<usize, f32>,
+    writing_mode: WritingMode,
 ) {
-    let total = layout.items.iter().map(|item| item.width).sum::<f32>();
+    let total = layout
+        .items
+        .iter()
+        .map(|item| item.width + item.margin_start + item.margin_end)
+        .sum::<f32>();
+    let deficit = (total - layout.width).max(0.0);
+    let shrink_weight = layout
+        .items
+        .iter()
+        .map(|item| item.width * item.flex_shrink)
+        .sum::<f32>();
+    let did_shrink = deficit > 0.0 && shrink_weight > 0.0;
+    if did_shrink {
+        for item in &mut layout.items {
+            let weight = item.width * item.flex_shrink;
+            item.width = (item.width - deficit * weight / shrink_weight).max(0.0);
+        }
+    }
+    let total = layout
+        .items
+        .iter()
+        .map(|item| item.width + item.margin_start + item.margin_end)
+        .sum::<f32>();
     let free_space = (layout.width - total).max(0.0);
     let count = layout.items.len();
     let justify = visual_justify(
@@ -423,7 +432,13 @@ fn apply_horizontal(
         for line in &item.lines {
             line_x[*line] += local;
         }
-        item_box_x.insert(item.id, layout.left + accumulated + local);
-        cursor += item.width + gap;
+        item_box_x.insert(
+            item.id,
+            layout.left + accumulated + local + item.margin_start,
+        );
+        if did_shrink && writing_mode == WritingMode::HorizontalTb {
+            item_box_width.insert(item.id, item.width);
+        }
+        cursor += item.margin_start + item.width + item.margin_end + gap;
     }
 }

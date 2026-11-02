@@ -89,6 +89,8 @@ mod flex_alignment;
 mod flex_columns;
 #[path = "page_tests/flex_display.rs"]
 mod flex_display;
+#[path = "page_tests/flex_margins.rs"]
+mod flex_margins;
 #[path = "page_tests/flex_wrap_reverse.rs"]
 mod flex_wrap_reverse;
 #[path = "page_tests/flex_wrapped_gaps.rs"]

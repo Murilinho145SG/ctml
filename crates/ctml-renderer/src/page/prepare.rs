@@ -11,6 +11,7 @@ impl PageRasterizer {
             )
         });
         self.flex_item_box_x.clear();
+        self.flex_item_box_width.clear();
         self.flex_column_extents.clear();
         for run in &mut self.runs {
             if run.style.flex_wrap_break {
@@ -185,6 +186,7 @@ impl PageRasterizer {
                 page_writing_mode,
                 &self.flex_layout_offsets,
                 &self.flex_item_box_x,
+                &self.flex_item_box_width,
                 &self.flex_column_extents,
             );
             content_visibility::offscreen_auto_nodes(
@@ -289,6 +291,7 @@ impl PageRasterizer {
             writing_mode,
             &self.flex_layout_offsets,
             &self.flex_item_box_x,
+            &self.flex_item_box_width,
             &self.flex_column_extents,
         );
         self.overflow_geometry = overflow_geometry;
