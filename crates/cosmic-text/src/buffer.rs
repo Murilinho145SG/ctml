@@ -704,12 +704,14 @@ impl Buffer {
         line_i: usize,
     ) -> Option<&[LayoutLine]> {
         let line = self.lines.get_mut(line_i)?;
+        let wrap = line.wrap();
+        let ellipsize = line.ellipsize();
         Some(line.layout(
             font_system,
             self.metrics.font_size,
             self.width_opt,
-            self.wrap,
-            self.ellipsize,
+            wrap,
+            ellipsize,
             self.monospace_width,
             self.tab_width,
             self.hinting,
@@ -759,6 +761,9 @@ impl Buffer {
     pub fn set_wrap(&mut self, wrap: Wrap) {
         if wrap != self.wrap {
             self.wrap = wrap;
+            for line in &mut self.lines {
+                line.set_wrap(wrap);
+            }
             self.dirty |= DirtyFlags::RELAYOUT;
             self.redraw = true;
         }
@@ -773,6 +778,9 @@ impl Buffer {
     pub fn set_ellipsize(&mut self, ellipsize: Ellipsize) {
         if ellipsize != self.ellipsize {
             self.ellipsize = ellipsize;
+            for line in &mut self.lines {
+                line.set_ellipsize(ellipsize);
+            }
             self.dirty |= DirtyFlags::RELAYOUT;
             self.redraw = true;
         }
@@ -927,7 +935,22 @@ impl Buffer {
             });
         }
 
+        self.apply_line_layout_defaults();
+
         self.scroll = Scroll::default();
+    }
+
+    /// Apply the buffer-level wrap and ellipsize to every line.
+    ///
+    /// Lines keep their own settings once they are laid out, so the buffer
+    /// defaults only seed lines that were just created or replaced.
+    fn apply_line_layout_defaults(&mut self) {
+        let wrap = self.wrap;
+        let ellipsize = self.ellipsize;
+        for line in &mut self.lines {
+            line.set_wrap(wrap);
+            line.set_ellipsize(ellipsize);
+        }
     }
 
     /// Set text of buffer, using provided attributes for each line by default.
@@ -1078,6 +1101,8 @@ impl Buffer {
         self.lines.iter_mut().for_each(|line| {
             line.set_align(alignment);
         });
+
+        self.apply_line_layout_defaults();
 
         self.scroll = Scroll::default();
     }

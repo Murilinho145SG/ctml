@@ -287,6 +287,16 @@ impl BufferLine {
         }
     }
 
+    /// Get the wrap mode used by the cached layout.
+    pub const fn wrap(&self) -> Wrap {
+        self.wrap
+    }
+
+    /// Get the ellipsize mode used by the cached layout.
+    pub const fn ellipsize(&self) -> Ellipsize {
+        self.ellipsize
+    }
+
     /// Preserve trailing spaces when wrapping a line.
     pub fn set_preserve_spaces(&mut self, preserve_spaces: bool) -> bool {
         if self.preserve_spaces != preserve_spaces {
