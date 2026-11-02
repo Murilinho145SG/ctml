@@ -1,5 +1,5 @@
 <headers>
-    <application name="CTML Feature Showcase" desktop width="1440" height="1000" />
+    <application name="CTML Feature Showcase" desktop width="1280" height="850" />
     <stylesheet href="showcase.css" />
     <stylesheet href="effects.css" />
 </headers>
@@ -116,7 +116,7 @@
                     <div class="layout-bottom">
                         <article class="panel box-card">
                             <p class="eyebrow">BOX PAINT</p>
-                            <div class="box-sample"><span>Border</span><span>Radius</span><span>Shadow</span></div>
+                            <div class="box-sample"><span>Border</span><span>Radius</span><span>Outline</span></div>
                             <p class="card-footnote">Padding · margin · border-image · outline · aspect-ratio</p>
                         </article>
                         <article class="panel scroll-card">
