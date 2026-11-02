@@ -84,6 +84,8 @@ Run the feature showcase with:
 cargo run -p ctml-feature-showcase
 ```
 
+Open `examples/feature-showcase/src/main.html` in a browser to compare the same markup and styles against native CTML rendering.
+
 The showcase package shares the integrated demo's build-time CTML and stylesheet compiler, so the compiled application receives markup, CSS, and keyframes without adding a runtime parser.
 
 ## Vision

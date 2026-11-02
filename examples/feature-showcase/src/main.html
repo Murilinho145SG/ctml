@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CTML Feature Showcase — Browser Reference</title>
+    <link rel="stylesheet" href="showcase.css" />
+    <link rel="stylesheet" href="effects.css" />
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <p class="brand">CTML <span>FEATURE SHOWCASE / 01</span></p>
+            <p class="topbar-status"><span class="live-dot"></span> COMPILED NATIVE INTERFACE</p>
+            <p class="topbar-meta">RUST / CSS / DESKTOP</p>
+        </header>
+
+        <section class="hero panel">
+            <div class="hero-copy">
+                <p class="eyebrow">THE COMPILED UI TOOLKIT</p>
+                <h1>One language.<br /><em>Native by design.</em></h1>
+                <p class="intro-text">Describe an interface with familiar markup, style it with CSS, and compile it into a desktop application.</p>
+                <div class="actions"><button action="explore">Explore CTML</button><button class="quiet" action="reset">Reset demo</button></div>
+            </div>
+            <div class="compile-card">
+                <p class="eyebrow">COMPILE TARGET</p>
+                <p class="command">cargo run -p ctml-feature-showcase</p>
+                <p class="compile-meta">01 WINDOW <span>02 STYLESHEETS</span> 00 BROWSER DEPS</p>
+            </div>
+        </section>
+
+        <section class="specimens">
+            <article class="panel specimen">
+                <p class="eyebrow">01 / TYPOGRAPHY</p>
+                <h2>The quick brown fox</h2>
+                <p>Shaping, OpenType features, variable axes, bidi text, language-aware wrapping, decorations, and vertical writing.</p>
+                <p class="type-detail">SMALL CAPS · <em>ITALIC SERIF</em> · <u>UNDERLINE</u></p>
+            </article>
+            <article class="panel specimen color-specimen">
+                <p class="eyebrow">02 / COLOR + PAINT</p>
+                <p class="color-caption">Modern color spaces, relative colors, color-mix, gradients, alpha, blend modes, borders, outlines, and shadows.</p>
+                <div class="swatches"><span></span><span></span><span></span><span></span></div>
+                <p class="type-detail" data-detail="CASCADE + ATTR()">OKLCH · DISPLAY-P3 · ICC PROFILES</p>
+            </article>
+            <article class="panel specimen layout-specimen">
+                <p class="eyebrow">03 / LAYOUT</p>
+                <p>Block flow, flexbox, grid tracks, intrinsic sizing, box model, overflow clipping, scroll chaining, and list markers.</p>
+                <div class="layout-sample"><span>FLOW</span><span>FLEX</span><span>GRID</span></div>
+                <p class="type-detail">RESIZE THE WINDOW TO REFLOW</p>
+            </article>
+        </section>
+
+        <section class="interaction panel">
+            <div class="control">
+                <p class="eyebrow">04 / NATIVE INPUT</p>
+                <label for="search-input">Edit a text input</label>
+                <input id="search-input" type="text" placeholder="Type here" value="" />
+                <p class="feedback" id="input-feedback">Input callbacks update this line.</p>
+            </div>
+            <div class="control counter">
+                <p class="eyebrow">ACTIONS + FOCUS</p>
+                <p class="counter-value" id="counter-value">0</p>
+                <div class="actions"><button action="increment">Increment</button><button class="quiet" action="reset">Reset</button></div>
+                <p class="feedback" id="action-status">Tab navigation and focus-visible are enabled.</p>
+            </div>
+        </section>
+
+        <section class="feature-map panel">
+            <p class="eyebrow">SUPPORTED SURFACE</p>
+            <div class="feature-columns">
+                <p><strong>Markup + CSS</strong><br />Selectors, cascade layers, custom properties, typed attributes, generated content, counters, and local imports.</p>
+                <p><strong>Text + layout</strong><br />Typography, writing modes, block/flex/grid layout, sizing, overflow, lists, and native scrolling.</p>
+                <p><strong>Rendering + runtime</strong><br />Color management, gradients, shadows, transitions, keyframes, local fonts, ICC profiles, buttons, and input callbacks.</p>
+            </div>
+        </section>
+
+        <footer class="footer"><span>CTML FEATURE SHOWCASE</span><span>COMPILED WITH RUST · NO BROWSER RUNTIME</span><span>OPEN ROADMAP: docs/css.md</span></footer>
+    </main>
+</body>
+</html>
