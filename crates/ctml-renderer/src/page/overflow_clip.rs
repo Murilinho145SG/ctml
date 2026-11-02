@@ -15,6 +15,8 @@ use super::{
     sizing_padding::inline_padding,
 };
 
+mod flow_sizes;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct ClipRect {
     pub(super) left: f32,
@@ -153,16 +155,17 @@ pub(super) fn block_geometries(
         let Some(style_run) = runs.get(style_index) else {
             continue;
         };
-        for (depth, size) in style_run.style.layout_sizes.iter().enumerate() {
+        let layout_sizes = flow_sizes::in_flow_layout_sizes(style_run);
+        for (depth, size) in layout_sizes.iter().enumerate() {
             if size.flex_items_row
-                && let Some(item) = style_run.style.layout_sizes.get(depth + 1)
+                && let Some(item) = layout_sizes.get(depth + 1)
             {
                 *flex_item_content_heights
                     .entry((size.node_id, item.node_id))
                     .or_default() += line.line_height;
             }
         }
-        for size in &style_run.style.layout_sizes {
+        for size in layout_sizes {
             extents
                 .entry(size.node_id)
                 .and_modify(|extent| {
@@ -207,7 +210,7 @@ pub(super) fn block_geometries(
                     let Some(style_run) = runs.get(style_index) else {
                         continue;
                     };
-                    for size in &style_run.style.layout_sizes {
+                    for size in flow_sizes::in_flow_layout_sizes(style_run) {
                         if line_blocks.insert(size.node_id) {
                             content_inline_extents
                                 .entry(size.node_id)

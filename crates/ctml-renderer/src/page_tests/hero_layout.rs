@@ -39,6 +39,44 @@ fn preview_footer_bottom_padding_stays_inside_its_flex_panel() {
 }
 
 #[test]
+fn empty_hero_rule_starts_after_its_top_margin() {
+    let page = showcase_page();
+    let description_line = page
+        .layout_runs()
+        .filter(|line| line.text.contains("Designed to feel effortless."))
+        .last()
+        .expect("description should have a final line");
+    let description_bottom = description_line.line_top + description_line.line_height;
+    let rule_id = page
+        .runs
+        .iter()
+        .flat_map(|run| &run.style.layout_sizes)
+        .find(|size| size.background_layers.contains(&[54, 54, 58, 255]))
+        .expect("hero rule background should be present")
+        .node_id;
+    let rule_top = page
+        .overflow_geometry
+        .get(&rule_id)
+        .expect("hero rule should have geometry")
+        .border_box;
+    let technical_top = page
+        .layout_runs()
+        .find(|line| line.text.contains("01 /"))
+        .expect("technical information should follow the hero rule")
+        .line_top;
+    let gap = rule_top.top - description_bottom;
+    assert!(
+        (39.0..=42.0).contains(&gap),
+        "hero rule should preserve its 40px top margin, got {gap}px"
+    );
+    let trailing_gap = technical_top - rule_top.bottom;
+    assert!(
+        (20.0..=30.0).contains(&trailing_gap),
+        "technical information should preserve the rule's 24px bottom margin, got {trailing_gap}px"
+    );
+}
+
+#[test]
 fn footer_space_between_respects_both_horizontal_padding_edges() {
     let page = showcase_page();
     let left_text = text_bounds(&page, "CTML © 2026");

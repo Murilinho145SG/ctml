@@ -434,7 +434,7 @@ pub(super) fn collect_runs(
                 path_attributes.push(attributes.clone());
                 path_siblings.push(siblings[..element_index].to_vec());
                 path_positions.push(position);
-                collect_spacers::append_block_start_spacers(
+                let margin_start_spacer = collect_spacers::append_block_start_spacers(
                     &style,
                     block,
                     empty_box,
@@ -512,6 +512,15 @@ pub(super) fn collect_runs(
                             .any(|style| *style != super::BorderLineStyle::None))
                 {
                     let mut spacer_style = style.clone();
+                    let mut margin = style.margin.clone();
+                    if margin_start_spacer {
+                        let start_side = match style.writing_mode {
+                            super::WritingMode::HorizontalTb => 0,
+                            super::WritingMode::VerticalRl => 1,
+                            super::WritingMode::VerticalLr => 3,
+                        };
+                        margin[start_side] = Some("0".to_owned());
+                    }
                     spacer_style.empty_block_height = Some(LayoutHeight {
                         width: style.width.clone(),
                         min_width: style.min_width.clone(),
@@ -531,7 +540,7 @@ pub(super) fn collect_runs(
                         border_style: style.border_style,
                         border_color: style.border_color,
                         padding: style.padding.clone(),
-                        margin: style.margin.clone(),
+                        margin,
                         size_property_orders: style.size_property_orders.clone(),
                         writing_mode: style.writing_mode,
                         font_size: style.font_size,

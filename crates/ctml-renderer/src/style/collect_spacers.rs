@@ -9,7 +9,7 @@ pub(super) fn append_block_start_spacers(
     output: &mut Vec<TextRun>,
     last_was_space: &mut bool,
     capitalize_next: &mut bool,
-) {
+) -> bool {
     if !block
         && empty_box
         && !style.content_skipped
@@ -96,7 +96,8 @@ pub(super) fn append_block_start_spacers(
         *last_was_space = last_was_space_before;
         *capitalize_next = capitalize_next_before;
     }
-    if block
+    let margin_start_spacer = block
+        && (has_content || empty_box)
         && style.margin[margin_start_side]
             .as_deref()
             .is_some_and(|margin| {
@@ -112,9 +113,8 @@ pub(super) fn append_block_start_spacers(
                         style.viewport_size,
                     )
                     .is_some_and(|length| length > 0.0)
-            })
-        && has_content
-    {
+            });
+    if margin_start_spacer {
         let mut spacer_style = style.clone();
         spacer_style.font_size = 1.0;
         spacer_style.line_height = style.margin[margin_start_side]
@@ -146,4 +146,5 @@ pub(super) fn append_block_start_spacers(
         *last_was_space = last_was_space_before;
         *capitalize_next = capitalize_next_before;
     }
+    margin_start_spacer
 }
