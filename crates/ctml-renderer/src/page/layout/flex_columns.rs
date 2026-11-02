@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+mod column_flow;
 mod item_sizing;
 mod vertical;
 
@@ -260,6 +261,8 @@ pub(crate) fn apply_flex_columns(
             writing_mode,
         );
     }
+
+    column_flow::apply_auto_main_margins(page, &lines, &mut line_y, content_width);
 
     let mut containers = layouts
         .iter()

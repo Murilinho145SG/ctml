@@ -60,13 +60,6 @@ pub(super) fn apply_vertical(
         writing_mode,
     );
     let alignment = layout.style.align_items.unwrap_or(FlexAlignment::Stretch);
-    let flow_alignment_offset = match alignment {
-        FlexAlignment::Center => (cross_size - item_cross_size).max(0.0) / 4.0,
-        FlexAlignment::FlexEnd | FlexAlignment::End => {
-            (cross_size - item_cross_size).max(0.0) / 2.0
-        }
-        _ => 0.0,
-    };
     // Distributed gaps are zero-width lines; place them on the row's cross-axis start.
     for line in lines
         .iter()
@@ -105,7 +98,10 @@ pub(super) fn apply_vertical(
         .max();
     if let Some(last_line) = last_line {
         if let Some(next) = lines.get(last_line + 1) {
-            let desired_bottom = container_top + cross_size - flow_alignment_offset;
+            let desired_bottom = container_top
+                + cross_size
+                + container_block_end_decoration(layout, available_width, writing_mode)
+                + first_content_line_height(layout, lines);
             let next_top = next.top + line_y[next.index];
             let shift = desired_bottom - next_top;
             if shift != 0.0 {
@@ -115,6 +111,43 @@ pub(super) fn apply_vertical(
             }
         }
     }
+}
+
+fn container_block_end_decoration(
+    layout: &ColumnLayout,
+    available_width: f32,
+    writing_mode: WritingMode,
+) -> f32 {
+    let Some((_, size)) = layout
+        .style
+        .layout_sizes
+        .iter()
+        .enumerate()
+        .find(|(_, size)| size.node_id == layout.container)
+    else {
+        return 0.0;
+    };
+    let padding = resolve_padding(size, available_width);
+    let borders = resolve_borders(size, available_width);
+    let margins = resolve_margin(size, available_width);
+    match writing_mode {
+        WritingMode::HorizontalTb => padding[2] + borders[2] + margins[2],
+        WritingMode::VerticalRl => padding[3] + borders[3] + margins[3],
+        WritingMode::VerticalLr => padding[1] + borders[1] + margins[1],
+    }
+}
+
+fn first_content_line_height(layout: &ColumnLayout, lines: &[VisualLine]) -> f32 {
+    layout
+        .items
+        .iter()
+        .flat_map(|item| &item.lines)
+        .filter_map(|index| {
+            let line = &lines[*index];
+            (line.max_x > line.min_x).then_some((line.index, line.height))
+        })
+        .min_by_key(|(index, _)| *index)
+        .map_or(layout.style.line_height, |(_, height)| height)
 }
 
 fn flex_container_cross_size(

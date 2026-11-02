@@ -180,19 +180,54 @@ fn feature_separators_use_subpixel_coverage_for_one_pixel_strokes() {
 
 #[test]
 fn distributed_row_flow_matches_the_hero_minimum_height() {
-    let mut page = showcase_page_at(1904, 1032);
-    let pixels = page.snapshot_pixels(1904, 1032);
-    let feature_top = (650..760)
-        .find(|y| {
-            let offset = (y * 1904 + 100) * 4;
-            pixels[offset] > 40 && pixels[offset + 1] > 40 && pixels[offset + 2] > 40
-        })
-        .expect("feature strip top border should be visible");
+    for (width, height) in [(1120, 800), (1920, 1013), (1904, 1032)] {
+        let page = showcase_page_at(width, height);
+        let panel_id = page
+            .runs
+            .iter()
+            .flat_map(|run| &run.style.layout_sizes)
+            .find(|size| size.background_layers.contains(&[34, 34, 37, 255]))
+            .expect("preview panel style should be present")
+            .node_id;
+        let strip_id = feature_strip_id(&page);
+        let panel_bottom = page.overflow_geometry[&panel_id].border_box.bottom;
+        let feature_top = page.overflow_geometry[&strip_id].border_box.top;
+        let expected_top = 71.0 + height as f32 * 0.61;
 
-    assert!(
-        (694..=708).contains(&feature_top),
-        "feature strip should match the browser's 61vh hero boundary near y=701, got y={feature_top}"
-    );
+        assert!(
+            feature_top >= panel_bottom + 40.0,
+            "feature strip must clear the preview panel at {width}x{height}, got panel bottom {panel_bottom}px and strip top {feature_top}px"
+        );
+        assert!(
+            (expected_top - 10.0..=expected_top + 10.0).contains(&feature_top),
+            "feature strip should follow the 61vh hero at {width}x{height}, expected near {expected_top}px, got {feature_top}px"
+        );
+
+        let footer_line = page
+            .layout_runs()
+            .find(|line| line.text.contains("CTML © 2026"))
+            .expect("footer text should be present");
+        let expected_footer_top = height as f32 - 22.0 - footer_line.line_height;
+        assert!(
+            (expected_footer_top - 2.0..=expected_footer_top + 2.0).contains(&footer_line.line_top),
+            "footer should honor its auto top margin and bottom padding at {width}x{height}, expected near {expected_footer_top}px, got {}px",
+            footer_line.line_top
+        );
+    }
+}
+
+fn feature_strip_id(page: &PageRasterizer) -> usize {
+    page.runs
+        .iter()
+        .flat_map(|run| &run.style.layout_sizes)
+        .find(|size| {
+            size.border_style[0] == crate::style::BorderLineStyle::Solid
+                && size.border_style[2] == crate::style::BorderLineStyle::Solid
+                && size.border_style[1] == crate::style::BorderLineStyle::None
+                && size.border_style[3] == crate::style::BorderLineStyle::None
+        })
+        .expect("feature strip style should be present")
+        .node_id
 }
 
 fn text_bounds(page: &PageRasterizer, text: &str) -> (f32, f32) {
