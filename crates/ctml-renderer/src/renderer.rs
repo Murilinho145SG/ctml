@@ -17,6 +17,7 @@ pub(super) struct Renderer {
     page: PageRasterizer,
     page_dirty: bool,
     page_needs_layout: bool,
+    animation_settled: bool,
     pending_resize: Option<PhysicalSize<u32>>,
     suspended: bool,
     page_texture: wgpu::Texture,
@@ -85,6 +86,7 @@ impl Renderer {
             page,
             page_dirty: false,
             page_needs_layout: false,
+            animation_settled: false,
             pending_resize: None,
             suspended: false,
             page_texture,
@@ -208,8 +210,17 @@ impl Renderer {
 
     pub(super) fn advance_animations(&mut self, now: Instant) -> Option<bool> {
         let active = self.page.advance_animations(now)?;
+        if active {
+            self.animation_settled = false;
+            self.page_dirty = true;
+            return Some(true);
+        }
+        if self.animation_settled {
+            return None;
+        }
+        self.animation_settled = true;
         self.page_dirty = true;
-        Some(active)
+        Some(false)
     }
 
     pub(super) fn pointer_moved(
@@ -221,6 +232,7 @@ impl Renderer {
         let (cursor, visible) = self.page.cursor_at(position.x, position.y);
         let changed = hover_changed || selection_changed;
         self.page_dirty |= changed;
+        self.animation_settled &= !hover_changed;
         (cursor, visible, changed)
     }
 
@@ -244,12 +256,14 @@ impl Renderer {
     pub(super) fn pointer_left(&mut self) -> bool {
         let changed = self.page.clear_hover();
         self.page_dirty |= changed;
+        self.animation_settled &= !changed;
         changed
     }
 
     pub(super) fn tab_focus(&mut self, backwards: bool) -> bool {
         let changed = self.page.focus_next(backwards);
         self.page_dirty |= changed;
+        self.animation_settled &= !changed;
         changed
     }
 
@@ -295,6 +309,7 @@ impl Renderer {
             }
         };
         self.page_dirty |= changed;
+        self.animation_settled &= !changed;
         changed
     }
 }
