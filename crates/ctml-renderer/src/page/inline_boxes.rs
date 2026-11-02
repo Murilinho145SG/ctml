@@ -5,10 +5,10 @@ use cosmic_text::Buffer;
 use crate::style::{BorderLineStyle, BoxDecorationBreak, TextRun, WritingMode};
 
 use super::{
-    PAGE_PADDING,
     borders::{draw_edge, edge_color},
     local_writing,
     overflow_clip::{self, ClipRect},
+    page_padding,
     pixel::fill_rect_alpha_clipped,
     sizing::resolve_width,
 };
@@ -161,13 +161,13 @@ pub(super) fn draw(
                     (end_side == 3 && last) || (start_side == 3 && first),
                 ]
             };
-            let left = fragment.left + PAGE_PADDING;
+            let left = fragment.left + page_padding();
             let length = (fragment.right - fragment.left).max(0.0);
             let fragment_height = (fragment.bottom - fragment.top).max(0.0);
             let inline_available = if super::sizing::is_vertical(page_writing_mode) {
-                height as f32 - PAGE_PADDING * 2.0
+                height as f32 - page_padding() * 2.0
             } else {
-                width as f32 - PAGE_PADDING * 2.0
+                width as f32 - page_padding() * 2.0
             };
             let inline_padding = resolve_inline_padding(style, inline_available.max(0.0));
             let border_start = if sides[3] { widths[3] } else { 0.0 };
@@ -179,9 +179,9 @@ pub(super) fn draw(
                     .as_ref()
                     .map_or([0.0; 4], |pseudo_style| {
                         let inline_available = if super::sizing::is_vertical(page_writing_mode) {
-                            height as f32 - PAGE_PADDING * 2.0
+                            height as f32 - page_padding() * 2.0
                         } else {
-                            width as f32 - PAGE_PADDING * 2.0
+                            width as f32 - page_padding() * 2.0
                         };
                         super::layout::resolve_first_letter_padding(
                             style,
@@ -194,7 +194,7 @@ pub(super) fn draw(
             } else {
                 [0.0; 4]
             };
-            let top = fragment.top + PAGE_PADDING - block_padding[0];
+            let top = fragment.top + page_padding() - block_padding[0];
             let fragment_height = fragment_height + block_padding[0] + block_padding[2];
             let (scroll_x, scroll_y) = overflow_clip::scroll_translation_for_path(
                 &run.element_path,
@@ -239,7 +239,7 @@ pub(super) fn draw(
                 let color_clip_box = style.background_clips.last().copied().unwrap_or_default();
                 let color_clip_box = background_boxes
                     .get(color_clip_box)
-                    .with_offset((PAGE_PADDING, PAGE_PADDING));
+                    .with_offset((page_padding(), page_padding()));
                 let color_clip =
                     Some(clip.map_or(color_clip_box, |outer| outer.intersect(color_clip_box)));
                 for layer in &style.background_layers {

@@ -43,8 +43,8 @@ pub(super) fn draw_highlight_background_images(
         let (left, top, span_width, span_height) =
             local_transform.map_or((left, line_top, span_width, line_height), |transform| {
                 transform.map_rect(
-                    left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
+                    left + super::page_padding(),
+                    line_top + super::page_padding(),
                     span_width,
                     line_height,
                 )
@@ -123,15 +123,15 @@ pub(super) fn fill_highlight(
     for (left, span_width) in run.highlight(start, end) {
         let (left, top, span_width, line_height) = local_transform.map_or(
             (
-                left + super::PAGE_PADDING,
-                line_top + super::PAGE_PADDING,
+                left + super::page_padding(),
+                line_top + super::page_padding(),
                 span_width,
                 line_height,
             ),
             |transform| {
                 transform.map_rect(
-                    left + super::PAGE_PADDING,
-                    line_top + super::PAGE_PADDING,
+                    left + super::page_padding(),
+                    line_top + super::page_padding(),
                     span_width,
                     line_height,
                 )
@@ -164,8 +164,8 @@ pub(super) fn fill_highlight(
                 pixels,
                 width,
                 height,
-                rect.left - super::PAGE_PADDING,
-                rect.top - super::PAGE_PADDING,
+                rect.left - super::page_padding(),
+                rect.top - super::page_padding(),
                 span_width,
                 line_height,
                 color,

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
 use winit::window::CursorIcon;
 
-use super::{PAGE_PADDING, PageRasterizer, local_writing, overflow_clip};
+use super::{PageRasterizer, local_writing, overflow_clip, page_padding};
 
 impl PageRasterizer {
     pub(crate) fn cursor_at(&self, x: f64, y: f64) -> (CursorIcon, bool) {
@@ -198,7 +198,7 @@ impl PageRasterizer {
         let (x, y) = self
             .local_vertical_layout_point(x as f32, y as f32)
             .unwrap_or((pointer_x, pointer_y));
-        let x = x - PAGE_PADDING;
+        let x = x - page_padding();
         let (scroll_offset_x, scroll_offset_y) = self
             .overflow_geometry
             .iter()
@@ -219,7 +219,7 @@ impl PageRasterizer {
             crate::style::WritingMode::VerticalLr => (scroll_offset_y, -scroll_offset_x),
         };
         let x = x + scroll_translation_x;
-        let y = y - PAGE_PADDING + scroll_translation_y;
+        let y = y - page_padding() + scroll_translation_y;
         let mut x = x;
         let mut y = y;
         let hit_line = if clamp {
@@ -402,8 +402,8 @@ impl PageRasterizer {
             let transform =
                 local_writing::LocalVerticalTransform::new(mode, origin_y, width, height);
             let (rect_left, rect_top, rect_width, rect_height) = transform.map_rect(
-                left + PAGE_PADDING,
-                top + PAGE_PADDING,
+                left + page_padding(),
+                top + page_padding(),
                 right - left,
                 bottom - top,
             );

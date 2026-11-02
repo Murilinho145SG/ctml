@@ -34,6 +34,69 @@ fn display_flex_places_block_children_in_a_shared_row() {
 }
 
 #[test]
+fn flex_distribution_gap_does_not_paint_the_container_border_at_text_height() {
+    let nodes = [UiNode::Element {
+        tag: "div".to_owned(),
+        class: Some("container".to_owned()),
+        id: None,
+        attributes: Vec::new(),
+        children: ["First", "Second"]
+            .into_iter()
+            .map(|text| UiNode::Element {
+                tag: "p".to_owned(),
+                class: None,
+                id: None,
+                attributes: Vec::new(),
+                children: vec![UiNode::Text(text.to_owned())],
+            })
+            .collect(),
+    }];
+    let stylesheet = [
+        StyleRule {
+            selectors: vec!["body".to_owned()],
+            layer: None,
+            declarations: vec![StyleDeclaration {
+                property: "margin".to_owned(),
+                value: "0".to_owned(),
+            }],
+        },
+        StyleRule {
+            selectors: vec![".container".to_owned()],
+            layer: None,
+            declarations: [
+                ("display", "flex"),
+                ("justify-content", "space-between"),
+                ("height", "40px"),
+                ("border-bottom", "1px solid red"),
+            ]
+            .into_iter()
+            .map(|(property, value)| StyleDeclaration {
+                property: property.to_owned(),
+                value: value.to_owned(),
+            })
+            .collect(),
+        },
+    ];
+    let pixels = PageRasterizer::new(&nodes, &stylesheet).snapshot_pixels(240, 80);
+    let red_rows = pixels
+        .chunks_exact(240 * 4)
+        .enumerate()
+        .filter_map(|(row, pixels)| {
+            pixels
+                .chunks_exact(4)
+                .any(|pixel| pixel[0] > 200 && pixel[1] < 40 && pixel[2] < 40)
+                .then_some(row)
+        })
+        .collect::<Vec<_>>();
+
+    assert!(!red_rows.is_empty(), "the container border should be painted");
+    assert!(
+        red_rows.iter().all(|row| *row >= 30),
+        "the border should stay at the container bottom, got red pixels on rows {red_rows:?}"
+    );
+}
+
+#[test]
 fn flex_direction_column_stacks_inline_children_as_items() {
     let nodes = [UiNode::Element {
         tag: "div".to_owned(),

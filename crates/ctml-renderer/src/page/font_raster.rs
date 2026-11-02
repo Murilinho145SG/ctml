@@ -7,7 +7,7 @@ use skia_safe::{
 };
 
 use crate::page::overflow_clip::{self, ClipRect};
-use crate::page::{CursorSpan, PAGE_PADDING, local_writing};
+use crate::page::{CursorSpan, local_writing, page_padding};
 use crate::style::{TextRun, TextStyle, WritingMode};
 
 mod shaping;
@@ -258,13 +258,13 @@ pub(super) fn draw(
                     .and_then(|style_run| style_run.first_line_block)
                     .and_then(|block| vertical_block_origins.get(&block).copied())
                     .unwrap_or(run.line_y);
-                let source = Point::new(PAGE_PADDING, origin_y + PAGE_PADDING);
+                let source = Point::new(page_padding(), origin_y + page_padding());
                 let target = match mode {
                     WritingMode::VerticalRl => {
-                        Point::new(width as f32 - origin_y - PAGE_PADDING, PAGE_PADDING)
+                        Point::new(width as f32 - origin_y - page_padding(), page_padding())
                     }
                     WritingMode::VerticalLr => {
-                        Point::new(origin_y + PAGE_PADDING, height as f32 - PAGE_PADDING)
+                        Point::new(origin_y + page_padding(), height as f32 - page_padding())
                     }
                     WritingMode::HorizontalTb => unreachable!(),
                 };
@@ -320,8 +320,8 @@ pub(super) fn draw(
                         style,
                         first.level.number(),
                         Point::new(
-                            anchor.x + anchor.x_offset * anchor.font_size + PAGE_PADDING,
-                            baseline + PAGE_PADDING + font.metrics().1.ascent,
+                            anchor.x + anchor.x_offset * anchor.font_size + page_padding(),
+                            baseline + page_padding() + font.metrics().1.ascent,
                         ),
                     )
                 })
@@ -417,8 +417,8 @@ fn draw_conditional_hyphens(
             style,
             glyph.level.number(),
             Point::new(
-                glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING,
-                baseline + PAGE_PADDING + font.metrics().1.ascent,
+                glyph.x + glyph.x_offset * glyph.font_size + page_padding(),
+                baseline + page_padding() + font.metrics().1.ascent,
             ),
         ) else {
             continue;

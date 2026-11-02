@@ -3,9 +3,9 @@ use std::collections::{HashMap, HashSet};
 use crate::style::{BorderLineStyle, LayoutSize, TextRun, WritingMode};
 
 use super::{
-    PAGE_PADDING,
     border_radius::{draw_rounded_border, resolve_radii},
     overflow_clip::{self, BlockGeometry},
+    page_padding,
     pixel::fill_rect_alpha_clipped,
 };
 
@@ -265,8 +265,8 @@ pub(super) fn draw_edge(
             pixels,
             width,
             height,
-            x - PAGE_PADDING,
-            y - PAGE_PADDING,
+            x - page_padding(),
+            y - page_padding(),
             w,
             h,
             color,

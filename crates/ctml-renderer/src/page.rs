@@ -44,6 +44,7 @@ mod local_writing;
 mod opacity_groups;
 mod outlines;
 mod overflow_clip;
+mod page_padding;
 mod pixel;
 mod prepare;
 mod render;
@@ -60,6 +61,7 @@ mod viewport;
 const PAGE_PADDING: f32 = 8.0;
 pub(super) use layout_runs::{FlexLayoutOffsetKey, adjusted_layout_runs};
 use layout_runs::{FlexLayoutOffsets, PageLayoutRun};
+pub(super) use page_padding::{current as page_padding, update as update_page_padding};
 
 use block_sizing::{block_spacer_heights, insert_block_spacers};
 use cursor_spans::{CursorSpan, cursor_spans};

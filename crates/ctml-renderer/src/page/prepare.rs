@@ -29,10 +29,16 @@ impl PageRasterizer {
             .selection_anchor
             .map(|cursor| cursor_without_flow_spacers(cursor, &self.spacer_line_flags));
         let viewport_size = viewport::resize_styles(self, width, height);
+        let page_padding = if root_body_margin_is_zero(&self.root_style.margin) {
+            0.0
+        } else {
+            page_padding()
+        };
+        update_page_padding(page_padding);
         let (layout_width, layout_height) =
             vertical::layout_dimensions(self.writing_mode(), width, height);
-        let available_width = (layout_width as f32 - PAGE_PADDING * 2.0).max(1.0);
-        let available_height = (layout_height as f32 - PAGE_PADDING * 2.0).max(1.0);
+        let available_width = (layout_width as f32 - page_padding * 2.0).max(1.0);
+        let available_height = (layout_height as f32 - page_padding * 2.0).max(1.0);
         let font_size = self.root_style.font_size;
         let root_intrinsic_widths = measure_root_intrinsic_widths(self);
         let vertical = self.writing_mode() != crate::style::WritingMode::HorizontalTb;
@@ -349,4 +355,17 @@ impl PageRasterizer {
             }
         }
     }
+}
+
+fn root_body_margin_is_zero(margins: &[Option<String>; 4]) -> bool {
+    margins.iter().all(|margin| {
+        margin.as_deref().is_some_and(|value| {
+            let value = value.trim();
+            value.parse::<f32>().is_ok_and(|value| value == 0.0)
+                || value
+                    .strip_suffix("px")
+                    .and_then(|value| value.trim().parse::<f32>().ok())
+                    .is_some_and(|value| value == 0.0)
+        })
+    })
 }

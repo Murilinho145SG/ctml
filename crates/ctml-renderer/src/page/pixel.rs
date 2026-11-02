@@ -1,6 +1,6 @@
 use cosmic_text::{Color, Renderer};
 
-use super::{PAGE_PADDING, local_writing::LocalVerticalTransform, overflow_clip::ClipRect};
+use super::{local_writing::LocalVerticalTransform, overflow_clip::ClipRect, page_padding};
 
 pub(super) struct PixelRenderer<'a> {
     pub(super) pixels: &'a mut [u8],
@@ -19,16 +19,16 @@ impl Renderer for PixelRenderer<'_> {
         let (x, y, width, height) = self.local_transform.map_or_else(
             || {
                 (
-                    x + PAGE_PADDING as i32,
-                    y + PAGE_PADDING as i32,
+                    x + page_padding() as i32,
+                    y + page_padding() as i32,
                     width,
                     height,
                 )
             },
             |transform| {
                 let (left, top, mapped_width, mapped_height) = transform.map_rect(
-                    x as f32 + PAGE_PADDING,
-                    y as f32 + PAGE_PADDING,
+                    x as f32 + page_padding(),
+                    y as f32 + page_padding(),
                     width as f32,
                     height as f32,
                 );
@@ -180,10 +180,10 @@ pub(super) fn fill_rect_alpha_clipped(
     color: [u8; 4],
     clip: Option<ClipRect>,
 ) {
-    let left = ((x + PAGE_PADDING).floor() as i32).clamp(0, width as i32);
-    let top = ((y + PAGE_PADDING).floor() as i32).clamp(0, height as i32);
-    let right = ((x + rect_width + PAGE_PADDING).ceil() as i32).clamp(0, width as i32);
-    let bottom = ((y + rect_height + PAGE_PADDING).ceil() as i32).clamp(0, height as i32);
+    let left = ((x + page_padding()).floor() as i32).clamp(0, width as i32);
+    let top = ((y + page_padding()).floor() as i32).clamp(0, height as i32);
+    let right = ((x + rect_width + page_padding()).ceil() as i32).clamp(0, width as i32);
+    let bottom = ((y + rect_height + page_padding()).ceil() as i32).clamp(0, height as i32);
     let left = clip.map_or(left, |clip| left.max(clip.left.floor() as i32));
     let top = clip.map_or(top, |clip| top.max(clip.top.floor() as i32));
     let right = clip.map_or(right, |clip| right.min(clip.right.ceil() as i32));

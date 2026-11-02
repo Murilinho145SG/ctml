@@ -200,7 +200,7 @@ pub(super) fn append_gap(
     spacer_style.line_height = 1.0;
     spacer_style.line_height_multiplier = None;
     spacer_style.line_height_normal = false;
-    spacer_style.inline_box = true;
+    spacer_style.inline_box = false;
     spacer_style.pointer_events_none = true;
     spacer_style.cursor_hidden = true;
     spacer_style.user_select = UserSelect::None;

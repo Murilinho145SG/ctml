@@ -3,7 +3,7 @@ use skia_safe::{
     TextBlob,
 };
 
-use crate::page::PAGE_PADDING;
+use crate::page::page_padding;
 use crate::style::{
     TextEmphasisPosition, TextEmphasisSide, TextEmphasisStyle, TextStyle, WritingMode,
 };
@@ -67,11 +67,13 @@ pub(super) fn draw_text_emphasis(
         let radius = (glyph.font_size * 0.14).clamp(1.0, 2.5);
         let cross_offset = line.offset_for_range(glyph.start, glyph.end);
         let center = Point::new(
-            glyph.x + glyph.w * 0.5 + PAGE_PADDING,
+            glyph.x + glyph.w * 0.5 + page_padding(),
             match emphasis_position(style, writing_mode) {
-                TextEmphasisPosition::Over => line.line_top + cross_offset + radius + PAGE_PADDING,
+                TextEmphasisPosition::Over => {
+                    line.line_top + cross_offset + radius + page_padding()
+                }
                 TextEmphasisPosition::Under => {
-                    line.line_top + cross_offset + line.line_height - radius - 1.0 + PAGE_PADDING
+                    line.line_top + cross_offset + line.line_height - radius - 1.0 + page_padding()
                 }
             },
         );

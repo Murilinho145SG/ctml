@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::style::{BoxShadow, TextRun};
 
 use super::{
-    PAGE_PADDING, overflow_clip, overflow_clip::BlockGeometry, pixel::fill_rect_alpha_clipped,
+    overflow_clip, overflow_clip::BlockGeometry, page_padding, pixel::fill_rect_alpha_clipped,
 };
 
 pub(super) fn draw_outer(
@@ -79,10 +79,10 @@ pub(super) fn draw_first_letter(
             continue;
         }
         let mut rect = overflow_clip::ClipRect {
-            left: left + PAGE_PADDING,
-            top: line.line_top + PAGE_PADDING,
-            right: right + PAGE_PADDING,
-            bottom: line.line_top + line.line_height + PAGE_PADDING,
+            left: left + page_padding(),
+            top: line.line_top + page_padding(),
+            right: right + page_padding(),
+            bottom: line.line_top + line.line_height + page_padding(),
         };
         if let Some(transform) = super::local_writing::LocalVerticalTransform::from_run(
             runs,
@@ -241,15 +241,15 @@ pub(super) fn draw_first_line(
             continue;
         }
         let mut rect = overflow_clip::ClipRect {
-            left: left + PAGE_PADDING,
-            top: line.line_top + PAGE_PADDING,
-            right: right + PAGE_PADDING,
-            bottom: line.line_top + line.line_height + PAGE_PADDING,
+            left: left + page_padding(),
+            top: line.line_top + page_padding(),
+            right: right + page_padding(),
+            bottom: line.line_top + line.line_height + page_padding(),
         };
         let inline_available = if super::sizing::is_vertical(page_writing_mode) {
-            height as f32 - PAGE_PADDING * 2.0
+            height as f32 - page_padding() * 2.0
         } else {
-            width as f32 - PAGE_PADDING * 2.0
+            width as f32 - page_padding() * 2.0
         };
         let padding = super::layout::resolve_first_letter_padding(
             &run.style,
@@ -440,8 +440,8 @@ fn paint_pixel(
         pixels,
         width,
         height,
-        x as f32 - PAGE_PADDING,
-        y as f32 - PAGE_PADDING,
+        x as f32 - page_padding(),
+        y as f32 - page_padding(),
         1.0,
         1.0,
         color,

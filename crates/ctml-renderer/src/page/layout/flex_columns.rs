@@ -231,7 +231,7 @@ pub(crate) fn apply_flex_columns(
             &mut line_y,
             content_width,
             page.layout_size.map_or(content_width, |(_, height)| {
-                (height as f32 - crate::page::PAGE_PADDING * 2.0).max(0.0)
+                (height as f32 - crate::page::page_padding() * 2.0).max(0.0)
             }),
             writing_mode,
         );

@@ -1,9 +1,8 @@
 use crate::style::{BorderLineStyle, LayoutSize};
 
 use super::{
-    PAGE_PADDING,
     borders::{draw_edge, edge_color, shade},
-    overflow_clip,
+    overflow_clip, page_padding,
     pixel::fill_rect_alpha_clipped,
 };
 
@@ -280,8 +279,8 @@ fn draw_rounded_corner(
                 pixels,
                 width,
                 height,
-                x as f32 - PAGE_PADDING,
-                y as f32 - PAGE_PADDING,
+                x as f32 - page_padding(),
+                y as f32 - page_padding(),
                 1.0,
                 1.0,
                 edge_color(shade_for_side(colors[side], side, styles[side]), opacity),

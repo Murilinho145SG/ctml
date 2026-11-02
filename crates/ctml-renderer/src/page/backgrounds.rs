@@ -61,8 +61,8 @@ pub(super) fn draw_block_boxes(
                 content: geometry.content_box,
             }
             .offset(
-                -super::PAGE_PADDING - scroll_x,
-                -super::PAGE_PADDING - scroll_y,
+                -super::page_padding() - scroll_x,
+                -super::page_padding() - scroll_y,
             );
             let fill_boxes = overflow_clip::BackgroundBoxes {
                 border: geometry.border_box,
@@ -101,8 +101,8 @@ pub(super) fn draw_block_boxes(
                         pixels,
                         width,
                         height,
-                        rect.left - super::PAGE_PADDING - scroll_x,
-                        rect.top - super::PAGE_PADDING - scroll_y,
+                        rect.left - super::page_padding() - scroll_x,
+                        rect.top - super::page_padding() - scroll_y,
                         rect.right - rect.left,
                         rect.bottom - rect.top,
                         color,
@@ -256,8 +256,8 @@ pub(super) fn draw(
                             mode, origin_y, width, height,
                         );
                         let (left, top, rect_width, rect_height) = transform.map_rect(
-                            left + crate::page::PAGE_PADDING,
-                            line.line_top + cross_offset + crate::page::PAGE_PADDING,
+                            left + crate::page::page_padding(),
+                            line.line_top + cross_offset + crate::page::page_padding(),
                             right - left,
                             line.line_height,
                         );
@@ -270,8 +270,8 @@ pub(super) fn draw(
                             pixels,
                             width,
                             height,
-                            left - crate::page::PAGE_PADDING - scroll_offset_x,
-                            top - crate::page::PAGE_PADDING - scroll_offset_y,
+                            left - crate::page::page_padding() - scroll_offset_x,
+                            top - crate::page::page_padding() - scroll_offset_y,
                             rect_width,
                             rect_height,
                             color,

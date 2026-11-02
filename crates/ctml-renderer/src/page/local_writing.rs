@@ -32,8 +32,8 @@ impl LocalVerticalTransform {
         rect_width: f32,
         rect_height: f32,
     ) -> (f32, f32, f32, f32) {
-        let source_x = crate::page::PAGE_PADDING;
-        let source_y = self.origin_y + crate::page::PAGE_PADDING;
+        let source_x = crate::page::page_padding();
+        let source_y = self.origin_y + crate::page::page_padding();
         match self.mode {
             WritingMode::VerticalRl => {
                 let target_x = self.width as f32 - source_y;

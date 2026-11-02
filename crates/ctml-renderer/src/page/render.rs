@@ -1,6 +1,6 @@
 use super::{
-    PAGE_PADDING, PageRasterizer, PixelRenderer, backgrounds, borders, box_shadows, decorations,
-    font_raster, inline_boxes, outlines,
+    PageRasterizer, PixelRenderer, backgrounds, borders, box_shadows, decorations, font_raster,
+    inline_boxes, outlines, page_padding,
 };
 use cosmic_text::Color;
 
@@ -277,8 +277,8 @@ impl PageRasterizer {
                             physical_glyph.cache_key,
                             mask_color,
                             |x, y, pixel_color| {
-                                let source_x = physical_glyph.x + x + PAGE_PADDING as i32;
-                                let source_y = physical_glyph.y + y + PAGE_PADDING as i32;
+                                let source_x = physical_glyph.x + x + page_padding() as i32;
+                                let source_y = physical_glyph.y + y + page_padding() as i32;
                                 let (pixel_x, pixel_y) =
                                     local_transform.map_or((source_x, source_y), |transform| {
                                         let (x, y, _, _) = transform.map_rect(

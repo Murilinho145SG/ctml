@@ -38,8 +38,8 @@ impl PageRasterizer {
                 (content_block, block_offset, content_inline, inline_offset)
             }
         };
-        let viewport_width = (width as f32 - super::PAGE_PADDING * 2.0).max(0.0);
-        let viewport_height = (height as f32 - super::PAGE_PADDING * 2.0).max(0.0);
+        let viewport_width = (width as f32 - super::page_padding() * 2.0).max(0.0);
+        let viewport_height = (height as f32 - super::page_padding() * 2.0).max(0.0);
         let scrollbars = [
             Scrollbar {
                 horizontal: true,

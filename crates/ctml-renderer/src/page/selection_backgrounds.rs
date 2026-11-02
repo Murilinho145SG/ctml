@@ -206,9 +206,9 @@ impl PageRasterizer {
                         self.runs.get(style_run).map(|originating_run| {
                             let inline_available =
                                 if super::sizing::is_vertical(self.writing_mode()) {
-                                    height as f32 - super::PAGE_PADDING * 2.0
+                                    height as f32 - super::page_padding() * 2.0
                                 } else {
-                                    width as f32 - super::PAGE_PADDING * 2.0
+                                    width as f32 - super::page_padding() * 2.0
                                 };
                             super::layout::resolve_first_letter_padding(
                                 &originating_run.style,
@@ -311,9 +311,9 @@ impl PageRasterizer {
                         self.runs.get(span.run_index).map(|originating_run| {
                             let inline_available =
                                 if super::sizing::is_vertical(self.writing_mode()) {
-                                    height as f32 - super::PAGE_PADDING * 2.0
+                                    height as f32 - super::page_padding() * 2.0
                                 } else {
-                                    width as f32 - super::PAGE_PADDING * 2.0
+                                    width as f32 - super::page_padding() * 2.0
                                 };
                             super::layout::resolve_first_letter_padding(
                                 &originating_run.style,

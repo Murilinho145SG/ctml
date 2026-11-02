@@ -10,7 +10,7 @@ use flex_geometry::nearest_flex_box_x;
 use crate::style::{BackgroundBox, LayoutSize, TextRun, WritingMode};
 
 use super::{
-    PAGE_PADDING, local_writing,
+    local_writing, page_padding,
     sizing::{is_vertical, resolve_layout_width},
     sizing_padding::inline_padding,
 };
@@ -233,8 +233,8 @@ pub(super) fn block_geometries(
         }
     }
 
-    let available_width = (width as f32 - PAGE_PADDING * 2.0).max(0.0);
-    let available_height = (height as f32 - PAGE_PADDING * 2.0).max(0.0);
+    let available_width = (width as f32 - page_padding() * 2.0).max(0.0);
+    let available_height = (height as f32 - page_padding() * 2.0).max(0.0);
     let mut flex_row_heights = HashMap::<usize, f32>::new();
     for ((container, item), item_content_height) in flex_item_content_heights {
         let item_sizes = runs
@@ -365,8 +365,8 @@ pub(super) fn block_geometries(
                     height,
                 );
                 let (left, top, rect_width, rect_height) = transform.map_rect(
-                    PAGE_PADDING,
-                    PAGE_PADDING + extent.top,
+                    page_padding(),
+                    page_padding() + extent.top,
                     clipped_block_height,
                     block_width.max(0.0),
                 );
@@ -379,10 +379,10 @@ pub(super) fn block_geometries(
             } else {
                 let x_offset = nearest_flex_box_x(runs, node_id, flex_item_box_x);
                 ClipRect {
-                    left: PAGE_PADDING + x_offset,
-                    top: PAGE_PADDING + extent.top,
-                    right: PAGE_PADDING + x_offset + block_width.max(0.0),
-                    bottom: PAGE_PADDING + extent.top + clipped_block_height,
+                    left: page_padding() + x_offset,
+                    top: page_padding() + extent.top,
+                    right: page_padding() + x_offset + block_width.max(0.0),
+                    bottom: page_padding() + extent.top + clipped_block_height,
                 }
             };
             let border_box = ClipRect {

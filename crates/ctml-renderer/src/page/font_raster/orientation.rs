@@ -2,7 +2,7 @@ use cosmic_text::LayoutGlyph;
 use skia_safe::{Font, GlyphId, Paint, Point, TextBlobBuilder};
 use unicode_properties::{UnicodeGeneralCategory, general_category::GeneralCategory};
 
-use crate::page::PAGE_PADDING;
+use crate::page::page_padding;
 use crate::style::{TextOrientation, TextStyle, WritingMode};
 
 use super::text_effects::draw_text_shadows;
@@ -72,8 +72,8 @@ pub(super) fn draw_upright_glyphs(
         let mut builder = TextBlobBuilder::new();
         let (glyph_ids, positions) = builder.alloc_run_pos(font, 1, None);
         glyph_ids[0] = GlyphId::from(glyph.glyph_id);
-        let x = glyph.x + glyph.x_offset * glyph.font_size + PAGE_PADDING;
-        let y = baseline + PAGE_PADDING - glyph.y_offset * glyph.font_size;
+        let x = glyph.x + glyph.x_offset * glyph.font_size + page_padding();
+        let y = baseline + page_padding() - glyph.y_offset * glyph.font_size;
         positions[0] = Point::new(x, y);
         let Some(blob) = builder.make() else {
             continue;

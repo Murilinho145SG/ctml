@@ -62,8 +62,8 @@ pub(super) fn positioned_group(
     for (index, glyph) in glyphs.iter().enumerate() {
         glyph_ids[index] = skia_safe::GlyphId::from(glyph.glyph_id);
         positions[index] = Point::new(
-            glyph.x + glyph.x_offset * glyph.font_size + crate::page::PAGE_PADDING,
-            baseline + crate::page::PAGE_PADDING - glyph.y_offset * glyph.font_size,
+            glyph.x + glyph.x_offset * glyph.font_size + crate::page::page_padding(),
+            baseline + crate::page::page_padding() - glyph.y_offset * glyph.font_size,
         );
     }
     builder.make()

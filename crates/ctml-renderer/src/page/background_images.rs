@@ -181,10 +181,10 @@ pub(super) fn draw_background_image_layers(
                 super::border_radius::inset_radii(boxes.border, layer_boxes.get(clip_box), radii);
             let rounded_rect = RRect::new_rect_radii(
                 Rect::from_ltrb(
-                    layer_rect.left() + super::PAGE_PADDING,
-                    layer_rect.top() + super::PAGE_PADDING,
-                    layer_rect.right() + super::PAGE_PADDING,
-                    layer_rect.bottom() + super::PAGE_PADDING,
+                    layer_rect.left() + super::page_padding(),
+                    layer_rect.top() + super::page_padding(),
+                    layer_rect.right() + super::page_padding(),
+                    layer_rect.bottom() + super::page_padding(),
                 ),
                 &[
                     Vector::new(radii[0][0], radii[0][1]),
