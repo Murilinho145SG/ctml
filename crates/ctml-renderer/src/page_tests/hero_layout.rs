@@ -178,6 +178,23 @@ fn feature_separators_use_subpixel_coverage_for_one_pixel_strokes() {
     assert_eq!(pixel(x + 2), [27, 27, 29]);
 }
 
+#[test]
+fn distributed_row_flow_matches_the_hero_minimum_height() {
+    let mut page = showcase_page_at(1904, 1032);
+    let pixels = page.snapshot_pixels(1904, 1032);
+    let feature_top = (650..760)
+        .find(|y| {
+            let offset = (y * 1904 + 100) * 4;
+            pixels[offset] > 40 && pixels[offset + 1] > 40 && pixels[offset + 2] > 40
+        })
+        .expect("feature strip top border should be visible");
+
+    assert!(
+        (694..=708).contains(&feature_top),
+        "feature strip should match the browser's 61vh hero boundary near y=701, got y={feature_top}"
+    );
+}
+
 fn text_bounds(page: &PageRasterizer, text: &str) -> (f32, f32) {
     let line = page
         .layout_runs()
@@ -195,6 +212,10 @@ fn text_bounds(page: &PageRasterizer, text: &str) -> (f32, f32) {
 }
 
 fn showcase_page() -> PageRasterizer {
+    showcase_page_at(1920, 1024)
+}
+
+fn showcase_page_at(width: u32, height: u32) -> PageRasterizer {
     let document = parse(include_str!(
         "../../../../examples/native-app/src/main.ctml"
     ))
@@ -223,6 +244,6 @@ fn showcase_page() -> PageRasterizer {
         })
         .collect::<Vec<_>>();
     let mut page = PageRasterizer::new(&nodes, &stylesheet);
-    page.prepare_layout(1920, 1024);
+    page.prepare_layout(width, height);
     page
 }

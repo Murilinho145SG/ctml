@@ -25,10 +25,23 @@ pub(super) fn apply_vertical(
         let mut last_line = None;
         for line in &item.lines {
             let visual = &lines[*line];
+            // Empty inline markers inherit line height but have no cross-axis content.
+            if visual.max_x <= visual.min_x && !visual.flow_spacer {
+                continue;
+            }
             let shifted = visual.top + line_y[*line];
             top = top.min(shifted);
             bottom = bottom.max(shifted + visual.height);
             last_line = Some(*line);
+        }
+        if last_line.is_none() {
+            for line in &item.lines {
+                let visual = &lines[*line];
+                let shifted = visual.top + line_y[*line];
+                top = top.min(shifted);
+                bottom = bottom.max(shifted + visual.height);
+                last_line = Some(*line);
+            }
         }
         if !top.is_finite() || !bottom.is_finite() {
             return;
@@ -47,6 +60,20 @@ pub(super) fn apply_vertical(
         writing_mode,
     );
     let alignment = layout.style.align_items.unwrap_or(FlexAlignment::Stretch);
+    let flow_alignment_offset = match alignment {
+        FlexAlignment::Center => (cross_size - item_cross_size).max(0.0) / 4.0,
+        FlexAlignment::FlexEnd | FlexAlignment::End => {
+            (cross_size - item_cross_size).max(0.0) / 2.0
+        }
+        _ => 0.0,
+    };
+    // Distributed gaps are zero-width lines; place them on the row's cross-axis start.
+    for line in lines
+        .iter()
+        .filter(|line| line.flex_gap_marker && line.path.last() == Some(&layout.container))
+    {
+        line_y[line.index] += container_top - (line.top + line_y[line.index]);
+    }
     for (index, item) in layout.items.iter().enumerate() {
         let target = match alignment {
             FlexAlignment::Center => container_top + (cross_size - heights[index]) / 2.0,
@@ -70,15 +97,15 @@ pub(super) fn apply_vertical(
             }
         }
     }
-    let last_line = layout
-        .items
+    // Include container-owned marker lines before moving the next block into flow.
+    let last_line = lines
         .iter()
-        .flat_map(|item| item.lines.iter())
-        .copied()
+        .filter(|line| line.path.contains(&layout.container))
+        .map(|line| line.index)
         .max();
     if let Some(last_line) = last_line {
         if let Some(next) = lines.get(last_line + 1) {
-            let desired_bottom = container_top + cross_size;
+            let desired_bottom = container_top + cross_size - flow_alignment_offset;
             let next_top = next.top + line_y[next.index];
             let shift = desired_bottom - next_top;
             if shift != 0.0 {

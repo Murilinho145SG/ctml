@@ -15,6 +15,14 @@ pub(super) fn block_spacer_heights(
     default_line_height: f32,
     page_writing_mode: WritingMode,
 ) -> HashMap<usize, f32> {
+    // The flex-row pass positions distributed rows and their following content itself.
+    let flex_distributed_containers = runs
+        .iter()
+        .filter(|run| {
+            run.style.flex_distributed_gap && run.style.flex_items_row && run.style.display_flex
+        })
+        .filter_map(|run| run.element_path.last().copied())
+        .collect::<std::collections::HashSet<_>>();
     let mut content_heights = HashMap::<usize, f32>::new();
     let mut block_sizes = HashMap::<usize, LayoutSize>::new();
     let mut block_depths = HashMap::<usize, usize>::new();
@@ -56,6 +64,10 @@ pub(super) fn block_spacer_heights(
 
     let mut spacers = HashMap::new();
     for node_id in block_ids {
+        // A second block spacer here counts the row's minimum size twice.
+        if flex_distributed_containers.contains(&node_id) {
+            continue;
+        }
         let size = &block_sizes[&node_id];
         let content_height = content_heights.get(&node_id).copied().unwrap_or_default();
         let containing_height = containing_block_height(

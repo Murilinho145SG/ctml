@@ -25,6 +25,8 @@ struct VisualLine {
     height: f32,
     min_x: f32,
     max_x: f32,
+    flex_gap_marker: bool,
+    flow_spacer: bool,
     path: Vec<usize>,
 }
 
@@ -98,12 +100,10 @@ pub(crate) fn apply_flex_columns(
     let mut lines = Vec::new();
     for (visual_line, line) in page.buffer.layout_runs().enumerate() {
         let line_start = line_starts.get(line.line_i).copied().unwrap_or(0);
-        let path = line
-            .glyphs
-            .first()
-            .and_then(|glyph| {
-                local_writing::style_index_at(&style_ranges, line_start + glyph.start)
-            })
+        let style_index = line.glyphs.first().and_then(|glyph| {
+            local_writing::style_index_at(&style_ranges, line_start + glyph.start)
+        });
+        let path = style_index
             .map(|index| page.runs[index].element_path.clone())
             .unwrap_or_default();
         let min_x = line
@@ -122,6 +122,9 @@ pub(crate) fn apply_flex_columns(
             height: line.line_height,
             min_x: if min_x.is_finite() { min_x } else { 0.0 },
             max_x: if max_x.is_finite() { max_x } else { 0.0 },
+            flex_gap_marker: style_index
+                .is_some_and(|index| page.runs[index].style.flex_distributed_gap),
+            flow_spacer: style_index.is_some_and(|index| page.runs[index].style.flow_spacer),
             path,
         });
     }
